@@ -8,10 +8,7 @@
  * Patterns: Command testing with mocked console and file operations
  */
 
-// Mock chalk and fs before importing
-import { Command } from 'commander';
-import { program, main } from '../src/index';
-
+// Mock modules before importing
 jest.mock('chalk', () => ({
   __esModule: true,
   default: {
@@ -21,16 +18,11 @@ jest.mock('chalk', () => ({
     yellow: jest.fn((str: string) => str),
     cyan: jest.fn((str: string) => str),
     gray: jest.fn((str: string) => str),
+    bold: {
+      green: jest.fn((str: string) => str),
+      red: jest.fn((str: string) => str),
+    },
   },
-}));
-
-jest.mock('fs', () => ({
-  readFileSync: jest.fn(() => '{"name":"cursor-prompt","version":"0.1.0"}'),
-}));
-
-jest.mock('glob', () => ({
-  glob: jest.fn(() => Promise.resolve([])),
-  globSync: jest.fn(() => []),
 }));
 
 jest.mock('clipboardy', () => ({
@@ -40,6 +32,14 @@ jest.mock('clipboardy', () => ({
     read: jest.fn(() => Promise.resolve('')),
   },
 }));
+
+jest.mock('glob', () => ({
+  glob: jest.fn(() => Promise.resolve([])),
+  globSync: jest.fn(() => []),
+}));
+
+import { Command } from 'commander';
+import { program, main } from '../src/index';
 
 jest.mock('path', () => ({
   join: jest.fn((...args: string[]) => args.join('/')),

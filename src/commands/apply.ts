@@ -1,10 +1,9 @@
 /* eslint-disable no-use-before-define */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-await-in-loop */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * @fileoverview Apply command implementation for cursor-prompt-template-engine
- * @lastmodified 2025-08-22T11:50:00Z
+ * @lastmodified 2025-08-22T12:00:00Z
  *
  * Features: Apply prompt templates to current project
  * Main APIs: applyCommand()
@@ -17,7 +16,13 @@ import * as path from 'path';
 import chalk from 'chalk';
 import { logger } from '../utils/logger';
 import { TemplateEngine } from '../core/template-engine';
-import { TemplateValidator } from '../core/template-validator';
+import {
+  TemplateValidator,
+  TemplateSchema,
+  FileDefinition,
+  CommandDefinition,
+  VariableDefinition,
+} from '../core/template-validator';
 import { loadConfig } from '../utils/config';
 
 export interface ApplyOptions {
@@ -32,6 +37,17 @@ interface ApplyResult {
   filesUpdated: string[];
   filesSkipped: string[];
   errors: string[];
+}
+
+interface TemplateWithPath extends TemplateSchema {
+  basePath?: string;
+}
+
+interface AppliedFile {
+  path: string;
+  created?: boolean;
+  updated?: boolean;
+  skipped?: boolean;
 }
 
 /**
@@ -129,15 +145,15 @@ async function findTemplate(
 /**
  * Load template from file
  */
-async function loadTemplate(templatePath: string): Promise<any> {
+async function loadTemplate(templatePath: string): Promise<TemplateWithPath> {
   const stats = fs.statSync(templatePath);
 
   if (stats.isDirectory()) {
     // Load from template.json in directory
     const templateJsonPath = path.join(templatePath, 'template.json');
     const content = fs.readFileSync(templateJsonPath, 'utf8');
-    const template = JSON.parse(content);
-    (template as any).basePath = templatePath;
+    const template: TemplateWithPath = JSON.parse(content);
+    template.basePath = templatePath;
     return template;
   }
   // Load from single file
@@ -160,7 +176,7 @@ async function loadTemplate(templatePath: string): Promise<any> {
  * Preview template application
  */
 async function previewApply(
-  template: any,
+  template: TemplateWithPath,
   options: ApplyOptions
 ): Promise<void> {
   logger.info(chalk.cyan('\nTemplate Information:'));
@@ -170,8 +186,12 @@ async function previewApply(
 
   if (template.files && Array.isArray(template.files)) {
     logger.info(chalk.cyan('\nFiles to be created/updated:'));
-    template.files.forEach((file: any) => {
+    template.files.forEach((file: FileDefinition) => {
       const filePath = file.path || file.name;
+      if (!filePath) {
+        logger.warn('  File missing path or name property');
+        return;
+      }
       let action = '(create)';
       if (fs.existsSync(filePath)) {
         action = options.force ? '(overwrite)' : '(skip - exists)';
@@ -183,7 +203,7 @@ async function previewApply(
   if (template.variables && Object.keys(template.variables).length > 0) {
     logger.info(chalk.cyan('\nRequired variables:'));
     Object.entries(template.variables).forEach(
-      ([key, config]: [string, any]) => {
+      ([key, config]: [string, VariableDefinition]) => {
         const value =
           options.variables?.[key] || config.default || '<not provided>';
         logger.info(`  ${key}: ${value}`);
@@ -193,8 +213,9 @@ async function previewApply(
 
   if (template.commands && Array.isArray(template.commands)) {
     logger.info(chalk.cyan('\nCommands to execute:'));
-    template.commands.forEach((cmd: any) => {
-      logger.info(`  ${cmd.command || cmd}`);
+    template.commands.forEach((cmd: CommandDefinition | string) => {
+      const commandStr = typeof cmd === 'string' ? cmd : cmd.command;
+      logger.info(`  ${commandStr}`);
     });
   }
 }
@@ -203,7 +224,7 @@ async function previewApply(
  * Apply template to project
  */
 async function applyTemplate(
-  template: any,
+  template: TemplateWithPath,
   options: ApplyOptions
 ): Promise<ApplyResult> {
   const result: ApplyResult = {
@@ -273,17 +294,15 @@ async function applyTemplate(
  * Apply individual file from template
  */
 async function applyFile(
-  file: any,
-  variables: Record<string, any>,
+  file: FileDefinition,
+  variables: Record<string, unknown>,
   options: ApplyOptions,
   engine: TemplateEngine
-): Promise<{
-  path: string;
-  created?: boolean;
-  updated?: boolean;
-  skipped?: boolean;
-}> {
+): Promise<AppliedFile> {
   const filePath = file.path || file.name;
+  if (!filePath) {
+    throw new Error('File must have a path or name property');
+  }
   const fullPath = path.resolve(filePath);
 
   // Check if file exists
@@ -319,7 +338,7 @@ async function applyFile(
 /**
  * Execute command from template
  */
-async function executeCommand(cmd: any): Promise<void> {
+async function executeCommand(cmd: CommandDefinition | string): Promise<void> {
   const command = typeof cmd === 'string' ? cmd : cmd.command;
   if (!command) return;
 
@@ -330,7 +349,7 @@ async function executeCommand(cmd: any): Promise<void> {
 /**
  * Get default variables
  */
-function getDefaultVariables(): Record<string, any> {
+function getDefaultVariables(): Record<string, unknown> {
   return {
     projectName: path.basename(process.cwd()),
     projectPath: process.cwd(),

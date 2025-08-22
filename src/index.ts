@@ -18,6 +18,7 @@ import { logger } from './utils/logger';
 import { ErrorUtils } from './utils/errors';
 import { initCommand, InitOptions } from './commands/init';
 import { generateCommand } from './commands/generate';
+import { generateEnhancedCommand } from './commands/generate-enhanced';
 import { listCommand, ListOptions } from './commands/list';
 import { applyCommand, ApplyOptions } from './commands/apply';
 import { validateCommand } from './commands/validate';
@@ -35,8 +36,15 @@ interface CLIGenerateOptions {
   output?: string;
   clipboard?: boolean;
   preview?: boolean;
-  format?: 'markdown' | 'plain' | 'json';
+  format?: string;
+  context?: boolean;
+  includeGit?: boolean;
+  includeFiles?: boolean;
+  filePatterns?: string;
+  contextFiles?: string;
 }
+
+// Removed - using inline options in the command handler
 
 // interface ApplyOptions {
 //   force?: boolean;
@@ -105,6 +113,17 @@ function configureProgram(): void {
       'output format (markdown, plain, json)',
       'markdown'
     )
+    .option('--no-context', 'disable automatic context gathering')
+    .option('--include-git', 'include git context')
+    .option('--include-files', 'include file context')
+    .option(
+      '--file-patterns <patterns>',
+      'file patterns to include (comma-separated)'
+    )
+    .option(
+      '--context-files <files>',
+      'specific files to include (comma-separated)'
+    )
     .action(async (template: string, options: CLIGenerateOptions) => {
       try {
         // Parse variables if provided
@@ -118,14 +137,38 @@ function configureProgram(): void {
           }
         }
 
-        await generateCommand({
-          template,
-          variables,
-          output: options.output,
-          clipboard: options.clipboard,
-          preview: options.preview,
-          format: options.format,
-        });
+        // Use enhanced command if context is enabled (default)
+        if (options.context !== false) {
+          const filePatterns = options.filePatterns
+            ? options.filePatterns.split(',').map((p: string) => p.trim())
+            : undefined;
+          const contextFiles = options.contextFiles
+            ? options.contextFiles.split(',').map((f: string) => f.trim())
+            : undefined;
+
+          await generateEnhancedCommand({
+            template,
+            variables,
+            output: options.output,
+            clipboard: options.clipboard,
+            preview: options.preview,
+            format: options.format as 'markdown' | 'plain' | 'json' | undefined,
+            includeGit: options.includeGit,
+            includeFiles: options.includeFiles,
+            filePatterns,
+            contextFiles,
+          });
+        } else {
+          // Use basic command without context
+          await generateCommand({
+            template,
+            variables,
+            output: options.output,
+            clipboard: options.clipboard,
+            preview: options.preview,
+            format: options.format as 'markdown' | 'plain' | 'json' | undefined,
+          });
+        }
       } catch (error) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));

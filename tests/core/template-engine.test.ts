@@ -9,19 +9,9 @@
  */
 
 import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { TemplateEngine, TemplateContext } from '../../src/core/template-engine';
-
-// Mock fs.promises.readFile - we need to preserve the original for includes
-const originalFs = jest.requireActual('fs');
-jest.mock('fs', () => ({
-  ...originalFs,
-  promises: {
-    ...originalFs.promises,
-    readFile: jest.fn(),
-  },
-}));
-
-const mockReadFile = fs.promises.readFile as jest.MockedFunction<typeof fs.promises.readFile>;
 
 describe('TemplateEngine', () => {
   let engine: TemplateEngine;
@@ -280,40 +270,43 @@ The Team`);
   describe('renderFile()', () => {
     it('should read file and render template', async () => {
       const templateContent = 'Hello {{name}}, welcome to {{place}}!';
-      const templatePath = '/path/to/template.txt';
       const context: TemplateContext = {
         name: 'John',
         place: 'TypeScript',
       };
 
-      mockReadFile.mockResolvedValue(templateContent);
+      // Create temp file for testing
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+      const tempFile = path.join(tempDir, 'template.txt');
+      fs.writeFileSync(tempFile, templateContent);
 
-      const result = await engine.renderFile(templatePath, context);
-
-      expect(mockReadFile).toHaveBeenCalledWith(templatePath, 'utf8');
+      const result = await engine.renderFile(tempFile, context);
       expect(result).toBe('Hello John, welcome to TypeScript!');
+      
+      // Cleanup
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     it('should handle file reading errors', async () => {
       const templatePath = '/nonexistent/template.txt';
       const context: TemplateContext = {};
-      const error = new Error('File not found');
 
-      mockReadFile.mockRejectedValue(error);
-
-      await expect(engine.renderFile(templatePath, context)).rejects.toThrow('File not found');
-      expect(mockReadFile).toHaveBeenCalledWith(templatePath, 'utf8');
+      await expect(engine.renderFile(templatePath, context)).rejects.toThrow();
     });
 
     it('should handle empty file', async () => {
-      const templatePath = '/path/to/empty.txt';
       const context: TemplateContext = { name: 'John' };
 
-      mockReadFile.mockResolvedValue('');
+      // Create temp empty file
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+      const tempFile = path.join(tempDir, 'empty.txt');
+      fs.writeFileSync(tempFile, '');
 
-      const result = await engine.renderFile(templatePath, context);
-
+      const result = await engine.renderFile(tempFile, context);
       expect(result).toBe('');
+      
+      // Cleanup
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     it('should handle complex template from file', async () => {
@@ -344,9 +337,15 @@ Description: {{description}}
         },
       };
 
-      mockReadFile.mockResolvedValue(templateContent);
+      // Create temp file
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+      const tempFile = path.join(tempDir, 'template.md');
+      fs.writeFileSync(tempFile, templateContent);
 
-      const result = await engine.renderFile('/path/to/template.md', context);
+      const result = await engine.renderFile(tempFile, context);
+      
+      // Cleanup
+      fs.rmSync(tempDir, { recursive: true, force: true });
 
       expect(result).toBe(`# Project Template
 
@@ -1050,24 +1049,17 @@ Projects:
   });
 
   describe('template includes (#include)', () => {
-    const tmpDir = '/tmp/test-templates';
+    let tmpDir: string;
     
     beforeEach(() => {
-      // Use real fs.promises.readFile for include tests
-      (fs.promises.readFile as jest.Mock).mockImplementation(originalFs.promises.readFile);
-      
       // Create temp directory for test templates
-      if (!fs.existsSync(tmpDir)) {
-        fs.mkdirSync(tmpDir, { recursive: true });
-      }
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-includes-'));
     });
 
     afterEach(() => {
       // Clean up temp files
       if (fs.existsSync(tmpDir)) {
-        fs.readdirSync(tmpDir).forEach(file => {
-          fs.unlinkSync(`${tmpDir}/${file}`);
-        });
+        fs.rmSync(tmpDir, { recursive: true, force: true });
       }
     });
 

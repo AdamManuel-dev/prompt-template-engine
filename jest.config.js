@@ -32,7 +32,7 @@ module.exports = {
       statements: 80,
     },
   },
-  setupFilesAfterEnv: [],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 30000,
   verbose: true,
   clearMocks: true,
@@ -41,6 +41,6 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'json'],
   extensionsToTreatAsEsm: [],
   transformIgnorePatterns: [
-    'node_modules/(?!(chalk|ansi-styles)/)'
+    'node_modules/(?!(chalk|ansi-styles|clipboardy|execa|strip-final-newline|npm-run-path|path-key|onetime|mimic-fn|human-signals|is-stream|get-stream)/)'
   ]
 };
