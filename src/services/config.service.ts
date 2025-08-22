@@ -77,8 +77,12 @@ export class ConfigService {
       return this.configCache;
     }
 
-    const globalConfig = await this.loadConfigFile(this.globalConfigPath);
-    const localConfig = await this.loadConfigFile(this.localConfigPath);
+    const globalConfig = await ConfigService.loadConfigFile(
+      this.globalConfigPath
+    );
+    const localConfig = await ConfigService.loadConfigFile(
+      this.localConfigPath
+    );
 
     // Merge configurations: defaults -> global -> local
     const merged = ConfigService.mergeConfigs(
@@ -113,13 +117,13 @@ export class ConfigService {
     global: boolean = false
   ): Promise<void> {
     const configPath = global ? this.globalConfigPath : this.localConfigPath;
-    const config = await this.loadConfigFile(configPath);
+    const config = await ConfigService.loadConfigFile(configPath);
 
     // Update the value
-    (config as any)[key] = value;
+    (config as Record<string, unknown>)[key] = value;
 
     // Save the config
-    await this.saveConfigFile(configPath, config);
+    await ConfigService.saveConfigFile(configPath, config);
 
     // Invalidate cache
     this.invalidateCache();
@@ -133,13 +137,13 @@ export class ConfigService {
     global: boolean = false
   ): Promise<void> {
     const configPath = global ? this.globalConfigPath : this.localConfigPath;
-    const config = await this.loadConfigFile(configPath);
+    const config = await ConfigService.loadConfigFile(configPath);
 
     // Merge updates
     Object.assign(config, updates);
 
     // Save the config
-    await this.saveConfigFile(configPath, config);
+    await ConfigService.saveConfigFile(configPath, config);
 
     // Invalidate cache
     this.invalidateCache();
@@ -153,13 +157,13 @@ export class ConfigService {
     global: boolean = false
   ): Promise<void> {
     const configPath = global ? this.globalConfigPath : this.localConfigPath;
-    const config = await this.loadConfigFile(configPath);
+    const config = await ConfigService.loadConfigFile(configPath);
 
     // Delete the key
-    delete (config as any)[key];
+    delete (config as Record<string, unknown>)[key];
 
     // Save the config
-    await this.saveConfigFile(configPath, config);
+    await ConfigService.saveConfigFile(configPath, config);
 
     // Invalidate cache
     this.invalidateCache();
@@ -185,7 +189,7 @@ export class ConfigService {
    */
   async listConfig(global: boolean = false): Promise<Partial<ConfigOptions>> {
     const configPath = global ? this.globalConfigPath : this.localConfigPath;
-    return this.loadConfigFile(configPath);
+    return ConfigService.loadConfigFile(configPath);
   }
 
   /**
@@ -286,7 +290,7 @@ export class ConfigService {
   /**
    * Load configuration from file
    */
-  private async loadConfigFile(
+  private static async loadConfigFile(
     configPath: string
   ): Promise<Partial<ConfigOptions>> {
     if (!fs.existsSync(configPath)) {
@@ -321,7 +325,7 @@ export class ConfigService {
   /**
    * Save configuration to file
    */
-  private async saveConfigFile(
+  private static async saveConfigFile(
     configPath: string,
     config: Partial<ConfigOptions>
   ): Promise<void> {
@@ -364,17 +368,24 @@ export class ConfigService {
         if (value !== undefined) {
           if (key === 'templatePaths' && Array.isArray(value)) {
             // Merge template paths uniquely
-            const existing = (merged as any)[key] || [];
-            (merged as any)[key] = Array.from(new Set([...existing, ...value]));
+            const existing =
+              ((merged as unknown as Record<string, unknown>)[
+                key
+              ] as string[]) || [];
+            (merged as unknown as Record<string, unknown>)[key] = Array.from(
+              new Set([...existing, ...(value as string[])])
+            );
           } else if (key === 'customVariables' && typeof value === 'object') {
             // Deep merge custom variables
-            (merged as any)[key] = {
-              ...((merged as any)[key] || {}),
-              ...value,
+            (merged as unknown as Record<string, unknown>)[key] = {
+              ...(((merged as unknown as Record<string, unknown>)[
+                key
+              ] as Record<string, unknown>) || {}),
+              ...(value as Record<string, unknown>),
             };
           } else {
             // Simple override
-            (merged as any)[key] = value;
+            (merged as unknown as Record<string, unknown>)[key] = value;
           }
         }
       });

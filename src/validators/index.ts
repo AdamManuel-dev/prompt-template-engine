@@ -15,7 +15,7 @@ export {
   PostProcessor,
 } from './validation-pipeline';
 
-export { BaseValidator } from './base.validator';
+export { default as BaseValidator } from './base.validator';
 
 export type {
   ValidationContext,
@@ -28,7 +28,5 @@ export type {
 export { SchemaValidator } from './schema.validator';
 export type { SchemaDefinition, SchemaField } from './schema.validator';
 
-export {
-  TemplateStructureValidator,
-  VariableValidator,
-} from './template.validator';
+export { default as TemplateStructureValidator } from './template.validator';
+export { default as VariableValidator } from './variable.validator';

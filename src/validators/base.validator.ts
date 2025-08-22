@@ -16,7 +16,7 @@ import {
   Validator,
 } from './validation-pipeline';
 
-export abstract class BaseValidator implements Validator {
+export default abstract class BaseValidator implements Validator {
   public readonly name: string;
 
   constructor(name: string) {

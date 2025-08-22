@@ -8,7 +8,7 @@
  * Patterns: Schema validation pattern
  */
 
-import { BaseValidator } from './base.validator';
+import BaseValidator from './base.validator';
 import { ValidationContext, ValidationResult } from './validation-pipeline';
 
 export interface SchemaField {

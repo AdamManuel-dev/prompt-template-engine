@@ -105,7 +105,7 @@ export class TemplateService {
 
     if (stats.isDirectory()) {
       // Load from directory structure
-      template = await this.loadTemplateFromDirectory(templatePath);
+      template = await TemplateService.loadTemplateFromDirectory(templatePath);
     } else {
       // Load from single file
       template = await TemplateService.loadTemplateFromFile(templatePath);
@@ -144,7 +144,9 @@ export class TemplateService {
   /**
    * Load template from directory structure
    */
-  private async loadTemplateFromDirectory(dirPath: string): Promise<Template> {
+  private static async loadTemplateFromDirectory(
+    dirPath: string
+  ): Promise<Template> {
     const configPath = path.join(dirPath, 'template.json');
 
     if (!fs.existsSync(configPath)) {
@@ -163,7 +165,8 @@ export class TemplateService {
         if (!file.content && file.path) {
           const filePath = path.join(dirPath, file.path);
           if (fs.existsSync(filePath)) {
-            file.content = await fs.promises.readFile(filePath, 'utf8');
+            const content = await fs.promises.readFile(filePath, 'utf8');
+            return { ...file, content };
           }
         }
         return file;
@@ -181,7 +184,7 @@ export class TemplateService {
     variables: Record<string, unknown>
   ): Promise<Template> {
     // Validate variables against template requirements
-    const validation = this.validateVariables(template, variables);
+    const validation = TemplateService.validateVariables(template, variables);
     if (!validation.valid) {
       throw new ValidationError(
         `Invalid template variables: ${validation.errors.join(', ')}`
@@ -189,7 +192,7 @@ export class TemplateService {
     }
 
     // Create context with defaults
-    const context = this.buildContext(template, variables);
+    const context = TemplateService.buildContext(template, variables);
 
     // Render all files
     const renderedFiles = await Promise.all(
@@ -218,7 +221,7 @@ export class TemplateService {
   /**
    * Validate template structure
    */
-  async validateTemplate(template: Template): Promise<{
+  static async validateTemplate(template: Template): Promise<{
     valid: boolean;
     errors: string[];
     warnings: string[];
@@ -360,7 +363,7 @@ export class TemplateService {
   /**
    * Validate variables against template requirements
    */
-  private validateVariables(
+  private static validateVariables(
     template: Template,
     variables: Record<string, unknown>
   ): { valid: boolean; errors: string[] } {
@@ -439,7 +442,7 @@ export class TemplateService {
   /**
    * Build context with defaults and system variables
    */
-  private buildContext(
+  private static buildContext(
     template: Template,
     variables: Record<string, unknown>
   ): TemplateContext {
