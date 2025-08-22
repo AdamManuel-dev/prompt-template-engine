@@ -36,8 +36,20 @@ export interface WorkspaceFolder {
   index: number;
 }
 
-export class CursorExtensionBridge extends EventEmitter {
-  private static instance: CursorExtensionBridge;
+// Interface declaration to resolve no-use-before-define
+interface ICursorExtensionBridge {
+  initialize(): Promise<void>;
+  registerCommands(commands: Record<string, ExtensionCommand>): Promise<void>;
+  executeCommand(commandId: string, args?: unknown[]): Promise<unknown>;
+  getCommands(): ExtensionCommand[];
+  isInitialized(): boolean;
+}
+
+export class CursorExtensionBridge
+  extends EventEmitter
+  implements ICursorExtensionBridge
+{
+  private static instance: ICursorExtensionBridge;
 
   private commands: Map<string, ExtensionCommand> = new Map();
 
@@ -56,7 +68,7 @@ export class CursorExtensionBridge extends EventEmitter {
     if (!CursorExtensionBridge.instance) {
       CursorExtensionBridge.instance = new CursorExtensionBridge();
     }
-    return CursorExtensionBridge.instance;
+    return CursorExtensionBridge.instance as CursorExtensionBridge;
   }
 
   /**
@@ -93,6 +105,7 @@ export class CursorExtensionBridge extends EventEmitter {
       path.join(process.env.HOME || '', '.local', 'share', 'cursor'),
     ];
 
+    // eslint-disable-next-line no-restricted-syntax
     for (const cursorPath of possiblePaths) {
       if (fs.existsSync(cursorPath)) {
         logger.info(`Cursor IDE detected at: ${cursorPath}`);
@@ -120,9 +133,9 @@ export class CursorExtensionBridge extends EventEmitter {
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
       if (manifest.contributes && manifest.contributes.commands) {
-        for (const command of manifest.contributes.commands) {
+        manifest.contributes.commands.forEach(command => {
           this.commands.set(command.command, command);
-        }
+        });
       }
 
       logger.info(`Loaded ${this.commands.size} extension commands`);
@@ -227,9 +240,9 @@ export class CursorExtensionBridge extends EventEmitter {
     );
 
     // Load the created manifest
-    for (const command of manifest.contributes.commands) {
+    manifest.contributes.commands.forEach(command => {
       this.commands.set(command.command, command);
-    }
+    });
   }
 
   /**
@@ -241,7 +254,10 @@ export class CursorExtensionBridge extends EventEmitter {
       return;
     }
 
+    // Register commands sequentially to avoid conflicts
+    // eslint-disable-next-line no-restricted-syntax
     for (const [commandId, command] of this.commands.entries()) {
+      // eslint-disable-next-line no-await-in-loop
       await this.registerCommand(commandId, command);
     }
   }
@@ -388,18 +404,18 @@ export class CursorExtensionBridge extends EventEmitter {
 
     // This would normally open a view in Cursor
     // For now, we'll just log them
-    console.log('\nAvailable Templates:');
-    console.log('===================');
+    logger.info('\nAvailable Templates:');
+    logger.info('===================');
 
-    for (const template of templates) {
-      console.log(`\n📄 ${template.name}`);
+    templates.forEach(template => {
+      logger.info(`\n📄 ${template.name}`);
       if (template.metadata?.description) {
-        console.log(`   ${template.metadata.description}`);
+        logger.info(`   ${template.metadata.description}`);
       }
       if (template.metadata?.tags) {
-        console.log(`   Tags: ${template.metadata.tags.join(', ')}`);
+        logger.info(`   Tags: ${template.metadata.tags.join(', ')}`);
       }
-    }
+    });
   }
 
   /**
@@ -414,6 +430,7 @@ export class CursorExtensionBridge extends EventEmitter {
   /**
    * Get current editor content (simulated)
    */
+  // eslint-disable-next-line class-methods-use-this
   private async getEditorContent(): Promise<string> {
     // In a real implementation, this would get content from the active editor
     // For now, return a placeholder
@@ -423,6 +440,7 @@ export class CursorExtensionBridge extends EventEmitter {
   /**
    * Get workspace folders
    */
+  // eslint-disable-next-line class-methods-use-this
   async getWorkspaceFolders(): Promise<WorkspaceFolder[]> {
     // This would normally use the VSCode API
     // For now, return current directory
@@ -438,13 +456,14 @@ export class CursorExtensionBridge extends EventEmitter {
   /**
    * Show information message
    */
+  // eslint-disable-next-line class-methods-use-this
   showInformationMessage(
     message: string,
     ...actions: string[]
   ): Promise<string | undefined> {
-    console.log(`ℹ️  ${message}`);
+    logger.info(`ℹ️  ${message}`);
     if (actions.length > 0) {
-      console.log(`   Actions: ${actions.join(', ')}`);
+      logger.info(`   Actions: ${actions.join(', ')}`);
     }
     return Promise.resolve(undefined);
   }
@@ -452,13 +471,14 @@ export class CursorExtensionBridge extends EventEmitter {
   /**
    * Show error message
    */
+  // eslint-disable-next-line class-methods-use-this
   showErrorMessage(
     message: string,
     ...actions: string[]
   ): Promise<string | undefined> {
-    console.error(`❌ ${message}`);
+    logger.error(`❌ ${message}`);
     if (actions.length > 0) {
-      console.log(`   Actions: ${actions.join(', ')}`);
+      logger.info(`   Actions: ${actions.join(', ')}`);
     }
     return Promise.resolve(undefined);
   }
@@ -466,13 +486,14 @@ export class CursorExtensionBridge extends EventEmitter {
   /**
    * Show warning message
    */
+  // eslint-disable-next-line class-methods-use-this
   showWarningMessage(
     message: string,
     ...actions: string[]
   ): Promise<string | undefined> {
     console.warn(`⚠️  ${message}`);
     if (actions.length > 0) {
-      console.log(`   Actions: ${actions.join(', ')}`);
+      logger.info(`   Actions: ${actions.join(', ')}`);
     }
     return Promise.resolve(undefined);
   }
@@ -480,13 +501,14 @@ export class CursorExtensionBridge extends EventEmitter {
   /**
    * Show quick pick
    */
+  // eslint-disable-next-line class-methods-use-this
   async showQuickPick<T extends { label: string }>(
     items: T[],
     options?: { placeHolder?: string; canPickMany?: boolean }
   ): Promise<T | T[] | undefined> {
-    console.log(options?.placeHolder || 'Select an item:');
+    logger.info(options?.placeHolder || 'Select an item:');
     items.forEach((item, index) => {
-      console.log(`  ${index + 1}. ${item.label}`);
+      logger.info(`  ${index + 1}. ${item.label}`);
     });
 
     // In a real implementation, this would show a picker UI
@@ -496,15 +518,16 @@ export class CursorExtensionBridge extends EventEmitter {
   /**
    * Show input box
    */
+  // eslint-disable-next-line class-methods-use-this
   async showInputBox(options?: {
     prompt?: string;
     placeHolder?: string;
     value?: string;
     validateInput?: (value: string) => string | undefined;
   }): Promise<string | undefined> {
-    console.log(options?.prompt || 'Enter value:');
+    logger.info(options?.prompt || 'Enter value:');
     if (options?.placeHolder) {
-      console.log(`  Placeholder: ${options.placeHolder}`);
+      logger.info(`  Placeholder: ${options.placeHolder}`);
     }
 
     // In a real implementation, this would show an input UI

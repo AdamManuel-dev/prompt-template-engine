@@ -13,7 +13,9 @@ import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
+import { MarketplaceCommandOptions } from '../../types';
 import { TemplateModel } from '../../marketplace/models/template.model';
+import { logger } from '../../utils/logger';
 
 export class InfoCommand extends BaseCommand implements ICommand {
   name = 'info';
@@ -59,7 +61,10 @@ export class InfoCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(templateName: string, options: any): Promise<void> {
+  async execute(
+    templateName: string,
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     if (!templateName || !templateName.trim()) {
       this.error(
         'Template name is required. Usage: cursor-prompt info <template-name>'
@@ -92,34 +97,34 @@ export class InfoCommand extends BaseCommand implements ICommand {
           return;
         }
 
-        template = searchResult.templates[0];
+        [template] = searchResult.templates;
       }
 
       // Display template information
       this.displayBasicInfo(template, isInstalled);
 
       if (options.all || options.versions) {
-        this.displayVersionHistory(template);
+        InfoCommand.displayVersionHistory(template);
       }
 
       if (options.all || options.dependencies) {
-        this.displayDependencies(template);
+        InfoCommand.displayDependencies(template);
       }
 
       if (options.all || options.examples) {
-        this.displayExamples(template);
+        InfoCommand.displayExamples(template);
       }
 
       if (options.all || options.reviews) {
-        await this.displayRecentReviews(template);
+        await InfoCommand.displayRecentReviews(template);
       }
 
       if (options.all || options.stats) {
-        this.displayDetailedStats(template);
+        InfoCommand.displayDetailedStats(template);
       }
 
       // Show installation/usage instructions
-      this.displayUsageInstructions(template, isInstalled);
+      InfoCommand.displayUsageInstructions(template, isInstalled);
     } catch (error) {
       this.error(
         `Failed to get template info: ${error instanceof Error ? error.message : String(error)}`
@@ -127,90 +132,91 @@ export class InfoCommand extends BaseCommand implements ICommand {
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private displayBasicInfo(
     template: TemplateModel,
     isInstalled: boolean
   ): void {
-    const badges = this.formatBadges(template);
+    const badges = InfoCommand.formatBadges(template);
     const installStatus = isInstalled
       ? chalk.green('✓ Installed')
       : chalk.gray('Not installed');
 
-    console.log(
+    logger.info(
       chalk.bold.underline(`\n📦 ${template.displayName || template.name}`)
     );
-    console.log(`${badges} ${installStatus}\n`);
+    logger.info(`${badges} ${installStatus}\n`);
 
-    console.log(`${template.description}`);
+    logger.info(`${template.description}`);
 
     if (template.longDescription) {
-      console.log(`\n${chalk.gray(template.longDescription)}`);
+      logger.info(`\n${chalk.gray(template.longDescription)}`);
     }
 
     // Basic metadata
-    console.log(chalk.bold('\n📋 Details:'));
-    console.log(`   ID: ${chalk.gray(template.id)}`);
-    console.log(`   Category: ${chalk.magenta(template.category)}`);
-    console.log(`   Current Version: ${chalk.yellow(template.currentVersion)}`);
-    console.log(
+    logger.info(chalk.bold('\n📋 Details:'));
+    logger.info(`   ID: ${chalk.gray(template.id)}`);
+    logger.info(`   Category: ${chalk.magenta(template.category)}`);
+    logger.info(`   Current Version: ${chalk.yellow(template.currentVersion)}`);
+    logger.info(
       `   Author: ${chalk.blue(template.author.name)}${template.author.verified ? ' ✓' : ''}`
     );
-    console.log(`   License: ${chalk.gray(template.metadata.license)}`);
-    console.log(
+    logger.info(`   License: ${chalk.gray(template.metadata.license)}`);
+    logger.info(
       `   Created: ${chalk.gray(new Date(template.created).toLocaleDateString())}`
     );
-    console.log(
+    logger.info(
       `   Updated: ${chalk.gray(new Date(template.updated).toLocaleDateString())}`
     );
 
     // Rating and stats
-    console.log(chalk.bold('\n⭐ Rating & Stats:'));
-    console.log(
-      `   Rating: ${this.formatRating(template.rating.average)} (${template.rating.total} reviews)`
+    logger.info(chalk.bold('\n⭐ Rating & Stats:'));
+    logger.info(
+      `   Rating: ${InfoCommand.formatRating(template.rating.average)} (${template.rating.total} reviews)`
     );
-    console.log(
-      `   Downloads: ${chalk.cyan(this.formatNumber(template.stats.downloads))}`
+    logger.info(
+      `   Downloads: ${chalk.cyan(InfoCommand.formatNumber(template.stats.downloads))}`
     );
-    console.log(
-      `   Weekly: ${chalk.cyan(this.formatNumber(template.stats.weeklyDownloads))}`
+    logger.info(
+      `   Weekly: ${chalk.cyan(InfoCommand.formatNumber(template.stats.weeklyDownloads))}`
     );
-    console.log(
-      `   Monthly: ${chalk.cyan(this.formatNumber(template.stats.monthlyDownloads))}`
+    logger.info(
+      `   Monthly: ${chalk.cyan(InfoCommand.formatNumber(template.stats.monthlyDownloads))}`
     );
 
     if (template.stats.trending) {
-      console.log(`   ${chalk.red('🔥 Trending')}`);
+      logger.info(`   ${chalk.red('🔥 Trending')}`);
     }
 
     // Tags
     if (template.tags.length > 0) {
-      console.log(chalk.bold('\n🏷️  Tags:'));
-      console.log(
+      logger.info(chalk.bold('\n🏷️  Tags:'));
+      logger.info(
         `   ${template.tags.map(tag => chalk.gray(`#${tag}`)).join(' ')}`
       );
     }
 
     // Repository
     if (template.metadata.repository) {
-      console.log(chalk.bold('\n🔗 Links:'));
-      console.log(
+      logger.info(chalk.bold('\n🔗 Links:'));
+      logger.info(
         `   Repository: ${chalk.blue(template.metadata.repository.url)}`
       );
     }
 
     if (template.author.website) {
-      console.log(`   Author Website: ${chalk.blue(template.author.website)}`);
+      logger.info(`   Author Website: ${chalk.blue(template.author.website)}`);
     }
 
     if (template.author.github) {
-      console.log(
+      logger.info(
         `   GitHub: ${chalk.blue(`https://github.com/${template.author.github}`)}`
       );
     }
   }
 
-  private displayVersionHistory(template: TemplateModel): void {
-    console.log(chalk.bold('\n📚 Version History:'));
+  private static displayVersionHistory(template: TemplateModel): void {
+    logger.info(chalk.bold('\n📚 Version History:'));
 
     const versions = template.versions.slice(0, 5); // Show latest 5 versions
 
@@ -220,91 +226,97 @@ export class InfoCommand extends BaseCommand implements ICommand {
         ? chalk.bold.yellow(`v${version.version} (current)`)
         : chalk.yellow(`v${version.version}`);
 
-      console.log(`\n   ${versionText}`);
-      console.log(`   ${chalk.gray(version.description)}`);
-      console.log(
+      logger.info(`\n   ${versionText}`);
+      logger.info(`   ${chalk.gray(version.description)}`);
+      logger.info(
         `   Released: ${chalk.gray(new Date(version.created).toLocaleDateString())}`
       );
-      console.log(
-        `   Downloads: ${chalk.cyan(this.formatNumber(version.downloads))}`
+      logger.info(
+        `   Downloads: ${chalk.cyan(InfoCommand.formatNumber(version.downloads))}`
       );
-      console.log(`   Size: ${this.formatBytes(version.size)}`);
+      logger.info(`   Size: ${InfoCommand.formatBytes(version.size)}`);
 
       if (version.changelog) {
         const changelog =
           version.changelog.length > 100
             ? `${version.changelog.substring(0, 100)}...`
             : version.changelog;
-        console.log(`   ${chalk.gray(`Changes: ${changelog}`)}`);
+        logger.info(`   ${chalk.gray(`Changes: ${changelog}`)}`);
       }
     });
 
     if (template.versions.length > 5) {
-      console.log(
+      logger.info(
         `\n   ${chalk.gray(`... and ${template.versions.length - 5} more versions`)}`
       );
     }
   }
 
-  private displayDependencies(template: TemplateModel): void {
+  private static displayDependencies(template: TemplateModel): void {
     const currentVersion = template.versions.find(
       v => v.version === template.currentVersion
     );
     if (!currentVersion || currentVersion.dependencies.length === 0) {
-      console.log(chalk.bold('\n🔗 Dependencies:'));
-      console.log('   None');
+      logger.info(chalk.bold('\n🔗 Dependencies:'));
+      logger.info('   None');
       return;
     }
 
-    console.log(chalk.bold('\n🔗 Dependencies:'));
+    logger.info(chalk.bold('\n🔗 Dependencies:'));
 
     currentVersion.dependencies.forEach(dep => {
       const optional = dep.optional ? chalk.gray('(optional)') : '';
-      const typeIcon =
-        dep.type === 'plugin' ? '🔌' : dep.type === 'template' ? '📦' : '⚙️';
+      let typeIcon = '⚙️'; // default
+      if (dep.type === 'plugin') {
+        typeIcon = '🔌';
+      } else if (dep.type === 'template') {
+        typeIcon = '📦';
+      }
 
-      console.log(`   ${typeIcon} ${dep.name}@${dep.version} ${optional}`);
+      logger.info(`   ${typeIcon} ${dep.name}@${dep.version} ${optional}`);
 
       if (dep.description) {
-        console.log(`     ${chalk.gray(dep.description)}`);
+        logger.info(`     ${chalk.gray(dep.description)}`);
       }
     });
   }
 
-  private displayExamples(template: TemplateModel): void {
+  private static displayExamples(template: TemplateModel): void {
     const currentVersion = template.versions.find(
       v => v.version === template.currentVersion
     );
     if (!currentVersion || currentVersion.examples.length === 0) {
-      console.log(chalk.bold('\n💡 Examples:'));
-      console.log('   No examples available');
+      logger.info(chalk.bold('\n💡 Examples:'));
+      logger.info('   No examples available');
       return;
     }
 
-    console.log(chalk.bold('\n💡 Usage Examples:'));
+    logger.info(chalk.bold('\n💡 Usage Examples:'));
 
     currentVersion.examples.forEach((example, index) => {
-      console.log(`\n   ${index + 1}. ${chalk.bold(example.name)}`);
-      console.log(`      ${example.description}`);
+      logger.info(`\n   ${index + 1}. ${chalk.bold(example.name)}`);
+      logger.info(`      ${example.description}`);
 
-      console.log(chalk.gray('      Variables:'));
+      logger.info(chalk.gray('      Variables:'));
       Object.entries(example.variables).forEach(([key, value]) => {
-        console.log(`        ${key}: "${value}"`);
+        logger.info(`        ${key}: "${value}"`);
       });
 
       if (example.expectedOutput) {
-        console.log(chalk.gray('      Expected output:'));
+        logger.info(chalk.gray('      Expected output:'));
         const output =
           example.expectedOutput.length > 100
             ? `${example.expectedOutput.substring(0, 100)}...`
             : example.expectedOutput;
-        console.log(`        ${chalk.gray(output)}`);
+        logger.info(`        ${chalk.gray(output)}`);
       }
     });
   }
 
-  private async displayRecentReviews(template: TemplateModel): Promise<void> {
-    console.log(chalk.bold('\n💬 Recent Reviews:'));
+  private static async displayRecentReviews(
+    template: TemplateModel
+  ): Promise<void> {
+    logger.info(chalk.bold('\n💬 Recent Reviews:'));
 
     try {
       const marketplace = MarketplaceService.getInstance();
@@ -315,16 +327,16 @@ export class InfoCommand extends BaseCommand implements ICommand {
       );
 
       if (reviews.length === 0) {
-        console.log('   No reviews yet');
+        logger.info('   No reviews yet');
         return;
       }
 
       reviews.forEach(review => {
-        const stars = this.formatStars(review.rating);
+        const stars = InfoCommand.formatStars(review.rating);
         const date = new Date(review.created).toLocaleDateString();
 
-        console.log(`\n   ${stars} ${chalk.bold(review.title || 'Review')}`);
-        console.log(
+        logger.info(`\n   ${stars} ${chalk.bold(review.title || 'Review')}`);
+        logger.info(
           `   by ${chalk.blue(review.userName)} on ${chalk.gray(date)}`
         );
 
@@ -333,89 +345,91 @@ export class InfoCommand extends BaseCommand implements ICommand {
             review.comment.length > 150
               ? `${review.comment.substring(0, 150)}...`
               : review.comment;
-          console.log(`   ${chalk.gray(comment)}`);
+          logger.info(`   ${chalk.gray(comment)}`);
         }
       });
 
       if (template.rating.total > 3) {
-        console.log(
+        logger.info(
           `\n   ${chalk.gray(`... and ${template.rating.total - 3} more reviews`)}`
         );
       }
-    } catch (error) {
-      console.log('   Unable to load reviews');
+    } catch {
+      logger.info('   Unable to load reviews');
     }
   }
 
-  private displayDetailedStats(template: TemplateModel): void {
-    console.log(chalk.bold('\n📊 Detailed Statistics:'));
+  private static displayDetailedStats(template: TemplateModel): void {
+    logger.info(chalk.bold('\n📊 Detailed Statistics:'));
 
     const { stats } = template;
 
-    console.log(
-      `   Total Downloads: ${chalk.cyan(this.formatNumber(stats.downloads))}`
+    logger.info(
+      `   Total Downloads: ${chalk.cyan(InfoCommand.formatNumber(stats.downloads))}`
     );
-    console.log(
-      `   Weekly Downloads: ${chalk.cyan(this.formatNumber(stats.weeklyDownloads))}`
+    logger.info(
+      `   Weekly Downloads: ${chalk.cyan(InfoCommand.formatNumber(stats.weeklyDownloads))}`
     );
-    console.log(
-      `   Monthly Downloads: ${chalk.cyan(this.formatNumber(stats.monthlyDownloads))}`
+    logger.info(
+      `   Monthly Downloads: ${chalk.cyan(InfoCommand.formatNumber(stats.monthlyDownloads))}`
     );
-    console.log(
-      `   Favorites: ${chalk.cyan(this.formatNumber(stats.favorites))}`
+    logger.info(
+      `   Favorites: ${chalk.cyan(InfoCommand.formatNumber(stats.favorites))}`
     );
-    console.log(`   Forks: ${chalk.cyan(this.formatNumber(stats.forks))}`);
+    logger.info(
+      `   Forks: ${chalk.cyan(InfoCommand.formatNumber(stats.forks))}`
+    );
 
     if (stats.issues > 0) {
-      console.log(`   Open Issues: ${chalk.yellow(stats.issues)}`);
+      logger.info(`   Open Issues: ${chalk.yellow(stats.issues)}`);
     }
 
-    console.log(
+    logger.info(
       `   Popularity Score: ${chalk.cyan(stats.popularityScore.toFixed(1))}`
     );
-    console.log(
+    logger.info(
       `   Last Download: ${chalk.gray(new Date(stats.lastDownload).toLocaleDateString())}`
     );
 
     // Author stats
-    console.log(chalk.bold('\n👤 Author Statistics:'));
-    console.log(`   Templates: ${chalk.cyan(template.author.totalTemplates)}`);
-    console.log(
-      `   Total Downloads: ${chalk.cyan(this.formatNumber(template.author.totalDownloads))}`
+    logger.info(chalk.bold('\n👤 Author Statistics:'));
+    logger.info(`   Templates: ${chalk.cyan(template.author.totalTemplates)}`);
+    logger.info(
+      `   Total Downloads: ${chalk.cyan(InfoCommand.formatNumber(template.author.totalDownloads))}`
     );
-    console.log(`   Reputation: ${chalk.cyan(template.author.reputation)}`);
+    logger.info(`   Reputation: ${chalk.cyan(template.author.reputation)}`);
   }
 
-  private displayUsageInstructions(
+  private static displayUsageInstructions(
     template: TemplateModel,
     isInstalled: boolean
   ): void {
-    console.log(chalk.bold('\n🚀 Usage:'));
+    logger.info(chalk.bold('\n🚀 Usage:'));
 
     if (!isInstalled) {
-      console.log(
+      logger.info(
         `   Install: ${chalk.green(`cursor-prompt install ${template.name}`)}`
       );
     }
 
-    console.log(
+    logger.info(
       `   Generate: ${chalk.green(`cursor-prompt generate ${template.name}`)}`
     );
-    console.log(
+    logger.info(
       `   Rate: ${chalk.green(`cursor-prompt rate ${template.name} --rating 5`)}`
     );
 
     if (isInstalled) {
-      console.log(
+      logger.info(
         `   Update: ${chalk.green(`cursor-prompt update ${template.name}`)}`
       );
-      console.log(
+      logger.info(
         `   Uninstall: ${chalk.green(`cursor-prompt uninstall ${template.name}`)}`
       );
     }
   }
 
-  private formatBadges(template: TemplateModel): string {
+  private static formatBadges(template: TemplateModel): string {
     const badges: string[] = [];
 
     if (template.featured) {
@@ -437,11 +451,11 @@ export class InfoCommand extends BaseCommand implements ICommand {
     return badges.join(' ');
   }
 
-  private formatRating(rating: number): string {
-    return `${this.formatStars(rating)} ${chalk.gray(`(${rating.toFixed(1)})`)}`;
+  private static formatRating(rating: number): string {
+    return `${InfoCommand.formatStars(rating)} ${chalk.gray(`(${rating.toFixed(1)})`)}`;
   }
 
-  private formatStars(rating: number): string {
+  private static formatStars(rating: number): string {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
@@ -454,7 +468,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
     return chalk.yellow(stars);
   }
 
-  private formatNumber(num: number): string {
+  private static formatNumber(num: number): string {
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
     }
@@ -464,7 +478,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
     return num.toString();
   }
 
-  private formatBytes(bytes: number): string {
+  private static formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B';
 
     const k = 1024;

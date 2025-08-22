@@ -7,8 +7,12 @@
     "cursor-prompt": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --project tsconfig.build.json",
+    "build:strict": "tsc --noEmit --strict",
     "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "type-check:strict": "tsc --noEmit --strict --noUnusedLocals --noUnusedParameters --exactOptionalPropertyTypes --noUncheckedIndexedAccess --noImplicitOverride --noPropertyAccessFromIndexSignature",
+    "type-check:tests": "tsc --project tsconfig.test.json --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -17,7 +21,9 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\"",
     "clean": "rm -rf dist coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "ci:check": "npm run type-check:strict && npm run lint && npm run test:coverage",
+    "precommit": "npm run type-check && npm run lint && npm run test"
   },
   "keywords": [
     "cursor",
@@ -39,15 +45,18 @@
     "commander": "^14.0.0",
     "glob": "^11.0.0",
     "ignore": "^6.0.2",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "tslib": "^2.8.1",
+    "ws": "^8.18.3",
+    "@types/ws": "^8.18.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.12.0",
-    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
+    "audit-ci": "^7.1.0",
     "eslint": "^8.57.1",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-prettier": "^9.1.0",
@@ -56,11 +65,11 @@
     "eslint-plugin-prettier": "^5.2.1",
     "husky": "^9.1.7",
     "jest": "^29.7.0",
+    "license-checker": "^25.0.1",
     "prettier": "^3.4.2",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3",
-    "ws": "^8.18.3"
+    "typescript": "^5.7.3"
   },
   "engines": {
     "node": ">=22.0.0"

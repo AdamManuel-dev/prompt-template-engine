@@ -16,6 +16,16 @@ import {
   FileContent,
   ProjectStructure,
 } from './file-context-service';
+import {
+  IFileSystem,
+  IGlobService,
+  IIgnoreService,
+} from '../interfaces/file-system.interface';
+import {
+  NodeFileSystem,
+  NodeGlobService,
+  NodeIgnoreService,
+} from '../implementations/node-file-system';
 
 export interface SystemContext {
   platform: string;
@@ -70,10 +80,19 @@ export class ContextAggregator {
 
   private terminalHistory: TerminalContext[] = [];
 
-  constructor(cwd: string = process.cwd()) {
+  constructor(
+    gitService?: GitService,
+    fileService?: FileContextService,
+    cwd: string = process.cwd(),
+    fileSystem: IFileSystem = new NodeFileSystem(),
+    globService: IGlobService = new NodeGlobService(),
+    ignoreService: IIgnoreService = new NodeIgnoreService()
+  ) {
     this.cwd = cwd;
-    this.gitService = new GitService(cwd);
-    this.fileService = new FileContextService(cwd);
+    this.gitService = gitService || new GitService(cwd);
+    this.fileService =
+      fileService ||
+      new FileContextService({}, cwd, fileSystem, globService, ignoreService);
   }
 
   /**

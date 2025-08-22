@@ -12,7 +12,13 @@ import chalk from 'chalk';
 import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
+import {
+  MarketplaceCommandOptions,
+  MarketplaceTemplate,
+  TemplateDependency,
+} from '../../types';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
+import { logger } from '../../utils/logger';
 
 export class InstallCommand extends BaseCommand implements ICommand {
   name = 'install';
@@ -52,7 +58,10 @@ export class InstallCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(templateName: string, options: any): Promise<void> {
+  async execute(
+    templateName: string,
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     if (!templateName || !templateName.trim()) {
       this.error(
         'Template name is required. Usage: cursor-prompt install <template-name>'
@@ -97,7 +106,7 @@ export class InstallCommand extends BaseCommand implements ICommand {
           return;
         }
 
-        template = searchResult.templates[0];
+        [template] = searchResult.templates;
         templateId = template.id;
 
         if (searchResult.templates.length > 1) {
@@ -128,13 +137,13 @@ export class InstallCommand extends BaseCommand implements ICommand {
 
       // Show dependencies
       if (!options.skipDeps && versionExists.dependencies.length > 0) {
-        await this.displayDependencies(versionExists.dependencies);
+        await InstallCommand.displayDependencies(versionExists.dependencies);
       }
 
       // Dry run mode
       if (options.dryRun) {
         this.info('Dry run mode - no installation performed');
-        console.log(
+        logger.info(
           chalk.green('\n✓ Installation plan validated successfully')
         );
         return;
@@ -162,19 +171,19 @@ export class InstallCommand extends BaseCommand implements ICommand {
       }
 
       // Show success message
-      console.log(chalk.green('\n✓ Installation completed successfully!'));
-      console.log(
+      logger.info(chalk.green('\n✓ Installation completed successfully!'));
+      logger.info(
         `\n📦 Template: ${chalk.cyan(template.displayName || template.name)}`
       );
-      console.log(`📍 Version: ${chalk.yellow(targetVersion)}`);
-      console.log(`📂 Location: ${chalk.gray(installation.installPath)}`);
-      console.log(
+      logger.info(`📍 Version: ${chalk.yellow(targetVersion)}`);
+      logger.info(`📂 Location: ${chalk.gray(installation.installPath)}`);
+      logger.info(
         `\n💡 Usage: ${chalk.green(`cursor-prompt generate ${template.name}`)}`
       );
 
       // Show next steps
       if (versionExists.examples && versionExists.examples.length > 0) {
-        console.log(
+        logger.info(
           `\n📚 Examples available - check the template documentation`
         );
       }
@@ -185,44 +194,50 @@ export class InstallCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private displayTemplateInfo(template: any): void {
-    console.log(chalk.bold(`\n📦 ${template.displayName || template.name}`));
-    console.log(`   ${template.description}`);
-    console.log(
+  // eslint-disable-next-line class-methods-use-this
+  private displayTemplateInfo(template: MarketplaceTemplate): void {
+    logger.info(chalk.bold(`\n📦 ${template.displayName || template.name}`));
+    logger.info(`   ${template.description}`);
+    logger.info(
       `   ${chalk.gray('by')} ${chalk.blue(template.author.name)}${template.author.verified ? ' ✓' : ''}`
     );
-    console.log(
-      `   ${this.formatRating(template.rating.average)} • ${chalk.cyan(`${this.formatNumber(template.stats.downloads)} downloads`)}`
+    logger.info(
+      `   ${InstallCommand.formatRating(template.rating.average)} • ${chalk.cyan(`${InstallCommand.formatNumber(template.stats.downloads)} downloads`)}`
     );
-    console.log(
+    logger.info(
       `   ${chalk.magenta(template.category)} • ${chalk.yellow(`v${template.currentVersion}`)}`
     );
 
     if (template.featured) {
-      console.log(`   ${chalk.yellow('⭐ Featured template')}`);
+      logger.info(`   ${chalk.yellow('⭐ Featured template')}`);
     }
 
     if (template.verified) {
-      console.log(`   ${chalk.green('✓ Verified by marketplace')}`);
+      logger.info(`   ${chalk.green('✓ Verified by marketplace')}`);
     }
   }
 
-  private async displayDependencies(dependencies: any[]): Promise<void> {
+  private static async displayDependencies(
+    dependencies: TemplateDependency[]
+  ): Promise<void> {
     if (dependencies.length === 0) return;
 
-    console.log(chalk.bold('\n📋 Dependencies:'));
+    logger.info(chalk.bold('\n📋 Dependencies:'));
 
     const registry = new TemplateRegistry();
 
+    // Process dependencies sequentially for ordered display
+    // eslint-disable-next-line no-restricted-syntax
     for (const dep of dependencies) {
+      // eslint-disable-next-line no-await-in-loop
       const isInstalled = await registry.isDependencyInstalled(dep);
       const status = isInstalled ? chalk.green('✓') : chalk.red('✗');
       const optional = dep.optional ? chalk.gray('(optional)') : '';
 
-      console.log(`   ${status} ${dep.name}@${dep.version} ${optional}`);
+      logger.info(`   ${status} ${dep.name}@${dep.version} ${optional}`);
 
       if (dep.description) {
-        console.log(`     ${chalk.gray(dep.description)}`);
+        logger.info(`     ${chalk.gray(dep.description)}`);
       }
     }
 
@@ -231,8 +246,8 @@ export class InstallCommand extends BaseCommand implements ICommand {
     );
 
     if (missing.length > 0) {
-      console.log(chalk.yellow('\n⚠️  Some required dependencies are missing'));
-      console.log(
+      logger.info(chalk.yellow('\n⚠️  Some required dependencies are missing'));
+      logger.info(
         chalk.gray(
           'They will need to be installed for the template to work properly'
         )
@@ -240,7 +255,7 @@ export class InstallCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private formatRating(rating: number): string {
+  private static formatRating(rating: number): string {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
@@ -253,7 +268,7 @@ export class InstallCommand extends BaseCommand implements ICommand {
     return `${chalk.yellow(stars)} ${chalk.gray(`(${rating.toFixed(1)})`)}`;
   }
 
-  private formatNumber(num: number): string {
+  private static formatNumber(num: number): string {
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
     }

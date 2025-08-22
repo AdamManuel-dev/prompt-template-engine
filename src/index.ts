@@ -350,23 +350,23 @@ function configureProgram(): void {
     .action(async () => {
       try {
         if (!cursorIntegration) {
-          console.log(chalk.yellow('Cursor integration is disabled'));
+          logger.info(chalk.yellow('Cursor integration is disabled'));
           return;
         }
 
         const status = cursorIntegration.getConnectionStatus();
-        console.log('\nCursor IDE Connection Status:');
-        console.log('=============================');
-        console.log(
+        logger.info('\nCursor IDE Connection Status:');
+        logger.info('=============================');
+        logger.info(
           `Connected: ${status.connected ? chalk.green('Yes') : chalk.red('No')}`
         );
-        console.log(`Endpoint: ${status.endpoint}`);
+        logger.info(`Endpoint: ${status.endpoint}`);
         if (status.version) {
-          console.log(`Version: ${status.version}`);
+          logger.info(`Version: ${status.version}`);
         }
 
         const templates = cursorIntegration.getTemplates();
-        console.log(`\nTemplates: ${templates.length} loaded`);
+        logger.info(`\nTemplates: ${templates.length} loaded`);
       } catch (error) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
@@ -382,27 +382,27 @@ function configureProgram(): void {
         const plugins = pluginLoader.getPlugins();
 
         if (plugins.length === 0) {
-          console.log('No plugins installed');
+          logger.info('No plugins installed');
           return;
         }
 
-        console.log('\nInstalled Plugins:');
-        console.log('==================');
+        logger.info('\nInstalled Plugins:');
+        logger.info('==================');
 
-        for (const plugin of plugins) {
+        plugins.forEach(plugin => {
           const status = plugin.loaded ? chalk.green('✓') : chalk.red('✗');
-          console.log(
+          logger.info(
             `\n${status} ${plugin.metadata.name} v${plugin.metadata.version}`
           );
 
           if (plugin.metadata.description) {
-            console.log(`  ${plugin.metadata.description}`);
+            logger.info(`  ${plugin.metadata.description}`);
           }
 
           if (plugin.error) {
-            console.log(chalk.red(`  Error: ${plugin.error}`));
+            logger.info(chalk.red(`  Error: ${plugin.error}`));
           }
-        }
+        });
       } catch (error) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));

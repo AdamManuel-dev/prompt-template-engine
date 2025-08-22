@@ -66,6 +66,7 @@ export class TemplateHelpers {
       const s = String(str);
       return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
     });
+    this.register('concat', (...args: unknown[]) => args.map(String).join(''));
     this.register('trim', (str: unknown) => String(str).trim());
     this.register(
       'replace',

@@ -1,5 +1,4 @@
 /* eslint-disable no-use-before-define */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * @fileoverview Config command implementation for cursor-prompt-template-engine
  * @lastmodified 2025-08-22T11:55:00Z
@@ -32,7 +31,7 @@ interface ConfigData {
   colorOutput?: boolean;
   debugMode?: boolean;
   autoUpdate?: boolean;
-  [key: string]: any;
+  [key: string]: string | number | boolean | string[] | undefined;
 }
 
 const DEFAULT_CONFIG: ConfigData = {
@@ -195,7 +194,7 @@ async function setConfigValue(
   const config = loadConfig(global);
 
   // Try to parse value as JSON
-  let parsedValue: any = value;
+  let parsedValue: string | number | boolean | string[] = value;
   try {
     parsedValue = JSON.parse(value);
   } catch {
@@ -261,7 +260,10 @@ export function getMergedConfig(): ConfigData {
 /**
  * Get configuration value with fallback
  */
-export function getConfigValue(key: string, defaultValue?: any): any {
+export function getConfigValue(
+  key: string,
+  defaultValue?: string | number | boolean | string[]
+): string | number | boolean | string[] | undefined {
   const config = getMergedConfig();
   return config[key] ?? defaultValue;
 }

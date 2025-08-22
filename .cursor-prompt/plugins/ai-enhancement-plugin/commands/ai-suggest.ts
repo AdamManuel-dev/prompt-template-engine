@@ -49,7 +49,7 @@ export class AISuggestCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(_args: string, options: any): Promise<void> {
+  async execute(_args: string, options: Record<string, unknown>): Promise<void> {
     try {
       this.info('Analyzing context and generating AI suggestions...');
       
@@ -135,7 +135,7 @@ export class AISuggestCommand extends BaseCommand implements ICommand {
       return {
         branch: branch.current,
         clean: status.isClean(),
-        recentCommits: log.all.map((commit: any) => ({
+        recentCommits: log.all.map((commit: Record<string, unknown>) => ({
           message: commit.message,
           author: commit.author_name
         })),
@@ -188,7 +188,7 @@ export class AISuggestCommand extends BaseCommand implements ICommand {
     return null;
   }
 
-  private detectProjectType(packageJson: any): string {
+  private detectProjectType(packageJson: Record<string, unknown>): string {
     if (packageJson.dependencies?.react) return 'react';
     if (packageJson.dependencies?.vue) return 'vue';
     if (packageJson.dependencies?.angular) return 'angular';
@@ -198,7 +198,7 @@ export class AISuggestCommand extends BaseCommand implements ICommand {
     return 'node';
   }
 
-  private detectFramework(packageJson: any): string {
+  private detectFramework(packageJson: Record<string, unknown>): string {
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
     
     if (deps.react) return 'React';
@@ -214,7 +214,7 @@ export class AISuggestCommand extends BaseCommand implements ICommand {
     return 'none';
   }
 
-  private async generateSuggestions(context: ProjectContext, options: any): Promise<TemplateSuggestion[]> {
+  private async generateSuggestions(context: ProjectContext, options: Record<string, unknown>): Promise<TemplateSuggestion[]> {
     const prompt = this.buildSuggestionPrompt(context, options);
     
     try {
@@ -227,7 +227,7 @@ export class AISuggestCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private buildSuggestionPrompt(context: ProjectContext, options: any): string {
+  private buildSuggestionPrompt(context: ProjectContext, options: Record<string, unknown>): string {
     return `Based on the following project context, suggest ${options.maxSuggestions} useful templates for development:
 
 Project Context:

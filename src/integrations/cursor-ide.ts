@@ -11,9 +11,22 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { EventEmitter } from 'events';
+import type { WebSocket } from 'ws';
+import { NodeJS } from 'node:process';
 import { logger } from '../utils/logger';
 import { ConfigManager } from '../config/config-manager';
 import { TemplateEngine } from '../core/template-engine';
+
+// Type declarations
+// eslint-disable-next-line import/no-extraneous-dependencies
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace NodeJS {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    interface Timeout {}
+  }
+}
 
 export interface CursorTemplate {
   id: string;
@@ -42,8 +55,20 @@ export interface CursorMessage {
   timestamp: number;
 }
 
-export class CursorIntegration extends EventEmitter {
-  private static instance: CursorIntegration;
+// Interface declaration to resolve no-use-before-define
+interface ICursorIntegration {
+  sync(): Promise<void>;
+  inject(templateId: string, variables?: Record<string, string>): Promise<void>;
+  updateTemplate(template: CursorTemplate): Promise<void>;
+  getTemplates(): CursorTemplate[];
+  isConnected(): boolean;
+}
+
+export class CursorIntegration
+  extends EventEmitter
+  implements ICursorIntegration
+{
+  private static instance: ICursorIntegration;
 
   private config: ConfigManager;
 
@@ -74,7 +99,7 @@ export class CursorIntegration extends EventEmitter {
     if (!CursorIntegration.instance) {
       CursorIntegration.instance = new CursorIntegration();
     }
-    return CursorIntegration.instance;
+    return CursorIntegration.instance as CursorIntegration;
   }
 
   /**
@@ -154,7 +179,7 @@ export class CursorIntegration extends EventEmitter {
       const ws = await import('ws');
       const wsEndpoint = `${this.connection.endpoint.replace('http', 'ws')}/ws`;
 
-      const websocket = new ws.WebSocket(wsEndpoint) as any;
+      const websocket = new ws.WebSocket(wsEndpoint) as WebSocket;
       this.websocket = websocket;
 
       websocket.on('open', () => {
@@ -184,7 +209,7 @@ export class CursorIntegration extends EventEmitter {
       websocket.on('error', (error: Error) => {
         logger.error(`WebSocket error:${String(error)}`);
       });
-    } catch (error) {
+    } catch {
       logger.debug('WebSocket not available, falling back to HTTP');
     }
   }
@@ -293,9 +318,9 @@ export class CursorIntegration extends EventEmitter {
    */
   private async httpRequest(
     endpoint: string,
-    method = 'GET',
-    body?: unknown
-  ): Promise<any> {
+    body?: unknown,
+    method = 'GET'
+  ): Promise<unknown> {
     const url = `${this.connection.endpoint}${endpoint}`;
 
     try {
@@ -355,7 +380,7 @@ export class CursorIntegration extends EventEmitter {
     const files = fs.readdirSync(templatesDir);
     const extension = this.config.get('templates.extension', '.prompt');
 
-    for (const file of files) {
+    files.forEach(file => {
       if (file.endsWith(extension)) {
         const filePath = path.join(templatesDir, file);
         const content = fs.readFileSync(filePath, 'utf8');
@@ -370,7 +395,7 @@ export class CursorIntegration extends EventEmitter {
 
         this.templates.set(id, template);
       }
-    }
+    });
 
     logger.info(`Loaded ${this.templates.size} local templates`);
   }
@@ -378,6 +403,7 @@ export class CursorIntegration extends EventEmitter {
   /**
    * Extract metadata from template content
    */
+  // eslint-disable-next-line class-methods-use-this
   private extractMetadata(content: string): CursorTemplate['metadata'] {
     const metadata: CursorTemplate['metadata'] = {};
 
@@ -385,6 +411,7 @@ export class CursorIntegration extends EventEmitter {
     const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
     if (frontmatterMatch) {
       try {
+        // eslint-disable-next-line global-require, @typescript-eslint/no-require-imports
         const yaml = require('js-yaml');
         const parsed = yaml.load(frontmatterMatch[1]);
 
@@ -430,9 +457,9 @@ export class CursorIntegration extends EventEmitter {
    * Sync templates from Cursor IDE
    */
   private syncTemplates(remoteTemplates: CursorTemplate[]): void {
-    for (const template of remoteTemplates) {
+    remoteTemplates.forEach(template => {
       this.templates.set(template.id, template);
-    }
+    });
 
     this.emit('templates:synced', remoteTemplates);
     logger.info(`Received ${remoteTemplates.length} templates from Cursor IDE`);

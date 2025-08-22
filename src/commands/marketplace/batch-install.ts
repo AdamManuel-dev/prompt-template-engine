@@ -12,6 +12,8 @@ import chalk from 'chalk';
 import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
+import { MarketplaceCommandOptions, MarketplaceTemplate } from '../../types';
+import { logger } from '../../utils/logger';
 
 export class BatchInstallCommand extends BaseCommand implements ICommand {
   name = 'batch-install';
@@ -56,9 +58,15 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(templateList: string, options: any): Promise<void> {
+  async execute(
+    templateList: string,
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     try {
-      const templates = await this.parseTemplateList(templateList, options);
+      const templates = await BatchInstallCommand.parseTemplateList(
+        templateList,
+        options
+      );
 
       if (templates.length === 0) {
         this.error('No templates specified for batch installation');
@@ -69,12 +77,12 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
         return;
       }
 
-      console.log(
+      logger.info(
         chalk.bold(`\n🚀 Batch Installation (${templates.length} templates)`)
       );
 
       if (options.dryRun) {
-        await this.showDryRun(templates);
+        await BatchInstallCommand.showDryRun(templates);
         return;
       }
 
@@ -87,7 +95,7 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
         return;
       }
 
-      await this.processBatch(templates, options);
+      await BatchInstallCommand.processBatch(templates, options);
     } catch (error) {
       this.error(
         `Batch installation failed: ${error instanceof Error ? error.message : String(error)}`
@@ -95,9 +103,9 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async parseTemplateList(
+  private static async parseTemplateList(
     templateList: string,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<string[]> {
     let templates: string[] = [];
 
@@ -125,61 +133,68 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
     return [...new Set(templates)];
   }
 
-  private async showDryRun(templates: string[]): Promise<void> {
-    console.log(chalk.bold('\n📋 Dry Run - Templates to Install:'));
+  private static async showDryRun(templates: string[]): Promise<void> {
+    logger.info(chalk.bold('\n📋 Dry Run - Templates to Install:'));
 
     const marketplace = MarketplaceService.getInstance();
     let validTemplates = 0;
     let invalidTemplates = 0;
 
+    // Process templates sequentially to show progress in order and avoid rate limiting
+    // eslint-disable-next-line no-restricted-syntax
     for (const [index, templateName] of templates.entries()) {
       try {
-        console.log(chalk.gray(`${index + 1}. Resolving ${templateName}...`));
+        logger.info(chalk.gray(`${index + 1}. Resolving ${templateName}...`));
 
         // Try to resolve template
         let template;
         try {
+          // eslint-disable-next-line no-await-in-loop
           template = await marketplace.getTemplate(templateName);
         } catch {
+          // eslint-disable-next-line no-await-in-loop
           const searchResult = await marketplace.search({
             query: templateName,
             limit: 1,
           });
           if (searchResult.templates.length > 0) {
-            template = searchResult.templates[0];
+            [template] = searchResult.templates;
           }
         }
 
         if (template) {
-          console.log(
+          logger.info(
             `   ✓ ${chalk.green(template.displayName || template.name)} v${template.currentVersion}`
           );
-          console.log(`     ${chalk.gray(template.description)}`);
-          validTemplates++;
+          logger.info(`     ${chalk.gray(template.description)}`);
+          validTemplates += 1;
         } else {
-          console.log(`   ✗ ${chalk.red(templateName)} - not found`);
-          invalidTemplates++;
+          logger.info(`   ✗ ${chalk.red(templateName)} - not found`);
+          invalidTemplates += 1;
         }
       } catch (error) {
-        console.log(`   ✗ ${chalk.red(templateName)} - error: ${error}`);
-        invalidTemplates++;
+        logger.info(`   ✗ ${chalk.red(templateName)} - error: ${error}`);
+        invalidTemplates += 1;
       }
     }
 
-    console.log(chalk.bold('\n📊 Summary:'));
-    console.log(`   Valid templates: ${chalk.green(validTemplates)}`);
+    logger.info(chalk.bold('\n📊 Summary:'));
+    logger.info(`   Valid templates: ${chalk.green(validTemplates)}`);
     if (invalidTemplates > 0) {
-      console.log(`   Invalid templates: ${chalk.red(invalidTemplates)}`);
+      logger.info(`   Invalid templates: ${chalk.red(invalidTemplates)}`);
     }
-    console.log(`   Total: ${templates.length}`);
+    logger.info(`   Total: ${templates.length}`);
   }
 
-  private async processBatch(templates: string[], options: any): Promise<void> {
+  private static async processBatch(
+    templates: string[],
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     const marketplace = MarketplaceService.getInstance();
     const maxConcurrent = parseInt(options.maxConcurrent, 10);
     const startTime = Date.now();
 
-    console.log(chalk.bold('\n⚡ Starting batch installation...\n'));
+    logger.info(chalk.bold('\n⚡ Starting batch installation...\n'));
 
     const results = await marketplace.batchInstall(templates, {
       continueOnError: options.continueOnError,
@@ -187,15 +202,15 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
     });
 
     const duration = Date.now() - startTime;
-    await this.showResults(results, duration);
+    await BatchInstallCommand.showResults(results, duration);
   }
 
-  private async showResults(
+  private static async showResults(
     results: Array<{
       templateQuery: string;
       success: boolean;
-      template?: any;
-      installation?: any;
+      template?: MarketplaceTemplate;
+      installation?: Record<string, unknown>;
       error?: Error;
     }>,
     duration: number
@@ -203,19 +218,19 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
     const successful = results.filter(r => r.success);
     const failed = results.filter(r => !r.success);
 
-    console.log(
+    logger.info(
       chalk.bold(`\n🎉 Batch Installation Complete (${duration}ms)\n`)
     );
 
     // Show successful installations
     if (successful.length > 0) {
-      console.log(
+      logger.info(
         chalk.green(`✅ Successfully Installed (${successful.length}):`)
       );
       successful.forEach((result, index) => {
         const { template } = result;
         if (template) {
-          console.log(
+          logger.info(
             `   ${index + 1}. ${chalk.cyan(template.displayName || template.name)} v${template.currentVersion}`
           );
         }
@@ -224,34 +239,36 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
 
     // Show failed installations
     if (failed.length > 0) {
-      console.log(chalk.red(`\n❌ Failed Installations (${failed.length}):`));
+      logger.info(chalk.red(`\n❌ Failed Installations (${failed.length}):`));
       failed.forEach((result, index) => {
-        console.log(`   ${index + 1}. ${chalk.red(result.templateQuery)}`);
+        logger.info(`   ${index + 1}. ${chalk.red(result.templateQuery)}`);
         if (result.error) {
-          console.log(`      ${chalk.gray(`Error: ${result.error.message}`)}`);
+          logger.info(`      ${chalk.gray(`Error: ${result.error.message}`)}`);
         }
       });
     }
 
     // Show summary statistics
-    console.log(chalk.bold('\n📊 Summary:'));
-    console.log(`   ${chalk.green('✓')} Successful: ${successful.length}`);
+    logger.info(chalk.bold('\n📊 Summary:'));
+    logger.info(`   ${chalk.green('✓')} Successful: ${successful.length}`);
     if (failed.length > 0) {
-      console.log(`   ${chalk.red('✗')} Failed: ${failed.length}`);
+      logger.info(`   ${chalk.red('✗')} Failed: ${failed.length}`);
     }
-    console.log(`   ⏱️  Duration: ${this.formatDuration(duration)}`);
-    console.log(
+    logger.info(
+      `   ⏱️  Duration: ${BatchInstallCommand.formatDuration(duration)}`
+    );
+    logger.info(
       `   🚀 Average per template: ${Math.round(duration / results.length)}ms`
     );
 
     // Show next steps
     if (successful.length > 0) {
-      console.log(chalk.bold('\n💡 Next Steps:'));
-      console.log(`   • List installed: ${chalk.green('cursor-prompt list')}`);
-      console.log(
+      logger.info(chalk.bold('\n💡 Next Steps:'));
+      logger.info(`   • List installed: ${chalk.green('cursor-prompt list')}`);
+      logger.info(
         `   • Generate template: ${chalk.green('cursor-prompt generate <template-name>')}`
       );
-      console.log(
+      logger.info(
         `   • Check for updates: ${chalk.green('cursor-prompt update --check-only')}`
       );
     }
@@ -259,14 +276,14 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
     // Suggest retry for failed installations
     if (failed.length > 0) {
       const failedNames = failed.map(f => f.templateQuery).join(',');
-      console.log(`\n💡 Retry failed installations:`);
-      console.log(
+      logger.info(`\n💡 Retry failed installations:`);
+      logger.info(
         `   ${chalk.yellow(`cursor-prompt batch-install "${failedNames}"`)}`
       );
     }
   }
 
-  private formatDuration(ms: number): string {
+  private static formatDuration(ms: number): string {
     if (ms < 1000) {
       return `${ms}ms`;
     }

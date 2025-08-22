@@ -13,6 +13,12 @@ import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
+import {
+  MarketplaceCommandOptions,
+  MarketplaceTemplate,
+  MarketplaceTemplateVersion,
+} from '../../types';
+import { logger } from '../../utils/logger';
 
 export class QuickInstallCommand extends BaseCommand implements ICommand {
   name = 'quick-install';
@@ -53,7 +59,10 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(templateName: string, options: any): Promise<void> {
+  async execute(
+    templateName: string,
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     if (!templateName || !templateName.trim()) {
       this.error(
         'Template name is required. Usage: cursor-prompt quick-install <template-name>'
@@ -66,7 +75,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
       const startTime = Date.now();
 
       if (options.showProgress) {
-        console.log(chalk.blue('🚀 Starting one-click installation...'));
+        logger.info(chalk.blue('🚀 Starting one-click installation...'));
       }
 
       const marketplace = MarketplaceService.getInstance();
@@ -84,7 +93,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
       const existing = registry.getTemplateByName(template.name);
       if (existing) {
         if (options.noConfirm) {
-          console.log(
+          logger.info(
             chalk.yellow(
               `📦 Template "${template.name}" already installed - updating...`
             )
@@ -122,17 +131,17 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
   private async autoResolveTemplate(
     templateName: string,
     marketplace: MarketplaceService,
-    options: any
-  ): Promise<any | null> {
+    options: MarketplaceCommandOptions
+  ): Promise<MarketplaceTemplate | null> {
     if (options.showProgress) {
-      console.log(chalk.gray('🔍 Resolving template...'));
+      logger.info(chalk.gray('🔍 Resolving template...'));
     }
 
     // Try exact match first
     try {
       const template = await marketplace.getTemplate(templateName);
       if (options.showProgress) {
-        console.log(chalk.green('✓ Template found by exact match'));
+        logger.info(chalk.green('✓ Template found by exact match'));
       }
       return template;
     } catch {
@@ -164,14 +173,14 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     const selectedTemplate = exactMatch || bestMatch;
 
     if (options.showProgress) {
-      console.log(
+      logger.info(
         chalk.green(
           `✓ Auto-selected: ${selectedTemplate.displayName || selectedTemplate.name}`
         )
       );
 
       if (searchResult.templates.length > 1 && !options.noConfirm) {
-        console.log(
+        logger.info(
           chalk.gray(
             `   Found ${searchResult.templates.length} matches, selected most popular`
           )
@@ -183,26 +192,26 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
   }
 
   private async quickInstall(
-    template: any,
+    template: MarketplaceTemplate,
     marketplace: MarketplaceService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     if (options.showProgress) {
-      console.log(chalk.gray('📥 Installing template...'));
+      logger.info(chalk.gray('📥 Installing template...'));
     }
 
     // Use smart defaults for quick installation
     const targetVersion = options.useLatest
       ? template.currentVersion
-      : this.selectStableVersion(template);
+      : QuickInstallCommand.selectStableVersion(template);
 
     // Auto-handle dependencies if enabled
     if (options.autoDeps && !options.noConfirm) {
       const versionInfo = template.versions.find(
-        (v: any) => v.version === targetVersion
+        (v: MarketplaceTemplateVersion) => v.version === targetVersion
       );
       if (versionInfo?.dependencies?.length > 0) {
-        console.log(
+        logger.info(
           chalk.gray(
             `📋 Auto-installing ${versionInfo.dependencies.length} dependencies...`
           )
@@ -213,7 +222,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     // Skip confirmation if no-confirm flag is set
     let confirmed = true;
     if (!options.noConfirm) {
-      console.log(this.formatQuickInfo(template, targetVersion));
+      logger.info(this.formatQuickInfo(template, targetVersion));
       confirmed = await this.confirm(
         `Install ${template.displayName || template.name}@${targetVersion}?`
       );
@@ -230,30 +239,31 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     // Enable auto-update if requested
     if (options.enableUpdates && installation) {
       if (options.showProgress) {
-        console.log(chalk.gray('⚙️  Enabling automatic updates...'));
+        logger.info(chalk.gray('⚙️  Enabling automatic updates...'));
       }
       // Update installation settings for auto-update
       // This would be handled by the marketplace service
     }
 
     if (options.showProgress) {
-      console.log(chalk.green('✓ Installation completed'));
+      logger.info(chalk.green('✓ Installation completed'));
     }
   }
 
   private async performUpdate(
-    template: any,
+    template: MarketplaceTemplate,
     marketplace: MarketplaceService,
-    _options: any
+    // eslint-disable-next-line no-unused-vars
+    _options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       await marketplace.update(template.id, template.currentVersion);
 
       const duration = Date.now() - Date.now(); // This would be calculated properly
-      console.log(
+      logger.info(
         chalk.green(`\n✓ Template updated successfully in ${duration}ms!`)
       );
-      this.showUsageInfo(template);
+      QuickInstallCommand.showUsageInfo(template);
     } catch (error) {
       this.error(
         `Update failed: ${error instanceof Error ? error.message : String(error)}`
@@ -261,10 +271,11 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private selectStableVersion(template: any): string {
+  private static selectStableVersion(template: MarketplaceTemplate): string {
     // Select latest stable version (non-prerelease)
     const stableVersions = template.versions.filter(
-      (v: any) => !v.version.includes('-') && !v.deprecated
+      (v: MarketplaceTemplateVersion) =>
+        !v.version.includes('-') && !v.deprecated
     );
 
     return stableVersions.length > 0
@@ -272,9 +283,15 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
       : template.currentVersion;
   }
 
-  private formatQuickInfo(template: any, version: string): string {
-    const rating = this.formatRating(template.rating.average);
-    const downloads = this.formatNumber(template.stats.downloads);
+  // eslint-disable-next-line class-methods-use-this
+  private formatQuickInfo(
+    template: MarketplaceTemplate,
+    version: string
+  ): string {
+    const rating = QuickInstallCommand.formatRating(template.rating.average);
+    const downloads = QuickInstallCommand.formatNumber(
+      template.stats.downloads
+    );
 
     return (
       `${chalk.bold(
@@ -286,50 +303,54 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     );
   }
 
-  private showSuccessMessage(template: any, duration: number): void {
-    console.log(
+  // eslint-disable-next-line class-methods-use-this
+  private showSuccessMessage(
+    template: MarketplaceTemplate,
+    duration: number
+  ): void {
+    logger.info(
       chalk.green(`\n🎉 One-click installation completed in ${duration}ms!`)
     );
-    console.log(
+    logger.info(
       chalk.bold(
         `\n📦 ${template.displayName || template.name} is ready to use`
       )
     );
-    this.showUsageInfo(template);
+    QuickInstallCommand.showUsageInfo(template);
 
     // Show quick tips
-    console.log(chalk.gray('\n💡 Quick Tips:'));
-    console.log(
+    logger.info(chalk.gray('\n💡 Quick Tips:'));
+    logger.info(
       `   • Generate: ${chalk.green(`cursor-prompt generate ${template.name}`)}`
     );
-    console.log(
+    logger.info(
       `   • Examples: ${chalk.green(`cursor-prompt examples ${template.name}`)}`
     );
-    console.log(
+    logger.info(
       `   • Update: ${chalk.green(`cursor-prompt update ${template.name}`)}`
     );
   }
 
-  private showUsageInfo(template: any): void {
-    console.log(`\n🚀 ${chalk.bold('Next Steps:')}`);
-    console.log(
+  private static showUsageInfo(template: MarketplaceTemplate): void {
+    logger.info(`\n🚀 ${chalk.bold('Next Steps:')}`);
+    logger.info(
       `   ${chalk.green(`cursor-prompt generate ${template.name}`)} - Start using the template`
     );
 
     if (template.metadata?.documentation) {
-      console.log(
+      logger.info(
         `   ${chalk.blue('📚 Documentation:')} ${template.metadata.documentation}`
       );
     }
 
     if (template.metadata?.repository?.url) {
-      console.log(
+      logger.info(
         `   ${chalk.blue('📂 Repository:')} ${template.metadata.repository.url}`
       );
     }
   }
 
-  private formatRating(rating: number): string {
+  private static formatRating(rating: number): string {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
@@ -342,7 +363,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     return `${chalk.yellow(stars)} ${chalk.gray(`(${rating.toFixed(1)})`)}`;
   }
 
-  private formatNumber(num: number): string {
+  private static formatNumber(num: number): string {
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
     }

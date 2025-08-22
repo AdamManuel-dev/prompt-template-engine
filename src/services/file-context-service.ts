@@ -1,22 +1,27 @@
 /**
- * @fileoverview File context gathering service with .gitignore support
- * @lastmodified 2025-08-22T14:45:00Z
+ * @fileoverview File context gathering service with dependency injection
+ * @lastmodified 2025-08-22T15:00:00Z
  *
  * Features: File discovery, content reading, .gitignore respect, size management
  * Main APIs: getFileContext(), getProjectStructure(), getFileContent()
  * Constraints: Respects .gitignore, handles large files, configurable limits
- * Patterns: Service pattern with async/await, streaming for large files
+ * Patterns: Dependency injection, interface segregation, async/await
  */
 
-import * as fs from 'fs';
 import * as path from 'path';
-import { glob } from 'glob';
-import ignore from 'ignore';
-import { promisify } from 'util';
-
-const readFile = promisify(fs.readFile);
-const stat = promisify(fs.stat);
-const readdir = promisify(fs.readdir);
+import {
+  IFileSystem,
+  IGlobService,
+  IIgnoreService,
+  IIgnoreMatcher,
+  FileSystemError,
+  FileSystemErrorType,
+} from '../interfaces/file-system.interface';
+import {
+  NodeFileSystem,
+  NodeGlobService,
+  NodeIgnoreService,
+} from '../implementations/node-file-system';
 
 export interface FileInfo {
   path: string;
@@ -76,9 +81,15 @@ export class FileContextService {
 
   private options: FileContextOptions;
 
-  private ignorer: ReturnType<typeof ignore> | null = null;
+  private ignorer: IIgnoreMatcher | null = null;
 
-  constructor(cwd: string = process.cwd(), options: FileContextOptions = {}) {
+  constructor(
+    private fileSystem: IFileSystem = new NodeFileSystem(),
+    private globService: IGlobService = new NodeGlobService(),
+    private ignoreService: IIgnoreService = new NodeIgnoreService(),
+    options: FileContextOptions = {},
+    cwd = process.cwd()
+  ) {
     this.cwd = cwd;
     this.options = { ...DEFAULT_OPTIONS, ...options };
 
@@ -93,21 +104,34 @@ export class FileContextService {
   private loadGitignore(): void {
     try {
       const gitignorePath = path.join(this.cwd, '.gitignore');
-      const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
-      this.ignorer = ignore().add(gitignoreContent);
+      const gitignoreContent = this.fileSystem.readFileSync(
+        gitignorePath,
+        'utf8'
+      ) as string;
+      this.ignorer = this.ignoreService.create().add(gitignoreContent);
 
       // Also check for global gitignore
       const homeDir = process.env.HOME || process.env.USERPROFILE;
       if (homeDir) {
         const globalGitignorePath = path.join(homeDir, '.gitignore_global');
-        if (fs.existsSync(globalGitignorePath)) {
-          const globalContent = fs.readFileSync(globalGitignorePath, 'utf8');
+        if (this.fileSystem.exists(globalGitignorePath)) {
+          const globalContent = this.fileSystem.readFileSync(
+            globalGitignorePath,
+            'utf8'
+          ) as string;
           this.ignorer.add(globalContent);
         }
       }
-    } catch {
+    } catch (error) {
       // No .gitignore found or error reading it
       this.ignorer = null;
+      if (
+        error instanceof FileSystemError &&
+        error.type !== FileSystemErrorType.FILE_NOT_FOUND
+      ) {
+        // Log non-file-not-found errors for debugging
+        console.warn(`Warning: Could not load .gitignore: ${error.message}`);
+      }
     }
   }
 
@@ -162,7 +186,7 @@ export class FileContextService {
    */
   async getFileInfo(filePath: string): Promise<FileInfo | null> {
     try {
-      const stats = await stat(filePath);
+      const stats = await this.fileSystem.stat(filePath);
       const relativePath = path.relative(this.cwd, filePath);
 
       return {
@@ -173,8 +197,15 @@ export class FileContextService {
         isDirectory: stats.isDirectory(),
         extension: stats.isFile() ? path.extname(filePath) : undefined,
       };
-    } catch {
-      return null;
+    } catch (error) {
+      if (
+        error instanceof FileSystemError &&
+        error.type === FileSystemErrorType.FILE_NOT_FOUND
+      ) {
+        return null;
+      }
+      // Re-throw non-file-not-found errors
+      throw error;
     }
   }
 
@@ -194,11 +225,13 @@ export class FileContextService {
       dirPath: string,
       depth: number
     ): Promise<TreeNode[]> => {
-      if (depth > maxDepth) {
+      if (depth >= maxDepth) {
         return [];
       }
 
-      const entries = await readdir(dirPath, { withFileTypes: true });
+      const entries = (await this.fileSystem.readdir(dirPath, {
+        withFileTypes: true,
+      })) as import('fs').Dirent[];
       const nodes: TreeNode[] = [];
 
       // eslint-disable-next-line no-restricted-syntax
@@ -221,7 +254,7 @@ export class FileContextService {
           });
         } else {
           // eslint-disable-next-line no-await-in-loop
-          const fileStats = await stat(fullPath);
+          const fileStats = await this.fileSystem.stat(fullPath);
           const ext = path.extname(entry.name);
 
           structure.totalFiles += 1;
@@ -260,15 +293,15 @@ export class FileContextService {
     }
 
     try {
-      const stats = await stat(filePath);
+      const stats = await this.fileSystem.stat(filePath);
       const limit = maxSize || this.options.maxFileSize || 100 * 1024;
 
       if (stats.size > limit) {
         // Read only the first part of large files
         const buffer = Buffer.alloc(limit);
-        const fd = fs.openSync(filePath, 'r');
-        fs.readSync(fd, buffer, 0, limit, 0);
-        fs.closeSync(fd);
+        const fd = this.fileSystem.openSync(filePath, 'r');
+        this.fileSystem.readSync(fd, buffer, 0, limit, 0);
+        this.fileSystem.closeSync(fd);
 
         const content = buffer.toString('utf8');
         const lines = content.split('\n').length;
@@ -282,7 +315,10 @@ export class FileContextService {
         };
       }
 
-      const content = await readFile(filePath, 'utf8');
+      const content = (await this.fileSystem.readFile(
+        filePath,
+        'utf8'
+      )) as string;
       const lines = content.split('\n').length;
 
       return {
@@ -292,8 +328,15 @@ export class FileContextService {
         size: stats.size,
         lines,
       };
-    } catch {
-      return null;
+    } catch (error) {
+      if (
+        error instanceof FileSystemError &&
+        error.type === FileSystemErrorType.FILE_NOT_FOUND
+      ) {
+        return null;
+      }
+      // Re-throw non-file-not-found errors
+      throw error;
     }
   }
 
@@ -307,7 +350,7 @@ export class FileContextService {
     // eslint-disable-next-line no-restricted-syntax
     for (const pattern of patterns) {
       // eslint-disable-next-line no-await-in-loop
-      const files = await glob(pattern, {
+      const files = await this.globService.glob(pattern, {
         cwd: this.cwd,
         absolute: true,
         nodir: true,
@@ -353,7 +396,7 @@ export class FileContextService {
     // eslint-disable-next-line no-restricted-syntax
     for (const pattern of patterns) {
       // eslint-disable-next-line no-await-in-loop
-      const files = await glob(pattern, {
+      const files = await this.globService.glob(pattern, {
         cwd: this.cwd,
         absolute: true,
         ignore: this.options.excludePatterns,
@@ -444,5 +487,11 @@ export class FileContextService {
   }
 }
 
-// Export singleton instance
-export const fileContextService = new FileContextService();
+// Export singleton instance with default dependencies
+export const fileContextService = new FileContextService(
+  {},
+  process.cwd(),
+  new NodeFileSystem(),
+  new NodeGlobService(),
+  new NodeIgnoreService()
+);

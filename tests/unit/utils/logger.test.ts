@@ -17,7 +17,7 @@ import {
   warn,
   error,
   success,
-} from '../../src/utils/logger';
+} from '../../../src/utils/logger';
 
 jest.mock('chalk', () => ({
   __esModule: true,

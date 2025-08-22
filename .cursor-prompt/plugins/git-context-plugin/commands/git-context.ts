@@ -44,7 +44,7 @@ export class GitContextCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(_args: string, options: any): Promise<void> {
+  async execute(_args: string, options: Record<string, unknown>): Promise<void> {
     try {
       this.info('Gathering git context...');
       
@@ -64,7 +64,7 @@ export class GitContextCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async gatherGitContext(options: any): Promise<GitContext> {
+  private async gatherGitContext(options: Record<string, unknown>): Promise<GitContext> {
     const simpleGit = await this.getSimpleGit();
     const isRepo = await simpleGit.checkIsRepo();
     
@@ -98,7 +98,7 @@ export class GitContextCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async getRepositoryInfo(git: any): Promise<RepositoryInfo> {
+  private async getRepositoryInfo(git: Record<string, unknown>): Promise<RepositoryInfo> {
     const root = await git.revparse(['--show-toplevel']);
     const gitDir = await git.revparse(['--git-dir']);
     
@@ -109,7 +109,7 @@ export class GitContextCommand extends BaseCommand implements ICommand {
     };
   }
 
-  private async getBranchInfo(git: any): Promise<BranchInfo> {
+  private async getBranchInfo(git: Record<string, unknown>): Promise<BranchInfo> {
     const current = await git.branch(['-v']);
     const all = await git.branch(['-a']);
     
@@ -122,7 +122,7 @@ export class GitContextCommand extends BaseCommand implements ICommand {
     };
   }
 
-  private async getStatusInfo(git: any): Promise<StatusInfo> {
+  private async getStatusInfo(git: Record<string, unknown>): Promise<StatusInfo> {
     const status = await git.status();
     
     return {
@@ -137,10 +137,10 @@ export class GitContextCommand extends BaseCommand implements ICommand {
     };
   }
 
-  private async getCommitHistory(git: any, count: number): Promise<CommitInfo[]> {
+  private async getCommitHistory(git: Record<string, unknown>, count: number): Promise<CommitInfo[]> {
     const log = await git.log({ maxCount: count });
     
-    return log.all.map((commit: any) => ({
+    return log.all.map((commit: Record<string, unknown>) => ({
       hash: commit.hash,
       hashShort: commit.hash.substring(0, 7),
       date: commit.date,
@@ -153,10 +153,10 @@ export class GitContextCommand extends BaseCommand implements ICommand {
     }));
   }
 
-  private async getRemoteInfo(git: any): Promise<RemoteInfo[]> {
+  private async getRemoteInfo(git: Record<string, unknown>): Promise<RemoteInfo[]> {
     try {
       const remotes = await git.getRemotes(true);
-      return remotes.map((remote: any) => ({
+      return remotes.map((remote: Record<string, unknown>) => ({
         name: remote.name,
         url: remote.refs.fetch,
         pushUrl: remote.refs.push
@@ -166,7 +166,7 @@ export class GitContextCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async getRepoStats(git: any): Promise<RepoStats> {
+  private async getRepoStats(git: Record<string, unknown>): Promise<RepoStats> {
     try {
       const totalCommits = await git.raw(['rev-list', '--count', 'HEAD']);
       const contributors = await git.raw(['shortlog', '-sn']);
@@ -185,7 +185,7 @@ export class GitContextCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async getDiffInfo(git: any): Promise<DiffInfo> {
+  private async getDiffInfo(git: Record<string, unknown>): Promise<DiffInfo> {
     const staged = await git.diff(['--cached']);
     const unstaged = await git.diff();
     

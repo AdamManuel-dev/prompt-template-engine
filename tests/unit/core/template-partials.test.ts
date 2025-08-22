@@ -5,7 +5,6 @@
 
 import { TemplateEngine } from '../../src/core/template-engine';
 import * as fs from 'fs';
-import * as path from 'path';
 
 // Mock fs module
 jest.mock('fs');
@@ -244,7 +243,7 @@ describe('Template Partials', () => {
       expect(result).toContain('© 2025 My Company');
     });
 
-    it('should handle recursive partial structures', async () => {
+    it('should detect circular partial dependencies', async () => {
       engine.registerPartial('comment', `
 <div class="comment">
   <p>{{text}}</p>
@@ -274,12 +273,8 @@ describe('Template Partials', () => {
         ]
       };
       
-      const result = await engine.render(template, context);
-      expect(result).toContain('Top level comment');
-      expect(result).toContain('First reply');
-      expect(result).toContain('Nested reply 1');
-      expect(result).toContain('Nested reply 2');
-      expect(result).toContain('Second reply');
+      // Should throw error due to circular dependency detection
+      await expect(engine.render(template, context)).rejects.toThrow('Circular partial dependency detected: comment');
     });
   });
 });

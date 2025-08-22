@@ -50,12 +50,12 @@ export class TemplateRegistry {
       const registryData = await fs.readFile(this.registryPath, 'utf8');
       const registry = JSON.parse(registryData);
 
-      for (const template of registry.templates || []) {
+      (registry.templates || []).forEach(template => {
         this.templates.set(template.id, {
           ...template,
           registered: new Date(template.registered),
         });
-      }
+      });
 
       logger.debug(`Loaded ${this.templates.size} templates from registry`);
     } catch {
@@ -207,6 +207,7 @@ export class TemplateRegistry {
   /**
    * Check if plugin is installed
    */
+  // eslint-disable-next-line class-methods-use-this
   private isPluginInstalled(pluginName: string): boolean {
     // Check if plugin exists in plugin directories
     const pluginDirs = [
@@ -234,6 +235,7 @@ export class TemplateRegistry {
   /**
    * Check if engine version is compatible
    */
+  // eslint-disable-next-line class-methods-use-this
   private isEngineVersionCompatible(requiredVersion: string): boolean {
     // Simple version check - in real implementation, use semver
     const currentVersion = process.env.ENGINE_VERSION || '1.0.0';
@@ -255,7 +257,7 @@ export class TemplateRegistry {
     const visited = new Set<string>();
     const chain: string[] = [];
 
-    const resolve = (id: string) => {
+    const resolve = (id: string): void => {
       if (visited.has(id)) {
         throw new Error(`Circular dependency detected: ${id}`);
       }
@@ -263,14 +265,14 @@ export class TemplateRegistry {
       visited.add(id);
       const dependencies = this.getTemplateDependencies(id);
 
-      for (const dep of dependencies) {
-        if (dep.type === 'template' && !dep.optional) {
+      dependencies
+        .filter(dep => dep.type === 'template' && !dep.optional)
+        .forEach(dep => {
           resolve(dep.name);
           if (!chain.includes(dep.name)) {
             chain.push(dep.name);
           }
-        }
-      }
+        });
 
       visited.delete(id);
     };
@@ -300,15 +302,19 @@ export class TemplateRegistry {
       errors.push(`Template files not found at ${template.path}`);
     }
 
-    // Check dependencies
-    for (const dependency of template.versionInfo.dependencies) {
-      if (!dependency.optional) {
-        const installed = await this.isDependencyInstalled(dependency);
-        if (!installed) {
-          errors.push(
-            `Missing dependency: ${dependency.name}@${dependency.version}`
-          );
-        }
+    // Check required dependencies sequentially
+    const requiredDeps = template.versionInfo.dependencies.filter(
+      dep => !dep.optional
+    );
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const dependency of requiredDeps) {
+      // eslint-disable-next-line no-await-in-loop
+      const installed = await this.isDependencyInstalled(dependency);
+      if (!installed) {
+        errors.push(
+          `Missing dependency: ${dependency.name}@${dependency.version}`
+        );
       }
     }
 
@@ -345,13 +351,13 @@ export class TemplateRegistry {
     const categories: Record<string, number> = {};
     const authors: Record<string, number> = {};
 
-    for (const template of active) {
+    active.forEach(template => {
       const { category } = template.metadata;
       categories[category] = (categories[category] || 0) + 1;
 
       const author = template.metadata.author.name;
       authors[author] = (authors[author] || 0) + 1;
-    }
+    });
 
     return {
       total: templates.length,
@@ -367,7 +373,10 @@ export class TemplateRegistry {
   async cleanup(): Promise<void> {
     const toRemove: string[] = [];
 
+    // Validate templates sequentially to avoid resource conflicts
+    // eslint-disable-next-line no-restricted-syntax
     for (const [id, template] of this.templates) {
+      // eslint-disable-next-line no-await-in-loop
       const validation = await this.validateTemplate(id);
       if (!validation.valid) {
         logger.warn(
@@ -377,9 +386,9 @@ export class TemplateRegistry {
       }
     }
 
-    for (const id of toRemove) {
+    toRemove.forEach(id => {
       this.templates.delete(id);
-    }
+    });
 
     if (toRemove.length > 0) {
       await this.saveRegistry();

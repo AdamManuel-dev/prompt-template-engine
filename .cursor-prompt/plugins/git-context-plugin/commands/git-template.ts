@@ -49,7 +49,7 @@ export class GitTemplateCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(_args: string, options: any): Promise<void> {
+  async execute(_args: string, options: Record<string, unknown>): Promise<void> {
     try {
       this.info('Generating git-aware template...');
       
@@ -84,7 +84,7 @@ export class GitTemplateCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async gatherGitContext(options: any): Promise<GitContext> {
+  private async gatherGitContext(options: Record<string, unknown>): Promise<GitContext> {
     const simpleGit = await this.getSimpleGit();
     const isRepo = await simpleGit.checkIsRepo();
     
@@ -110,7 +110,7 @@ export class GitTemplateCommand extends BaseCommand implements ICommand {
         untracked: status.not_added,
         conflicted: status.conflicted
       },
-      commits: log.all.slice(0, 5).map((commit: any) => ({
+      commits: log.all.slice(0, 5).map((commit: Record<string, unknown>) => ({
         hash: commit.hash.substring(0, 7),
         message: commit.message,
         author: commit.author_name,
@@ -160,7 +160,7 @@ export class GitTemplateCommand extends BaseCommand implements ICommand {
     throw new Error(`Template not found: ${templateName}`);
   }
 
-  private async prepareTemplateVariables(gitContext: GitContext, options: any): Promise<Record<string, any>> {
+  private async prepareTemplateVariables(gitContext: GitContext, options: Record<string, unknown>): Promise<Record<string, any>> {
     const now = new Date();
     
     const variables: Record<string, any> = {
@@ -214,7 +214,7 @@ export class GitTemplateCommand extends BaseCommand implements ICommand {
     return variables;
   }
 
-  private createStatusSummary(status: any): string {
+  private createStatusSummary(status: Record<string, unknown>): string {
     const parts = [];
     
     if (status.clean) {

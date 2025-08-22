@@ -123,8 +123,11 @@ class TemplateValidator {
    * Extract template name from template or path
    */
   private extractTemplateName(template: unknown, templatePath: string): string {
-    if (this.isObject(template) && typeof (template as any).name === 'string') {
-      return (template as any).name;
+    if (
+      this.isObject(template) &&
+      typeof (template as Record<string, unknown>).name === 'string'
+    ) {
+      return (template as Record<string, unknown>).name as string;
     }
     return path.basename(templatePath, path.extname(templatePath));
   }

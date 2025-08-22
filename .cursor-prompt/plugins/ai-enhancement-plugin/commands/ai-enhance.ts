@@ -49,7 +49,7 @@ export class AIEnhanceCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(_args: string, options: any): Promise<void> {
+  async execute(_args: string, options: Record<string, unknown>): Promise<void> {
     try {
       this.info('Analyzing template for AI enhancements...');
       
@@ -94,7 +94,7 @@ export class AIEnhanceCommand extends BaseCommand implements ICommand {
     throw new Error(`Template not found: ${templateName}`);
   }
 
-  private async generateEnhancements(template: string, options: any): Promise<TemplateEnhancement[]> {
+  private async generateEnhancements(template: string, options: Record<string, unknown>): Promise<TemplateEnhancement[]> {
     const prompt = this.buildEnhancementPrompt(template, options.aspect);
     
     try {
@@ -291,7 +291,7 @@ Format your response as a JSON array of enhancement suggestions:
     templatePath: string, 
     originalContent: string, 
     enhancements: TemplateEnhancement[], 
-    options: any
+    options: Record<string, unknown>
   ): Promise<void> {
     if (options.backup) {
       const backupPath = `${templatePath}.backup.${Date.now()}`;

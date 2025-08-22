@@ -31,8 +31,18 @@ export interface ConfigSource {
   data: Record<string, unknown>;
 }
 
-export class ConfigManager {
-  private static instance: ConfigManager;
+// Interface declaration to resolve no-use-before-define
+interface IConfigManager {
+  get<T>(path: string, defaultValue?: T): T;
+  set(path: string, value: unknown, source?: string): void;
+  getAll(): Record<string, unknown>;
+  watch(path: string, callback: (value: unknown) => void): () => void;
+  save(target?: 'global' | 'project'): Promise<void>;
+  reset(): void;
+}
+
+export class ConfigManager implements IConfigManager {
+  private static instance: IConfigManager;
 
   private sources: ConfigSource[] = [];
 
@@ -51,7 +61,7 @@ export class ConfigManager {
     if (!ConfigManager.instance) {
       ConfigManager.instance = new ConfigManager();
     }
-    return ConfigManager.instance;
+    return ConfigManager.instance as ConfigManager;
   }
 
   /**
@@ -162,7 +172,7 @@ export class ConfigManager {
     });
 
     // 2. Global configuration
-    const globalConfigPath = this.getGlobalConfigPath();
+    const globalConfigPath = ConfigManager.getGlobalConfigPath();
     if (fs.existsSync(globalConfigPath)) {
       try {
         const data = JSON.parse(fs.readFileSync(globalConfigPath, 'utf8'));
@@ -201,7 +211,7 @@ export class ConfigManager {
   /**
    * Get global configuration path
    */
-  private getGlobalConfigPath(): string {
+  private static getGlobalConfigPath(): string {
     const homeDir = process.env.HOME || process.env.USERPROFILE || '';
     return path.join(homeDir, '.cursor-prompt', 'config.json');
   }
@@ -213,16 +223,16 @@ export class ConfigManager {
     const envData: Record<string, unknown> = {};
     const prefix = 'CURSOR_PROMPT_';
 
-    for (const [key, value] of Object.entries(process.env)) {
-      if (key.startsWith(prefix)) {
+    Object.entries(process.env)
+      .filter(([key]) => key.startsWith(prefix))
+      .forEach(([key, value]) => {
         const configKey = key
           .substring(prefix.length)
           .toLowerCase()
           .replace(/_/g, '.');
 
-        envData[configKey] = this.parseEnvValue(value || '');
-      }
-    }
+        envData[configKey] = ConfigManager.parseEnvValue(value || '');
+      });
 
     if (Object.keys(envData).length > 0) {
       this.addSource({
@@ -236,7 +246,7 @@ export class ConfigManager {
   /**
    * Parse environment variable value
    */
-  private parseEnvValue(value: string): unknown {
+  private static parseEnvValue(value: string): unknown {
     // Try to parse as JSON
     try {
       return JSON.parse(value);
@@ -247,7 +257,7 @@ export class ConfigManager {
 
       // Try to parse as number
       const num = parseFloat(value);
-      if (!isNaN(num)) return num;
+      if (!Number.isNaN(num)) return num;
 
       // Return as string
       return value;
@@ -264,17 +274,19 @@ export class ConfigManager {
       schema: Record<string, ConfigSchema>,
       target: Record<string, unknown>
     ): void => {
-      for (const [key, value] of Object.entries(schema)) {
+      Object.entries(schema).forEach(([key, value]) => {
         if (value.default !== undefined) {
+          // eslint-disable-next-line no-param-reassign
           target[key] = value.default;
         } else if (value.type === 'object' && value.properties) {
+          // eslint-disable-next-line no-param-reassign
           target[key] = {};
           extractDefaults(
             value.properties,
             target[key] as Record<string, unknown>
           );
         }
-      }
+      });
     };
 
     extractDefaults(this.schema, defaults);
@@ -305,9 +317,9 @@ export class ConfigManager {
     this.cache = {};
 
     // Merge sources in priority order
-    for (const source of this.sources) {
+    this.sources.forEach(source => {
       this.deepMerge(this.cache, source.data);
-    }
+    });
 
     // Notify watchers
     this.notifyWatchers();
@@ -320,36 +332,38 @@ export class ConfigManager {
     target: Record<string, unknown>,
     source: Record<string, unknown>
   ): void {
-    for (const [key, value] of Object.entries(source)) {
-      if (value === null || value === undefined) {
-        continue;
-      }
-
-      if (typeof value === 'object' && !Array.isArray(value)) {
-        if (
-          !(key in target) ||
-          typeof target[key] !== 'object' ||
-          Array.isArray(target[key])
-        ) {
-          target[key] = {};
+    Object.entries(source)
+      .filter(([, value]) => value !== null && value !== undefined)
+      .forEach(([key, value]) => {
+        if (typeof value === 'object' && !Array.isArray(value)) {
+          if (
+            !(key in target) ||
+            typeof target[key] !== 'object' ||
+            Array.isArray(target[key])
+          ) {
+            // eslint-disable-next-line no-param-reassign
+            target[key] = {};
+          }
+          this.deepMerge(
+            target[key] as Record<string, unknown>,
+            value as Record<string, unknown>
+          );
+        } else {
+          // eslint-disable-next-line no-param-reassign
+          target[key] = value;
         }
-        this.deepMerge(
-          target[key] as Record<string, unknown>,
-          value as Record<string, unknown>
-        );
-      } else {
-        target[key] = value;
-      }
-    }
+      });
   }
 
   /**
    * Get configuration value
    */
-  get<T = unknown>(path: string, defaultValue?: T): T {
-    const keys = path.split('.');
+  get<T = unknown>(keyPath: string, defaultValue?: T): T {
+    const keys = keyPath.split('.');
     let current: unknown = this.cache;
 
+    // Traverse nested object path to find the value
+    // eslint-disable-next-line no-restricted-syntax
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
         current = (current as Record<string, unknown>)[key];
@@ -364,9 +378,9 @@ export class ConfigManager {
   /**
    * Set configuration value
    */
-  set(path: string, value: unknown, source = 'runtime'): void {
+  set(keyPath: string, value: unknown, source = 'runtime'): void {
     // Validate against schema
-    const validation = this.validatePath(path, value);
+    const validation = this.validatePath(keyPath, value);
     if (!validation.valid) {
       throw new Error(`Invalid configuration: ${validation.errors.join(', ')}`);
     }
@@ -383,10 +397,10 @@ export class ConfigManager {
     }
 
     // Set value in source
-    const keys = path.split('.');
+    const keys = keyPath.split('.');
     let current: Record<string, unknown> = runtimeSource.data;
 
-    for (let i = 0; i < keys.length - 1; i++) {
+    for (let i = 0; i < keys.length - 1; i += 1) {
       const key = keys[i];
       if (!(key in current) || typeof current[key] !== 'object') {
         current[key] = {};
@@ -404,15 +418,15 @@ export class ConfigManager {
    * Validate configuration path and value
    */
   private validatePath(
-    path: string,
+    keyPath: string,
     value: unknown
   ): { valid: boolean; errors: string[] } {
-    const keys = path.split('.');
+    const keys = keyPath.split('.');
     let currentSchema: ConfigSchema | undefined;
 
     // Navigate to the schema for this path
     let schemaPath = this.schema;
-    for (let i = 0; i < keys.length; i++) {
+    for (let i = 0; i < keys.length; i += 1) {
       const key = keys[i];
       if (key in schemaPath) {
         currentSchema = schemaPath[key];
@@ -433,45 +447,47 @@ export class ConfigManager {
       return { valid: true, errors: [] };
     }
 
-    return this.validateValue(value, currentSchema, path);
+    return ConfigManager.validateValue(value, currentSchema, path);
   }
 
   /**
    * Validate a value against schema
    */
-  private validateValue(
+  private static validateValue(
     value: unknown,
     schema: ConfigSchema,
-    path: string
+    keyPath: string
   ): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     // Check type
     const actualType = Array.isArray(value) ? 'array' : typeof value;
     if (actualType !== schema.type) {
-      errors.push(`${path}: expected ${schema.type}, got ${actualType}`);
+      errors.push(`${keyPath}: expected ${schema.type}, got ${actualType}`);
     }
 
     // Check enum
     if (schema.enum && !schema.enum.includes(value)) {
-      errors.push(`${path}: value must be one of ${schema.enum.join(', ')}`);
+      errors.push(`${keyPath}: value must be one of ${schema.enum.join(', ')}`);
     }
 
     // Check pattern
     if (schema.pattern && typeof value === 'string') {
       const regex = new RegExp(schema.pattern);
       if (!regex.test(value)) {
-        errors.push(`${path}: value does not match pattern ${schema.pattern}`);
+        errors.push(
+          `${keyPath}: value does not match pattern ${schema.pattern}`
+        );
       }
     }
 
     // Check min/max
     if (typeof value === 'number') {
       if (schema.min !== undefined && value < schema.min) {
-        errors.push(`${path}: value must be >= ${schema.min}`);
+        errors.push(`${keyPath}: value must be >= ${schema.min}`);
       }
       if (schema.max !== undefined && value > schema.max) {
-        errors.push(`${path}: value must be <= ${schema.max}`);
+        errors.push(`${keyPath}: value must be <= ${schema.max}`);
       }
     }
 
@@ -487,7 +503,7 @@ export class ConfigManager {
   async save(target: 'global' | 'project' = 'project'): Promise<void> {
     const configPath =
       target === 'global'
-        ? this.getGlobalConfigPath()
+        ? ConfigManager.getGlobalConfigPath()
         : path.join(process.cwd(), '.cursor-prompt.json');
 
     const dir = path.dirname(configPath);
@@ -505,20 +521,20 @@ export class ConfigManager {
   /**
    * Watch configuration changes
    */
-  watch(path: string, callback: (value: unknown) => void): () => void {
-    if (!this.watchers.has(path)) {
-      this.watchers.set(path, new Set());
+  watch(keyPath: string, callback: (value: unknown) => void): () => void {
+    if (!this.watchers.has(keyPath)) {
+      this.watchers.set(keyPath, new Set());
     }
 
-    this.watchers.get(path)!.add(callback);
+    this.watchers.get(keyPath)!.add(callback);
 
     // Return unwatch function
     return () => {
-      const callbacks = this.watchers.get(path);
+      const callbacks = this.watchers.get(keyPath);
       if (callbacks) {
         callbacks.delete(callback);
         if (callbacks.size === 0) {
-          this.watchers.delete(path);
+          this.watchers.delete(keyPath);
         }
       }
     };
@@ -528,16 +544,16 @@ export class ConfigManager {
    * Notify watchers of changes
    */
   private notifyWatchers(): void {
-    for (const [path, callbacks] of this.watchers.entries()) {
-      const value = this.get(path);
-      for (const callback of callbacks) {
+    Array.from(this.watchers.entries()).forEach(([keyPath, callbacks]) => {
+      const value = this.get(keyPath);
+      callbacks.forEach(callback => {
         try {
           callback(value);
         } catch (error) {
           logger.error(`Error in config watcher for ${path}:${String(error)}`);
         }
-      }
-    }
+      });
+    });
   }
 
   /**

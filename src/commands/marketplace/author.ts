@@ -12,6 +12,8 @@ import chalk from 'chalk';
 import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { AuthorService } from '../../marketplace/core/author.service';
+import { MarketplaceCommandOptions, MarketplaceTemplate } from '../../types';
+import { logger } from '../../utils/logger';
 
 export class AuthorCommand extends BaseCommand implements ICommand {
   name = 'author';
@@ -83,7 +85,10 @@ export class AuthorCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(_args: string, options: any): Promise<void> {
+  async execute(
+    _args: string,
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     const authorService = AuthorService.getInstance();
 
     try {
@@ -158,7 +163,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       }
 
       // Show general help
-      this.showHelp();
+      AuthorCommand.showHelp();
     } catch (error) {
       this.error(
         `Author command failed: ${error instanceof Error ? error.message : String(error)}`
@@ -169,112 +174,112 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   private async showProfile(
     username: string,
     authorService: AuthorService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       const profile = await authorService.getProfile(username);
 
-      console.log(
+      logger.info(
         chalk.bold(`\n👤 ${profile.displayName} (@${profile.username})\n`)
       );
 
       // Basic info
       if (profile.bio) {
-        console.log(`${profile.bio}\n`);
+        logger.info(`${profile.bio}\n`);
       }
 
-      console.log(`📍 ${profile.location || 'Location not specified'}`);
+      logger.info(`📍 ${profile.location || 'Location not specified'}`);
       if (profile.company) {
-        console.log(`🏢 ${profile.company}`);
+        logger.info(`🏢 ${profile.company}`);
       }
       if (profile.website) {
-        console.log(`🌐 ${chalk.blue(profile.website)}`);
+        logger.info(`🌐 ${chalk.blue(profile.website)}`);
       }
 
       // Verification and badges
       if (profile.verification.verified) {
-        console.log(`✅ ${chalk.green('Verified Author')}`);
+        logger.info(`✅ ${chalk.green('Verified Author')}`);
       }
 
       if (profile.verification.badges.length > 0) {
-        console.log(`\n🏆 Badges:`);
+        logger.info(`\n🏆 Badges:`);
         profile.verification.badges.slice(0, 5).forEach(badge => {
-          console.log(
+          logger.info(
             `   ${badge.icon} ${chalk.cyan(badge.name)} - ${chalk.gray(badge.description)}`
           );
         });
         if (profile.verification.badges.length > 5) {
-          console.log(
+          logger.info(
             `   ${chalk.gray(`... and ${profile.verification.badges.length - 5} more`)}`
           );
         }
       }
 
       // Statistics
-      console.log(chalk.bold('\n📊 Statistics:'));
-      console.log(`   Templates: ${chalk.cyan(profile.stats.totalTemplates)}`);
-      console.log(
-        `   Downloads: ${chalk.cyan(this.formatNumber(profile.stats.totalDownloads))}`
+      logger.info(chalk.bold('\n📊 Statistics:'));
+      logger.info(`   Templates: ${chalk.cyan(profile.stats.totalTemplates)}`);
+      logger.info(
+        `   Downloads: ${chalk.cyan(AuthorCommand.formatNumber(profile.stats.totalDownloads))}`
       );
-      console.log(
+      logger.info(
         `   Average Rating: ${chalk.yellow('★'.repeat(Math.floor(profile.stats.averageRating)))} ${chalk.gray(`(${profile.stats.averageRating.toFixed(1)})`)}`
       );
-      console.log(`   Reputation: ${chalk.green(profile.stats.reputation)}`);
-      console.log(`   Followers: ${chalk.blue(profile.stats.followers)}`);
-      console.log(`   Following: ${chalk.blue(profile.stats.following)}`);
+      logger.info(`   Reputation: ${chalk.green(profile.stats.reputation)}`);
+      logger.info(`   Followers: ${chalk.blue(profile.stats.followers)}`);
+      logger.info(`   Following: ${chalk.blue(profile.stats.following)}`);
 
       // Social links
       if (Object.values(profile.social).some(link => link)) {
-        console.log(chalk.bold('\n🔗 Social Links:'));
+        logger.info(chalk.bold('\n🔗 Social Links:'));
         if (profile.social.github) {
-          console.log(`   GitHub: ${chalk.blue(profile.social.github)}`);
+          logger.info(`   GitHub: ${chalk.blue(profile.social.github)}`);
         }
         if (profile.social.twitter) {
-          console.log(`   Twitter: ${chalk.blue(profile.social.twitter)}`);
+          logger.info(`   Twitter: ${chalk.blue(profile.social.twitter)}`);
         }
         if (profile.social.linkedin) {
-          console.log(`   LinkedIn: ${chalk.blue(profile.social.linkedin)}`);
+          logger.info(`   LinkedIn: ${chalk.blue(profile.social.linkedin)}`);
         }
       }
 
       // Activity info
-      console.log(chalk.bold('\n📅 Activity:'));
-      console.log(
+      logger.info(chalk.bold('\n📅 Activity:'));
+      logger.info(
         `   Joined: ${chalk.gray(new Date(profile.created).toLocaleDateString())}`
       );
-      console.log(
+      logger.info(
         `   Last Active: ${chalk.gray(new Date(profile.lastActive).toLocaleDateString())}`
       );
       if (profile.stats.lastPublished) {
-        console.log(
+        logger.info(
           `   Last Published: ${chalk.gray(new Date(profile.stats.lastPublished).toLocaleDateString())}`
         );
       }
 
       // Top categories
       if (profile.stats.topCategories.length > 0) {
-        console.log(chalk.bold('\n📂 Top Categories:'));
+        logger.info(chalk.bold('\n📂 Top Categories:'));
         profile.stats.topCategories.slice(0, 3).forEach(cat => {
-          console.log(
+          logger.info(
             `   ${chalk.magenta(cat.category)}: ${cat.count} templates`
           );
         });
       }
 
       // Quick actions
-      console.log(chalk.bold('\n🚀 Quick Actions:'));
-      console.log(
+      logger.info(chalk.bold('\n🚀 Quick Actions:'));
+      logger.info(
         `   View templates: ${chalk.green(`cursor-prompt author --templates ${username}`)}`
       );
-      console.log(
+      logger.info(
         `   Follow author: ${chalk.green(`cursor-prompt author --follow ${username}`)}`
       );
-      console.log(
+      logger.info(
         `   View activity: ${chalk.green(`cursor-prompt author --activity ${username}`)}`
       );
 
       if (options.format === 'json') {
-        console.log(`\n${JSON.stringify(profile, null, 2)}`);
+        logger.info(`\n${JSON.stringify(profile, null, 2)}`);
       }
     } catch (error) {
       this.error(
@@ -286,7 +291,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   private async showAuthorTemplates(
     username: string,
     authorService: AuthorService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       const profile = await authorService.getProfile(username);
@@ -294,48 +299,52 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         limit: parseInt(options.limit, 10),
       });
 
-      console.log(
+      logger.info(
         chalk.bold(
           `\n📦 Templates by ${chalk.cyan(profile.displayName)} (${templates.total})\n`
         )
       );
 
       if (templates.templates.length === 0) {
-        console.log(chalk.gray('No templates published yet.'));
+        logger.info(chalk.gray('No templates published yet.'));
         return;
       }
 
-      templates.templates.forEach((template: any, index: number) => {
-        const rating = '★'.repeat(Math.floor(template.rating.average));
-        const downloads = this.formatNumber(template.stats.downloads);
+      templates.templates.forEach(
+        (template: MarketplaceTemplate, index: number) => {
+          const rating = '★'.repeat(Math.floor(template.rating.average));
+          const downloads = AuthorCommand.formatNumber(
+            template.stats.downloads
+          );
 
-        console.log(
-          `${index + 1}. ${chalk.cyan(template.displayName || template.name)}`
-        );
-        console.log(`   ${template.description}`);
-        console.log(
-          `   ${chalk.yellow(rating)} ${chalk.gray(`(${template.rating.average.toFixed(1)})`)} • ${chalk.gray(`${downloads} downloads`)} • v${template.currentVersion}`
-        );
-        console.log(
-          `   ${chalk.magenta(template.category)} • ${chalk.gray(`Updated ${new Date(template.updated).toLocaleDateString()}`)}`
-        );
-        console.log();
-      });
+          logger.info(
+            `${index + 1}. ${chalk.cyan(template.displayName || template.name)}`
+          );
+          logger.info(`   ${template.description}`);
+          logger.info(
+            `   ${chalk.yellow(rating)} ${chalk.gray(`(${template.rating.average.toFixed(1)})`)} • ${chalk.gray(`${downloads} downloads`)} • v${template.currentVersion}`
+          );
+          logger.info(
+            `   ${chalk.magenta(template.category)} • ${chalk.gray(`Updated ${new Date(template.updated).toLocaleDateString()}`)}`
+          );
+          logger.info();
+        }
+      );
 
       // Show pagination info
       if (templates.hasMore) {
-        console.log(
+        logger.info(
           chalk.gray(
             `Showing ${templates.templates.length} of ${templates.total} templates`
           )
         );
-        console.log(
+        logger.info(
           `💡 View more: ${chalk.green(`cursor-prompt search --author ${username}`)}`
         );
       }
 
       if (options.format === 'json') {
-        console.log(`\n${JSON.stringify(templates, null, 2)}`);
+        logger.info(`\n${JSON.stringify(templates, null, 2)}`);
       }
     } catch (error) {
       this.error(
@@ -347,7 +356,8 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   private async toggleFollow(
     username: string,
     authorService: AuthorService,
-    _options: any
+    // eslint-disable-next-line no-unused-vars
+    _options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       // In a real implementation, we'd get the current user ID
@@ -360,14 +370,14 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       );
 
       if (result.following) {
-        console.log(
+        logger.info(
           chalk.green(`✅ Now following ${profile.displayName} (@${username})`)
         );
-        console.log(
+        logger.info(
           `💡 View their activity: ${chalk.blue(`cursor-prompt author --activity ${username}`)}`
         );
       } else {
-        console.log(
+        logger.info(
           chalk.yellow(`➖ Unfollowed ${profile.displayName} (@${username})`)
         );
       }
@@ -381,7 +391,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   private async showActivity(
     username: string,
     authorService: AuthorService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       const profile = await authorService.getProfile(username);
@@ -389,29 +399,29 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         limit: parseInt(options.limit, 10),
       });
 
-      console.log(
+      logger.info(
         chalk.bold(`\n📈 Activity Feed: ${chalk.cyan(profile.displayName)}\n`)
       );
 
       if (activities.length === 0) {
-        console.log(chalk.gray('No recent activity.'));
+        logger.info(chalk.gray('No recent activity.'));
         return;
       }
 
       activities.forEach((activity, index) => {
-        const icon = this.getActivityIcon(activity.type);
+        const icon = AuthorCommand.getActivityIcon(activity.type);
         const date = new Date(activity.timestamp).toLocaleDateString();
 
-        console.log(`${index + 1}. ${icon} ${chalk.bold(activity.title)}`);
+        logger.info(`${index + 1}. ${icon} ${chalk.bold(activity.title)}`);
         if (activity.description) {
-          console.log(`   ${chalk.gray(activity.description)}`);
+          logger.info(`   ${chalk.gray(activity.description)}`);
         }
-        console.log(`   ${chalk.gray(date)}`);
-        console.log();
+        logger.info(`   ${chalk.gray(date)}`);
+        logger.info();
       });
 
       if (options.format === 'json') {
-        console.log(`\n${JSON.stringify(activities, null, 2)}`);
+        logger.info(`\n${JSON.stringify(activities, null, 2)}`);
       }
     } catch (error) {
       this.error(
@@ -423,7 +433,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   private async searchAuthors(
     query: string,
     authorService: AuthorService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       const result = await authorService.searchAuthors({
@@ -432,12 +442,12 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         verified: options.verified,
       });
 
-      console.log(
+      logger.info(
         chalk.bold(`\n🔍 Author Search: "${query}" (${result.total} results)\n`)
       );
 
       if (result.authors.length === 0) {
-        console.log(chalk.gray('No authors found matching your search.'));
+        logger.info(chalk.gray('No authors found matching your search.'));
         return;
       }
 
@@ -445,31 +455,33 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         const verified = author.verification.verified ? chalk.green('✓') : '';
         const { reputation } = author.stats;
         const templates = author.stats.totalTemplates;
-        const downloads = this.formatNumber(author.stats.totalDownloads);
+        const downloads = AuthorCommand.formatNumber(
+          author.stats.totalDownloads
+        );
 
-        console.log(
+        logger.info(
           `${index + 1}. ${chalk.cyan(author.displayName)} (@${author.username}) ${verified}`
         );
         if (author.bio) {
-          console.log(
+          logger.info(
             `   ${author.bio.substring(0, 80)}${author.bio.length > 80 ? '...' : ''}`
           );
         }
-        console.log(
+        logger.info(
           `   📦 ${templates} templates • 📊 ${downloads} downloads • ⭐ ${reputation} reputation`
         );
         if (author.location) {
-          console.log(`   📍 ${chalk.gray(author.location)}`);
+          logger.info(`   📍 ${chalk.gray(author.location)}`);
         }
-        console.log();
+        logger.info();
       });
 
-      console.log(
+      logger.info(
         `💡 View profile: ${chalk.green('cursor-prompt author --profile <username>')}`
       );
 
       if (options.format === 'json') {
-        console.log(`\n${JSON.stringify(result, null, 2)}`);
+        logger.info(`\n${JSON.stringify(result, null, 2)}`);
       }
     } catch (error) {
       this.error(
@@ -480,14 +492,14 @@ export class AuthorCommand extends BaseCommand implements ICommand {
 
   private async showFeaturedAuthors(
     authorService: AuthorService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       const authors = await authorService.getFeaturedAuthors(
         parseInt(options.limit, 10)
       );
 
-      console.log(chalk.bold(`\n⭐ Featured Authors (${authors.length})\n`));
+      logger.info(chalk.bold(`\n⭐ Featured Authors (${authors.length})\n`));
 
       authors.forEach((author, index) => {
         const verified = author.verification.verified ? chalk.green('✓') : '';
@@ -496,22 +508,22 @@ export class AuthorCommand extends BaseCommand implements ICommand {
           .map(b => b.icon)
           .join(' ');
 
-        console.log(
+        logger.info(
           `${index + 1}. ${chalk.cyan(author.displayName)} (@${author.username}) ${verified} ${badges}`
         );
         if (author.bio) {
-          console.log(
+          logger.info(
             `   ${author.bio.substring(0, 100)}${author.bio.length > 100 ? '...' : ''}`
           );
         }
-        console.log(
-          `   📦 ${author.stats.totalTemplates} templates • 📊 ${this.formatNumber(author.stats.totalDownloads)} downloads`
+        logger.info(
+          `   📦 ${author.stats.totalTemplates} templates • 📊 ${AuthorCommand.formatNumber(author.stats.totalDownloads)} downloads`
         );
-        console.log();
+        logger.info();
       });
 
       if (options.format === 'json') {
-        console.log(`\n${JSON.stringify(authors, null, 2)}`);
+        logger.info(`\n${JSON.stringify(authors, null, 2)}`);
       }
     } catch (error) {
       this.error(
@@ -522,7 +534,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
 
   private async showTrendingAuthors(
     authorService: AuthorService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       const authors = await authorService.getTrendingAuthors(
@@ -530,7 +542,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         parseInt(options.limit, 10)
       );
 
-      console.log(
+      logger.info(
         chalk.bold(`\n📈 Trending Authors This Week (${authors.length})\n`)
       );
 
@@ -538,22 +550,22 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         const verified = author.verification.verified ? chalk.green('✓') : '';
         const growth = chalk.green('↗'); // Would show actual growth metrics
 
-        console.log(
+        logger.info(
           `${index + 1}. ${growth} ${chalk.cyan(author.displayName)} (@${author.username}) ${verified}`
         );
         if (author.bio) {
-          console.log(
+          logger.info(
             `   ${author.bio.substring(0, 80)}${author.bio.length > 80 ? '...' : ''}`
           );
         }
-        console.log(
-          `   📊 ${this.formatNumber(author.stats.monthlyDownloads)} downloads this month`
+        logger.info(
+          `   📊 ${AuthorCommand.formatNumber(author.stats.monthlyDownloads)} downloads this month`
         );
-        console.log();
+        logger.info();
       });
 
       if (options.format === 'json') {
-        console.log(`\n${JSON.stringify(authors, null, 2)}`);
+        logger.info(`\n${JSON.stringify(authors, null, 2)}`);
       }
     } catch (error) {
       this.error(
@@ -565,76 +577,76 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   private async showStats(
     username: string,
     authorService: AuthorService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       const profile = await authorService.getProfile(username);
       const stats = await authorService.getAuthorStats(profile.id);
 
-      console.log(
+      logger.info(
         chalk.bold(
           `\n📊 Detailed Statistics: ${chalk.cyan(profile.displayName)}\n`
         )
       );
 
       // Template stats
-      console.log(chalk.bold('📦 Templates:'));
-      console.log(`   Total: ${chalk.cyan(stats.totalTemplates)}`);
-      console.log(`   Published: ${chalk.green(stats.publishedTemplates)}`);
-      console.log(`   Drafts: ${chalk.yellow(stats.draftTemplates)}`);
-      console.log(`   Deprecated: ${chalk.red(stats.deprecatedTemplates)}`);
+      logger.info(chalk.bold('📦 Templates:'));
+      logger.info(`   Total: ${chalk.cyan(stats.totalTemplates)}`);
+      logger.info(`   Published: ${chalk.green(stats.publishedTemplates)}`);
+      logger.info(`   Drafts: ${chalk.yellow(stats.draftTemplates)}`);
+      logger.info(`   Deprecated: ${chalk.red(stats.deprecatedTemplates)}`);
 
       // Download stats
-      console.log(chalk.bold('\n📈 Downloads:'));
-      console.log(
-        `   Total: ${chalk.cyan(this.formatNumber(stats.totalDownloads))}`
+      logger.info(chalk.bold('\n📈 Downloads:'));
+      logger.info(
+        `   Total: ${chalk.cyan(AuthorCommand.formatNumber(stats.totalDownloads))}`
       );
-      console.log(
-        `   This Month: ${chalk.blue(this.formatNumber(stats.monthlyDownloads))}`
+      logger.info(
+        `   This Month: ${chalk.blue(AuthorCommand.formatNumber(stats.monthlyDownloads))}`
       );
 
       // Quality stats
-      console.log(chalk.bold('\n⭐ Quality:'));
-      console.log(
+      logger.info(chalk.bold('\n⭐ Quality:'));
+      logger.info(
         `   Average Rating: ${chalk.yellow(stats.averageRating.toFixed(2))}`
       );
-      console.log(`   Total Reviews: ${chalk.gray(stats.totalReviews)}`);
+      logger.info(`   Total Reviews: ${chalk.gray(stats.totalReviews)}`);
 
       // Social stats
-      console.log(chalk.bold('\n👥 Community:'));
-      console.log(`   Followers: ${chalk.blue(stats.followers)}`);
-      console.log(`   Following: ${chalk.blue(stats.following)}`);
-      console.log(`   Reputation: ${chalk.green(stats.reputation)}`);
+      logger.info(chalk.bold('\n👥 Community:'));
+      logger.info(`   Followers: ${chalk.blue(stats.followers)}`);
+      logger.info(`   Following: ${chalk.blue(stats.following)}`);
+      logger.info(`   Reputation: ${chalk.green(stats.reputation)}`);
 
       // Activity stats
-      console.log(chalk.bold('\n📅 Activity:'));
-      console.log(
+      logger.info(chalk.bold('\n📅 Activity:'));
+      logger.info(
         `   Joined: ${chalk.gray(new Date(stats.joinedDate).toLocaleDateString())}`
       );
       if (stats.lastPublished) {
-        console.log(
+        logger.info(
           `   Last Published: ${chalk.gray(new Date(stats.lastPublished).toLocaleDateString())}`
         );
       }
-      console.log(
+      logger.info(
         `   Response Rate: ${chalk.cyan(`${(stats.responseRate * 100).toFixed(1)}%`)}`
       );
 
       // Top categories
       if (stats.topCategories.length > 0) {
-        console.log(chalk.bold('\n📂 Top Categories:'));
+        logger.info(chalk.bold('\n📂 Top Categories:'));
         stats.topCategories.forEach(cat => {
           const percentage = ((cat.count / stats.totalTemplates) * 100).toFixed(
             1
           );
-          console.log(
+          logger.info(
             `   ${chalk.magenta(cat.category)}: ${cat.count} templates (${percentage}%)`
           );
         });
       }
 
       if (options.format === 'json') {
-        console.log(`\n${JSON.stringify(stats, null, 2)}`);
+        logger.info(`\n${JSON.stringify(stats, null, 2)}`);
       }
     } catch (error) {
       this.error(
@@ -646,36 +658,36 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   private async showBadges(
     username: string,
     authorService: AuthorService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       const profile = await authorService.getProfile(username);
       const badges = await authorService.getAuthorBadges(profile.id);
 
-      console.log(
+      logger.info(
         chalk.bold(
           `\n🏆 Badges & Achievements: ${chalk.cyan(profile.displayName)}\n`
         )
       );
 
       if (badges.length === 0) {
-        console.log(chalk.gray('No badges earned yet.'));
+        logger.info(chalk.gray('No badges earned yet.'));
         return;
       }
 
       badges.forEach((badge, index) => {
         const date = new Date(badge.earned).toLocaleDateString();
-        console.log(`${index + 1}. ${badge.icon} ${chalk.bold(badge.name)}`);
-        console.log(`   ${badge.description}`);
-        console.log(`   ${chalk.gray(`Earned: ${date}`)}`);
+        logger.info(`${index + 1}. ${badge.icon} ${chalk.bold(badge.name)}`);
+        logger.info(`   ${badge.description}`);
+        logger.info(`   ${chalk.gray(`Earned: ${date}`)}`);
         if (badge.criteria) {
-          console.log(`   ${chalk.gray(`Criteria: ${badge.criteria}`)}`);
+          logger.info(`   ${chalk.gray(`Criteria: ${badge.criteria}`)}`);
         }
-        console.log();
+        logger.info();
       });
 
       if (options.format === 'json') {
-        console.log(`\n${JSON.stringify(badges, null, 2)}`);
+        logger.info(`\n${JSON.stringify(badges, null, 2)}`);
       }
     } catch (error) {
       this.error(
@@ -687,7 +699,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   private async showFollowers(
     username: string,
     authorService: AuthorService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       const profile = await authorService.getProfile(username);
@@ -697,30 +709,30 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         parseInt(options.limit, 10)
       );
 
-      console.log(
+      logger.info(
         chalk.bold(
           `\n👥 Followers: ${chalk.cyan(profile.displayName)} (${result.total})\n`
         )
       );
 
       if (result.followers.length === 0) {
-        console.log(chalk.gray('No followers yet.'));
+        logger.info(chalk.gray('No followers yet.'));
         return;
       }
 
       result.followers.forEach((follower, index) => {
         const verified = follower.verification.verified ? chalk.green('✓') : '';
-        console.log(
+        logger.info(
           `${index + 1}. ${chalk.cyan(follower.displayName)} (@${follower.username}) ${verified}`
         );
-        console.log(
+        logger.info(
           `   📦 ${follower.stats.totalTemplates} templates • ⭐ ${follower.stats.reputation} reputation`
         );
-        console.log();
+        logger.info();
       });
 
       if (options.format === 'json') {
-        console.log(`\n${JSON.stringify(result, null, 2)}`);
+        logger.info(`\n${JSON.stringify(result, null, 2)}`);
       }
     } catch (error) {
       this.error(
@@ -732,7 +744,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   private async showFollowing(
     username: string,
     authorService: AuthorService,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
       const profile = await authorService.getProfile(username);
@@ -742,14 +754,14 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         parseInt(options.limit, 10)
       );
 
-      console.log(
+      logger.info(
         chalk.bold(
           `\n👤 Following: ${chalk.cyan(profile.displayName)} (${result.total})\n`
         )
       );
 
       if (result.following.length === 0) {
-        console.log(chalk.gray('Not following anyone yet.'));
+        logger.info(chalk.gray('Not following anyone yet.'));
         return;
       }
 
@@ -757,17 +769,17 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         const verified = following.verification.verified
           ? chalk.green('✓')
           : '';
-        console.log(
+        logger.info(
           `${index + 1}. ${chalk.cyan(following.displayName)} (@${following.username}) ${verified}`
         );
-        console.log(
+        logger.info(
           `   📦 ${following.stats.totalTemplates} templates • ⭐ ${following.stats.reputation} reputation`
         );
-        console.log();
+        logger.info();
       });
 
       if (options.format === 'json') {
-        console.log(`\n${JSON.stringify(result, null, 2)}`);
+        logger.info(`\n${JSON.stringify(result, null, 2)}`);
       }
     } catch (error) {
       this.error(
@@ -776,40 +788,40 @@ export class AuthorCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private showHelp(): void {
-    console.log(chalk.bold('\n👤 Author Profile Commands\n'));
+  private static showHelp(): void {
+    logger.info(chalk.bold('\n👤 Author Profile Commands\n'));
 
-    console.log('View author profile:');
-    console.log(`  ${chalk.green('cursor-prompt author --profile username')}`);
+    logger.info('View author profile:');
+    logger.info(`  ${chalk.green('cursor-prompt author --profile username')}`);
 
-    console.log('\nView author templates:');
-    console.log(
+    logger.info('\nView author templates:');
+    logger.info(
       `  ${chalk.green('cursor-prompt author --templates username')}`
     );
 
-    console.log('\nFollow/unfollow author:');
-    console.log(`  ${chalk.green('cursor-prompt author --follow username')}`);
+    logger.info('\nFollow/unfollow author:');
+    logger.info(`  ${chalk.green('cursor-prompt author --follow username')}`);
 
-    console.log('\nView activity feed:');
-    console.log(`  ${chalk.green('cursor-prompt author --activity username')}`);
+    logger.info('\nView activity feed:');
+    logger.info(`  ${chalk.green('cursor-prompt author --activity username')}`);
 
-    console.log('\nSearch authors:');
-    console.log(`  ${chalk.green('cursor-prompt author --search "query"')}`);
+    logger.info('\nSearch authors:');
+    logger.info(`  ${chalk.green('cursor-prompt author --search "query"')}`);
 
-    console.log('\nDiscover authors:');
-    console.log(`  ${chalk.green('cursor-prompt author --featured')}`);
-    console.log(`  ${chalk.green('cursor-prompt author --trending')}`);
+    logger.info('\nDiscover authors:');
+    logger.info(`  ${chalk.green('cursor-prompt author --featured')}`);
+    logger.info(`  ${chalk.green('cursor-prompt author --trending')}`);
 
-    console.log('\nDetailed information:');
-    console.log(`  ${chalk.green('cursor-prompt author --stats username')}`);
-    console.log(`  ${chalk.green('cursor-prompt author --badges username')}`);
+    logger.info('\nDetailed information:');
+    logger.info(`  ${chalk.green('cursor-prompt author --stats username')}`);
+    logger.info(`  ${chalk.green('cursor-prompt author --badges username')}`);
 
-    console.log(
+    logger.info(
       chalk.gray('\nTip: Add --format json for machine-readable output')
     );
   }
 
-  private getActivityIcon(type: string): string {
+  private static getActivityIcon(type: string): string {
     const icons: Record<string, string> = {
       'template-published': '📦',
       'template-updated': '🔄',
@@ -825,7 +837,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
     return icons[type] || '📄';
   }
 
-  private formatNumber(num: number): string {
+  private static formatNumber(num: number): string {
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
     }

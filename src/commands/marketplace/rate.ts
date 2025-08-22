@@ -14,6 +14,8 @@ import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
 import { TemplateReview } from '../../marketplace/models/template.model';
+import { MarketplaceCommandOptions, MarketplaceTemplate } from '../../types';
+import { logger } from '../../utils/logger';
 
 export class RateCommand extends BaseCommand implements ICommand {
   name = 'rate';
@@ -61,7 +63,10 @@ export class RateCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(templateName: string, options: any): Promise<void> {
+  async execute(
+    templateName: string,
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     if (!templateName || !templateName.trim()) {
       this.error(
         'Template name is required. Usage: cursor-prompt rate <template-name>'
@@ -125,16 +130,18 @@ export class RateCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async interactiveRating(template: any): Promise<void> {
-    console.log(
+  private async interactiveRating(
+    template: MarketplaceTemplate
+  ): Promise<void> {
+    logger.info(
       chalk.bold(
         `\n⭐ Rate Template: ${template.displayName || template.name}\n`
       )
     );
-    console.log(`${template.description}\n`);
-    console.log(`Author: ${chalk.blue(template.author.name)}`);
-    console.log(`Version: ${chalk.yellow(template.currentVersion)}`);
-    console.log(`Category: ${chalk.magenta(template.category)}\n`);
+    logger.info(`${template.description}\n`);
+    logger.info(`Author: ${chalk.blue(template.author.name)}`);
+    logger.info(`Version: ${chalk.yellow(template.currentVersion)}`);
+    logger.info(`Category: ${chalk.magenta(template.category)}\n`);
 
     // Get rating
     const ratingPrompt = 'Rate this template (1-5 stars): ';
@@ -153,10 +160,10 @@ export class RateCommand extends BaseCommand implements ICommand {
     const comment = await this.prompt('Review comment (optional): ');
 
     // Confirm submission
-    console.log(chalk.bold('\n📝 Review Summary:'));
-    console.log(`Rating: ${this.formatStars(rating)}`);
-    if (title) console.log(`Title: ${title}`);
-    if (comment) console.log(`Comment: ${comment}`);
+    logger.info(chalk.bold('\n📝 Review Summary:'));
+    logger.info(`Rating: ${RateCommand.formatStars(rating)}`);
+    if (title) logger.info(`Title: ${title}`);
+    if (comment) logger.info(`Comment: ${comment}`);
 
     const confirmed = await this.confirm('\nSubmit this review?');
     if (!confirmed) {
@@ -169,7 +176,7 @@ export class RateCommand extends BaseCommand implements ICommand {
   }
 
   private async submitRating(
-    template: any,
+    template: MarketplaceTemplate,
     rating: number,
     review: { title?: string; comment?: string; version?: string }
   ): Promise<void> {
@@ -186,18 +193,18 @@ export class RateCommand extends BaseCommand implements ICommand {
       await marketplace.rateTemplate(template.id, rating, reviewData);
 
       // Show success message
-      console.log(chalk.green('\n✓ Review submitted successfully!'));
-      console.log(`\n⭐ Your rating: ${this.formatStars(rating)}`);
+      logger.info(chalk.green('\n✓ Review submitted successfully!'));
+      logger.info(`\n⭐ Your rating: ${RateCommand.formatStars(rating)}`);
 
       if (review.title) {
-        console.log(`📝 Title: ${review.title}`);
+        logger.info(`📝 Title: ${review.title}`);
       }
 
       if (review.comment) {
-        console.log(`💬 Comment: ${review.comment}`);
+        logger.info(`💬 Comment: ${review.comment}`);
       }
 
-      console.log(`\n💡 Thank you for helping the community!`);
+      logger.info(`\n💡 Thank you for helping the community!`);
     } catch (error) {
       if (
         error instanceof Error &&
@@ -218,19 +225,19 @@ export class RateCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async displayReviews(template: any): Promise<void> {
-    console.log(
+  private async displayReviews(template: MarketplaceTemplate): Promise<void> {
+    logger.info(
       chalk.bold(`\n📋 Reviews for ${template.displayName || template.name}\n`)
     );
 
     // Show overall rating
     const { rating } = template;
-    console.log(
-      `Overall Rating: ${this.formatStars(rating.average)} (${rating.total} reviews)`
+    logger.info(
+      `Overall Rating: ${RateCommand.formatStars(rating.average)} (${rating.total} reviews)`
     );
 
     // Show rating distribution
-    this.displayRatingDistribution(rating.distribution);
+    RateCommand.displayRatingDistribution(rating.distribution);
 
     // Get and display reviews
     try {
@@ -242,20 +249,20 @@ export class RateCommand extends BaseCommand implements ICommand {
       );
 
       if (reviews.length === 0) {
-        console.log(
+        logger.info(
           chalk.gray('\nNo reviews yet. Be the first to review this template!')
         );
         return;
       }
 
-      console.log(chalk.bold('\n📝 Recent Reviews:\n'));
+      logger.info(chalk.bold('\n📝 Recent Reviews:\n'));
 
       reviews.forEach((review, index) => {
         this.displayReview(review, index + 1);
       });
 
       if (reviews.length >= 10) {
-        console.log(chalk.gray('\n💡 Showing latest 10 reviews'));
+        logger.info(chalk.gray('\n💡 Showing latest 10 reviews'));
       }
     } catch (error) {
       this.warn(
@@ -264,36 +271,37 @@ export class RateCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private displayRatingDistribution(
+  private static displayRatingDistribution(
     distribution: Record<string, number>
   ): void {
-    console.log(chalk.bold('\n📊 Rating Distribution:\n'));
+    logger.info(chalk.bold('\n📊 Rating Distribution:\n'));
 
     const total = Object.values(distribution).reduce(
       (sum, count) => sum + count,
       0
     );
 
-    for (let i = 5; i >= 1; i--) {
+    for (let i = 5; i >= 1; i -= 1) {
       const count = distribution[i.toString()] || 0;
       const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
       const barLength = Math.round(percentage / 5); // Scale to max 20 chars
       const bar = '█'.repeat(barLength) + '░'.repeat(20 - barLength);
 
-      console.log(`${i} ⭐ ${chalk.cyan(bar)} ${count} (${percentage}%)`);
+      logger.info(`${i} ⭐ ${chalk.cyan(bar)} ${count} (${percentage}%)`);
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private displayReview(review: TemplateReview, position: number): void {
-    const stars = this.formatStars(review.rating);
+    const stars = RateCommand.formatStars(review.rating);
     const date = new Date(review.created).toLocaleDateString();
     const helpful =
       review.helpful > 0 ? chalk.green(`👍 ${review.helpful}`) : '';
 
-    console.log(
+    logger.info(
       `${position}. ${stars} ${chalk.bold(review.title || 'Review')}`
     );
-    console.log(
+    logger.info(
       `   by ${chalk.blue(review.userName)} on ${chalk.gray(date)} ${helpful}`
     );
 
@@ -302,16 +310,17 @@ export class RateCommand extends BaseCommand implements ICommand {
         review.comment.length > 200
           ? `${review.comment.substring(0, 200)}...`
           : review.comment;
-      console.log(`   ${chalk.gray(truncated)}`);
+      logger.info(`   ${chalk.gray(truncated)}`);
     }
 
     if (review.version) {
-      console.log(`   ${chalk.gray(`for version ${review.version}`)}`);
+      logger.info(`   ${chalk.gray(`for version ${review.version}`)}`);
     }
 
-    console.log();
+    logger.info();
   }
 
+  // eslint-disable-next-line no-unused-vars
   private async deleteReview(_templateId: string): Promise<void> {
     const confirmed = await this.confirm(
       'Are you sure you want to delete your review?'
@@ -332,7 +341,7 @@ export class RateCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private formatStars(rating: number): string {
+  private static formatStars(rating: number): string {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);

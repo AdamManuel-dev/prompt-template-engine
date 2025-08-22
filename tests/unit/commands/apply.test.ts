@@ -62,10 +62,10 @@ describe('Apply Command', () => {
     // Setup default mocks
     mockTemplateEngine = {
       render: jest.fn(),
-    } as any;
+    } as unknown;
     mockTemplateValidator = {
       validate: jest.fn(),
-    } as any;
+    } as unknown;
 
     MockTemplateEngine.mockImplementation(() => mockTemplateEngine);
     MockTemplateValidator.mockImplementation(() => mockTemplateValidator);
@@ -107,9 +107,9 @@ describe('Apply Command', () => {
 
     // Mock Date
     const mockDate = new Date('2025-08-22T15:30:00Z');
-    jest.spyOn(global, 'Date').mockImplementation(() => mockDate as any);
-    (global.Date as any).prototype.toISOString = () => '2025-08-22T15:30:00.000Z';
-    (global.Date as any).prototype.getFullYear = () => 2025;
+    jest.spyOn(global, 'Date').mockImplementation(() => mockDate as unknown);
+    (global.Date as unknown).prototype.toISOString = () => '2025-08-22T15:30:00.000Z';
+    (global.Date as unknown).prototype.getFullYear = () => 2025;
   });
 
   afterEach(() => {
@@ -132,14 +132,14 @@ describe('Apply Command', () => {
       };
 
       // Mock file system operations
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/test-template.json') return true;
         if (path === '/resolved/test-file.md') return false;
         if (path === '/resolved') return false;
         return false;
       });
       
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
       mockFs.mkdirSync.mockImplementation();
@@ -166,11 +166,11 @@ describe('Apply Command', () => {
       const templateName = 'invalid-template';
       const mockTemplate = { name: 'Invalid Template' };
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/invalid-template.json') return true;
         return false;
       });
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
 
       mockTemplateValidator.validate.mockResolvedValue({
@@ -206,13 +206,13 @@ describe('Apply Command', () => {
       
       const options: ApplyOptions = { preview: true };
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/preview-template.json') return true;
         if (path === 'preview-file.md') return false;
         return false;
       });
       
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
 
       await applyCommand(templateName, options);
@@ -235,13 +235,13 @@ describe('Apply Command', () => {
       
       const options: ApplyOptions = { force: true };
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/overwrite-template.json') return true;
         if (path === '/resolved/existing-file.md') return true; // File exists
         return false;
       });
       
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
 
@@ -263,13 +263,13 @@ describe('Apply Command', () => {
         ]
       };
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/skip-template.json') return true;
         if (path === '/resolved/existing-file.md') return true; // File exists
         return false;
       });
       
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
 
       await applyCommand(templateName, {});
@@ -294,13 +294,13 @@ describe('Apply Command', () => {
         variables: { name: 'World' }
       };
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/variable-template.json') return true;
         if (path === '/resolved/variable-file.md') return false;
         if (path === '/resolved') return false;
         return false;
       });
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
 
@@ -326,12 +326,12 @@ describe('Apply Command', () => {
         files: [{ path: 'dir-file.md', content: 'Directory content' }]
       };
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/dir-template/template.json') return true;
         return false;
       });
       
-      mockFs.statSync.mockReturnValue({ isDirectory: () => true } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => true } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
 
@@ -344,12 +344,12 @@ describe('Apply Command', () => {
     it('should handle YAML template rejection', async () => {
       const templateName = 'yaml-template';
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/yaml-template.yaml') return true;
         return false;
       });
       
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue('name: YAML Template');
 
       await expect(applyCommand(templateName)).rejects.toThrow('YAML templates not yet supported');
@@ -358,12 +358,12 @@ describe('Apply Command', () => {
     it('should handle unsupported template format', async () => {
       const templateName = 'unsupported-template.xml';
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/unsupported-template.xml') return true;
         return false;
       });
       
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue('<template></template>');
 
       // The apply command doesn't find .xml files, so it throws "not found"
@@ -382,13 +382,13 @@ describe('Apply Command', () => {
         ]
       };
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/nested-template.json') return true;
         if (path === '/resolved/nested/deep') return false; // Directory doesn't exist
         return false;
       });
       
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
       mockFs.mkdirSync.mockImplementation();
@@ -415,18 +415,18 @@ describe('Apply Command', () => {
         ]
       };
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/error-template.json') return true;
         if (path === '/resolved/good-file.md') return false;
         if (path === '/resolved/bad-file.md') return false;
         if (path === '/resolved') return false;
         return false;
       });
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.mkdirSync.mockImplementation();
       
-      mockFs.writeFileSync.mockImplementation((path: any) => {
+      mockFs.writeFileSync.mockImplementation((path: unknown) => {
         if (path === '/resolved/bad-file.md') {
           throw new Error('Permission denied');
         }
@@ -450,13 +450,13 @@ describe('Apply Command', () => {
         ]
       };
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/default-vars-template.json') return true;
         if (path === '/resolved/vars-file.md') return false;
         if (path === '/resolved') return false;
         return false;
       });
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
 
@@ -511,13 +511,13 @@ describe('Apply Command', () => {
         variables: { username: 'custom-user' }
       };
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/preview-vars-template.json') return true;
         if (path === 'config.json') return false;
         return false;
       });
       
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
 
       await applyCommand(templateName, options);
@@ -545,13 +545,13 @@ describe('Apply Command', () => {
         metadata: { version: '1.0.0', created: '2025-01-01', lastModified: '2025-01-01' }
       });
 
-      mockFs.existsSync.mockImplementation((path: any) => {
+      mockFs.existsSync.mockImplementation((path: unknown) => {
         // Template found in second directory
         if (path === '/mock/templates2/multi-dir-template.json') return true;
         return false;
       });
       
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
 
@@ -565,7 +565,7 @@ describe('Apply Command', () => {
       const templateName = 'invalid-json-template';
 
       mockFs.existsSync.mockReturnValue(true);
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
+      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
       mockFs.readFileSync.mockReturnValue('{ invalid json }');
 
       await expect(applyCommand(templateName)).rejects.toThrow();

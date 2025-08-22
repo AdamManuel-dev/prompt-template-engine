@@ -13,6 +13,7 @@ import * as path from 'path';
 import { TemplateHelpers } from './template-helpers';
 import { TemplatePartials } from './template-partials';
 import { TemplateTransforms } from './template-transforms';
+import { logger } from '../utils/logger';
 
 export interface TemplateContext {
   [key: string]: unknown;
@@ -773,36 +774,108 @@ export class TemplateEngine {
     // Process helpers recursively to handle nested calls
     while (iteration < maxIterations) {
       const helperNames = this.helpers.getHelperNames().join('|');
+      // Enhanced regex to match both space-separated and function call syntax
       const helperRegex = new RegExp(
-        `\\{\\{\\s*(${helperNames})(?:\\s+([^}]+))?\\s*\\}\\}`,
+        `\\{\\{\\s*(${helperNames})(?:\\s+([^}]+?)|\\(([^}]+)\\))?\\s*\\}\\}`,
         'g'
       );
 
       let hasChanges = false;
-      result = result.replace(helperRegex, (match, helperName, args) => {
-        try {
-          // Check if args contain nested helpers by looking for parentheses
-          if (args && args.includes('(') && args.includes(')')) {
-            // Process nested helpers first
-            const processedArgs = this.processNestedHelpers(args, context);
-            const argList = this.parseHelperArgs(processedArgs.trim(), context);
-            const helperResult = this.helpers.execute(helperName, ...argList);
+      result = result.replace(
+        helperRegex,
+        (match, helperName, spaceArgs, parenArgs) => {
+          const args = spaceArgs || parenArgs;
+          try {
+            if (args) {
+              let processedArgs: string;
+
+              let argList: unknown[];
+
+              // Check if we have parentheses args (function call syntax)
+              if (parenArgs !== undefined) {
+                // Function call syntax: helper(args)
+                // Check if this is a single nested helper call
+                const functionCallMatches = this.findFunctionCallMatches(
+                  parenArgs,
+                  this.helpers.getHelperNames()
+                );
+
+                if (
+                  functionCallMatches.length === 1 &&
+                  functionCallMatches[0].start === 0 &&
+                  functionCallMatches[0].end === parenArgs.length
+                ) {
+                  // This is a single nested helper call, treat result as single argument
+                  processedArgs = this.processEnhancedNestedHelpers(
+                    parenArgs,
+                    context
+                  );
+                  argList = [processedArgs];
+                } else {
+                  // This contains multiple arguments, some may be nested helpers
+                  processedArgs = this.processEnhancedNestedHelpers(
+                    parenArgs,
+                    context
+                  );
+
+                  // For processed nested helpers, we need to parse more carefully
+                  // because some parts are now literal values, not variable names
+                  argList = this.parseProcessedHelperArgs(
+                    processedArgs.trim(),
+                    parenArgs,
+                    context
+                  );
+                }
+              } else if (spaceArgs !== undefined) {
+                // Space-separated syntax
+                if (spaceArgs.includes('(') && spaceArgs.includes(')')) {
+                  // Traditional nested: helper (nested args) or helper arg1 (nested args)
+                  processedArgs = this.processEnhancedNestedHelpers(
+                    spaceArgs,
+                    context
+                  );
+
+                  // Check if this is a single nested helper call like "(capitalize name)"
+                  const trimmedSpaceArgs = spaceArgs.trim();
+                  if (
+                    trimmedSpaceArgs.startsWith('(') &&
+                    trimmedSpaceArgs.endsWith(')')
+                  ) {
+                    // This is a single nested expression in parentheses, treat result as single argument
+                    argList = [processedArgs];
+                  } else {
+                    // Multiple arguments with some nested expressions
+                    argList = this.parseHelperArgs(
+                      processedArgs.trim(),
+                      context
+                    );
+                  }
+                } else {
+                  // Simple space-separated args
+                  processedArgs = spaceArgs;
+                  argList = this.parseHelperArgs(processedArgs.trim(), context);
+                }
+              } else {
+                // No arguments case
+                argList = [];
+              }
+
+              const helperResult = this.helpers.execute(helperName, ...argList);
+              hasChanges = true;
+              return helperResult !== undefined ? String(helperResult) : match;
+            }
+
+            // No arguments case
+            const helperResult = this.helpers.execute(helperName);
             hasChanges = true;
             return helperResult !== undefined ? String(helperResult) : match;
+          } catch (error) {
+            // If helper fails, return original match
+            logger.error(`Helper error: ${error}`);
+            return match;
           }
-          // Parse arguments normally
-          const argList = args
-            ? this.parseHelperArgs(args.trim(), context)
-            : [];
-          const helperResult = this.helpers.execute(helperName, ...argList);
-          hasChanges = true;
-          return helperResult !== undefined ? String(helperResult) : match;
-        } catch (error) {
-          // If helper fails, return original match
-          console.error(`Helper error: ${error}`);
-          return match;
         }
-      });
+      );
 
       if (!hasChanges) break;
       iteration += 1;
@@ -907,33 +980,261 @@ export class TemplateEngine {
   }
 
   /**
-   * Process nested helper calls in arguments
+   * Process enhanced nested helper calls that support both traditional and function call syntax
    */
-  private processNestedHelpers(
+  private processEnhancedNestedHelpers(
     argsString: string,
     context: TemplateContext
   ): string {
-    // Pattern to match (helperName args)
-    const nestedHelperPattern = /\(([a-zA-Z]+)(?:\s+([^)]+))?\)/g;
+    let result = argsString;
+    let iteration = 0;
+    const maxNestedIterations = 10;
 
-    return argsString.replace(
-      nestedHelperPattern,
-      (match, helperName, helperArgs) => {
-        if (this.helpers.has(helperName)) {
-          try {
-            const args = helperArgs
-              ? this.parseHelperArgs(helperArgs, context)
-              : [];
-            const result = this.helpers.execute(helperName, ...args);
-            return String(result);
-          } catch (error) {
-            console.error(`Nested helper error: ${error}`);
-            return match;
+    // Continue processing until no more nested expressions are found
+    while (iteration < maxNestedIterations) {
+      let hasChanges = false;
+
+      // Pattern 1: Traditional (helperName args) format
+      const traditionalPattern = /\(([a-zA-Z]+)(?:\s+([^)]+))?\)/g;
+      result = result.replace(
+        traditionalPattern,
+        (match, helperName, helperArgs) => {
+          if (this.helpers.has(helperName)) {
+            try {
+              // Recursively process nested expressions in args
+              const processedArgs = helperArgs
+                ? this.processEnhancedNestedHelpers(helperArgs, context)
+                : '';
+              const args = processedArgs
+                ? this.parseHelperArgs(processedArgs, context)
+                : [];
+              const helperResult = this.helpers.execute(helperName, ...args);
+              hasChanges = true;
+              return String(helperResult);
+            } catch (error) {
+              logger.error(`Nested helper error: ${error}`);
+              return match;
+            }
+          }
+          return match;
+        }
+      );
+
+      // Pattern 2: Function call helperName(args) format with proper parentheses balancing
+      const helperNames = this.helpers.getHelperNames();
+      const functionCallMatches = this.findFunctionCallMatches(
+        result,
+        helperNames
+      );
+
+      // Process matches in reverse order to handle nested calls correctly
+      for (let i = functionCallMatches.length - 1; i >= 0; i -= 1) {
+        const match = functionCallMatches[i];
+        try {
+          // Recursively process nested expressions in args
+          const processedArgs = match.args
+            ? this.processEnhancedNestedHelpers(match.args, context)
+            : '';
+
+          let args: unknown[];
+          if (processedArgs) {
+            // Check if the processed args is actually a single nested helper call result
+            const nestedMatches = this.findFunctionCallMatches(
+              match.args || '',
+              this.helpers.getHelperNames()
+            );
+            if (
+              nestedMatches.length === 1 &&
+              nestedMatches[0].start === 0 &&
+              nestedMatches[0].end === (match.args || '').length
+            ) {
+              // This is a single nested helper result, treat as single argument
+              args = [processedArgs];
+            } else {
+              // This contains multiple arguments, parse them
+              args = this.parseHelperArgs(processedArgs, context);
+            }
+          } else {
+            args = [];
+          }
+
+          const helperResult = this.helpers.execute(match.helperName, ...args);
+
+          // Replace the match in the result
+          result =
+            result.substring(0, match.start) +
+            String(helperResult) +
+            result.substring(match.end);
+          hasChanges = true;
+        } catch (error) {
+          logger.error(`Function call helper error: ${error}`);
+        }
+      }
+
+      if (!hasChanges) break;
+      iteration += 1;
+    }
+
+    return result;
+  }
+
+  /**
+   * Find function call matches with proper parentheses balancing
+   */
+  // eslint-disable-next-line class-methods-use-this
+  private findFunctionCallMatches(
+    text: string,
+    helperNames: string[]
+  ): Array<{
+    helperName: string;
+    args: string;
+    start: number;
+    end: number;
+  }> {
+    const matches: Array<{
+      helperName: string;
+      args: string;
+      start: number;
+      end: number;
+    }> = [];
+
+    for (let i = 0; i < text.length; i += 1) {
+      // Check if we're at the start of a helper name
+      if (/[a-zA-Z]/.test(text[i])) {
+        let j = i;
+        while (j < text.length && /[a-zA-Z]/.test(text[j])) j += 1;
+        const helperName = text.substring(i, j);
+
+        // Check if this is a valid helper name followed by an opening parenthesis
+        if (
+          helperNames.includes(helperName) &&
+          j < text.length &&
+          text[j] === '('
+        ) {
+          // Find the matching closing parenthesis with proper nesting
+          let depth = 1;
+          let k = j + 1;
+          while (k < text.length && depth > 0) {
+            if (text[k] === '(') depth += 1;
+            else if (text[k] === ')') depth -= 1;
+            k += 1;
+          }
+
+          if (depth === 0) {
+            const args = text.substring(j + 1, k - 1);
+            matches.push({
+              helperName,
+              args,
+              start: i,
+              end: k,
+            });
+            i = k - 1; // Skip past this match
           }
         }
-        return match;
       }
+    }
+
+    return matches;
+  }
+
+  /**
+   * Parse helper arguments from processed string that may contain literal values from nested helpers
+   */
+  private parseProcessedHelperArgs(
+    processedArgsString: string,
+    originalArgsString: string,
+    context: TemplateContext
+  ): unknown[] {
+    // Find all function call matches in the original args to determine which parts were processed
+    const helperMatches = this.findFunctionCallMatches(
+      originalArgsString,
+      this.helpers.getHelperNames()
     );
+
+    // If no function calls were found, use regular parsing
+    if (helperMatches.length === 0) {
+      return this.parseHelperArgs(processedArgsString, context);
+    }
+
+    // Parse arguments treating processed function call results as literals
+    const args: unknown[] = [];
+    let current = '';
+    let inQuotes = false;
+    let quoteChar = '';
+
+    for (let i = 0; i < processedArgsString.length; i += 1) {
+      const char = processedArgsString[i];
+
+      if (
+        (char === '"' || char === "'") &&
+        (i === 0 || processedArgsString[i - 1] !== '\\')
+      ) {
+        if (!inQuotes) {
+          inQuotes = true;
+          quoteChar = char;
+        } else if (char === quoteChar) {
+          inQuotes = false;
+          // Add the quoted string as-is
+          args.push(current);
+          current = '';
+          quoteChar = '';
+        } else {
+          current += char;
+        }
+      } else if ((char === ' ' || char === ',') && !inQuotes) {
+        if (current.trim()) {
+          // For processed helper results, treat as literal values unless they match original variable patterns
+          const trimmedCurrent = current.trim();
+          if (
+            this.looksLikeProcessedHelperResult(
+              trimmedCurrent,
+              originalArgsString
+            )
+          ) {
+            args.push(trimmedCurrent);
+          } else {
+            args.push(this.resolveHelperArg(trimmedCurrent, context));
+          }
+          current = '';
+        }
+        // Skip spaces and commas outside quotes
+      } else if (!(char === '"' || char === "'") || inQuotes) {
+        current += char;
+      }
+    }
+
+    // Add last argument if any
+    if (current.trim()) {
+      const trimmedCurrent = current.trim();
+      if (
+        this.looksLikeProcessedHelperResult(trimmedCurrent, originalArgsString)
+      ) {
+        args.push(trimmedCurrent);
+      } else {
+        args.push(this.resolveHelperArg(trimmedCurrent, context));
+      }
+    }
+
+    return args;
+  }
+
+  /**
+   * Check if a value looks like it came from processing a helper function
+   */
+  // eslint-disable-next-line class-methods-use-this
+  private looksLikeProcessedHelperResult(
+    value: string,
+    originalArgs: string
+  ): boolean {
+    // If the value doesn't appear as a variable name in the original args, it's likely a processed result
+    // Check if this value is a standalone word that was likely a variable in the original
+    if (/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(value)) {
+      // This looks like a variable name - check if it appears in the original args as a variable
+      return !originalArgs.includes(value);
+    }
+
+    // If it's not a simple variable name pattern, treat it as a literal value
+    return true;
   }
 
   /**
@@ -967,20 +1268,21 @@ export class TemplateEngine {
         } else {
           current += char;
         }
-      } else if (char === ' ' && !inQuotes) {
-        if (current) {
+      } else if ((char === ' ' || char === ',') && !inQuotes) {
+        if (current.trim()) {
           // Resolve the argument value
-          args.push(this.resolveHelperArg(current, context));
+          args.push(this.resolveHelperArg(current.trim(), context));
           current = '';
         }
+        // Skip spaces and commas outside quotes
       } else if (!(char === '"' || char === "'") || inQuotes) {
         current += char;
       }
     }
 
     // Add last argument if any
-    if (current) {
-      args.push(this.resolveHelperArg(current, context));
+    if (current.trim()) {
+      args.push(this.resolveHelperArg(current.trim(), context));
     }
 
     return args;
@@ -1028,7 +1330,7 @@ export class TemplateEngine {
             : [];
           return this.helpers.execute(helperName, ...args);
         } catch (error) {
-          console.error(`Error evaluating helper condition: ${error}`);
+          logger.error(`Error evaluating helper condition: ${error}`);
           return false;
         }
       }

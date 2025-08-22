@@ -8,6 +8,16 @@
  * Patterns: Version management, semantic versioning, dependency resolution
  */
 
+export type VersionOperator =
+  | 'exact' // 1.2.3
+  | 'gte' // >=1.2.3
+  | 'lte' // <=1.2.3
+  | 'gt' // >1.2.3
+  | 'lt' // <1.2.3
+  | 'caret' // ^1.2.3
+  | 'tilde' // ~1.2.3
+  | 'range'; // 1.2.3 - 1.5.0
+
 export interface VersionInfo {
   major: number;
   minor: number;
@@ -23,16 +33,6 @@ export interface VersionRange {
   raw: string;
 }
 
-export type VersionOperator =
-  | 'exact' // 1.2.3
-  | 'gte' // >=1.2.3
-  | 'lte' // <=1.2.3
-  | 'gt' // >1.2.3
-  | 'lt' // <1.2.3
-  | 'caret' // ^1.2.3
-  | 'tilde' // ~1.2.3
-  | 'range'; // 1.2.3 - 1.5.0
-
 export class VersionManager {
   private static readonly VERSION_REGEX =
     /^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9.-]+))?(?:\+([a-zA-Z0-9.-]+))?$/;
@@ -42,6 +42,7 @@ export class VersionManager {
   /**
    * Parse version string into VersionInfo
    */
+  // eslint-disable-next-line class-methods-use-this
   parseVersion(version: string): VersionInfo {
     const match = version.match(VersionManager.VERSION_REGEX);
 
@@ -93,6 +94,7 @@ export class VersionManager {
   /**
    * Get operator from prefix
    */
+  // eslint-disable-next-line class-methods-use-this
   private getOperator(prefix: string): VersionOperator {
     switch (prefix) {
       case '>=':
@@ -180,13 +182,14 @@ export class VersionManager {
       case 'tilde':
         return this.satisfiesTilde(versionInfo, rangeInfo.version);
 
-      case 'range':
+      case 'range': {
         // For range operator, need to parse both start and end
         const [start, end] = range.split(' - ').map(v => v.trim());
         return (
           this.satisfies(version, `>=${start}`) &&
           this.satisfies(version, `<=${end}`)
         );
+      }
 
       default:
         return false;
@@ -286,6 +289,8 @@ export class VersionManager {
         return `${versionInfo.major}.${versionInfo.minor + 1}.0`;
       case 'patch':
         return `${versionInfo.major}.${versionInfo.minor}.${versionInfo.patch + 1}`;
+      default:
+        throw new Error(`Invalid increment type: ${type}`);
     }
   }
 

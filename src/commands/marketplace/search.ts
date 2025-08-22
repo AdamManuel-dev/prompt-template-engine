@@ -17,6 +17,15 @@ import {
   TemplateModel,
   TemplateSortOption,
 } from '../../marketplace/models/template.model';
+import {
+  MarketplaceCommandOptions,
+  TemplateSearchResult,
+  SearchFacets,
+  CategoryFacet,
+  TagFacet,
+  AuthorFacet,
+} from '../../types';
+import { logger } from '../../utils/logger';
 
 export class SearchCommand extends BaseCommand implements ICommand {
   name = 'search';
@@ -95,12 +104,15 @@ export class SearchCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(args: string, options: any): Promise<void> {
+  async execute(
+    args: string,
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     try {
       this.info('Searching marketplace...');
 
       const marketplace = MarketplaceService.getInstance();
-      const query = this.buildSearchQuery(args, options);
+      const query = SearchCommand.buildSearchQuery(args, options);
 
       const result = await marketplace.search(query);
 
@@ -115,7 +127,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
       );
 
       if (result.hasMore) {
-        console.log(
+        logger.info(
           chalk.gray(
             `\n💡 Use --page ${(query.page || 1) + 1} to see more results`
           )
@@ -128,7 +140,10 @@ export class SearchCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private buildSearchQuery(args: string, options: any): TemplateSearchQuery {
+  private static buildSearchQuery(
+    args: string,
+    options: MarketplaceCommandOptions
+  ): TemplateSearchQuery {
     const query: TemplateSearchQuery = {
       page: parseInt(options.page, 10),
       limit: parseInt(options.limit, 10),
@@ -174,8 +189,11 @@ export class SearchCommand extends BaseCommand implements ICommand {
     return query;
   }
 
-  private displayResults(result: any, options: any): void {
-    console.log('\n📦 Search Results:\n');
+  private displayResults(
+    result: TemplateSearchResult,
+    options: MarketplaceCommandOptions
+  ): void {
+    logger.info('\n📦 Search Results:\n');
 
     result.templates.forEach((template: TemplateModel, index: number) => {
       const position = (result.page - 1) * result.limit + index + 1;
@@ -189,26 +207,29 @@ export class SearchCommand extends BaseCommand implements ICommand {
 
     // Show search facets if available
     if (result.facets && Object.keys(result.facets).length > 0) {
-      this.displaySearchFacets(result.facets);
+      SearchCommand.displaySearchFacets(result.facets);
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private displayCompactTemplate(
     template: TemplateModel,
     position: number
   ): void {
-    const ratingStars = this.formatRating(template.rating.average);
-    const downloadsFormatted = this.formatNumber(template.stats.downloads);
-    const badges = this.formatBadges(template);
+    const ratingStars = SearchCommand.formatRating(template.rating.average);
+    const downloadsFormatted = SearchCommand.formatNumber(
+      template.stats.downloads
+    );
+    const badges = SearchCommand.formatBadges(template);
 
-    console.log(
+    logger.info(
       `${position}. ${chalk.bold(template.displayName || template.name)} ${badges}`
     );
-    console.log(`   ${chalk.gray(template.description)}`);
-    console.log(
+    logger.info(`   ${chalk.gray(template.description)}`);
+    logger.info(
       `   ${ratingStars} ${chalk.cyan(`${downloadsFormatted} downloads`)} ${chalk.yellow(`v${template.currentVersion}`)}`
     );
-    console.log(
+    logger.info(
       `   ${chalk.gray('by')} ${chalk.blue(template.author.name)} ${chalk.gray('•')} ${chalk.magenta(template.category)}`
     );
 
@@ -217,100 +238,101 @@ export class SearchCommand extends BaseCommand implements ICommand {
         .slice(0, 3)
         .map(tag => chalk.gray(`#${tag}`))
         .join(' ');
-      console.log(
+      logger.info(
         `   ${tags}${template.tags.length > 3 ? chalk.gray(` +${template.tags.length - 3} more`) : ''}`
       );
     }
 
-    console.log();
+    logger.info();
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private displayDetailedTemplate(
     template: TemplateModel,
     position: number
   ): void {
-    const ratingStars = this.formatRating(template.rating.average);
-    const badges = this.formatBadges(template);
+    const ratingStars = SearchCommand.formatRating(template.rating.average);
+    const badges = SearchCommand.formatBadges(template);
 
-    console.log(
+    logger.info(
       `${position}. ${chalk.bold.underline(template.displayName || template.name)} ${badges}`
     );
-    console.log(`   ID: ${chalk.gray(template.id)}`);
-    console.log(`   ${template.description}`);
+    logger.info(`   ID: ${chalk.gray(template.id)}`);
+    logger.info(`   ${template.description}`);
 
     if (template.longDescription) {
-      console.log(
+      logger.info(
         `   ${chalk.gray(template.longDescription.substring(0, 200) + (template.longDescription.length > 200 ? '...' : ''))}`
       );
     }
 
-    console.log(
-      `   ${ratingStars} (${template.rating.total} reviews) • ${chalk.cyan(`${this.formatNumber(template.stats.downloads)} downloads`)}`
+    logger.info(
+      `   ${ratingStars} (${template.rating.total} reviews) • ${chalk.cyan(`${SearchCommand.formatNumber(template.stats.downloads)} downloads`)}`
     );
-    console.log(
+    logger.info(
       `   Version: ${chalk.yellow(template.currentVersion)} • Category: ${chalk.magenta(template.category)}`
     );
-    console.log(
+    logger.info(
       `   Author: ${chalk.blue(template.author.name)}${template.author.verified ? ' ✓' : ''}`
     );
-    console.log(
+    logger.info(
       `   Created: ${chalk.gray(new Date(template.created).toLocaleDateString())}`
     );
-    console.log(
+    logger.info(
       `   Updated: ${chalk.gray(new Date(template.updated).toLocaleDateString())}`
     );
 
     if (template.tags.length > 0) {
-      console.log(
+      logger.info(
         `   Tags: ${template.tags.map(tag => chalk.gray(`#${tag}`)).join(' ')}`
       );
     }
 
     if (template.metadata.repository) {
-      console.log(
+      logger.info(
         `   Repository: ${chalk.blue(template.metadata.repository.url)}`
       );
     }
 
-    console.log(
+    logger.info(
       `   Install: ${chalk.green(`cursor-prompt install ${template.name}`)}`
     );
-    console.log();
+    logger.info();
   }
 
-  private displaySearchFacets(facets: any): void {
-    console.log(chalk.bold('\n🔍 Refine Your Search:\n'));
+  private static displaySearchFacets(facets: SearchFacets): void {
+    logger.info(chalk.bold('\n🔍 Refine Your Search:\n'));
 
     if (facets.categories && facets.categories.length > 0) {
-      console.log('📂 Categories:');
-      facets.categories.slice(0, 5).forEach((cat: any) => {
-        console.log(`   ${chalk.magenta(cat.category)} (${cat.count})`);
+      logger.info('📂 Categories:');
+      facets.categories.slice(0, 5).forEach((cat: CategoryFacet) => {
+        logger.info(`   ${chalk.magenta(cat.category)} (${cat.count})`);
       });
-      console.log();
+      logger.info();
     }
 
     if (facets.tags && facets.tags.length > 0) {
-      console.log('🏷️  Popular Tags:');
-      facets.tags.slice(0, 8).forEach((tag: any, index: number) => {
+      logger.info('🏷️  Popular Tags:');
+      facets.tags.slice(0, 8).forEach((tag: TagFacet, index: number) => {
         const separator =
           index < facets.tags.slice(0, 8).length - 1 ? ', ' : '';
         process.stdout.write(`${chalk.gray(`#${tag.tag}`)}${separator}`);
       });
-      console.log('\n');
+      logger.info('\n');
     }
 
     if (facets.authors && facets.authors.length > 0) {
-      console.log('👥 Top Authors:');
-      facets.authors.slice(0, 3).forEach((author: any) => {
-        console.log(
+      logger.info('👥 Top Authors:');
+      facets.authors.slice(0, 3).forEach((author: AuthorFacet) => {
+        logger.info(
           `   ${chalk.blue(author.author)} (${author.count} templates)`
         );
       });
-      console.log();
+      logger.info();
     }
   }
 
-  private formatRating(rating: number): string {
+  private static formatRating(rating: number): string {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
@@ -323,7 +345,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
     return `${chalk.yellow(stars)} ${chalk.gray(`(${rating.toFixed(1)})`)}`;
   }
 
-  private formatNumber(num: number): string {
+  private static formatNumber(num: number): string {
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
     }
@@ -333,7 +355,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
     return num.toString();
   }
 
-  private formatBadges(template: TemplateModel): string {
+  private static formatBadges(template: TemplateModel): string {
     const badges: string[] = [];
 
     if (template.featured) {

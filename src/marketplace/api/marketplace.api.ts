@@ -27,6 +27,7 @@ import {
   AuthorContribution,
   AuthorReputationLog,
 } from '../models/author.model';
+import { TemplateSearchResult as TypedTemplateSearchResult } from '../../types';
 
 export interface MarketplaceConfig {
   baseUrl: string;
@@ -220,8 +221,11 @@ export class MarketplaceAPI {
   /**
    * Get author templates (updated with options)
    */
-  async getAuthorTemplates(authorId: string, options: any = {}): Promise<any> {
-    const response = await this.request<any>(
+  async getAuthorTemplates(
+    authorId: string,
+    options: Record<string, unknown> = {}
+  ): Promise<TypedTemplateSearchResult> {
+    const response = await this.request<TypedTemplateSearchResult>(
       'GET',
       `/authors/${authorId}/templates`,
       options
@@ -341,8 +345,11 @@ export class MarketplaceAPI {
 
     let lastError: Error | null = null;
 
-    for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
+    // Retry logic requires sequential execution with await
+    // eslint-disable-next-line no-await-in-loop
+    for (let attempt = 1; attempt <= this.config.retryAttempts; attempt += 1) {
       try {
+        // eslint-disable-next-line no-await-in-loop
         const response = await this.makeRequest<T>(method, endpoint, data);
         return response;
       } catch (error) {
@@ -360,6 +367,7 @@ export class MarketplaceAPI {
         logger.warn(
           `API request failed (attempt ${attempt}/${this.config.retryAttempts}): ${error}`
         );
+        // eslint-disable-next-line no-await-in-loop
         await this.delay(this.config.retryDelay * attempt);
       }
     }
@@ -423,14 +431,17 @@ export class MarketplaceAPI {
     }
 
     this.lastRequest = Date.now();
-    this.requestCount++;
+    this.requestCount += 1;
   }
 
   /**
    * Simple delay utility
    */
+  // eslint-disable-next-line class-methods-use-this
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => {
+      setTimeout(resolve, ms);
+    });
   }
 
   /**
@@ -478,7 +489,7 @@ export class MarketplaceAPI {
 
   async getAuthorActivity(
     authorId: string,
-    options: any
+    options: Record<string, unknown>
   ): Promise<AuthorActivity[]> {
     const response = await this.request<AuthorActivity[]>(
       'GET',
@@ -563,7 +574,7 @@ export class MarketplaceAPI {
 
   async getAuthorContributions(
     authorId: string,
-    options: any
+    options: Record<string, unknown>
   ): Promise<AuthorContribution[]> {
     const response = await this.request<AuthorContribution[]>(
       'GET',
@@ -575,7 +586,7 @@ export class MarketplaceAPI {
 
   async getAuthorReputationHistory(
     authorId: string,
-    options: any
+    options: Record<string, unknown>
   ): Promise<AuthorReputationLog[]> {
     const response = await this.request<AuthorReputationLog[]>(
       'GET',

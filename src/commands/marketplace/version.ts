@@ -14,6 +14,12 @@ import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
 import { VersionManager } from '../../marketplace/core/version.manager';
+import {
+  MarketplaceCommandOptions,
+  MarketplaceTemplateVersion,
+  TemplateDependency,
+} from '../../types';
+import { logger } from '../../utils/logger';
 
 export class VersionCommand extends BaseCommand implements ICommand {
   name = 'version';
@@ -58,7 +64,10 @@ export class VersionCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(_args: string, options: any): Promise<void> {
+  async execute(
+    _args: string,
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     const versionManager = new VersionManager();
 
     try {
@@ -107,7 +116,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
       }
 
       // Show general version management help
-      this.showHelp();
+      VersionCommand.showHelp();
     } catch (error) {
       this.error(
         `Version command failed: ${error instanceof Error ? error.message : String(error)}`
@@ -118,7 +127,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
   private async compareVersions(
     compareString: string,
     versionManager: VersionManager,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     const versions = compareString.split(',').map(v => v.trim());
 
@@ -135,11 +144,11 @@ export class VersionCommand extends BaseCommand implements ICommand {
       const comparison = versionManager.compareVersions(version1, version2);
       const diffType = versionManager.diff(version1, version2);
 
-      console.log(chalk.bold('\n📊 Version Comparison\n'));
-      console.log(`${chalk.cyan(version1)} vs ${chalk.cyan(version2)}`);
+      logger.info(chalk.bold('\n📊 Version Comparison\n'));
+      logger.info(`${chalk.cyan(version1)} vs ${chalk.cyan(version2)}`);
 
       let result: string;
-      let color: any = chalk.gray;
+      let color: typeof chalk.gray = chalk.gray;
 
       if (comparison < 0) {
         result = `${version1} < ${version2}`;
@@ -152,8 +161,8 @@ export class VersionCommand extends BaseCommand implements ICommand {
         color = chalk.yellow;
       }
 
-      console.log(`Result: ${color(result)}`);
-      console.log(`Change Type: ${this.formatDiffType(diffType)}`);
+      logger.info(`Result: ${color(result)}`);
+      logger.info(`Change Type: ${VersionCommand.formatDiffType(diffType)}`);
 
       // Additional analysis
       if (comparison !== 0) {
@@ -161,20 +170,20 @@ export class VersionCommand extends BaseCommand implements ICommand {
         const v1Stable = versionManager.isStable(version1);
         const v2Stable = versionManager.isStable(version2);
 
-        console.log(`\n📋 Analysis:`);
-        console.log(
+        logger.info(`\n📋 Analysis:`);
+        logger.info(
           `   Breaking Change: ${isBreaking ? chalk.red('Yes') : chalk.green('No')}`
         );
-        console.log(
+        logger.info(
           `   ${version1}: ${v1Stable ? chalk.green('Stable') : chalk.yellow('Pre-release')}`
         );
-        console.log(
+        logger.info(
           `   ${version2}: ${v2Stable ? chalk.green('Stable') : chalk.yellow('Pre-release')}`
         );
       }
 
       if (options.format === 'json') {
-        console.log(
+        logger.info(
           `\n${JSON.stringify(
             {
               version1,
@@ -198,7 +207,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
   private async checkUpgrades(
     templateName: string,
     versionManager: VersionManager,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     const marketplace = MarketplaceService.getInstance();
     const registry = new TemplateRegistry();
@@ -212,50 +221,52 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
     // Get marketplace template info
     const template = await marketplace.getTemplate(installed.id);
-    const availableVersions = template.versions.map((v: any) => v.version);
+    const availableVersions = template.versions.map(
+      (v: MarketplaceTemplateVersion) => v.version
+    );
 
     const upgradeOptions = versionManager.getUpgradeOptions(
       installed.version,
       availableVersions
     );
 
-    console.log(
+    logger.info(
       chalk.bold(`\n🔄 Upgrade Options for ${chalk.cyan(templateName)}\n`)
     );
-    console.log(`Current Version: ${chalk.yellow(installed.version)}`);
-    console.log(`Latest Version: ${chalk.yellow(template.currentVersion)}`);
+    logger.info(`Current Version: ${chalk.yellow(installed.version)}`);
+    logger.info(`Latest Version: ${chalk.yellow(template.currentVersion)}`);
 
     if (upgradeOptions.patch.length > 0) {
-      console.log(chalk.bold('\n🩹 Patch Updates (Bug fixes):'));
+      logger.info(chalk.bold('\n🩹 Patch Updates (Bug fixes):'));
       upgradeOptions.patch.slice(-5).forEach(version => {
-        console.log(`   ${chalk.green('✓')} ${version}`);
+        logger.info(`   ${chalk.green('✓')} ${version}`);
       });
       if (upgradeOptions.patch.length > 5) {
-        console.log(
+        logger.info(
           `   ${chalk.gray(`... and ${upgradeOptions.patch.length - 5} more`)}`
         );
       }
     }
 
     if (upgradeOptions.minor.length > 0) {
-      console.log(chalk.bold('\n⬆️  Minor Updates (New features):'));
+      logger.info(chalk.bold('\n⬆️  Minor Updates (New features):'));
       upgradeOptions.minor.slice(-5).forEach(version => {
-        console.log(`   ${chalk.blue('↗')} ${version}`);
+        logger.info(`   ${chalk.blue('↗')} ${version}`);
       });
       if (upgradeOptions.minor.length > 5) {
-        console.log(
+        logger.info(
           `   ${chalk.gray(`... and ${upgradeOptions.minor.length - 5} more`)}`
         );
       }
     }
 
     if (upgradeOptions.major.length > 0) {
-      console.log(chalk.bold('\n⚠️  Major Updates (Breaking changes):'));
+      logger.info(chalk.bold('\n⚠️  Major Updates (Breaking changes):'));
       upgradeOptions.major.slice(-3).forEach(version => {
-        console.log(`   ${chalk.red('⬆')} ${version}`);
+        logger.info(`   ${chalk.red('⬆')} ${version}`);
       });
       if (upgradeOptions.major.length > 3) {
-        console.log(
+        logger.info(
           `   ${chalk.gray(`... and ${upgradeOptions.major.length - 3} more`)}`
         );
       }
@@ -275,19 +286,19 @@ export class VersionCommand extends BaseCommand implements ICommand {
       } else if (upgradeOptions.minor.length > 0) {
         recommended = upgradeOptions.minor[upgradeOptions.minor.length - 1];
       } else {
-        recommended = upgradeOptions.major[0];
+        [recommended] = upgradeOptions.major;
       }
 
-      console.log(chalk.bold('\n💡 Recommended:'));
-      console.log(
+      logger.info(chalk.bold('\n💡 Recommended:'));
+      logger.info(
         `   ${chalk.green(`cursor-prompt update ${templateName} --version ${recommended}`)}`
       );
     } else {
-      console.log(chalk.green('\n✅ Template is up to date!'));
+      logger.info(chalk.green('\n✅ Template is up to date!'));
     }
 
     if (options.format === 'json') {
-      console.log(
+      logger.info(
         `\n${JSON.stringify(
           {
             template: templateName,
@@ -305,17 +316,18 @@ export class VersionCommand extends BaseCommand implements ICommand {
   private async analyzeTemplate(
     templateName: string,
     versionManager: VersionManager,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     const marketplace = MarketplaceService.getInstance();
 
     try {
       const template = await marketplace.getTemplate(templateName);
-      const versions = template.versions.sort((a: any, b: any) =>
-        versionManager.compareVersions(b.version, a.version)
+      const versions = template.versions.sort(
+        (a: MarketplaceTemplateVersion, b: MarketplaceTemplateVersion) =>
+          versionManager.compareVersions(b.version, a.version)
       );
 
-      console.log(
+      logger.info(
         chalk.bold(
           `\n📈 Version Analysis: ${chalk.cyan(template.displayName || template.name)}\n`
         )
@@ -323,62 +335,68 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
       // Version statistics
       const totalVersions = versions.length;
-      const stableVersions = versions.filter((v: any) =>
+      const stableVersions = versions.filter((v: MarketplaceTemplateVersion) =>
         versionManager.isStable(v.version)
       );
-      const prereleaseVersions = versions.filter((v: any) =>
-        versionManager.isPrerelease(v.version)
+      const prereleaseVersions = versions.filter(
+        (v: MarketplaceTemplateVersion) =>
+          versionManager.isPrerelease(v.version)
       );
 
-      console.log(`📊 Statistics:`);
-      console.log(`   Total Versions: ${chalk.cyan(totalVersions)}`);
-      console.log(`   Stable: ${chalk.green(stableVersions.length)}`);
-      console.log(`   Pre-release: ${chalk.yellow(prereleaseVersions.length)}`);
-      console.log(`   Current: ${chalk.bold(template.currentVersion)}`);
+      logger.info(`📊 Statistics:`);
+      logger.info(`   Total Versions: ${chalk.cyan(totalVersions)}`);
+      logger.info(`   Stable: ${chalk.green(stableVersions.length)}`);
+      logger.info(`   Pre-release: ${chalk.yellow(prereleaseVersions.length)}`);
+      logger.info(`   Current: ${chalk.bold(template.currentVersion)}`);
 
       // Major version breakdown
       const majorVersions = new Map();
-      versions.forEach((v: any) => {
+      versions.forEach((v: MarketplaceTemplateVersion) => {
         const major = versionManager.getMajor(v.version);
         majorVersions.set(major, (majorVersions.get(major) || 0) + 1);
       });
 
-      console.log(`\n🏗️  Major Versions:`);
+      logger.info(`\n🏗️  Major Versions:`);
       Array.from(majorVersions.entries())
         .sort()
         .forEach(([major, count]) => {
-          console.log(
+          logger.info(
             `   v${major}.x.x: ${count} version${count !== 1 ? 's' : ''}`
           );
         });
 
       // Recent versions
-      console.log(chalk.bold('\n📝 Recent Versions:'));
-      versions.slice(0, 8).forEach((version: any, index: number) => {
-        const diffFromPrevious =
-          index < versions.length - 1
-            ? versionManager.diff(versions[index + 1].version, version.version)
-            : 'initial';
+      logger.info(chalk.bold('\n📝 Recent Versions:'));
+      versions
+        .slice(0, 8)
+        .forEach((version: MarketplaceTemplateVersion, index: number) => {
+          const diffFromPrevious =
+            index < versions.length - 1
+              ? versionManager.diff(
+                  versions[index + 1].version,
+                  version.version
+                )
+              : 'initial';
 
-        const icon = this.getVersionIcon(diffFromPrevious);
-        const stability = versionManager.isStable(version.version)
-          ? ''
-          : chalk.yellow(' (pre-release)');
-        const date = new Date(version.created).toLocaleDateString();
+          const icon = VersionCommand.getVersionIcon(diffFromPrevious);
+          const stability = versionManager.isStable(version.version)
+            ? ''
+            : chalk.yellow(' (pre-release)');
+          const date = new Date(version.created).toLocaleDateString();
 
-        console.log(
-          `   ${icon} ${chalk.cyan(version.version)}${stability} - ${chalk.gray(date)}`
-        );
-
-        if (version.description) {
-          console.log(
-            `     ${chalk.gray(version.description.substring(0, 60))}${version.description.length > 60 ? '...' : ''}`
+          logger.info(
+            `   ${icon} ${chalk.cyan(version.version)}${stability} - ${chalk.gray(date)}`
           );
-        }
-      });
+
+          if (version.description) {
+            logger.info(
+              `     ${chalk.gray(version.description.substring(0, 60))}${version.description.length > 60 ? '...' : ''}`
+            );
+          }
+        });
 
       if (options.format === 'json') {
-        console.log(
+        logger.info(
           `\n${JSON.stringify(
             {
               template: template.name,
@@ -387,11 +405,13 @@ export class VersionCommand extends BaseCommand implements ICommand {
               prereleaseVersions: prereleaseVersions.length,
               currentVersion: template.currentVersion,
               majorVersions: Object.fromEntries(majorVersions),
-              recentVersions: versions.slice(0, 10).map((v: any) => ({
-                version: v.version,
-                created: v.created,
-                stable: versionManager.isStable(v.version),
-              })),
+              recentVersions: versions
+                .slice(0, 10)
+                .map((v: MarketplaceTemplateVersion) => ({
+                  version: v.version,
+                  created: v.created,
+                  stable: versionManager.isStable(v.version),
+                })),
             },
             null,
             2
@@ -408,31 +428,32 @@ export class VersionCommand extends BaseCommand implements ICommand {
   private async listVersions(
     templateName: string,
     versionManager: VersionManager,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     const marketplace = MarketplaceService.getInstance();
 
     try {
       const template = await marketplace.getTemplate(templateName);
-      const versions = template.versions.sort((a: any, b: any) =>
-        versionManager.compareVersions(b.version, a.version)
+      const versions = template.versions.sort(
+        (a: MarketplaceTemplateVersion, b: MarketplaceTemplateVersion) =>
+          versionManager.compareVersions(b.version, a.version)
       );
 
-      console.log(
+      logger.info(
         chalk.bold(
           `\n📋 All Versions: ${chalk.cyan(template.displayName || template.name)}\n`
         )
       );
 
       if (options.format === 'table') {
-        console.log(
+        logger.info(
           chalk.gray(
             'Version     │ Release Date │ Type     │ Downloads │ Status'
           )
         );
-        console.log(chalk.gray('─'.repeat(65)));
+        logger.info(chalk.gray('─'.repeat(65)));
 
-        versions.forEach((version: any) => {
+        versions.forEach((version: MarketplaceTemplateVersion) => {
           const versionStr = version.version.padEnd(11);
           const date = new Date(version.created)
             .toLocaleDateString()
@@ -440,25 +461,28 @@ export class VersionCommand extends BaseCommand implements ICommand {
           const type = (
             versionManager.isStable(version.version) ? 'stable' : 'pre-release'
           ).padEnd(8);
-          const downloads = this.formatNumber(version.downloads).padEnd(9);
+          const downloads = VersionCommand.formatNumber(
+            version.downloads
+          ).padEnd(9);
           const isCurrent = version.version === template.currentVersion;
-          const status = isCurrent
-            ? chalk.green('current')
-            : version.deprecated
-              ? chalk.red('deprecated')
-              : '';
+          let status = '';
+          if (isCurrent) {
+            status = chalk.green('current');
+          } else if (version.deprecated) {
+            status = chalk.red('deprecated');
+          }
 
           const line = `${chalk.cyan(versionStr)} │ ${chalk.gray(date)} │ ${type} │ ${chalk.gray(downloads)} │ ${status}`;
-          console.log(line);
+          logger.info(line);
         });
       } else if (options.format === 'plain') {
-        versions.forEach((version: any) => {
-          console.log(version.version);
+        versions.forEach((version: MarketplaceTemplateVersion) => {
+          logger.info(version.version);
         });
       } else if (options.format === 'json') {
-        console.log(
+        logger.info(
           JSON.stringify(
-            versions.map((v: any) => ({
+            versions.map((v: MarketplaceTemplateVersion) => ({
               version: v.version,
               created: v.created,
               stable: versionManager.isStable(v.version),
@@ -472,7 +496,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
         );
       }
 
-      console.log(chalk.gray(`\n📊 Total: ${versions.length} versions`));
+      logger.info(chalk.gray(`\n📊 Total: ${versions.length} versions`));
     } catch (error) {
       this.error(
         `Failed to list versions: ${error instanceof Error ? error.message : String(error)}`
@@ -483,14 +507,14 @@ export class VersionCommand extends BaseCommand implements ICommand {
   private async showLatestVersion(
     templateName: string,
     versionManager: VersionManager,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     const marketplace = MarketplaceService.getInstance();
 
     try {
       const template = await marketplace.getTemplate(templateName);
       const latestVersion = template.versions.find(
-        (v: any) => v.version === template.currentVersion
+        (v: MarketplaceTemplateVersion) => v.version === template.currentVersion
       );
 
       if (!latestVersion) {
@@ -498,50 +522,54 @@ export class VersionCommand extends BaseCommand implements ICommand {
         return;
       }
 
-      console.log(
+      logger.info(
         chalk.bold(
           `\n📦 Latest Version: ${chalk.cyan(template.displayName || template.name)}\n`
         )
       );
 
-      console.log(`Version: ${chalk.green(latestVersion.version)}`);
-      console.log(
+      logger.info(`Version: ${chalk.green(latestVersion.version)}`);
+      logger.info(
         `Released: ${chalk.gray(new Date(latestVersion.created).toLocaleDateString())}`
       );
-      console.log(
+      logger.info(
         `Type: ${versionManager.isStable(latestVersion.version) ? chalk.green('Stable') : chalk.yellow('Pre-release')}`
       );
-      console.log(
-        `Downloads: ${chalk.cyan(this.formatNumber(latestVersion.downloads))}`
+      logger.info(
+        `Downloads: ${chalk.cyan(VersionCommand.formatNumber(latestVersion.downloads))}`
       );
-      console.log(`Size: ${chalk.gray(this.formatBytes(latestVersion.size))}`);
+      logger.info(
+        `Size: ${chalk.gray(VersionCommand.formatBytes(latestVersion.size))}`
+      );
 
       if (latestVersion.description) {
-        console.log(`\nDescription:`);
-        console.log(`${latestVersion.description}`);
+        logger.info(`\nDescription:`);
+        logger.info(`${latestVersion.description}`);
       }
 
       if (latestVersion.changelog) {
-        console.log(`\n📝 Changelog:`);
-        console.log(latestVersion.changelog);
+        logger.info(`\n📝 Changelog:`);
+        logger.info(latestVersion.changelog);
       }
 
       if (latestVersion.dependencies && latestVersion.dependencies.length > 0) {
-        console.log(`\n📋 Dependencies: ${latestVersion.dependencies.length}`);
-        latestVersion.dependencies.slice(0, 5).forEach((dep: any) => {
-          console.log(
-            `   • ${dep.name}@${dep.version}${dep.optional ? chalk.gray(' (optional)') : ''}`
-          );
-        });
+        logger.info(`\n📋 Dependencies: ${latestVersion.dependencies.length}`);
+        latestVersion.dependencies
+          .slice(0, 5)
+          .forEach((dep: TemplateDependency) => {
+            logger.info(
+              `   • ${dep.name}@${dep.version}${dep.optional ? chalk.gray(' (optional)') : ''}`
+            );
+          });
         if (latestVersion.dependencies.length > 5) {
-          console.log(
+          logger.info(
             `   ${chalk.gray(`... and ${latestVersion.dependencies.length - 5} more`)}`
           );
         }
       }
 
       if (options.format === 'json') {
-        console.log(
+        logger.info(
           `\n${JSON.stringify(
             {
               template: template.name,
@@ -567,7 +595,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
   private async checkCompatibility(
     templateVersion: string,
     versionManager: VersionManager,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
     const [templateName, version] = templateVersion.split('@');
 
@@ -581,7 +609,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
     try {
       const template = await marketplace.getTemplate(templateName);
       const versionInfo = template.versions.find(
-        (v: any) => v.version === version
+        (v: MarketplaceTemplateVersion) => v.version === version
       );
 
       if (!versionInfo) {
@@ -589,7 +617,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
         return;
       }
 
-      console.log(
+      logger.info(
         chalk.bold(
           `\n🔧 Compatibility Check: ${chalk.cyan(templateName)}@${chalk.yellow(version)}\n`
         )
@@ -597,7 +625,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
       // Engine compatibility
       const engineVersion = process.env.ENGINE_VERSION || '1.0.0';
-      console.log(
+      logger.info(
         `Engine: ${chalk.gray('Current')} ${chalk.cyan(engineVersion)}`
       );
 
@@ -609,47 +637,50 @@ export class VersionCommand extends BaseCommand implements ICommand {
         const status = compatible
           ? chalk.green('✓ Compatible')
           : chalk.red('✗ Incompatible');
-        console.log(
+        logger.info(
           `        ${chalk.gray('Required')} ${chalk.yellow(`>=${template.metadata.minEngineVersion}`)} ${status}`
         );
       }
 
       // Platform compatibility
       const nodeVersion = process.version.slice(1);
-      console.log(
+      logger.info(
         `\nNode.js: ${chalk.gray('Current')} ${chalk.cyan(nodeVersion)}`
       );
 
       if (template.metadata?.platform?.includes('node')) {
-        console.log(`         ${chalk.green('✓ Compatible')}`);
+        logger.info(`         ${chalk.green('✓ Compatible')}`);
       }
 
       // Dependencies compatibility
       if (versionInfo.dependencies && versionInfo.dependencies.length > 0) {
-        console.log(`\n📦 Dependencies:`);
+        logger.info(`\n📦 Dependencies:`);
 
         const registry = new TemplateRegistry();
+        // Process dependencies sequentially for ordered display
+        // eslint-disable-next-line no-restricted-syntax
         for (const dep of versionInfo.dependencies) {
+          // eslint-disable-next-line no-await-in-loop
           const installed = await registry.isDependencyInstalled(dep);
           const status = installed
             ? chalk.green('✓ Available')
             : chalk.red('✗ Missing');
           const optional = dep.optional ? chalk.gray('(optional)') : '';
 
-          console.log(`   ${dep.name}@${dep.version} ${optional} ${status}`);
+          logger.info(`   ${dep.name}@${dep.version} ${optional} ${status}`);
         }
       }
 
       // Overall compatibility
       const overallCompatible = true; // Would be calculated based on all checks
-      console.log(
+      logger.info(
         chalk.bold(
           `\n🎯 Overall: ${overallCompatible ? chalk.green('✅ Compatible') : chalk.red('❌ Incompatible')}`
         )
       );
 
       if (options.format === 'json') {
-        console.log(
+        logger.info(
           `\n${JSON.stringify(
             {
               template: templateName,
@@ -671,44 +702,44 @@ export class VersionCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private showHelp(): void {
-    console.log(chalk.bold('\n🔧 Version Management Commands\n'));
+  private static showHelp(): void {
+    logger.info(chalk.bold('\n🔧 Version Management Commands\n'));
 
-    console.log('Compare versions:');
-    console.log(
+    logger.info('Compare versions:');
+    logger.info(
       `  ${chalk.green('cursor-prompt version --compare 1.0.0,1.1.0')}`
     );
 
-    console.log('\nCheck available upgrades:');
-    console.log(
+    logger.info('\nCheck available upgrades:');
+    logger.info(
       `  ${chalk.green('cursor-prompt version --check-upgrades my-template')}`
     );
 
-    console.log('\nAnalyze template version history:');
-    console.log(
+    logger.info('\nAnalyze template version history:');
+    logger.info(
       `  ${chalk.green('cursor-prompt version --analyze my-template')}`
     );
 
-    console.log('\nList all versions:');
-    console.log(`  ${chalk.green('cursor-prompt version --list my-template')}`);
+    logger.info('\nList all versions:');
+    logger.info(`  ${chalk.green('cursor-prompt version --list my-template')}`);
 
-    console.log('\nShow latest version info:');
-    console.log(
+    logger.info('\nShow latest version info:');
+    logger.info(
       `  ${chalk.green('cursor-prompt version --latest my-template')}`
     );
 
-    console.log('\nCheck compatibility:');
-    console.log(
+    logger.info('\nCheck compatibility:');
+    logger.info(
       `  ${chalk.green('cursor-prompt version --compatibility my-template@1.0.0')}`
     );
 
-    console.log(
+    logger.info(
       chalk.gray('\nTip: Add --format json for machine-readable output')
     );
   }
 
-  private formatDiffType(diffType: string): string {
-    const colors: Record<string, any> = {
+  private static formatDiffType(diffType: string): string {
+    const colors: Record<string, (text: string) => string> = {
       major: chalk.red,
       minor: chalk.blue,
       patch: chalk.green,
@@ -719,7 +750,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
     return colors[diffType]?.(diffType) || diffType;
   }
 
-  private getVersionIcon(diffType: string): string {
+  private static getVersionIcon(diffType: string): string {
     const icons: Record<string, string> = {
       major: '🔴',
       minor: '🔵',
@@ -731,7 +762,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
     return icons[diffType] || '📦';
   }
 
-  private formatNumber(num: number): string {
+  private static formatNumber(num: number): string {
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
     }
@@ -741,7 +772,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
     return num.toString();
   }
 
-  private formatBytes(bytes: number): string {
+  private static formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B';
 
     const k = 1024;

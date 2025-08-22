@@ -1,0 +1,69 @@
+name: TypeScript Strict Type Check
+
+on:
+  push:
+    paths:
+      - 'src/**/*.ts'
+      - 'src/**/*.tsx'
+      - 'tests/**/*.ts'
+      - 'tests/**/*.tsx'
+      - 'tsconfig*.json'
+      - 'package*.json'
+  pull_request:
+    paths:
+      - 'src/**/*.ts'
+      - 'src/**/*.tsx'
+      - 'tests/**/*.ts'
+      - 'tests/**/*.tsx'
+      - 'tsconfig*.json'
+      - 'package*.json'
+
+jobs:
+  strict-type-check:
+    name: Strict TypeScript Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript version info
+        run: npx tsc --version
+
+      - name: Strict compilation check (main)
+        run: |
+          echo "Running strict TypeScript check on main source files..."
+          npx tsc --project tsconfig.json --noEmit --listFiles --pretty
+        
+      - name: Strict compilation check (tests)
+        run: |
+          echo "Running strict TypeScript check on test files..."
+          npx tsc --project tsconfig.test.json --noEmit --listFiles --pretty
+
+      - name: Advanced type checking (progressive)
+        run: |
+          echo "Running additional strict checks (non-blocking during migration)..."
+          npx tsc --noEmit --strict --noUnusedLocals --noUnusedParameters --exactOptionalPropertyTypes --noUncheckedIndexedAccess --noImplicitOverride --noPropertyAccessFromIndexSignature || echo "Advanced strict checks are failing - this is expected during migration to stricter TypeScript"
+
+      - name: Generate type check report
+        run: |
+          echo "Generating detailed type check report..."
+          npx tsc --noEmit --listFiles --pretty > type-check-report.txt 2>&1 || true
+          echo "=== TypeScript Type Check Report ===" 
+          cat type-check-report.txt
+
+      - name: Upload type check report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: type-check-report
+          path: type-check-report.txt

@@ -11,7 +11,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '../utils/logger';
-import { CommandRegistry } from './command-registry';
+import { CommandRegistry, ICommand } from './command-registry';
 
 export interface PluginMetadata {
   name: string;
@@ -55,7 +55,7 @@ export class PluginLoader {
     }
 
     // Global plugins (if installed via npm)
-    const globalModulesPath = this.getGlobalModulesPath();
+    const globalModulesPath = PluginLoader.getGlobalModulesPath();
     if (globalModulesPath) {
       this.addPluginDir(path.join(globalModulesPath, '@cursor-prompt'));
     }
@@ -64,8 +64,9 @@ export class PluginLoader {
   /**
    * Get global node_modules path
    */
-  private getGlobalModulesPath(): string | null {
+  private static getGlobalModulesPath(): string | null {
     try {
+      // eslint-disable-next-line global-require, @typescript-eslint/no-require-imports
       const { execSync } = require('child_process');
       const npmRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
       return npmRoot;
@@ -90,30 +91,44 @@ export class PluginLoader {
   async discover(): Promise<Plugin[]> {
     const discovered: Plugin[] = [];
 
-    for (const dir of this.pluginDirs) {
-      if (!fs.existsSync(dir)) {
-        logger.debug(`Plugin directory not found: ${dir}`);
-        continue;
-      }
-
-      try {
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-        for (const entry of entries) {
-          if (entry.isDirectory()) {
-            const pluginPath = path.join(dir, entry.name);
-            const plugin = await this.loadPluginMetadata(pluginPath);
-
-            if (plugin) {
-              discovered.push(plugin);
-              this.plugins.set(plugin.metadata.name, plugin);
-            }
-          }
+    // Process directories sequentially to maintain order and handle errors properly
+    const discoveryPromises = this.pluginDirs
+      .filter(dir => {
+        if (!fs.existsSync(dir)) {
+          logger.debug(`Plugin directory not found: ${dir}`);
+          return false;
         }
-      } catch (error) {
-        logger.error(`Error scanning plugin directory ${dir}:${String(error)}`);
-      }
-    }
+        return true;
+      })
+      .map(async dir => {
+        try {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          const directoryEntries = entries.filter(entry => entry.isDirectory());
+
+          // Process plugin loading in parallel within each directory
+          const pluginPromises = directoryEntries.map(async entry => {
+            const pluginPath = path.join(dir, entry.name);
+            return this.loadPluginMetadata(pluginPath);
+          });
+
+          const plugins = await Promise.all(pluginPromises);
+          return plugins.filter((plugin): plugin is Plugin => plugin !== null);
+        } catch (error) {
+          logger.error(
+            `Error scanning plugin directory ${dir}:${String(error)}`
+          );
+          return [];
+        }
+      });
+
+    const allPlugins = await Promise.all(discoveryPromises);
+    const flatPlugins = allPlugins.flat();
+
+    // Update plugins map and discovered array
+    flatPlugins.forEach(plugin => {
+      discovered.push(plugin);
+      this.plugins.set(plugin.metadata.name, plugin);
+    });
 
     logger.info(`Discovered ${discovered.length} plugins`);
     return discovered;
@@ -122,6 +137,7 @@ export class PluginLoader {
   /**
    * Load plugin metadata from directory
    */
+  // eslint-disable-next-line class-methods-use-this
   private async loadPluginMetadata(pluginPath: string): Promise<Plugin | null> {
     const metadataPath = path.join(pluginPath, 'plugin.json');
 
@@ -129,7 +145,7 @@ export class PluginLoader {
       // Try package.json as fallback
       const packagePath = path.join(pluginPath, 'package.json');
       if (fs.existsSync(packagePath)) {
-        return this.loadFromPackageJson(pluginPath, packagePath);
+        return PluginLoader.loadFromPackageJson(pluginPath, packagePath);
       }
       return null;
     }
@@ -155,7 +171,7 @@ export class PluginLoader {
   /**
    * Load plugin metadata from package.json
    */
-  private loadFromPackageJson(
+  private static loadFromPackageJson(
     pluginPath: string,
     packagePath: string
   ): Plugin | null {
@@ -194,10 +210,16 @@ export class PluginLoader {
    * Load all discovered plugins
    */
   async loadAll(): Promise<void> {
-    for (const plugin of this.plugins.values()) {
-      if (!plugin.loaded) {
-        await this.load(plugin.metadata.name);
-      }
+    // Load plugins sequentially to maintain dependency order and error handling
+    const unloadedPlugins = Array.from(this.plugins.values()).filter(
+      plugin => !plugin.loaded
+    );
+
+    // Using sequential processing to maintain plugin loading order
+    // eslint-disable-next-line no-restricted-syntax
+    for (const plugin of unloadedPlugins) {
+      // eslint-disable-next-line no-await-in-loop
+      await this.load(plugin.metadata.name);
     }
   }
 
@@ -220,7 +242,7 @@ export class PluginLoader {
     try {
       // Check dependencies
       if (plugin.metadata.dependencies) {
-        if (!this.checkDependencies(plugin.metadata.dependencies)) {
+        if (!PluginLoader.checkDependencies(plugin.metadata.dependencies)) {
           throw new Error('Missing dependencies');
         }
       }
@@ -259,9 +281,9 @@ export class PluginLoader {
         const module = await import(modulePath);
 
         if (module.commands && Array.isArray(module.commands)) {
-          for (const command of module.commands) {
-            this.commandRegistry.register(command);
-          }
+          module.commands.forEach((command: unknown) => {
+            this.commandRegistry.register(command as ICommand);
+          });
         }
       } catch (error) {
         logger.error(
@@ -274,16 +296,18 @@ export class PluginLoader {
   /**
    * Check if dependencies are satisfied
    */
-  private checkDependencies(dependencies: Record<string, string>): boolean {
-    for (const [dep, version] of Object.entries(dependencies)) {
+  private static checkDependencies(
+    dependencies: Record<string, string>
+  ): boolean {
+    return Object.entries(dependencies).every(([dep, version]) => {
       try {
         require.resolve(dep);
+        return true;
       } catch {
         logger.error(`Missing dependency: ${dep}@${version}`);
         return false;
       }
-    }
-    return true;
+    });
   }
 
   /**
@@ -321,7 +345,7 @@ export class PluginLoader {
   /**
    * Validate plugin structure
    */
-  validatePlugin(plugin: Plugin): { valid: boolean; errors: string[] } {
+  static validatePlugin(plugin: Plugin): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     if (!plugin.metadata.name) {

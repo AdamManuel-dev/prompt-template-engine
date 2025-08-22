@@ -28,8 +28,18 @@ export interface ICommand {
   hidden?: boolean;
 }
 
-export class CommandRegistry {
-  private static instance: CommandRegistry;
+// Interface declaration to resolve no-use-before-define
+interface ICommandRegistry {
+  register(command: ICommand): void;
+  getCommand(name: string): ICommand | undefined;
+  getCommands(): Map<string, ICommand>;
+  execute(commandName: string, args: unknown, options: unknown): Promise<void>;
+  listCommands(): { name: string; description: string; aliases?: string[] }[];
+  discoverPlugins(pluginDirs: string[]): Promise<void>;
+}
+
+export class CommandRegistry implements ICommandRegistry {
+  private static instance: ICommandRegistry | undefined;
 
   private commands: Map<string, ICommand> = new Map();
 
@@ -43,7 +53,7 @@ export class CommandRegistry {
     if (!CommandRegistry.instance) {
       CommandRegistry.instance = new CommandRegistry(program);
     }
-    return CommandRegistry.instance;
+    return CommandRegistry.instance as CommandRegistry;
   }
 
   /**
@@ -116,8 +126,7 @@ export class CommandRegistry {
 
         const files = fs.readdirSync(dir);
         const commandFiles = files.filter(
-          file =>
-            file.endsWith('.command.ts') || file.endsWith('.command.js')
+          file => file.endsWith('.command.ts') || file.endsWith('.command.js')
         );
 
         await Promise.all(
@@ -134,10 +143,13 @@ export class CommandRegistry {
     try {
       const module = await import(filePath);
 
-      if (module.default && this.isValidCommand(module.default)) {
+      if (module.default && CommandRegistry.isValidCommand(module.default)) {
         this.register(module.default);
         logger.info(`Loaded plugin command from: ${filePath}`);
-      } else if (module.command && this.isValidCommand(module.command)) {
+      } else if (
+        module.command &&
+        CommandRegistry.isValidCommand(module.command)
+      ) {
         this.register(module.command);
         logger.info(`Loaded plugin command from: ${filePath}`);
       } else {
@@ -151,7 +163,7 @@ export class CommandRegistry {
   /**
    * Validate command structure
    */
-  private isValidCommand(obj: unknown): obj is ICommand {
+  private static isValidCommand(obj: unknown): obj is ICommand {
     if (typeof obj !== 'object' || obj === null) {
       return false;
     }
@@ -204,7 +216,7 @@ export class CommandRegistry {
       .map(cmd => ({
         name: cmd.name,
         description: cmd.description,
-        aliases: cmd.aliases,
+        ...(cmd.aliases && { aliases: cmd.aliases }),
       }));
   }
 }

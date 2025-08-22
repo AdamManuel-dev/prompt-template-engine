@@ -13,6 +13,9 @@ import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
+import { TemplateModel } from '../../marketplace/models/template.model';
+import { MarketplaceCommandOptions, MarketplaceTemplate } from '../../types';
+import { logger } from '../../utils/logger';
 
 export class InstallWizardCommand extends BaseCommand implements ICommand {
   name = 'install-wizard';
@@ -42,10 +45,13 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(_args: string, options: any): Promise<void> {
+  async execute(
+    _args: string,
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     try {
-      console.log(chalk.bold.blue('\n🧙‍♂️ Template Installation Wizard\n'));
-      console.log(
+      logger.info(chalk.bold.blue('\n🧙‍♂️ Template Installation Wizard\n'));
+      logger.info(
         chalk.gray('Let me help you find and install the perfect template!\n')
       );
 
@@ -57,19 +63,19 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async runWizard(options: any): Promise<void> {
+  private async runWizard(options: MarketplaceCommandOptions): Promise<void> {
     const marketplace = MarketplaceService.getInstance();
     const registry = new TemplateRegistry();
 
     // Step 1: Project analysis
     if (!options.quickMode) {
-      const projectInfo = await this.analyzeProject();
+      const projectInfo = await InstallWizardCommand.analyzeProject();
       if (projectInfo.recommendations.length > 0) {
-        console.log(chalk.bold('🔍 Based on your project, I recommend:'));
+        logger.info(chalk.bold('🔍 Based on your project, I recommend:'));
         projectInfo.recommendations.forEach((rec, i) => {
-          console.log(`   ${i + 1}. ${chalk.cyan(rec)}`);
+          logger.info(`   ${i + 1}. ${chalk.cyan(rec)}`);
         });
-        console.log();
+        logger.info();
 
         const useRecommendation = await this.confirm(
           'Would you like to see recommended templates?'
@@ -90,22 +96,28 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     }
 
     // Step 3: Template discovery
-    console.log(chalk.bold('🔎 Discovering templates...\n'));
-    const templates = await this.discoverTemplates(marketplace, {
-      category: selectedCategory,
-      featured: options.featuredOnly,
-      limit: 20,
-    });
+    logger.info(chalk.bold('🔎 Discovering templates...\n'));
+    const templates = await InstallWizardCommand.discoverTemplates(
+      marketplace,
+      {
+        category: selectedCategory,
+        featured: options.featuredOnly,
+        limit: 20,
+      }
+    );
 
     if (templates.length === 0) {
-      console.log(chalk.yellow('No templates found matching your criteria.'));
+      logger.info(chalk.yellow('No templates found matching your criteria.'));
       const browseAll = await this.confirm(
         'Would you like to browse all templates?'
       );
       if (browseAll) {
-        const allTemplates = await this.discoverTemplates(marketplace, {
-          limit: 50,
-        });
+        const allTemplates = await InstallWizardCommand.discoverTemplates(
+          marketplace,
+          {
+            limit: 50,
+          }
+        );
         await this.selectAndInstallTemplate(
           allTemplates,
           marketplace,
@@ -125,7 +137,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     );
   }
 
-  private async analyzeProject(): Promise<{
+  private static async analyzeProject(): Promise<{
     hasPackageJson: boolean;
     hasTsConfig: boolean;
     hasGitRepo: boolean;
@@ -228,14 +240,18 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     return analysis;
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private async showRecommendedTemplates(
     recommendations: string[],
     marketplace: MarketplaceService
   ): Promise<void> {
-    console.log(chalk.bold('\n🌟 Recommended Templates:\n'));
+    logger.info(chalk.bold('\n🌟 Recommended Templates:\n'));
 
+    // Process recommendations sequentially for ordered display
+    // eslint-disable-next-line no-restricted-syntax
     for (const rec of recommendations.slice(0, 5)) {
       try {
+        // eslint-disable-next-line no-await-in-loop
         const searchResult = await marketplace.search({
           query: rec,
           limit: 1,
@@ -244,23 +260,23 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
 
         if (searchResult.templates.length > 0) {
           const template = searchResult.templates[0];
-          console.log(
+          logger.info(
             `📦 ${chalk.cyan(template.displayName || template.name)}`
           );
-          console.log(`   ${template.description}`);
-          console.log(
-            `   ${this.formatRating(template.rating.average)} • ${chalk.gray(`${this.formatNumber(template.stats.downloads)} downloads`)}`
+          logger.info(`   ${template.description}`);
+          logger.info(
+            `   ${InstallWizardCommand.formatRating(template.rating.average)} • ${chalk.gray(`${InstallWizardCommand.formatNumber(template.stats.downloads)} downloads`)}`
           );
-          console.log();
+          logger.info();
         }
-      } catch (error) {
+      } catch {
         // Skip if template not found
       }
     }
   }
 
   private async selectCategory(): Promise<string> {
-    console.log(chalk.bold('📂 Select a category:\n'));
+    logger.info(chalk.bold('📂 Select a category:\n'));
 
     const categories = [
       {
@@ -291,33 +307,33 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
       { value: 'other', name: '🔍 Other - Browse all categories' },
     ];
 
-    for (const [index, category] of categories.entries()) {
-      console.log(`   ${index + 1}. ${category.name}`);
-    }
+    categories.forEach((category, index) => {
+      logger.info(`   ${index + 1}. ${category.name}`);
+    });
 
     const selection = await this.prompt('\nEnter category number (1-8): ');
     const selectedIndex = parseInt(selection, 10) - 1;
 
     if (selectedIndex >= 0 && selectedIndex < categories.length) {
       const selected = categories[selectedIndex];
-      console.log(chalk.green(`\n✓ Selected: ${selected.name}\n`));
+      logger.info(chalk.green(`\n✓ Selected: ${selected.name}\n`));
       return selected.value === 'other' ? '' : selected.value;
     }
 
-    console.log(chalk.yellow('Invalid selection, showing all categories...\n'));
+    logger.info(chalk.yellow('Invalid selection, showing all categories...\n'));
     return '';
   }
 
-  private async discoverTemplates(
+  private static async discoverTemplates(
     marketplace: MarketplaceService,
     filters: {
       category?: string;
       featured?: boolean;
       limit?: number;
     }
-  ): Promise<any[]> {
+  ): Promise<TemplateModel[]> {
     const searchResult = await marketplace.search({
-      category: filters.category as any,
+      category: filters.category as string,
       featured: filters.featured,
       limit: filters.limit || 20,
       sortBy: 'downloads',
@@ -328,28 +344,28 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
   }
 
   private async selectAndInstallTemplate(
-    templates: any[],
+    templates: MarketplaceTemplate[],
     marketplace: MarketplaceService,
     registry: TemplateRegistry,
-    options: any
+    options: MarketplaceCommandOptions
   ): Promise<void> {
-    console.log(chalk.bold(`📋 Available Templates (${templates.length}):\n`));
+    logger.info(chalk.bold(`📋 Available Templates (${templates.length}):\n`));
 
     // Show template list with details
     templates.forEach((template, index) => {
       const isInstalled = registry.getTemplate(template.id)
         ? chalk.green('[INSTALLED]')
         : '';
-      console.log(
+      logger.info(
         `   ${index + 1}. ${chalk.cyan(template.displayName || template.name)} ${isInstalled}`
       );
 
       if (!options.quickMode) {
-        console.log(`      ${chalk.gray(template.description)}`);
-        console.log(
-          `      ${this.formatRating(template.rating.average)} • ${chalk.gray(`${this.formatNumber(template.stats.downloads)} downloads`)} • v${template.currentVersion}`
+        logger.info(`      ${chalk.gray(template.description)}`);
+        logger.info(
+          `      ${InstallWizardCommand.formatRating(template.rating.average)} • ${chalk.gray(`${InstallWizardCommand.formatNumber(template.stats.downloads)} downloads`)} • v${template.currentVersion}`
         );
-        console.log();
+        logger.info();
       }
     });
 
@@ -359,13 +375,13 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     );
 
     if (selection.toLowerCase() === 'q') {
-      console.log(chalk.gray('Installation cancelled.'));
+      logger.info(chalk.gray('Installation cancelled.'));
       return;
     }
 
     const selectedIndex = parseInt(selection, 10) - 1;
     if (selectedIndex < 0 || selectedIndex >= templates.length) {
-      console.log(chalk.red('Invalid selection.'));
+      logger.info(chalk.red('Invalid selection.'));
       return;
     }
 
@@ -380,7 +396,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     );
 
     if (!confirmed) {
-      console.log(chalk.gray('Installation cancelled.'));
+      logger.info(chalk.gray('Installation cancelled.'));
 
       // Ask if they want to select another template
       const selectAnother = await this.confirm(
@@ -399,24 +415,24 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
 
     // Perform installation
     try {
-      console.log(chalk.blue('\n🚀 Installing template...\n'));
+      logger.info(chalk.blue('\n🚀 Installing template...\n'));
 
       const installation = await marketplace.install(selectedTemplate.id);
 
-      console.log(chalk.green('✅ Installation completed successfully!\n'));
-      console.log(chalk.bold('📦 Template Details:'));
-      console.log(
+      logger.info(chalk.green('✅ Installation completed successfully!\n'));
+      logger.info(chalk.bold('📦 Template Details:'));
+      logger.info(
         `   Name: ${chalk.cyan(selectedTemplate.displayName || selectedTemplate.name)}`
       );
-      console.log(`   Version: ${chalk.yellow(installation.version)}`);
-      console.log(`   Location: ${chalk.gray(installation.installPath)}`);
+      logger.info(`   Version: ${chalk.yellow(installation.version)}`);
+      logger.info(`   Location: ${chalk.gray(installation.installPath)}`);
 
-      console.log(chalk.bold('\n🚀 Next Steps:'));
-      console.log(
+      logger.info(chalk.bold('\n🚀 Next Steps:'));
+      logger.info(
         `   • Generate: ${chalk.green(`cursor-prompt generate ${selectedTemplate.name}`)}`
       );
-      console.log(`   • List templates: ${chalk.green('cursor-prompt list')}`);
-      console.log(
+      logger.info(`   • List templates: ${chalk.green('cursor-prompt list')}`);
+      logger.info(
         `   • Get help: ${chalk.green(`cursor-prompt help ${selectedTemplate.name}`)}`
       );
     } catch (error) {
@@ -426,25 +442,28 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async showTemplateDetails(template: any): Promise<void> {
-    console.log(chalk.bold(`\n📋 Template Details:\n`));
-    console.log(
+  // eslint-disable-next-line class-methods-use-this
+  private async showTemplateDetails(
+    template: MarketplaceTemplate
+  ): Promise<void> {
+    logger.info(chalk.bold(`\n📋 Template Details:\n`));
+    logger.info(
       `📦 ${chalk.cyan(template.displayName || template.name)} v${template.currentVersion}`
     );
-    console.log(`📝 ${template.description}`);
-    console.log(
+    logger.info(`📝 ${template.description}`);
+    logger.info(
       `👤 ${chalk.blue(template.author.name)}${template.author.verified ? ' ✓' : ''}`
     );
-    console.log(
-      `⭐ ${this.formatRating(template.rating.average)} (${template.rating.total} reviews)`
+    logger.info(
+      `⭐ ${InstallWizardCommand.formatRating(template.rating.average)} (${template.rating.total} reviews)`
     );
-    console.log(
-      `📊 ${chalk.gray(`${this.formatNumber(template.stats.downloads)} downloads`)}`
+    logger.info(
+      `📊 ${chalk.gray(`${InstallWizardCommand.formatNumber(template.stats.downloads)} downloads`)}`
     );
-    console.log(`🏷️  ${chalk.magenta(template.category)}`);
+    logger.info(`🏷️  ${chalk.magenta(template.category)}`);
 
     if (template.tags && template.tags.length > 0) {
-      console.log(
+      logger.info(
         `🔖 ${template.tags
           .slice(0, 5)
           .map((tag: string) => chalk.gray(`#${tag}`))
@@ -453,15 +472,15 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     }
 
     if (template.featured) {
-      console.log(`${chalk.yellow('⭐ Featured Template')}`);
+      logger.info(`${chalk.yellow('⭐ Featured Template')}`);
     }
 
     if (template.verified) {
-      console.log(`${chalk.green('✓ Verified by Marketplace')}`);
+      logger.info(`${chalk.green('✓ Verified by Marketplace')}`);
     }
   }
 
-  private formatRating(rating: number): string {
+  private static formatRating(rating: number): string {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
@@ -474,7 +493,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     return `${chalk.yellow(stars)} ${chalk.gray(`(${rating.toFixed(1)})`)}`;
   }
 
-  private formatNumber(num: number): string {
+  private static formatNumber(num: number): string {
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
     }

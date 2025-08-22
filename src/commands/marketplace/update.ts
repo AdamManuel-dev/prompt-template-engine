@@ -14,6 +14,12 @@ import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
 import { VersionManager } from '../../marketplace/core/version.manager';
+import {
+  MarketplaceCommandOptions,
+  MarketplaceTemplate,
+  MarketplaceTemplateVersion,
+} from '../../types';
+import { logger } from '../../utils/logger';
 
 export class UpdateCommand extends BaseCommand implements ICommand {
   name = 'update';
@@ -63,7 +69,10 @@ export class UpdateCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(templateName: string, options: any): Promise<void> {
+  async execute(
+    templateName: string,
+    options: MarketplaceCommandOptions
+  ): Promise<void> {
     try {
       const marketplace = MarketplaceService.getInstance();
       const registry = new TemplateRegistry();
@@ -108,7 +117,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
 
       if (!options.version) {
         const availableVersions = latestTemplate.versions.map(
-          (v: any) => v.version
+          (v: MarketplaceTemplateVersion) => v.version
         );
         const updateOptions = versionManager.getUpgradeOptions(
           currentVersion,
@@ -204,20 +213,20 @@ export class UpdateCommand extends BaseCommand implements ICommand {
       const installation = await marketplace.update(template.id, targetVersion);
 
       // Show success message
-      console.log(chalk.green('\n✓ Update completed successfully!'));
-      console.log(`\n📦 Template: ${chalk.cyan(template.name)}`);
-      console.log(
+      logger.info(chalk.green('\n✓ Update completed successfully!'));
+      logger.info(`\n📦 Template: ${chalk.cyan(template.name)}`);
+      logger.info(
         `📈 Version: ${chalk.yellow(currentVersion)} → ${chalk.yellow(targetVersion)}`
       );
-      console.log(`📂 Location: ${chalk.gray(installation.installPath)}`);
+      logger.info(`📂 Location: ${chalk.gray(installation.installPath)}`);
 
       // Show changelog if available
       const versionInfo = latestTemplate.versions.find(
         v => v.version === targetVersion
       );
       if (versionInfo?.changelog) {
-        console.log(chalk.bold('\n📝 Changelog:'));
-        console.log(versionInfo.changelog);
+        logger.info(chalk.bold('\n📝 Changelog:'));
+        logger.info(versionInfo.changelog);
       }
     } catch (error) {
       this.error(
@@ -226,7 +235,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async updateAll(options: any): Promise<void> {
+  private async updateAll(options: MarketplaceCommandOptions): Promise<void> {
     const marketplace = MarketplaceService.getInstance();
 
     this.info('Checking for updates on all installed templates...');
@@ -239,12 +248,12 @@ export class UpdateCommand extends BaseCommand implements ICommand {
         return;
       }
 
-      console.log(
+      logger.info(
         chalk.bold(`\n🔄 Found ${updates.length} template(s) with updates:\n`)
       );
 
       updates.forEach((update, index) => {
-        console.log(
+        logger.info(
           `${index + 1}. ${chalk.cyan(update.templateId)}: ${chalk.yellow(update.currentVersion)} → ${chalk.yellow(update.latestVersion)}`
         );
       });
@@ -266,30 +275,33 @@ export class UpdateCommand extends BaseCommand implements ICommand {
       let successful = 0;
       let failed = 0;
 
+      // Process updates sequentially to maintain order and show progress
+      // eslint-disable-next-line no-restricted-syntax
       for (const update of updates) {
         try {
           this.info(`Updating ${update.templateId}...`);
+          // eslint-disable-next-line no-await-in-loop
           await marketplace.update(update.templateId, update.latestVersion);
-          console.log(
+          logger.info(
             chalk.green(`✓ ${update.templateId} updated successfully`)
           );
-          successful++;
+          successful += 1;
         } catch (error) {
-          console.log(
+          logger.info(
             chalk.red(
               `✗ Failed to update ${update.templateId}: ${error instanceof Error ? error.message : String(error)}`
             )
           );
-          failed++;
+          failed += 1;
         }
       }
 
       // Show summary
-      console.log(chalk.bold(`\n📊 Update Summary:`));
-      console.log(`   ${chalk.green('✓')} Successful: ${successful}`);
+      logger.info(chalk.bold(`\n📊 Update Summary:`));
+      logger.info(`   ${chalk.green('✓')} Successful: ${successful}`);
 
       if (failed > 0) {
-        console.log(`   ${chalk.red('✗')} Failed: ${failed}`);
+        logger.info(`   ${chalk.red('✗')} Failed: ${failed}`);
       }
     } catch (error) {
       this.error(
@@ -311,19 +323,19 @@ export class UpdateCommand extends BaseCommand implements ICommand {
         return;
       }
 
-      console.log(chalk.bold(`\n🔄 Available Updates (${updates.length}):\n`));
+      logger.info(chalk.bold(`\n🔄 Available Updates (${updates.length}):\n`));
 
       updates.forEach((update, index) => {
-        console.log(`${index + 1}. ${chalk.cyan(update.templateId)}`);
-        console.log(`   Current: ${chalk.yellow(update.currentVersion)}`);
-        console.log(`   Latest: ${chalk.yellow(update.latestVersion)}`);
-        console.log();
+        logger.info(`${index + 1}. ${chalk.cyan(update.templateId)}`);
+        logger.info(`   Current: ${chalk.yellow(update.currentVersion)}`);
+        logger.info(`   Latest: ${chalk.yellow(update.latestVersion)}`);
+        logger.info();
       });
 
-      console.log(
+      logger.info(
         `💡 Update all: ${chalk.green('cursor-prompt update --all')}`
       );
-      console.log(
+      logger.info(
         `💡 Update specific: ${chalk.green('cursor-prompt update <template-name>')}`
       );
     } catch (error) {
@@ -333,33 +345,34 @@ export class UpdateCommand extends BaseCommand implements ICommand {
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private displayUpdateInfo(
-    template: any,
+    template: MarketplaceTemplate,
     currentVersion: string,
     targetVersion: string,
-    latestTemplate: any,
+    latestTemplate: MarketplaceTemplate,
     versionManager: VersionManager
   ): void {
-    console.log(chalk.bold(`\n📦 ${template.name}`));
-    console.log(`   Current: ${chalk.yellow(currentVersion)}`);
-    console.log(`   Target: ${chalk.yellow(targetVersion)}`);
+    logger.info(chalk.bold(`\n📦 ${template.name}`));
+    logger.info(`   Current: ${chalk.yellow(currentVersion)}`);
+    logger.info(`   Target: ${chalk.yellow(targetVersion)}`);
 
     if (targetVersion !== latestTemplate.currentVersion) {
-      console.log(`   Latest: ${chalk.gray(latestTemplate.currentVersion)}`);
+      logger.info(`   Latest: ${chalk.gray(latestTemplate.currentVersion)}`);
     }
 
     const diffType = versionManager.diff(currentVersion, targetVersion);
-    const diffText =
-      diffType === 'major'
-        ? chalk.red(diffType)
-        : diffType === 'minor'
-          ? chalk.yellow(diffType)
-          : chalk.green(diffType);
+    let diffText = chalk.green(diffType); // default
+    if (diffType === 'major') {
+      diffText = chalk.red(diffType);
+    } else if (diffType === 'minor') {
+      diffText = chalk.yellow(diffType);
+    }
 
-    console.log(`   Change: ${diffText} version update`);
+    logger.info(`   Change: ${diffText} version update`);
 
     if (diffType === 'major') {
-      console.log(
+      logger.info(
         chalk.yellow(
           '   ⚠️  Major version updates may include breaking changes'
         )
@@ -368,22 +381,22 @@ export class UpdateCommand extends BaseCommand implements ICommand {
 
     // Show version information
     const versionInfo = latestTemplate.versions.find(
-      (v: any) => v.version === targetVersion
+      (v: MarketplaceTemplateVersion) => v.version === targetVersion
     );
     if (versionInfo) {
-      console.log(`   Size: ${this.formatBytes(versionInfo.size)}`);
+      logger.info(`   Size: ${UpdateCommand.formatBytes(versionInfo.size)}`);
 
       if (versionInfo.dependencies.length > 0) {
-        console.log(`   Dependencies: ${versionInfo.dependencies.length}`);
+        logger.info(`   Dependencies: ${versionInfo.dependencies.length}`);
       }
 
-      console.log(
+      logger.info(
         `   Released: ${new Date(versionInfo.created).toLocaleDateString()}`
       );
     }
   }
 
-  private formatBytes(bytes: number): string {
+  private static formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B';
 
     const k = 1024;

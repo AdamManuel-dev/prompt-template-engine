@@ -57,9 +57,13 @@ export abstract class BaseCommand implements ICommand {
   /**
    * Hook called before command execution
    */
-  protected async preExecute(args: unknown, options: unknown): Promise<void> {
-    void args;
-    void options;
+  protected async preExecute(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    _args: unknown,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    _options: unknown
+  ): Promise<void> {
+    // Intentionally unused parameters for subclass overrides
     logger.debug(`Executing command: ${this.name}`);
   }
 
@@ -67,11 +71,12 @@ export abstract class BaseCommand implements ICommand {
    * Hook called after successful command execution
    */
   protected async postExecute(
-    args: unknown,
-    options: unknown
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    _args: unknown,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+    _options: unknown
   ): Promise<void> {
-    void args;
-    void options;
+    // Intentionally unused parameters for subclass overrides
     logger.debug(`Command ${this.name} completed successfully`);
   }
 
@@ -85,6 +90,7 @@ export abstract class BaseCommand implements ICommand {
   /**
    * Display success message
    */
+  // eslint-disable-next-line class-methods-use-this
   protected success(message: string): void {
     // eslint-disable-next-line no-console
     console.log(chalk.green('✓'), message);
@@ -93,6 +99,7 @@ export abstract class BaseCommand implements ICommand {
   /**
    * Display info message
    */
+  // eslint-disable-next-line class-methods-use-this
   protected info(message: string): void {
     // eslint-disable-next-line no-console
     console.log(chalk.blue('ℹ'), message);
@@ -101,6 +108,7 @@ export abstract class BaseCommand implements ICommand {
   /**
    * Display warning message
    */
+  // eslint-disable-next-line class-methods-use-this
   protected warn(message: string): void {
     // eslint-disable-next-line no-console
     console.log(chalk.yellow('⚠'), message);
@@ -109,6 +117,7 @@ export abstract class BaseCommand implements ICommand {
   /**
    * Display error message
    */
+  // eslint-disable-next-line class-methods-use-this
   protected error(message: string): void {
     // eslint-disable-next-line no-console
     console.log(chalk.red('✗'), message);
@@ -117,6 +126,7 @@ export abstract class BaseCommand implements ICommand {
   /**
    * Prompt for user confirmation
    */
+  // eslint-disable-next-line class-methods-use-this
   protected async confirm(message: string): Promise<boolean> {
     const readline = await import('readline');
     const rl = readline.createInterface({
@@ -135,6 +145,7 @@ export abstract class BaseCommand implements ICommand {
   /**
    * Prompt for user input
    */
+  // eslint-disable-next-line class-methods-use-this
   protected async prompt(
     message: string,
     defaultValue?: string
@@ -175,13 +186,14 @@ export abstract class BaseCommand implements ICommand {
   /**
    * Get nested property from object
    */
+  // eslint-disable-next-line class-methods-use-this
   private getNestedProperty(obj: unknown, path: string): unknown {
     if (!obj || typeof obj !== 'object') {
       return undefined;
     }
 
     const keys = path.split('.');
-    let current: unknown = obj;
+    const current: unknown = obj;
 
     return keys.reduce((acc, key) => {
       if (acc && typeof acc === 'object' && key in acc) {
@@ -191,3 +203,6 @@ export abstract class BaseCommand implements ICommand {
     }, current);
   }
 }
+
+// Additional export to satisfy import/prefer-default-export
+export type BaseCommandType = typeof BaseCommand;

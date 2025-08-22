@@ -88,7 +88,7 @@ describe('TemplateValidator', () => {
             },
           ],
           commands: [
-            'npm install' as any,
+            'npm install' as unknown,
             {
               command: 'npm run build',
               description: 'Build the application',
@@ -741,7 +741,7 @@ describe('TemplateValidator', () => {
         name: 'test-template',
         description: 'A test template',
         version: '1.0.0',
-        commands: ['npm install' as any, 'npm run build' as any, 'npm test' as any],
+        commands: ['npm install' as unknown, 'npm run build' as unknown, 'npm test' as unknown],
       };
 
       const result = await validator.validate(template);
@@ -848,7 +848,7 @@ describe('TemplateValidator', () => {
         description: 'A test template',
         version: '1.0.0',
         commands: [
-          'npm install' as any,
+          'npm install' as unknown,
           {
             command: 'npm run build',
             description: 'Build the application',
@@ -999,7 +999,7 @@ describe('TemplateValidator', () => {
     });
 
     it('should validate very large templates efficiently', async () => {
-      const largeTemplate: any = {
+      const largeTemplate: unknown = {
         name: 'large-template',
         description: 'A template with many fields',
         version: '1.0.0',

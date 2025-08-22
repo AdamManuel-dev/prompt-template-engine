@@ -8,42 +8,37 @@
  * Patterns: Model definitions, data validation, versioning
  */
 
-export interface TemplateModel {
-  id: string;
-  name: string;
-  displayName: string;
-  description: string;
-  longDescription?: string;
-  category: TemplateCategory;
-  tags: string[];
-  author: AuthorInfo;
-  versions: TemplateVersion[];
-  currentVersion: string;
-  rating: TemplateRating;
-  stats: TemplateStats;
-  metadata: TemplateMetadata;
-  created: Date;
-  updated: Date;
-  featured: boolean;
-  verified: boolean;
-  deprecated: boolean;
-}
+// Basic types and enums first
+export type TemplateCategory =
+  | 'development'
+  | 'documentation'
+  | 'git'
+  | 'testing'
+  | 'deployment'
+  | 'productivity'
+  | 'education'
+  | 'other';
 
-export interface TemplateVersion {
-  version: string;
-  description: string;
-  content: string;
-  dependencies: TemplateDependency[];
-  variables: TemplateVariable[];
-  examples: TemplateExample[];
-  changelog?: string;
-  compatibility: string[];
-  size: number;
-  created: Date;
-  downloads: number;
-  deprecated: boolean;
-}
+export type VariableType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'array'
+  | 'object'
+  | 'date'
+  | 'file'
+  | 'choice';
 
+export type TemplateSortOption =
+  | 'relevance'
+  | 'downloads'
+  | 'rating'
+  | 'created'
+  | 'updated'
+  | 'name'
+  | 'popularity';
+
+// Simple interfaces without dependencies
 export interface AuthorInfo {
   id: string;
   name: string;
@@ -57,17 +52,44 @@ export interface AuthorInfo {
   totalDownloads: number;
 }
 
-export interface TemplateRating {
-  average: number;
-  total: number;
-  distribution: {
-    1: number;
-    2: number;
-    3: number;
-    4: number;
-    5: number;
-  };
-  reviews: TemplateReview[];
+export interface RepositoryInfo {
+  type: 'git' | 'github' | 'gitlab' | 'bitbucket';
+  url: string;
+  branch?: string;
+  directory?: string;
+}
+
+export interface TemplateDependency {
+  name: string;
+  version: string;
+  type: 'plugin' | 'template' | 'engine';
+  optional: boolean;
+  description?: string;
+}
+
+export interface VariableValidation {
+  pattern?: string;
+  minLength?: number;
+  maxLength?: number;
+  allowedValues?: string[];
+  format?: 'email' | 'url' | 'date' | 'uuid';
+}
+
+export interface TemplateVariable {
+  name: string;
+  type: VariableType;
+  description: string;
+  required: boolean;
+  defaultValue?: string;
+  validation?: VariableValidation;
+  examples?: string[];
+}
+
+export interface TemplateExample {
+  name: string;
+  description: string;
+  variables: Record<string, string>;
+  expectedOutput?: string;
 }
 
 export interface TemplateReview {
@@ -96,6 +118,35 @@ export interface TemplateStats {
   popularityScore: number;
 }
 
+export interface SearchFacets {
+  categories: Array<{ category: TemplateCategory; count: number }>;
+  tags: Array<{ tag: string; count: number }>;
+  authors: Array<{ author: string; count: number }>;
+  ratings: Array<{ rating: number; count: number }>;
+}
+
+export interface NotificationSettings {
+  newVersions: boolean;
+  newFromAuthors: boolean;
+  featuredTemplates: boolean;
+  securityUpdates: boolean;
+  weeklyDigest: boolean;
+}
+
+// Interfaces with simple dependencies
+export interface TemplateRating {
+  average: number;
+  total: number;
+  distribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+  reviews: TemplateReview[];
+}
+
 export interface TemplateMetadata {
   readme?: string;
   license: string;
@@ -110,65 +161,52 @@ export interface TemplateMetadata {
   repository?: RepositoryInfo;
 }
 
-export interface RepositoryInfo {
-  type: 'git' | 'github' | 'gitlab' | 'bitbucket';
-  url: string;
-  branch?: string;
-  directory?: string;
-}
-
-export interface TemplateDependency {
-  name: string;
+export interface TemplateVersion {
   version: string;
-  type: 'plugin' | 'template' | 'engine';
-  optional: boolean;
-  description?: string;
-}
-
-export interface TemplateVariable {
-  name: string;
-  type: VariableType;
   description: string;
-  required: boolean;
-  defaultValue?: string;
-  validation?: VariableValidation;
-  examples?: string[];
+  content: string;
+  dependencies: TemplateDependency[];
+  variables: TemplateVariable[];
+  examples: TemplateExample[];
+  changelog?: string;
+  compatibility: string[];
+  size: number;
+  created: Date;
+  downloads: number;
+  deprecated: boolean;
 }
 
-export interface TemplateExample {
+export interface MarketplacePreferences {
+  autoUpdate: boolean;
+  checkInterval: number;
+  includePrerelease: boolean;
+  trustedAuthors: string[];
+  blockedAuthors: string[];
+  preferredCategories: TemplateCategory[];
+  notifications: NotificationSettings;
+}
+
+// Main template interface
+export interface TemplateModel {
+  id: string;
   name: string;
+  displayName: string;
   description: string;
-  variables: Record<string, string>;
-  expectedOutput?: string;
+  longDescription?: string;
+  category: TemplateCategory;
+  tags: string[];
+  author: AuthorInfo;
+  versions: TemplateVersion[];
+  currentVersion: string;
+  rating: TemplateRating;
+  stats: TemplateStats;
+  metadata: TemplateMetadata;
+  created: Date;
+  updated: Date;
+  featured: boolean;
+  verified: boolean;
+  deprecated: boolean;
 }
-
-export interface VariableValidation {
-  pattern?: string;
-  minLength?: number;
-  maxLength?: number;
-  allowedValues?: string[];
-  format?: 'email' | 'url' | 'date' | 'uuid';
-}
-
-export type TemplateCategory =
-  | 'development'
-  | 'documentation'
-  | 'git'
-  | 'testing'
-  | 'deployment'
-  | 'productivity'
-  | 'education'
-  | 'other';
-
-export type VariableType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'array'
-  | 'object'
-  | 'date'
-  | 'file'
-  | 'choice';
 
 // Search and filter interfaces
 export interface TemplateSearchQuery {
@@ -195,22 +233,6 @@ export interface TemplateSearchResult {
   facets: SearchFacets;
 }
 
-export interface SearchFacets {
-  categories: Array<{ category: TemplateCategory; count: number }>;
-  tags: Array<{ tag: string; count: number }>;
-  authors: Array<{ author: string; count: number }>;
-  ratings: Array<{ rating: number; count: number }>;
-}
-
-export type TemplateSortOption =
-  | 'relevance'
-  | 'downloads'
-  | 'rating'
-  | 'created'
-  | 'updated'
-  | 'name'
-  | 'popularity';
-
 // Installation and management interfaces
 export interface TemplateInstallation {
   templateId: string;
@@ -227,22 +249,4 @@ export interface TemplateManifest {
   lastSync: Date;
   marketplaceUrl: string;
   preferences: MarketplacePreferences;
-}
-
-export interface MarketplacePreferences {
-  autoUpdate: boolean;
-  checkInterval: number;
-  includePrerelease: boolean;
-  trustedAuthors: string[];
-  blockedAuthors: string[];
-  preferredCategories: TemplateCategory[];
-  notifications: NotificationSettings;
-}
-
-export interface NotificationSettings {
-  newVersions: boolean;
-  newFromAuthors: boolean;
-  featuredTemplates: boolean;
-  securityUpdates: boolean;
-  weeklyDigest: boolean;
 }

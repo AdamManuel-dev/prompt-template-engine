@@ -79,7 +79,7 @@ describe('GitService', () => {
 
   describe('getBranch()', () => {
     it('should return the current branch name', async () => {
-      mockExec.mockImplementation((_cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((_cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         callback(null, { stdout: 'main\n', stderr: '' });
         return null;
       });
@@ -89,8 +89,8 @@ describe('GitService', () => {
     });
 
     it('should throw error for non-git repository', async () => {
-      mockExec.mockImplementation((_cmd: string, _opts: any, callback: any) => {
-        const error: any = new Error('fatal: not a git repository');
+      mockExec.mockImplementation((_cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
+        const error = new Error('fatal: not a git repository') as Error & { code: number };
         error.code = 128;
         callback(error);
         return null;
@@ -105,7 +105,7 @@ describe('GitService', () => {
   describe('getStatus()', () => {
     beforeEach(() => {
       // Mock getBranch to return 'main'
-      mockExec.mockImplementation((cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         if (cmd.includes('rev-parse --abbrev-ref HEAD')) {
           callback(null, { stdout: 'main\n', stderr: '' });
         } else if (cmd.includes('status --porcelain')) {
@@ -133,7 +133,7 @@ describe('GitService', () => {
     });
 
     it('should parse staged files correctly', async () => {
-      mockExec.mockImplementation((cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         if (cmd.includes('rev-parse --abbrev-ref HEAD')) {
           callback(null, { stdout: 'main\n', stderr: '' });
         } else if (cmd.includes('status --porcelain')) {
@@ -150,7 +150,7 @@ describe('GitService', () => {
     });
 
     it('should parse modified files correctly', async () => {
-      mockExec.mockImplementation((cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         if (cmd.includes('rev-parse --abbrev-ref HEAD')) {
           callback(null, { stdout: 'main\n', stderr: '' });
         } else if (cmd.includes('status --porcelain')) {
@@ -166,7 +166,7 @@ describe('GitService', () => {
     });
 
     it('should parse untracked files correctly', async () => {
-      mockExec.mockImplementation((cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         if (cmd.includes('rev-parse --abbrev-ref HEAD')) {
           callback(null, { stdout: 'main\n', stderr: '' });
         } else if (cmd.includes('status --porcelain')) {
@@ -182,7 +182,7 @@ describe('GitService', () => {
     });
 
     it('should parse conflicted files correctly', async () => {
-      mockExec.mockImplementation((cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         if (cmd.includes('rev-parse --abbrev-ref HEAD')) {
           callback(null, { stdout: 'main\n', stderr: '' });
         } else if (cmd.includes('status --porcelain')) {
@@ -198,7 +198,7 @@ describe('GitService', () => {
     });
 
     it('should get ahead/behind counts', async () => {
-      mockExec.mockImplementation((cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         if (cmd.includes('rev-parse --abbrev-ref HEAD')) {
           callback(null, { stdout: 'main\n', stderr: '' });
         } else if (cmd.includes('status --porcelain')) {
@@ -224,7 +224,7 @@ describe('GitService', () => {
         'def5678|Jane Smith|2025-01-02T11:00:00Z|Add feature',
       ].join('\n');
 
-      mockExec.mockImplementation((_cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((_cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         callback(null, { stdout: mockOutput, stderr: '' });
         return null;
       });
@@ -241,7 +241,7 @@ describe('GitService', () => {
     });
 
     it('should return empty array when no commits', async () => {
-      mockExec.mockImplementation((_cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((_cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         callback(null, { stdout: '', stderr: '' });
         return null;
       });
@@ -254,7 +254,7 @@ describe('GitService', () => {
   describe('getDiff()', () => {
     it('should get unstaged diff by default', async () => {
       const mockDiff = 'diff --git a/file.ts b/file.ts\n+ added line';
-      mockExec.mockImplementation((cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         if (cmd.includes('git diff') && !cmd.includes('--cached')) {
           callback(null, { stdout: mockDiff, stderr: '' });
         }
@@ -267,7 +267,7 @@ describe('GitService', () => {
 
     it('should get staged diff when specified', async () => {
       const mockDiff = 'diff --git a/file.ts b/file.ts\n+ staged line';
-      mockExec.mockImplementation((cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         if (cmd.includes('git diff --cached')) {
           callback(null, { stdout: mockDiff, stderr: '' });
         }
@@ -287,7 +287,7 @@ describe('GitService', () => {
         'upstream\thttps://github.com/other/repo.git\t(fetch)',
       ].join('\n');
 
-      mockExec.mockImplementation((_cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((_cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         callback(null, { stdout: mockOutput, stderr: '' });
         return null;
       });
@@ -303,7 +303,7 @@ describe('GitService', () => {
     });
 
     it('should return empty array when no remotes', async () => {
-      mockExec.mockImplementation((_cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((_cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         callback(null, { stdout: '', stderr: '' });
         return null;
       });
@@ -324,7 +324,7 @@ describe('GitService', () => {
         return Promise.reject(new Error('ENOENT'));
       });
 
-      mockExec.mockImplementation((cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         if (cmd.includes('rev-parse --abbrev-ref HEAD')) {
           callback(null, { stdout: 'main\n', stderr: '' });
         } else if (cmd.includes('status --porcelain')) {
@@ -378,7 +378,7 @@ describe('GitService', () => {
         return Promise.reject(new Error('ENOENT'));
       });
 
-      mockExec.mockImplementation((cmd: string, _opts: any, callback: any) => {
+      mockExec.mockImplementation((cmd: string, _opts: unknown, callback: (error: Error | null, stdout?: string, stderr?: string) => void) => {
         if (cmd.includes('rev-parse --abbrev-ref HEAD')) {
           callback(null, { stdout: 'main\n', stderr: '' });
         } else if (cmd.includes('status --porcelain')) {

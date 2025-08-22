@@ -49,7 +49,7 @@ export class AIOptimizeCommand extends BaseCommand implements ICommand {
     await this.execute(args as string, options);
   }
 
-  async execute(_args: string, options: any): Promise<void> {
+  async execute(_args: string, options: Record<string, unknown>): Promise<void> {
     try {
       this.info('Analyzing template for optimization opportunities...');
       
@@ -146,7 +146,7 @@ export class AIOptimizeCommand extends BaseCommand implements ICommand {
     return Math.round(complexity);
   }
 
-  private async generateOptimizations(template: string, options: any): Promise<TemplateOptimization[]> {
+  private async generateOptimizations(template: string, options: Record<string, unknown>): Promise<TemplateOptimization[]> {
     const prompt = this.buildOptimizationPrompt(template, options.focus);
     
     try {
