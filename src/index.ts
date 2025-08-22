@@ -19,6 +19,16 @@ import { ErrorUtils } from './utils/errors';
 import { initCommand, InitOptions } from './commands/init';
 import { generateCommand } from './commands/generate';
 import { listCommand, ListOptions } from './commands/list';
+import { applyCommand, ApplyOptions } from './commands/apply';
+import { validateCommand } from './commands/validate';
+import { configCommand } from './commands/config';
+
+interface CLIValidateOptions {
+  strict?: boolean;
+  fix?: boolean;
+  format?: 'table' | 'json' | 'yaml';
+  detailed?: boolean;
+}
 
 interface CLIGenerateOptions {
   variables?: string;
@@ -28,16 +38,12 @@ interface CLIGenerateOptions {
   format?: 'markdown' | 'plain' | 'json';
 }
 
-interface ApplyOptions {
-  force?: boolean;
-  preview?: boolean;
-}
+// interface ApplyOptions {
+//   force?: boolean;
+//   preview?: boolean;
+// }
 
-interface ValidateOptions {
-  strict?: boolean;
-}
-
-interface ConfigOptions {
+interface CLIConfigOptions {
   global?: boolean;
   list?: boolean;
   set?: string;
@@ -154,21 +160,32 @@ function configureProgram(): void {
     .option('-f, --force', 'force overwrite existing files')
     .option('-p, --preview', 'preview changes without applying')
     .action(async (template: string, options: ApplyOptions) => {
-      logger.info(chalk.blue(`⚡ Applying template: ${template}`));
-      logger.info(chalk.gray(`Options: ${JSON.stringify(options, null, 2)}`));
-      // TODO: Implement apply command
-      logger.warn('⚠️  Apply command not yet implemented');
+      try {
+        await applyCommand(template, options);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
     });
 
   program
     .command('validate <path>')
     .description('validate a prompt template')
     .option('-s, --strict', 'enable strict validation')
-    .action(async (templatePath: string, options: ValidateOptions) => {
-      logger.info(chalk.blue(`✅ Validating template: ${templatePath}`));
-      logger.info(chalk.gray(`Options: ${JSON.stringify(options, null, 2)}`));
-      // TODO: Implement validate command
-      logger.warn('⚠️  Validate command not yet implemented');
+    .option('--fix', 'attempt to fix validation issues')
+    .option(
+      '-f, --format <format>',
+      'output format (table, json, yaml)',
+      'table'
+    )
+    .option('-d, --detailed', 'show detailed validation information')
+    .action(async (templatePath: string, options: CLIValidateOptions) => {
+      try {
+        await validateCommand(templatePath, options);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
     });
 
   program
@@ -177,11 +194,13 @@ function configureProgram(): void {
     .option('-g, --global', 'use global config')
     .option('-l, --list', 'list current configuration')
     .option('-s, --set <key=value>', 'set configuration value')
-    .action(async (options: ConfigOptions) => {
-      logger.info(chalk.blue('⚙️  Managing configuration...'));
-      logger.info(chalk.gray(`Options: ${JSON.stringify(options, null, 2)}`));
-      // TODO: Implement config command
-      logger.warn('⚠️  Config command not yet implemented');
+    .action(async (options: CLIConfigOptions) => {
+      try {
+        await configCommand(options);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
     });
 
   // Error handling

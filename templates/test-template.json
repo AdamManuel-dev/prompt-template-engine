@@ -1,0 +1,33 @@
+{
+  "name": "test-template",
+  "version": "1.0.0",
+  "description": "A test template for validation",
+  "author": "Test Author",
+  "type": "basic",
+  "tags": ["test", "validation"],
+  "files": [
+    {
+      "source": "README.template.md",
+      "destination": "README.md",
+      "transform": true
+    }
+  ],
+  "variables": {
+    "projectName": {
+      "type": "string",
+      "description": "Name of the project",
+      "required": true
+    },
+    "author": {
+      "type": "string",
+      "description": "Author name",
+      "default": "Anonymous"
+    },
+    "useTypeScript": {
+      "type": "choice",
+      "description": "Use TypeScript?",
+      "choices": ["yes", "no"],
+      "default": "yes"
+    }
+  }
+}
