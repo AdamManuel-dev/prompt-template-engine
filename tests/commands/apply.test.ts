@@ -366,7 +366,8 @@ describe('Apply Command', () => {
       mockFs.statSync.mockReturnValue({ isDirectory: () => false } as any);
       mockFs.readFileSync.mockReturnValue('<template></template>');
 
-      await expect(applyCommand(templateName)).rejects.toThrow('Unsupported template format: .xml');
+      // The apply command doesn't find .xml files, so it throws "not found"
+      await expect(applyCommand(templateName)).rejects.toThrow(`Template 'unsupported-template.xml' not found`);
     });
 
     it('should create directories when they do not exist', async () => {

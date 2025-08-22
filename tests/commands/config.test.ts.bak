@@ -10,25 +10,16 @@
 
 // Mock file system operations BEFORE importing modules
 jest.mock('fs');
-jest.mock('path', () => {
-  const actualPath = jest.requireActual('path');
-  return {
-    ...actualPath,
-    join: jest.fn((...args: string[]) => {
-      if (!args || args.length === 0) return '';
-      const validArgs = args.filter(
-        arg => arg !== undefined && arg !== null && arg !== ''
-      );
-      if (validArgs.length === 0) return '';
-      return validArgs.join('/');
-    }),
-    dirname: jest.fn((p: string) => {
-      if (!p) return '';
-      const parts = p.split('/');
-      return parts.slice(0, -1).join('/') || '/';
-    }),
-  };
-});
+jest.mock('path', () => ({
+  join: jest.fn((...args: string[]) => {
+    const validArgs = args.filter(arg => arg !== undefined && arg !== null && arg !== '');
+    return validArgs.join('/');
+  }),
+  dirname: jest.fn((p: string) => {
+    const parts = p.split('/');
+    return parts.slice(0, -1).join('/');
+  }),
+}));
 jest.mock('os', () => ({
   homedir: jest.fn(() => '/home/user'),
 }));
@@ -74,9 +65,14 @@ const mockedLogger = logger as jest.Mocked<typeof logger>;
 describe('Config Command', () => {
   const mockHomedir = '/home/user';
   const mockCwd = '/workspace/project';
+  const mockGlobalConfigPath = '/home/user/.cursor-prompt/config.json';
+  const mockLocalConfigPath = '/workspace/project/.cursor-prompt.json';
 
   const defaultConfig = {
-    templatePaths: ['./templates', mockHomedir + '/.cursor-prompt/templates'],
+    templatePaths: [
+      './templates',
+      mockHomedir + '/.cursor-prompt/templates',
+    ],
     outputFormat: 'markdown',
     colorOutput: true,
     debugMode: false,
@@ -108,10 +104,10 @@ describe('Config Command', () => {
         await configCommand(options);
 
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          '[CYAN]\n⚙️  Local Configuration:[/CYAN]'
+          expect.stringContaining('Local Configuration:')
         );
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          expect.stringContaining('[GRAY]Path:')
+          expect.stringContaining(`Path: ${mockLocalConfigPath}`)
         );
       });
 
@@ -121,10 +117,10 @@ describe('Config Command', () => {
         await configCommand(options);
 
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          '[CYAN]\n⚙️  Global Configuration:[/CYAN]'
+          expect.stringContaining('Global Configuration:')
         );
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          expect.stringContaining('[GRAY]Path:')
+          expect.stringContaining(`Path: ${mockGlobalConfigPath}`)
         );
       });
 
@@ -134,7 +130,7 @@ describe('Config Command', () => {
           outputFormat: 'json',
           colorOutput: false,
         };
-
+        
         mockedFs.existsSync.mockReturnValue(true);
         mockedFs.readFileSync.mockReturnValue(JSON.stringify(mockConfig));
 
@@ -142,13 +138,13 @@ describe('Config Command', () => {
         await configCommand(options);
 
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          '  [BOLD]templatePaths[/BOLD]: ["./templates"]'
+          expect.stringContaining('templatePaths: ["./templates"]')
         );
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          '  [BOLD]outputFormat[/BOLD]: json'
+          expect.stringContaining('outputFormat: json')
         );
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          '  [BOLD]colorOutput[/BOLD]: false'
+          expect.stringContaining('colorOutput: false')
         );
       });
 
@@ -159,10 +155,10 @@ describe('Config Command', () => {
         await configCommand(options);
 
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          expect.stringContaining('[BOLD]outputFormat[/BOLD]: markdown')
+          expect.stringContaining('outputFormat: markdown')
         );
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          expect.stringContaining('[BOLD]colorOutput[/BOLD]: true')
+          expect.stringContaining('colorOutput: true')
         );
       });
     });
@@ -177,7 +173,7 @@ describe('Config Command', () => {
         await configCommand(options);
 
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          '[BOLD]outputFormat[/BOLD]: json'
+          expect.stringContaining('outputFormat: json')
         );
       });
 
@@ -188,7 +184,7 @@ describe('Config Command', () => {
         await configCommand(options);
 
         expect(mockedLogger.warn).toHaveBeenCalledWith(
-          "[YELLOW]⚠️  Configuration key 'nonexistentKey' not found[/YELLOW]"
+          expect.stringContaining("Configuration key 'nonexistentKey' not found")
         );
       });
 
@@ -201,7 +197,7 @@ describe('Config Command', () => {
         await configCommand(options);
 
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          expect.stringContaining('[BOLD]templatePaths[/BOLD]:')
+          expect.stringMatching(/templatePaths:.*\[.*"\.\/templates".*\]/)
         );
       });
     });
@@ -213,11 +209,13 @@ describe('Config Command', () => {
         const options: ConfigOptions = { set: 'outputFormat=json' };
         await configCommand(options);
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
-        const [[, content]] = mockedFs.writeFileSync.mock.calls;
-        expect(content).toContain('"outputFormat": "json"');
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockLocalConfigPath,
+          expect.stringContaining('"outputFormat": "json"'),
+          'utf8'
+        );
         expect(mockedLogger.success).toHaveBeenCalledWith(
-          '[GREEN]✅ Set local config: outputFormat = "json"[/GREEN]'
+          expect.stringContaining('Set local config: outputFormat = "json"')
         );
       });
 
@@ -227,9 +225,11 @@ describe('Config Command', () => {
         const options: ConfigOptions = { set: 'colorOutput=false' };
         await configCommand(options);
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
-        const [[, content]] = mockedFs.writeFileSync.mock.calls;
-        expect(content).toContain('"colorOutput": false');
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockLocalConfigPath,
+          expect.stringContaining('"colorOutput": false'),
+          'utf8'
+        );
       });
 
       it('should set numeric configuration value', async () => {
@@ -238,9 +238,11 @@ describe('Config Command', () => {
         const options: ConfigOptions = { set: 'maxRetries=5' };
         await configCommand(options);
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
-        const [[, content]] = mockedFs.writeFileSync.mock.calls;
-        expect(content).toContain('"maxRetries": 5');
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockLocalConfigPath,
+          expect.stringContaining('"maxRetries": 5'),
+          'utf8'
+        );
       });
 
       it('should set JSON configuration value', async () => {
@@ -249,58 +251,55 @@ describe('Config Command', () => {
         const options: ConfigOptions = { set: 'templatePaths=["./custom"]' };
         await configCommand(options);
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
-        const [[, content]] = mockedFs.writeFileSync.mock.calls;
-        const parsed = JSON.parse(content as string);
-        expect(parsed.templatePaths).toEqual(['./custom']);
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockLocalConfigPath,
+          expect.stringContaining('"templatePaths": ["./custom"]'),
+          'utf8'
+        );
       });
 
       it('should handle values with equals signs', async () => {
         mockedFs.existsSync.mockReturnValue(false);
 
-        const options: ConfigOptions = {
-          set: 'apiUrl=https://api.example.com?key=value',
-        };
+        const options: ConfigOptions = { set: 'apiUrl=https://api.example.com?key=value' };
         await configCommand(options);
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
-        const [[, content]] = mockedFs.writeFileSync.mock.calls;
-        expect(content).toContain(
-          '"apiUrl": "https://api.example.com?key=value"'
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockLocalConfigPath,
+          expect.stringContaining('"apiUrl": "https://api.example.com?key=value"'),
+          'utf8'
         );
       });
 
       it('should save to global config when global flag is set', async () => {
         mockedFs.existsSync.mockReturnValue(false);
 
-        const options: ConfigOptions = {
-          set: 'outputFormat=json',
-          global: true,
-        };
+        const options: ConfigOptions = { set: 'outputFormat=json', global: true };
         await configCommand(options);
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockGlobalConfigPath,
+          expect.any(String),
+          'utf8'
+        );
         expect(mockedLogger.success).toHaveBeenCalledWith(
-          '[GREEN]✅ Set global config: outputFormat = "json"[/GREEN]'
+          expect.stringContaining('Set global config: outputFormat = "json"')
         );
       });
 
       it('should create directory if it does not exist', async () => {
         mockedFs.existsSync.mockImplementation((pathArg: fs.PathLike) => {
-          if (!pathArg) return false;
-          const pathStr = String(pathArg);
+          const pathStr = pathArg.toString();
           return !pathStr.includes('.cursor-prompt');
         });
 
-        const options: ConfigOptions = {
-          set: 'outputFormat=json',
-          global: true,
-        };
+        const options: ConfigOptions = { set: 'outputFormat=json', global: true };
         await configCommand(options);
 
-        expect(mockedFs.mkdirSync).toHaveBeenCalled();
-        const [[, mkdirOptions]] = mockedFs.mkdirSync.mock.calls;
-        expect(mkdirOptions).toEqual({ recursive: true });
+        expect(mockedFs.mkdirSync).toHaveBeenCalledWith(
+          '/home/user/.cursor-prompt',
+          { recursive: true }
+        );
       });
 
       it('should throw error for invalid format', async () => {
@@ -311,7 +310,7 @@ describe('Config Command', () => {
         );
 
         expect(mockedLogger.error).toHaveBeenCalledWith(
-          '[RED]❌ Config command failed: Invalid format. Use: --set key=value[/RED]'
+          expect.stringContaining('Invalid format. Use: --set key=value')
         );
       });
 
@@ -325,11 +324,21 @@ describe('Config Command', () => {
 
         // Configuration has been merged and saved with new values
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
-        const [[, content]] = mockedFs.writeFileSync.mock.calls;
-        expect(content).toContain('"outputFormat": "plain"');
-        expect(content).toContain('"debugMode": true');
-        expect(content).toContain('"colorOutput": false');
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockLocalConfigPath,
+          expect.stringContaining('"outputFormat": "plain"'),
+          'utf8'
+        );
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockLocalConfigPath,
+          expect.stringContaining('"debugMode": true'),
+          'utf8'
+        );
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockLocalConfigPath,
+          expect.stringContaining('"colorOutput": false'),
+          'utf8'
+        );
       });
     });
 
@@ -342,11 +351,13 @@ describe('Config Command', () => {
         const options: ConfigOptions = { delete: 'debugMode' };
         await configCommand(options);
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
-        const [[, content]] = mockedFs.writeFileSync.mock.calls;
-        expect(content).not.toContain('debugMode');
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockLocalConfigPath,
+          expect.not.stringContaining('debugMode'),
+          'utf8'
+        );
         expect(mockedLogger.success).toHaveBeenCalledWith(
-          '[GREEN]✅ Deleted local config key: debugMode[/GREEN]'
+          expect.stringContaining('Deleted local config key: debugMode')
         );
       });
 
@@ -357,7 +368,7 @@ describe('Config Command', () => {
         await configCommand(options);
 
         expect(mockedLogger.warn).toHaveBeenCalledWith(
-          "[YELLOW]⚠️  Configuration key 'nonexistentKey' not found[/YELLOW]"
+          expect.stringContaining("Configuration key 'nonexistentKey' not found")
         );
       });
 
@@ -369,9 +380,13 @@ describe('Config Command', () => {
         const options: ConfigOptions = { delete: 'outputFormat', global: true };
         await configCommand(options);
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockGlobalConfigPath,
+          expect.any(String),
+          'utf8'
+        );
         expect(mockedLogger.success).toHaveBeenCalledWith(
-          '[GREEN]✅ Deleted global config key: outputFormat[/GREEN]'
+          expect.stringContaining('Deleted global config key: outputFormat')
         );
       });
     });
@@ -381,11 +396,13 @@ describe('Config Command', () => {
         const options: ConfigOptions = { reset: true };
         await configCommand(options);
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
-        const [[, content]] = mockedFs.writeFileSync.mock.calls;
-        expect(content).toContain('"outputFormat": "markdown"');
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockLocalConfigPath,
+          expect.stringContaining('"outputFormat": "markdown"'),
+          'utf8'
+        );
         expect(mockedLogger.success).toHaveBeenCalledWith(
-          '[GREEN]✅ Reset local configuration to defaults[/GREEN]'
+          expect.stringContaining('Reset local configuration to defaults')
         );
       });
 
@@ -393,9 +410,13 @@ describe('Config Command', () => {
         const options: ConfigOptions = { reset: true, global: true };
         await configCommand(options);
 
-        expect(mockedFs.writeFileSync).toHaveBeenCalled();
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+          mockGlobalConfigPath,
+          expect.any(String),
+          'utf8'
+        );
         expect(mockedLogger.success).toHaveBeenCalledWith(
-          '[GREEN]✅ Reset global configuration to defaults[/GREEN]'
+          expect.stringContaining('Reset global configuration to defaults')
         );
       });
     });
@@ -411,11 +432,11 @@ describe('Config Command', () => {
         await configCommand(options);
 
         expect(mockedLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining('[YELLOW]⚠️  Failed to load config from')
+          expect.stringContaining('Failed to load config from')
         );
         // Should still display default config
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          expect.stringContaining('[BOLD]outputFormat[/BOLD]: markdown')
+          expect.stringContaining('outputFormat: markdown')
         );
       });
 
@@ -427,7 +448,7 @@ describe('Config Command', () => {
         await configCommand(options);
 
         expect(mockedLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining('[YELLOW]⚠️  Failed to load config from')
+          expect.stringContaining('Failed to load config from')
         );
       });
 
@@ -451,14 +472,9 @@ describe('Config Command', () => {
           throw new Error('Permission denied');
         });
 
-        const options: ConfigOptions = {
-          set: 'outputFormat=json',
-          global: true,
-        };
+        const options: ConfigOptions = { set: 'outputFormat=json', global: true };
 
-        await expect(configCommand(options)).rejects.toThrow(
-          'Permission denied'
-        );
+        await expect(configCommand(options)).rejects.toThrow('Permission denied');
       });
     });
 
@@ -467,7 +483,7 @@ describe('Config Command', () => {
         await configCommand({});
 
         expect(mockedLogger.info).toHaveBeenCalledWith(
-          '[CYAN]\n⚙️  Local Configuration:[/CYAN]'
+          expect.stringContaining('Local Configuration:')
         );
       });
     });
@@ -475,23 +491,16 @@ describe('Config Command', () => {
 
   describe('getMergedConfig', () => {
     it('should merge global and local configs with local taking precedence', () => {
-      const globalConfig = {
-        outputFormat: 'plain',
-        colorOutput: true,
-        debugMode: false,
-      };
+      const globalConfig = { outputFormat: 'plain', colorOutput: true, debugMode: false };
       const localConfig = { outputFormat: 'json', debugMode: true };
 
-      let callCount = 0;
-      mockedFs.existsSync.mockReturnValue(true);
-      mockedFs.readFileSync.mockImplementation(() => {
-        // First call is for global config, second is for local config
-        callCount++;
-        if (callCount === 1) {
+      mockedFs.existsSync.mockImplementation((_pathArg: fs.PathLike) => true);
+      mockedFs.readFileSync.mockImplementation((pathArg: fs.PathOrFileDescriptor) => {
+        const pathStr = pathArg.toString();
+        if (pathStr.includes('global') || pathStr.includes('.cursor-prompt/config.json')) {
           return JSON.stringify(globalConfig);
-        } else {
-          return JSON.stringify(localConfig);
         }
+        return JSON.stringify(localConfig);
       });
 
       const merged = getMergedConfig();
@@ -516,15 +525,17 @@ describe('Config Command', () => {
 
     it('should handle only global config', () => {
       const globalConfig = { outputFormat: 'plain', debugMode: true };
-
-      let callCount = 0;
-      mockedFs.existsSync.mockImplementation(() => {
-        callCount++;
-        // First call is for global (true), second for local (false)
-        return callCount === 1;
+      
+      mockedFs.existsSync.mockImplementation((pathArg: fs.PathLike) => {
+        const pathStr = pathArg.toString();
+        return pathStr.includes('.cursor-prompt/config.json');
       });
-      mockedFs.readFileSync.mockImplementation(() => {
-        return JSON.stringify(globalConfig);
+      mockedFs.readFileSync.mockImplementation((pathArg: fs.PathOrFileDescriptor) => {
+        const pathStr = pathArg.toString();
+        if (pathStr.includes('.cursor-prompt/config.json')) {
+          return JSON.stringify(globalConfig);
+        }
+        return '{}';
       });
 
       const merged = getMergedConfig();
@@ -537,15 +548,17 @@ describe('Config Command', () => {
 
     it('should handle only local config', () => {
       const localConfig = { outputFormat: 'json', colorOutput: false };
-
-      let callCount = 0;
-      mockedFs.existsSync.mockImplementation(() => {
-        callCount++;
-        // First call is for global (false), second for local (true)
-        return callCount === 2;
+      
+      mockedFs.existsSync.mockImplementation((pathArg: fs.PathLike) => {
+        const pathStr = pathArg.toString();
+        return pathStr.includes('.cursor-prompt.json');
       });
-      mockedFs.readFileSync.mockImplementation(() => {
-        return JSON.stringify(localConfig);
+      mockedFs.readFileSync.mockImplementation((pathArg: fs.PathOrFileDescriptor) => {
+        const pathStr = pathArg.toString();
+        if (pathStr.includes('.cursor-prompt.json')) {
+          return JSON.stringify(localConfig);
+        }
+        return '{}';
       });
 
       const merged = getMergedConfig();
@@ -562,16 +575,13 @@ describe('Config Command', () => {
       const globalConfig = { outputFormat: 'plain', colorOutput: true };
       const localConfig = { outputFormat: 'json' };
 
-      let callCount = 0;
       mockedFs.existsSync.mockReturnValue(true);
-      mockedFs.readFileSync.mockImplementation(() => {
-        callCount++;
-        // First call is for global config, second is for local config
-        if (callCount === 1) {
+      mockedFs.readFileSync.mockImplementation((pathArg: fs.PathOrFileDescriptor) => {
+        const pathStr = pathArg.toString();
+        if (pathStr.includes('.cursor-prompt/config.json')) {
           return JSON.stringify(globalConfig);
-        } else {
-          return JSON.stringify(localConfig);
         }
+        return JSON.stringify(localConfig);
       });
     });
 
@@ -628,8 +638,8 @@ describe('Config Command', () => {
       const largeArray = new Array(1000).fill('template-path');
       mockedFs.existsSync.mockReturnValue(false);
 
-      const options: ConfigOptions = {
-        set: `templatePaths=${JSON.stringify(largeArray)}`,
+      const options: ConfigOptions = { 
+        set: `templatePaths=${JSON.stringify(largeArray)}` 
       };
       await configCommand(options);
 
@@ -640,27 +650,31 @@ describe('Config Command', () => {
     it('should handle special characters in config values', async () => {
       mockedFs.existsSync.mockReturnValue(false);
 
-      const options: ConfigOptions = {
-        set: 'description=Special chars: !@#$%^&*()[]{}|;:,.<>?',
+      const options: ConfigOptions = { 
+        set: 'description=Special chars: !@#$%^&*()[]{}|;:,.<>?' 
       };
       await configCommand(options);
 
-      expect(mockedFs.writeFileSync).toHaveBeenCalled();
-      const [[, content]] = mockedFs.writeFileSync.mock.calls;
-      expect(content).toContain('Special chars: !@#$%^&*()[]{}|;:,.<>?');
+      expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+        mockLocalConfigPath,
+        expect.stringContaining('Special chars: !@#$%^&*()[]{}|;:,.<>?'),
+        'utf8'
+      );
     });
 
     it('should handle unicode characters in config values', async () => {
       mockedFs.existsSync.mockReturnValue(false);
 
-      const options: ConfigOptions = {
-        set: 'title=🚀 Template Engine 中文 العربية',
+      const options: ConfigOptions = { 
+        set: 'title=🚀 Template Engine 中文 العربية' 
       };
       await configCommand(options);
 
-      expect(mockedFs.writeFileSync).toHaveBeenCalled();
-      const [[, content]] = mockedFs.writeFileSync.mock.calls;
-      expect(content).toContain('🚀 Template Engine 中文 العربية');
+      expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
+        mockLocalConfigPath,
+        expect.stringContaining('🚀 Template Engine 中文 العربية'),
+        'utf8'
+      );
     });
   });
 });
