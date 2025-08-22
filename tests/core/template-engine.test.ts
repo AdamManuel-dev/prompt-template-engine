@@ -821,4 +821,228 @@ Items:
       expect(result).toBe(expected);
     });
   });
+
+  describe('conditional blocks (#if and #unless)', () => {
+    describe('#if blocks', () => {
+      it('should render content when condition is truthy', async () => {
+        const template = '{{#if showMessage}}Hello World!{{/if}}';
+        const context: TemplateContext = { showMessage: true };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Hello World!');
+      });
+
+      it('should not render content when condition is falsy', async () => {
+        const template = '{{#if showMessage}}Hello World!{{/if}}';
+        const context: TemplateContext = { showMessage: false };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('');
+      });
+
+      it('should handle nested variables within if blocks', async () => {
+        const template = '{{#if user}}Hello {{user.name}}!{{/if}}';
+        const context: TemplateContext = { 
+          user: { name: 'John' }
+        };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Hello John!');
+      });
+
+      it('should handle nested if blocks', async () => {
+        const template = '{{#if user}}{{#if user.active}}Active user: {{user.name}}{{/if}}{{/if}}';
+        const context: TemplateContext = { 
+          user: { name: 'John', active: true }
+        };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Active user: John');
+      });
+
+      it('should handle multiple if blocks', async () => {
+        const template = '{{#if showA}}A{{/if}}{{#if showB}}B{{/if}}{{#if showC}}C{{/if}}';
+        const context: TemplateContext = { 
+          showA: true,
+          showB: false,
+          showC: true
+        };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('AC');
+      });
+
+      it('should handle if blocks with arrays', async () => {
+        const template = '{{#if items}}Found {{items.length}} items{{/if}}';
+        const context: TemplateContext = { 
+          items: ['a', 'b', 'c']
+        };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Found 3 items');
+      });
+
+      it('should handle if blocks with empty arrays', async () => {
+        const template = '{{#if items}}Has items{{/if}}{{#unless items}}No items{{/unless}}';
+        const context: TemplateContext = { 
+          items: []
+        };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('No items');
+      });
+    });
+
+    describe('#unless blocks', () => {
+      it('should render content when condition is falsy', async () => {
+        const template = '{{#unless hideMessage}}Hello World!{{/unless}}';
+        const context: TemplateContext = { hideMessage: false };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Hello World!');
+      });
+
+      it('should not render content when condition is truthy', async () => {
+        const template = '{{#unless hideMessage}}Hello World!{{/unless}}';
+        const context: TemplateContext = { hideMessage: true };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('');
+      });
+
+      it('should handle nested variables within unless blocks', async () => {
+        const template = '{{#unless user.disabled}}User {{user.name}} is enabled{{/unless}}';
+        const context: TemplateContext = { 
+          user: { name: 'John', disabled: false }
+        };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('User John is enabled');
+      });
+
+      it('should handle nested unless blocks', async () => {
+        const template = '{{#unless user.disabled}}{{#unless user.suspended}}Active: {{user.name}}{{/unless}}{{/unless}}';
+        const context: TemplateContext = { 
+          user: { name: 'John', disabled: false, suspended: false }
+        };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Active: John');
+      });
+    });
+
+    describe('conditional truthiness', () => {
+      it('should treat empty strings as falsy', async () => {
+        const template = '{{#if message}}Has message{{/if}}{{#unless message}}No message{{/unless}}';
+        const context: TemplateContext = { message: '' };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('No message');
+      });
+
+      it('should treat zero as falsy', async () => {
+        const template = '{{#if count}}Has count{{/if}}{{#unless count}}No count{{/unless}}';
+        const context: TemplateContext = { count: 0 };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('No count');
+      });
+
+      it('should treat null and undefined as falsy', async () => {
+        const template1 = '{{#if nullValue}}Has value{{/if}}{{#unless nullValue}}No value{{/unless}}';
+        const template2 = '{{#if undefinedValue}}Has value{{/if}}{{#unless undefinedValue}}No value{{/unless}}';
+        
+        const context: TemplateContext = { 
+          nullValue: null,
+          undefinedValue: undefined
+        };
+        
+        const result1 = await engine.render(template1, context);
+        const result2 = await engine.render(template2, context);
+        expect(result1).toBe('No value');
+        expect(result2).toBe('No value');
+      });
+
+      it('should treat non-empty strings as truthy', async () => {
+        const template = '{{#if message}}Message: {{message}}{{/if}}';
+        const context: TemplateContext = { message: 'Hello' };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Message: Hello');
+      });
+
+      it('should treat non-zero numbers as truthy', async () => {
+        const template = '{{#if count}}Count: {{count}}{{/if}}';
+        const context: TemplateContext = { count: 42 };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Count: 42');
+      });
+
+      it('should treat empty objects as falsy', async () => {
+        const template = '{{#if obj}}Has object{{/if}}{{#unless obj}}No object{{/unless}}';
+        const context: TemplateContext = { obj: {} };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('No object');
+      });
+
+      it('should treat non-empty objects as truthy', async () => {
+        const template = '{{#if obj}}Has object: {{obj.name}}{{/if}}';
+        const context: TemplateContext = { obj: { name: 'test' } };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Has object: test');
+      });
+    });
+
+    describe('integration with array iteration', () => {
+      it('should combine if blocks with each blocks', async () => {
+        const template = `{{#if items}}Items:
+{{#each items}}{{#if this.active}}- {{this.name}} (active)
+{{/if}}{{/each}}{{/if}}`;
+        
+        const context: TemplateContext = {
+          items: [
+            { name: 'Item 1', active: true },
+            { name: 'Item 2', active: false },
+            { name: 'Item 3', active: true }
+          ]
+        };
+        
+        const result = await engine.render(template, context);
+        const expected = `Items:
+- Item 1 (active)
+- Item 3 (active)
+`;
+        expect(result).toBe(expected);
+      });
+
+      it('should handle complex nested conditional and iteration logic', async () => {
+        const template = `{{#if user}}User: {{user.name}}
+{{#if user.projects}}Projects:
+{{#each user.projects}}{{#unless this.archived}}  - {{this.name}}{{#if this.priority}} ({{this.priority}}){{/if}}
+{{/unless}}{{/each}}{{/if}}{{/if}}`;
+        
+        const context: TemplateContext = {
+          user: {
+            name: 'John',
+            projects: [
+              { name: 'Project A', archived: false, priority: 'high' },
+              { name: 'Project B', archived: true, priority: 'low' },
+              { name: 'Project C', archived: false }
+            ]
+          }
+        };
+        
+        const result = await engine.render(template, context);
+        const expected = `User: John
+Projects:
+  - Project A (high)
+  - Project C
+`;
+        expect(result).toBe(expected);
+      });
+    });
+  });
 });

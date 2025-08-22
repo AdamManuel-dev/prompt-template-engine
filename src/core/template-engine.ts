@@ -19,14 +19,22 @@ export class TemplateEngine {
 
   private eachPattern = /\{\{#each\s+([\w.]+)\s*\}\}(.*?)\{\{\/each\}\}/gs;
 
+  private ifPattern = /\{\{#if\s+([\w.@]+)\s*\}\}(.*?)\{\{\/if\}\}/gs;
+
+  private unlessPattern =
+    /\{\{#unless\s+([\w.@]+)\s*\}\}(.*?)\{\{\/unless\}\}/gs;
+
   /**
    * Render a template string with variables
    */
   async render(template: string, context: TemplateContext): Promise<string> {
-    // First process #each blocks
-    const processed = this.processEachBlocks(template, context);
+    // First process conditional blocks (which handle nested #each blocks internally)
+    let processed = this.processConditionalBlocks(template, context);
 
-    // Then process regular variables
+    // Then process any standalone #each blocks not inside conditionals
+    processed = this.processEachBlocks(processed, context);
+
+    // Finally process regular variables
     return processed.replace(this.variablePattern, (match, variable) => {
       const key = variable.trim();
       const value = this.resolveVariable(key, context);
@@ -70,6 +78,282 @@ export class TemplateEngine {
   }
 
   /**
+   * Process {{#if}} and {{#unless}} blocks for conditional rendering
+   */
+  // eslint-disable-next-line class-methods-use-this
+  public processConditionalBlocks(
+    template: string,
+    context: TemplateContext,
+    depth = 0
+  ): string {
+    // Prevent infinite recursion
+    if (depth > 10) {
+      return template;
+    }
+
+    let result = template;
+    let changed = true;
+
+    // Keep processing until no more changes are made (to handle nested blocks)
+    while (changed) {
+      changed = false;
+
+      // Process #if blocks (only those not inside #each blocks at depth 0)
+      const ifBlocks = this.findOutermostIfBlocks(result);
+      for (let i = 0; i < ifBlocks.length; i += 1) {
+        const block = ifBlocks[i];
+        // Skip conditionals inside #each blocks during the top-level pass
+        if (depth === 0 && this.isInsideEachBlock(block, result)) {
+          // Skip this block
+        } else {
+          const blockResult = this.processSingleIfBlock(block, context, depth);
+          result = result.replace(block.fullMatch, blockResult.replacement);
+          if (blockResult.hasChanges) {
+            changed = true;
+          }
+        }
+      }
+
+      // Process #unless blocks (only those not inside #each blocks at depth 0)
+      const unlessBlocks = this.findOutermostUnlessBlocks(result);
+      for (let i = 0; i < unlessBlocks.length; i += 1) {
+        const block = unlessBlocks[i];
+        // Skip conditionals inside #each blocks during the top-level pass
+        if (depth === 0 && this.isInsideEachBlock(block, result)) {
+          // Skip this block
+        } else {
+          const blockResult = this.processSingleUnlessBlock(
+            block,
+            context,
+            depth
+          );
+          result = result.replace(block.fullMatch, blockResult.replacement);
+          if (blockResult.hasChanges) {
+            changed = true;
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Check if a conditional block is inside an #each block
+   */
+  // eslint-disable-next-line class-methods-use-this
+  private isInsideEachBlock(
+    block: { fullMatch: string; condition: string; innerTemplate: string },
+    template: string
+  ): boolean {
+    const blockStart = template.indexOf(block.fullMatch);
+    if (blockStart === -1) return false;
+
+    // Find all #each blocks in the template
+    const eachBlocks = this.findOutermostEachBlocks(template);
+
+    // Check if our conditional block is inside any #each block
+    for (let i = 0; i < eachBlocks.length; i += 1) {
+      const eachBlock = eachBlocks[i];
+      const eachStart = template.indexOf(eachBlock.fullMatch);
+      const eachEnd = eachStart + eachBlock.fullMatch.length;
+
+      if (blockStart > eachStart && blockStart < eachEnd) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Process a single #if block
+   */
+  // eslint-disable-next-line class-methods-use-this
+  private processSingleIfBlock(
+    block: { fullMatch: string; condition: string; innerTemplate: string },
+    context: TemplateContext,
+    depth: number
+  ): { replacement: string; hasChanges: boolean } {
+    const conditionValue = this.resolveVariable(
+      block.condition.trim(),
+      context
+    );
+    const isTruthy = this.isTruthy(conditionValue);
+
+    if (isTruthy) {
+      // First process any #each blocks in the inner template (which will handle their own conditionals)
+      let processedInner = this.processEachBlocks(
+        block.innerTemplate,
+        context,
+        depth + 1
+      );
+
+      // Then recursively process remaining conditional blocks
+      processedInner = this.processConditionalBlocks(
+        processedInner,
+        context,
+        depth + 1
+      );
+
+      return { replacement: processedInner, hasChanges: true };
+    }
+
+    return { replacement: '', hasChanges: true };
+  }
+
+  /**
+   * Process a single #unless block
+   */
+  // eslint-disable-next-line class-methods-use-this
+  private processSingleUnlessBlock(
+    block: { fullMatch: string; condition: string; innerTemplate: string },
+    context: TemplateContext,
+    depth: number
+  ): { replacement: string; hasChanges: boolean } {
+    const conditionValue = this.resolveVariable(
+      block.condition.trim(),
+      context
+    );
+    const isTruthy = this.isTruthy(conditionValue);
+
+    if (!isTruthy) {
+      // First process any #each blocks in the inner template (which will handle their own conditionals)
+      let processedInner = this.processEachBlocks(
+        block.innerTemplate,
+        context,
+        depth + 1
+      );
+
+      // Then recursively process remaining conditional blocks
+      processedInner = this.processConditionalBlocks(
+        processedInner,
+        context,
+        depth + 1
+      );
+
+      return { replacement: processedInner, hasChanges: true };
+    }
+
+    return { replacement: '', hasChanges: true };
+  }
+
+  /**
+   * Find only the outermost #if blocks (we'll handle nesting recursively)
+   */
+  // eslint-disable-next-line class-methods-use-this
+  public findOutermostIfBlocks(
+    template: string
+  ): Array<{ fullMatch: string; condition: string; innerTemplate: string }> {
+    return this.findOutermostConditionalBlocks(template, 'if');
+  }
+
+  /**
+   * Find only the outermost #unless blocks (we'll handle nesting recursively)
+   */
+  // eslint-disable-next-line class-methods-use-this
+  private findOutermostUnlessBlocks(
+    template: string
+  ): Array<{ fullMatch: string; condition: string; innerTemplate: string }> {
+    return this.findOutermostConditionalBlocks(template, 'unless');
+  }
+
+  /**
+   * Generic method to find outermost conditional blocks
+   */
+  // eslint-disable-next-line class-methods-use-this
+  public findOutermostConditionalBlocks(
+    template: string,
+    blockType: 'if' | 'unless'
+  ): Array<{ fullMatch: string; condition: string; innerTemplate: string }> {
+    const blocks: Array<{
+      fullMatch: string;
+      condition: string;
+      innerTemplate: string;
+    }> = [];
+    const openPattern =
+      blockType === 'if'
+        ? /\{\{#if\s+([\w.@]+)\s*\}\}/g
+        : /\{\{#unless\s+([\w.@]+)\s*\}\}/g;
+    const closeTag = `{{/${blockType}}}`;
+
+    // Reset regex lastIndex
+    openPattern.lastIndex = 0;
+
+    let match = openPattern.exec(template);
+    while (match !== null) {
+      const startPos = match.index;
+      const condition = match[1];
+      let depth = 1;
+      let pos = openPattern.lastIndex;
+
+      // Find the matching closing tag
+      while (depth > 0 && pos < template.length) {
+        const nextOpen = template.indexOf(`{{#${blockType}`, pos);
+        const nextClose = template.indexOf(closeTag, pos);
+
+        if (nextClose === -1) break; // No more closing tags
+
+        if (nextOpen !== -1 && nextOpen < nextClose) {
+          depth += 1;
+          pos = nextOpen + blockType.length + 3; // Move past '{{#if' or '{{#unless'
+        } else {
+          depth -= 1;
+          pos = nextClose + closeTag.length;
+        }
+      }
+
+      if (depth === 0) {
+        const endPos = pos;
+        const fullMatch = template.substring(startPos, endPos);
+        const innerStart = template.indexOf('}}', startPos) + 2;
+        const innerEnd = template.lastIndexOf(closeTag, endPos);
+        const innerTemplate = template.substring(innerStart, innerEnd);
+
+        blocks.push({
+          fullMatch,
+          condition,
+          innerTemplate,
+        });
+
+        // Skip past this block to avoid nested blocks
+        openPattern.lastIndex = endPos;
+      }
+
+      match = openPattern.exec(template);
+    }
+
+    return blocks;
+  }
+
+  /**
+   * Determine if a value is truthy according to template logic
+   */
+  // eslint-disable-next-line class-methods-use-this
+  public isTruthy(value: unknown): boolean {
+    // Handle JavaScript truthiness but with template-specific rules
+    if (value === null || value === undefined) {
+      return false;
+    }
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      return value.length > 0;
+    }
+    if (typeof value === 'number') {
+      return value !== 0 && !Number.isNaN(value);
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    if (typeof value === 'object') {
+      return Object.keys(value as Record<string, unknown>).length > 0;
+    }
+    return Boolean(value);
+  }
+
+  /**
    * Process a single #each block
    */
   // eslint-disable-next-line class-methods-use-this
@@ -102,8 +386,15 @@ export class TemplateEngine {
       }
 
       // First recursively process any nested #each blocks in this context
-      const itemTemplate = this.processEachBlocks(
+      let itemTemplate = this.processEachBlocks(
         block.innerTemplate,
+        itemContext,
+        depth + 1
+      );
+
+      // Then process conditional blocks in this iteration context
+      itemTemplate = this.processConditionalBlocks(
+        itemTemplate,
         itemContext,
         depth + 1
       );
@@ -235,7 +526,10 @@ export class TemplateEngine {
    */
   hasVariables(template: string): boolean {
     return (
-      this.variablePattern.test(template) || this.eachPattern.test(template)
+      this.variablePattern.test(template) ||
+      this.eachPattern.test(template) ||
+      this.ifPattern.test(template) ||
+      this.unlessPattern.test(template)
     );
   }
 
@@ -261,6 +555,32 @@ export class TemplateEngine {
           variables.add(variable);
         }
       });
+    }
+
+    // Extract variables from #if blocks
+    this.ifPattern.lastIndex = 0;
+    // eslint-disable-next-line no-cond-assign
+    while ((match = this.ifPattern.exec(template)) !== null) {
+      // Add the condition variable
+      variables.add(match[1].trim());
+
+      // Extract variables from inner template
+      const innerTemplate = match[2];
+      const innerVariables = this.extractSimpleVariables(innerTemplate);
+      innerVariables.forEach(variable => variables.add(variable));
+    }
+
+    // Extract variables from #unless blocks
+    this.unlessPattern.lastIndex = 0;
+    // eslint-disable-next-line no-cond-assign
+    while ((match = this.unlessPattern.exec(template)) !== null) {
+      // Add the condition variable
+      variables.add(match[1].trim());
+
+      // Extract variables from inner template
+      const innerTemplate = match[2];
+      const innerVariables = this.extractSimpleVariables(innerTemplate);
+      innerVariables.forEach(variable => variables.add(variable));
     }
 
     // Extract regular variables
