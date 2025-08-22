@@ -532,6 +532,8 @@ describe('Config Command', () => {
       expect(merged).toEqual({
         ...defaultConfig,
         ...globalConfig,
+        outputFormat: 'markdown',
+        debugMode: false,
       });
     });
 
