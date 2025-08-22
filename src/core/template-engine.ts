@@ -56,74 +56,85 @@ export class TemplateEngine {
       changed = false;
       const eachBlocks = this.findOutermostEachBlocks(result);
 
-      for (const block of eachBlocks) {
-        const arrayValue = this.resolveVariable(
-          block.arrayPath.trim(),
-          context
-        );
-
-        // Handle non-array or undefined values
-        if (!Array.isArray(arrayValue)) {
-          result = result.replace(block.fullMatch, '');
+      for (let i = 0; i < eachBlocks.length; i += 1) {
+        const block = eachBlocks[i];
+        const blockResult = this.processSingleEachBlock(block, context, depth);
+        result = result.replace(block.fullMatch, blockResult.replacement);
+        if (blockResult.hasChanges) {
           changed = true;
-          continue;
         }
-
-        // Process each item in the array
-        const processedItems = arrayValue.map((item, index) => {
-          // Create context for this iteration
-          const itemContext: TemplateContext = {
-            ...context,
-            this: item,
-            '@index': index,
-            '@first': index === 0,
-            '@last': index === arrayValue.length - 1,
-          };
-
-          // Add item properties to context for easier access
-          if (typeof item === 'object' && item !== null) {
-            Object.assign(itemContext, item);
-          }
-
-          // First recursively process any nested #each blocks in this context
-          const itemTemplate = this.processEachBlocks(
-            block.innerTemplate,
-            itemContext,
-            depth + 1
-          );
-
-          // Then process regular variables in this iteration
-          return itemTemplate.replace(
-            this.variablePattern,
-            (_innerMatch, innerVariable: string) => {
-              const key = innerVariable.trim();
-
-              // Handle special context variables
-              if (key === 'this') {
-                return item !== undefined ? String(item) : '';
-              }
-
-              if (key.startsWith('@')) {
-                // Handle special iteration variables
-                const specialValue = itemContext[key];
-                return specialValue !== undefined
-                  ? String(specialValue)
-                  : _innerMatch;
-              }
-
-              // For regular variables, resolve from item context
-              const value = this.resolveVariable(key, itemContext);
-              return value !== undefined ? String(value) : _innerMatch;
-            }
-          );
-        });
-
-        result = result.replace(block.fullMatch, processedItems.join(''));
-        changed = true;
       }
     }
 
     return result;
+  }
+
+  /**
+   * Process a single #each block
+   */
+  // eslint-disable-next-line class-methods-use-this
+  private processSingleEachBlock(
+    block: { fullMatch: string; arrayPath: string; innerTemplate: string },
+    context: TemplateContext,
+    depth: number
+  ): { replacement: string; hasChanges: boolean } {
+    const arrayValue = this.resolveVariable(block.arrayPath.trim(), context);
+
+    // Handle non-array or undefined values
+    if (!Array.isArray(arrayValue)) {
+      return { replacement: '', hasChanges: true };
+    }
+
+    // Process each item in the array
+    const processedItems = arrayValue.map((item, index) => {
+      // Create context for this iteration
+      const itemContext: TemplateContext = {
+        ...context,
+        this: item,
+        '@index': index,
+        '@first': index === 0,
+        '@last': index === arrayValue.length - 1,
+      };
+
+      // Add item properties to context for easier access
+      if (typeof item === 'object' && item !== null) {
+        Object.assign(itemContext, item);
+      }
+
+      // First recursively process any nested #each blocks in this context
+      const itemTemplate = this.processEachBlocks(
+        block.innerTemplate,
+        itemContext,
+        depth + 1
+      );
+
+      // Then process regular variables in this iteration
+      return itemTemplate.replace(
+        this.variablePattern,
+        (_innerMatch, innerVariable: string) => {
+          const key = innerVariable.trim();
+
+          // Handle special context variables
+          if (key === 'this') {
+            return item !== undefined ? String(item) : '';
+          }
+
+          if (key.startsWith('@')) {
+            // Handle special iteration variables
+            const specialValue = itemContext[key];
+            return specialValue !== undefined
+              ? String(specialValue)
+              : _innerMatch;
+          }
+
+          // For regular variables, resolve from item context
+          const value = this.resolveVariable(key, itemContext);
+          return value !== undefined ? String(value) : _innerMatch;
+        }
+      );
+    });
+
+    return { replacement: processedItems.join(''), hasChanges: true };
   }
 
   /**
@@ -140,11 +151,11 @@ export class TemplateEngine {
     }> = [];
     const openPattern = /\{\{#each\s+([\w.]+)\s*\}\}/g;
 
-    let match;
     // Reset regex lastIndex
     openPattern.lastIndex = 0;
 
-    while ((match = openPattern.exec(template)) !== null) {
+    let match = openPattern.exec(template);
+    while (match !== null) {
       const startPos = match.index;
       const arrayPath = match[1];
       let depth = 1;
@@ -158,10 +169,10 @@ export class TemplateEngine {
         if (nextClose === -1) break; // No more closing tags
 
         if (nextOpen !== -1 && nextOpen < nextClose) {
-          depth++;
+          depth += 1;
           pos = nextOpen + 7; // Move past '{{#each'
         } else {
-          depth--;
+          depth -= 1;
           pos = nextClose + 9; // Move past '{{/each}}'
         }
       }
@@ -182,6 +193,8 @@ export class TemplateEngine {
         // Skip past this block to avoid nested blocks
         openPattern.lastIndex = endPos;
       }
+
+      match = openPattern.exec(template);
     }
 
     return blocks;
