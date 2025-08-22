@@ -10,6 +10,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { TemplateHelpers } from './template-helpers';
+import { TemplatePartials } from './template-partials';
+import { TemplateTransforms } from './template-transforms';
 
 export interface TemplateContext {
   [key: string]: unknown;
@@ -17,6 +20,14 @@ export interface TemplateContext {
 
 export class TemplateEngine {
   private variablePattern = /\{\{(\s*[@\w.]+\s*)\}\}/g;
+
+  private transformPattern = /\{\{([^|}]+\|[^}]+)\}\}/g;
+
+  private helpers: TemplateHelpers;
+
+  private partials: TemplatePartials;
+
+  private transforms: TemplateTransforms;
 
   private eachPattern = /\{\{#each\s+([\w.]+)\s*\}\}(.*?)\{\{\/each\}\}/gs;
 
@@ -30,6 +41,12 @@ export class TemplateEngine {
   private includedFiles = new Set<string>();
 
   private maxIncludeDepth = 10;
+
+  constructor() {
+    this.helpers = new TemplateHelpers();
+    this.partials = new TemplatePartials();
+    this.transforms = new TemplateTransforms();
+  }
 
   /**
    * Render a template string with variables
@@ -47,8 +64,24 @@ export class TemplateEngine {
     // Then process any standalone #each blocks not inside conditionals
     processed = this.processEachBlocks(processed, context);
 
+    // Process partials after conditionals and loops to ensure correct context
+    processed = this.processPartials(processed, context);
+
+    // Process helper functions
+    processed = this.processHelpers(processed, context);
+
+    // Process variable transformations
+    processed = this.processTransforms(processed, context);
+
     // Finally process regular variables
-    return processed.replace(this.variablePattern, (match, variable) => {
+    return this.processVariables(processed, context);
+  }
+
+  /**
+   * Process variables in a template
+   */
+  private processVariables(template: string, context: TemplateContext): string {
+    return template.replace(this.variablePattern, (match, variable) => {
       const key = variable.trim();
       const value = this.resolveVariable(key, context);
       return value !== undefined ? String(value) : match;
@@ -284,7 +317,7 @@ export class TemplateEngine {
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
-    const conditionValue = this.resolveVariable(
+    const conditionValue = this.evaluateCondition(
       block.condition.trim(),
       context
     );
@@ -342,7 +375,7 @@ export class TemplateEngine {
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
-    const conditionValue = this.resolveVariable(
+    const conditionValue = this.evaluateCondition(
       block.condition.trim(),
       context
     );
@@ -433,8 +466,8 @@ export class TemplateEngine {
     }> = [];
     const openPattern =
       blockType === 'if'
-        ? /\{\{#if\s+([\w.@]+)\s*\}\}/g
-        : /\{\{#unless\s+([\w.@]+)\s*\}\}/g;
+        ? /\{\{#if\s+([^}]+)\s*\}\}/g
+        : /\{\{#unless\s+([^}]+)\s*\}\}/g;
     const closeTag = `{{/${blockType}}}`;
     const elseTag = '{{else}}';
 
@@ -585,6 +618,15 @@ export class TemplateEngine {
         depth + 1
       );
 
+      // Process partials in this iteration context
+      itemTemplate = this.processPartials(itemTemplate, itemContext);
+
+      // Process helpers in this iteration context
+      itemTemplate = this.processHelpers(itemTemplate, itemContext);
+
+      // Process transforms in this iteration context
+      itemTemplate = this.processTransforms(itemTemplate, itemContext);
+
       // Then process regular variables in this iteration
       return itemTemplate.replace(
         this.variablePattern,
@@ -718,6 +760,282 @@ export class TemplateEngine {
       this.unlessPattern.test(template) ||
       this.includePattern.test(template)
     );
+  }
+
+  /**
+   * Process helper functions in the template
+   */
+  private processHelpers(template: string, context: TemplateContext): string {
+    let result = template;
+    let iteration = 0;
+    const maxIterations = 10; // Prevent infinite loops
+
+    // Process helpers recursively to handle nested calls
+    while (iteration < maxIterations) {
+      const helperNames = this.helpers.getHelperNames().join('|');
+      const helperRegex = new RegExp(
+        `\\{\\{\\s*(${helperNames})(?:\\s+([^}]+))?\\s*\\}\\}`,
+        'g'
+      );
+
+      let hasChanges = false;
+      result = result.replace(helperRegex, (match, helperName, args) => {
+        try {
+          // Check if args contain nested helpers by looking for parentheses
+          if (args && args.includes('(') && args.includes(')')) {
+            // Process nested helpers first
+            const processedArgs = this.processNestedHelpers(args, context);
+            const argList = this.parseHelperArgs(processedArgs.trim(), context);
+            const helperResult = this.helpers.execute(helperName, ...argList);
+            hasChanges = true;
+            return helperResult !== undefined ? String(helperResult) : match;
+          }
+          // Parse arguments normally
+          const argList = args
+            ? this.parseHelperArgs(args.trim(), context)
+            : [];
+          const helperResult = this.helpers.execute(helperName, ...argList);
+          hasChanges = true;
+          return helperResult !== undefined ? String(helperResult) : match;
+        } catch (error) {
+          // If helper fails, return original match
+          console.error(`Helper error: ${error}`);
+          return match;
+        }
+      });
+
+      if (!hasChanges) break;
+      iteration += 1;
+    }
+
+    return result;
+  }
+
+  /**
+   * Process partial templates
+   */
+  private processPartials(template: string, context: TemplateContext): string {
+    return this.partials.processPartials(
+      template,
+      context,
+      (partialTemplate, partialContext) => {
+        // Process the partial template synchronously
+        // Note: We can't use async render here, so we do a simplified sync render
+        let processed = partialTemplate;
+
+        // Process conditionals
+        processed = this.processConditionalBlocks(processed, partialContext);
+
+        // Process each blocks
+        processed = this.processEachBlocks(processed, partialContext);
+
+        // Process helpers
+        processed = this.processHelpers(processed, partialContext);
+
+        // Process transformations
+        processed = this.processTransforms(processed, partialContext);
+
+        // Process variables
+        processed = this.processVariables(processed, partialContext);
+
+        return processed;
+      }
+    );
+  }
+
+  /**
+   * Register a partial template
+   */
+  registerPartial(name: string, template: string): void {
+    this.partials.register(name, template);
+  }
+
+  /**
+   * Register a partial from file
+   */
+  registerPartialFromFile(name: string, filePath: string): void {
+    this.partials.registerFromFile(name, filePath);
+  }
+
+  /**
+   * Set the directory for partial templates
+   */
+  setPartialsDirectory(dir: string): void {
+    this.partials.setPartialsDirectory(dir);
+  }
+
+  /**
+   * Load all partials from a directory
+   */
+  loadPartials(dir?: string): void {
+    this.partials.loadFromDirectory(dir);
+  }
+
+  /**
+   * Process variable transformations (pipes)
+   */
+  private processTransforms(
+    template: string,
+    context: TemplateContext
+  ): string {
+    return template.replace(this.transformPattern, (match, expression) => {
+      // Split the expression into variable and transforms
+      const parts = expression.split('|');
+      if (parts.length < 2) return match;
+
+      const variablePart = parts[0].trim();
+      const transformChain = parts.slice(1).join('|');
+
+      // Resolve the variable value
+      const value = this.resolveVariable(variablePart, context);
+
+      // Apply the transformation chain
+      const transformed = this.transforms.applyChain(value, transformChain);
+
+      return transformed !== undefined ? String(transformed) : match;
+    });
+  }
+
+  /**
+   * Register a custom transformation
+   */
+  registerTransform(
+    name: string,
+    fn: (value: unknown, ...args: unknown[]) => unknown
+  ): void {
+    this.transforms.register(name, fn);
+  }
+
+  /**
+   * Process nested helper calls in arguments
+   */
+  private processNestedHelpers(
+    argsString: string,
+    context: TemplateContext
+  ): string {
+    // Pattern to match (helperName args)
+    const nestedHelperPattern = /\(([a-zA-Z]+)(?:\s+([^)]+))?\)/g;
+
+    return argsString.replace(
+      nestedHelperPattern,
+      (match, helperName, helperArgs) => {
+        if (this.helpers.has(helperName)) {
+          try {
+            const args = helperArgs
+              ? this.parseHelperArgs(helperArgs, context)
+              : [];
+            const result = this.helpers.execute(helperName, ...args);
+            return String(result);
+          } catch (error) {
+            console.error(`Nested helper error: ${error}`);
+            return match;
+          }
+        }
+        return match;
+      }
+    );
+  }
+
+  /**
+   * Parse helper arguments, resolving variables from context
+   */
+  private parseHelperArgs(
+    argsString: string,
+    context: TemplateContext
+  ): unknown[] {
+    const args: unknown[] = [];
+    let current = '';
+    let inQuotes = false;
+    let quoteChar = '';
+
+    for (let i = 0; i < argsString.length; i += 1) {
+      const char = argsString[i];
+
+      if (
+        (char === '"' || char === "'") &&
+        (i === 0 || argsString[i - 1] !== '\\')
+      ) {
+        if (!inQuotes) {
+          inQuotes = true;
+          quoteChar = char;
+        } else if (char === quoteChar) {
+          inQuotes = false;
+          // Add the quoted string as-is
+          args.push(current);
+          current = '';
+          quoteChar = '';
+        } else {
+          current += char;
+        }
+      } else if (char === ' ' && !inQuotes) {
+        if (current) {
+          // Resolve the argument value
+          args.push(this.resolveHelperArg(current, context));
+          current = '';
+        }
+      } else if (!(char === '"' || char === "'") || inQuotes) {
+        current += char;
+      }
+    }
+
+    // Add last argument if any
+    if (current) {
+      args.push(this.resolveHelperArg(current, context));
+    }
+
+    return args;
+  }
+
+  /**
+   * Resolve a helper argument value
+   */
+  private resolveHelperArg(arg: string, context: TemplateContext): unknown {
+    // Check if it's a number
+    if (/^-?\d+(\.\d+)?$/.test(arg)) {
+      return Number(arg);
+    }
+
+    // Check if it's a boolean
+    if (arg === 'true') return true;
+    if (arg === 'false') return false;
+    if (arg === 'null') return null;
+    if (arg === 'undefined') return undefined;
+
+    // Try to resolve from context
+    return this.resolveVariable(arg, context);
+  }
+
+  /**
+   * Evaluate a condition that may contain helper functions
+   */
+  private evaluateCondition(
+    condition: string,
+    context: TemplateContext
+  ): unknown {
+    // Check if the condition contains a helper function call
+    // Pattern: (helperName arg1 arg2 ...)
+    const helperCallPattern = /^\(([a-zA-Z]+)(?:\s+(.+))?\)$/;
+    const match = condition.match(helperCallPattern);
+
+    if (match) {
+      const helperName = match[1];
+      const argsString = match[2] || '';
+
+      if (this.helpers.has(helperName)) {
+        try {
+          const args = argsString
+            ? this.parseHelperArgs(argsString, context)
+            : [];
+          return this.helpers.execute(helperName, ...args);
+        } catch (error) {
+          console.error(`Error evaluating helper condition: ${error}`);
+          return false;
+        }
+      }
+    }
+
+    // If not a helper call, resolve as a regular variable
+    return this.resolveVariable(condition, context);
   }
 
   /**
