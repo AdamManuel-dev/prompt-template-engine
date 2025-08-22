@@ -677,4 +677,148 @@ Version: 1.0.0`);
       expect(result).toBe('Hello Alice, your score is 85 out of {{total}}');
     });
   });
+
+  describe('array iteration (#each blocks)', () => {
+    it('should handle simple array iteration', async () => {
+      const template = `Items: {{#each items}}{{this}} {{/each}}`;
+      const context: TemplateContext = {
+        items: ['apple', 'banana', 'cherry']
+      };
+
+      const result = await engine.render(template, context);
+      expect(result).toBe('Items: apple banana cherry ');
+    });
+
+    it('should provide context variables (@index, @first, @last)', async () => {
+      const template = `{{#each items}}{{@index}}: {{this}} {{/each}}`;
+      const context: TemplateContext = {
+        items: ['first', 'second', 'third']
+      };
+
+      const result = await engine.render(template, context);
+      expect(result).toBe('0: first 1: second 2: third ');
+    });
+
+    it('should handle nested object iteration', async () => {
+      const template = `{{#each users}}{{name}} ({{email}}) {{/each}}`;
+      const context: TemplateContext = {
+        users: [
+          { name: 'John', email: 'john@example.com' },
+          { name: 'Jane', email: 'jane@example.com' }
+        ]
+      };
+
+      const result = await engine.render(template, context);
+      expect(result).toBe('John (john@example.com) Jane (jane@example.com) ');
+    });
+
+    it('should handle empty arrays gracefully', async () => {
+      const template = `Items: {{#each items}}{{this}}{{/each}} Done.`;
+      const context: TemplateContext = {
+        items: []
+      };
+
+      const result = await engine.render(template, context);
+      expect(result).toBe('Items:  Done.');
+    });
+
+    it('should handle non-array values gracefully', async () => {
+      const template = `Items: {{#each items}}{{this}}{{/each}} Done.`;
+      const context: TemplateContext = {
+        items: null
+      };
+
+      const result = await engine.render(template, context);
+      expect(result).toBe('Items:  Done.');
+    });
+
+    it('should handle nested arrays', async () => {
+      const template = `{{#each categories}}{{name}}: {{#each items}}{{this}} {{/each}}; {{/each}}`;
+      const context: TemplateContext = {
+        categories: [
+          { name: 'Fruits', items: ['apple', 'banana'] },
+          { name: 'Colors', items: ['red', 'green'] }
+        ]
+      };
+
+      const result = await engine.render(template, context);
+      expect(result).toBe('Fruits: apple banana ; Colors: red green ; ');
+    });
+
+    it('should handle array iteration with regular variables', async () => {
+      const template = `Project: {{project}} - Files: {{#each files}}{{this}} {{/each}}`;
+      const context: TemplateContext = {
+        project: 'MyApp',
+        files: ['index.ts', 'config.json']
+      };
+
+      const result = await engine.render(template, context);
+      expect(result).toBe('Project: MyApp - Files: index.ts config.json ');
+    });
+
+    it('should handle multiple #each blocks', async () => {
+      const template = `Fruits: {{#each fruits}}{{this}} {{/each}}; Colors: {{#each colors}}{{this}} {{/each}}`;
+      const context: TemplateContext = {
+        fruits: ['apple', 'orange'],
+        colors: ['red', 'blue']
+      };
+
+      const result = await engine.render(template, context);
+      expect(result).toBe('Fruits: apple orange ; Colors: red blue ');
+    });
+
+    it('should handle complex nested templates with arrays', async () => {
+      const template = `# {{title}}
+
+{{#each sections}}## {{name}}
+{{description}}
+
+Items:
+{{#each items}}- {{name}}: {{value}}
+{{/each}}
+{{/each}}`;
+
+      const context: TemplateContext = {
+        title: 'Configuration',
+        sections: [
+          {
+            name: 'Database',
+            description: 'Database configuration',
+            items: [
+              { name: 'host', value: 'localhost' },
+              { name: 'port', value: '5432' }
+            ]
+          },
+          {
+            name: 'Cache',
+            description: 'Cache configuration',
+            items: [
+              { name: 'type', value: 'redis' },
+              { name: 'ttl', value: '3600' }
+            ]
+          }
+        ]
+      };
+
+      const result = await engine.render(template, context);
+      const expected = `# Configuration
+
+## Database
+Database configuration
+
+Items:
+- host: localhost
+- port: 5432
+
+## Cache
+Cache configuration
+
+Items:
+- type: redis
+- ttl: 3600
+
+`;
+      expect(result).toBe(expected);
+    });
+  });
 });
