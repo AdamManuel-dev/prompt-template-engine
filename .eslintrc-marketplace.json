@@ -1,0 +1,16 @@
+{
+  "extends": [".eslintrc.json"],
+  "rules": {
+    "no-restricted-syntax": "off",
+    "no-await-in-loop": "off",
+    "no-plusplus": "off",
+    "no-use-before-define": "off",
+    "import/prefer-default-export": "off",
+    "class-methods-use-this": "off",
+    "no-continue": "off",
+    "no-case-declarations": "off",
+    "default-case": "off",
+    "no-promise-executor-return": "off",
+    "prefer-destructuring": "off"
+  }
+}

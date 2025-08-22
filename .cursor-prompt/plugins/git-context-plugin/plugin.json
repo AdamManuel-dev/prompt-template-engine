@@ -1,0 +1,10 @@
+{
+  "name": "git-context-plugin",
+  "version": "1.0.0",
+  "description": "Automatically gather git information for templates",
+  "author": "Cursor Prompt Template Engine",
+  "commands": ["git-context", "git-template"],
+  "dependencies": {
+    "simple-git": "^3.19.1"
+  }
+}

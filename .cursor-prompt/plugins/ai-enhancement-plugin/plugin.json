@@ -1,0 +1,11 @@
+{
+  "name": "ai-enhancement-plugin",
+  "version": "1.0.0",
+  "description": "Add AI-powered template suggestions and enhancements",
+  "author": "Cursor Prompt Template Engine",
+  "commands": ["ai-suggest", "ai-enhance", "ai-optimize"],
+  "dependencies": {
+    "openai": "^4.0.0",
+    "anthropic": "^0.20.0"
+  }
+}

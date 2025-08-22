@@ -15,14 +15,19 @@ A lightweight, high-performance TypeScript CLI tool that revolutionizes prompt c
 - **Variable Substitution**: Powerful `{{variable}}` syntax with conditionals and loops
 - **Zero Config**: Works out of the box with sensible defaults
 - **Lightning Fast**: <100ms execution time for typical usage
+- **Plugin System**: Extensible architecture for custom commands and integrations
+- **Cursor IDE Integration**: Direct synchronization with Cursor IDE for seamless workflow
+- **Advanced Configuration**: Hierarchical config with environment variable support
 
 ### 🔥 Why Cursor Prompt Template Engine?
 
 - **50% Time Savings**: Cut prompt writing time in half
 - **Consistency**: Ensure all prompts follow best practices
 - **Context-Aware**: Automatically includes relevant project context
-- **Cursor-Optimized**: Built specifically for Cursor IDE workflows
+- **Cursor-Optimized**: Built specifically for Cursor IDE workflows with deep integration
 - **Template Library**: Extensible template system for custom workflows
+- **Plugin Architecture**: Create custom commands and extend functionality
+- **Real-time Sync**: Live template synchronization with Cursor IDE
 
 ## 📦 Installation
 
@@ -50,17 +55,55 @@ npm link
 
 ### Basic Usage
 ```bash
-# Generate a bug fix prompt
-cursor-prompt bug-fix --error "undefined variable" --location "auth.ts:45"
+# Initialize a new project
+cursor-prompt init
 
-# Generate a feature prompt
-cursor-prompt feature --description "Add user authentication"
+# Generate a prompt from template
+cursor-prompt generate <template> --variables '{"key": "value"}'
 
-# Generate a refactor prompt
-cursor-prompt refactor --files "src/api/*.ts" --goal "Extract service layer"
+# List available templates
+cursor-prompt list
+
+# Sync with Cursor IDE
+cursor-prompt cursor:sync
+
+# Inject template directly into Cursor
+cursor-prompt cursor:inject <template>
 ```
 
-### Available Templates
+### Legacy Command Examples
+```bash
+# Generate a bug fix prompt
+cursor-prompt generate bug-fix --variables '{"error": "undefined variable", "location": "auth.ts:45"}'
+
+# Generate a feature prompt
+cursor-prompt generate feature --variables '{"description": "Add user authentication"}'
+
+# Generate a refactor prompt
+cursor-prompt generate refactor --variables '{"files": "src/api/*.ts", "goal": "Extract service layer"}'
+```
+
+### Available Commands
+
+#### Core Commands
+- `init` - Initialize a new prompt template project
+- `generate <template>` - Generate prompt from template
+- `list` - List available templates
+- `apply <template>` - Apply template to current project
+- `validate <path>` - Validate template structure
+- `config` - Manage configuration settings
+
+#### Cursor IDE Integration
+- `cursor:sync` - Sync templates with Cursor IDE
+- `cursor:inject <template>` - Inject template into Cursor
+- `cursor:status` - Show Cursor connection status
+
+#### Plugin Management
+- `plugin:list` - List installed plugins
+- `plugin:load <name>` - Load a plugin
+- `plugin:unload <name>` - Unload a plugin
+
+### Built-in Templates
 - `bug-fix` - Debug and fix issues
 - `feature` - Implement new features
 - `refactor` - Improve existing code

@@ -23,6 +23,11 @@ import { listCommand, ListOptions } from './commands/list';
 import { applyCommand, ApplyOptions } from './commands/apply';
 import { validateCommand } from './commands/validate';
 import { configCommand } from './commands/config';
+import { CommandRegistry } from './cli/command-registry';
+import { PluginLoader } from './cli/plugin-loader';
+import { ConfigManager } from './config/config-manager';
+import { CursorIntegration } from './integrations/cursor-ide';
+import { CursorExtensionBridge } from './integrations/cursor-extension-bridge';
 
 interface CLIValidateOptions {
   strict?: boolean;
@@ -62,6 +67,52 @@ const packageJson = JSON.parse(
 );
 
 const program = new Command();
+let commandRegistry: CommandRegistry;
+let pluginLoader: PluginLoader;
+let configManager: ConfigManager;
+let cursorIntegration: CursorIntegration | undefined;
+
+/**
+ * Initialize services
+ */
+async function initializeServices(): Promise<void> {
+  // Initialize configuration manager
+  configManager = ConfigManager.getInstance();
+
+  // Initialize command registry
+  commandRegistry = CommandRegistry.getInstance(program);
+
+  // Initialize plugin loader
+  pluginLoader = new PluginLoader(commandRegistry);
+
+  // Initialize Cursor integration if enabled
+  if (configManager.get('cursor.integration', true)) {
+    try {
+      cursorIntegration = CursorIntegration.getInstance();
+      CursorExtensionBridge.getInstance(); // Initialize the extension bridge
+
+      // Try to connect to Cursor
+      const connected = await cursorIntegration.connect();
+      if (connected) {
+        logger.info('Connected to Cursor IDE');
+      }
+    } catch (error) {
+      logger.debug(`Cursor integration not available: ${String(error)}`);
+    }
+  }
+
+  // Load plugins if enabled
+  if (configManager.get('plugins.enabled', true)) {
+    const customDirs = configManager.get<string[]>('plugins.directories', []);
+    customDirs.forEach(dir => pluginLoader.addPluginDir(dir));
+
+    await pluginLoader.discover();
+
+    if (configManager.get('plugins.autoLoad', true)) {
+      await pluginLoader.loadAll();
+    }
+  }
+}
 
 /**
  * Configure the main CLI program
@@ -246,6 +297,156 @@ function configureProgram(): void {
       }
     });
 
+  // Cursor IDE integration commands
+  program
+    .command('cursor:sync')
+    .description('sync templates with Cursor IDE')
+    .action(async () => {
+      try {
+        if (!cursorIntegration) {
+          logger.error('Cursor integration is not available');
+          process.exit(1);
+        }
+        await cursorIntegration.sync();
+        logger.success('Templates synced with Cursor IDE');
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
+  program
+    .command('cursor:inject <template>')
+    .description('inject template into Cursor IDE')
+    .option('-v, --variables <json>', 'template variables as JSON')
+    .action(async (template: string, options: { variables?: string }) => {
+      try {
+        if (!cursorIntegration) {
+          logger.error('Cursor integration is not available');
+          process.exit(1);
+        }
+
+        let variables: Record<string, string> = {};
+        if (options.variables) {
+          try {
+            variables = JSON.parse(options.variables);
+          } catch {
+            logger.error('Invalid JSON in variables option');
+            process.exit(1);
+          }
+        }
+
+        await cursorIntegration.inject(template, variables);
+        logger.success(`Template ${template} injected into Cursor`);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
+  program
+    .command('cursor:status')
+    .description('show Cursor IDE connection status')
+    .action(async () => {
+      try {
+        if (!cursorIntegration) {
+          console.log(chalk.yellow('Cursor integration is disabled'));
+          return;
+        }
+
+        const status = cursorIntegration.getConnectionStatus();
+        console.log('\nCursor IDE Connection Status:');
+        console.log('=============================');
+        console.log(
+          `Connected: ${status.connected ? chalk.green('Yes') : chalk.red('No')}`
+        );
+        console.log(`Endpoint: ${status.endpoint}`);
+        if (status.version) {
+          console.log(`Version: ${status.version}`);
+        }
+
+        const templates = cursorIntegration.getTemplates();
+        console.log(`\nTemplates: ${templates.length} loaded`);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
+  // Plugin management commands
+  program
+    .command('plugin:list')
+    .description('list installed plugins')
+    .action(async () => {
+      try {
+        const plugins = pluginLoader.getPlugins();
+
+        if (plugins.length === 0) {
+          console.log('No plugins installed');
+          return;
+        }
+
+        console.log('\nInstalled Plugins:');
+        console.log('==================');
+
+        for (const plugin of plugins) {
+          const status = plugin.loaded ? chalk.green('✓') : chalk.red('✗');
+          console.log(
+            `\n${status} ${plugin.metadata.name} v${plugin.metadata.version}`
+          );
+
+          if (plugin.metadata.description) {
+            console.log(`  ${plugin.metadata.description}`);
+          }
+
+          if (plugin.error) {
+            console.log(chalk.red(`  Error: ${plugin.error}`));
+          }
+        }
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
+  program
+    .command('plugin:load <name>')
+    .description('load a plugin')
+    .action(async (name: string) => {
+      try {
+        const success = await pluginLoader.load(name);
+
+        if (success) {
+          logger.success(`Plugin ${name} loaded successfully`);
+        } else {
+          logger.error(`Failed to load plugin ${name}`);
+          process.exit(1);
+        }
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
+  program
+    .command('plugin:unload <name>')
+    .description('unload a plugin')
+    .action(async (name: string) => {
+      try {
+        const success = pluginLoader.unload(name);
+
+        if (success) {
+          logger.success(`Plugin ${name} unloaded successfully`);
+        } else {
+          logger.error(`Failed to unload plugin ${name}`);
+          process.exit(1);
+        }
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
   // Error handling
   program.configureOutput({
     writeErr: (str: string) => process.stderr.write(chalk.red(str)),
@@ -275,6 +476,9 @@ async function main(): Promise<void> {
     if (debugIndex !== -1) {
       logger.enableDebug();
     }
+
+    // Initialize services
+    await initializeServices();
 
     configureProgram();
 
