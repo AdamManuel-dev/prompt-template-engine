@@ -13,7 +13,10 @@ import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
-import { TemplateModel } from '../../marketplace/models/template.model';
+import {
+  TemplateModel,
+  TemplateCategory,
+} from '../../marketplace/models/template.model';
 import { MarketplaceCommandOptions, MarketplaceTemplate } from '../../types';
 import { logger } from '../../utils/logger';
 
@@ -42,7 +45,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -75,7 +78,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
         projectInfo.recommendations.forEach((rec, i) => {
           logger.info(`   ${i + 1}. ${chalk.cyan(rec)}`);
         });
-        logger.info();
+        logger.info('');
 
         const useRecommendation = await this.confirm(
           'Would you like to see recommended templates?'
@@ -101,7 +104,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
       marketplace,
       {
         category: selectedCategory,
-        featured: options.featuredOnly,
+        featured: options.featured,
         limit: 20,
       }
     );
@@ -264,10 +267,23 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
             `📦 ${chalk.cyan(template.displayName || template.name)}`
           );
           logger.info(`   ${template.description}`);
+          const ratingValue = (() => {
+            if (typeof template.rating === 'number') {
+              return template.rating;
+            }
+            if (
+              template.rating &&
+              typeof template.rating === 'object' &&
+              'average' in template.rating
+            ) {
+              return template.rating.average;
+            }
+            return 0;
+          })();
           logger.info(
-            `   ${InstallWizardCommand.formatRating(template.rating.average)} • ${chalk.gray(`${InstallWizardCommand.formatNumber(template.stats.downloads)} downloads`)}`
+            `   ${InstallWizardCommand.formatRating(ratingValue)} • ${chalk.gray(`${InstallWizardCommand.formatNumber(template.stats?.downloads || 0)} downloads`)}`
           );
-          logger.info();
+          logger.info('');
         }
       } catch {
         // Skip if template not found
@@ -333,7 +349,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     }
   ): Promise<TemplateModel[]> {
     const searchResult = await marketplace.search({
-      category: filters.category as string,
+      category: filters.category as TemplateCategory,
       featured: filters.featured,
       limit: filters.limit || 20,
       sortBy: 'downloads',
@@ -344,7 +360,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
   }
 
   private async selectAndInstallTemplate(
-    templates: MarketplaceTemplate[],
+    templates: TemplateModel[],
     marketplace: MarketplaceService,
     registry: TemplateRegistry,
     options: MarketplaceCommandOptions
@@ -362,10 +378,23 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
 
       if (!options.quickMode) {
         logger.info(`      ${chalk.gray(template.description)}`);
+        const ratingValue = (() => {
+          if (typeof template.rating === 'number') {
+            return template.rating;
+          }
+          if (
+            template.rating &&
+            typeof template.rating === 'object' &&
+            'average' in template.rating
+          ) {
+            return template.rating.average;
+          }
+          return 0;
+        })();
         logger.info(
-          `      ${InstallWizardCommand.formatRating(template.rating.average)} • ${chalk.gray(`${InstallWizardCommand.formatNumber(template.stats.downloads)} downloads`)} • v${template.currentVersion}`
+          `      ${InstallWizardCommand.formatRating(ratingValue)} • ${chalk.gray(`${InstallWizardCommand.formatNumber(template.stats?.downloads ?? 0)} downloads`)} • v${template.currentVersion}`
         );
-        logger.info();
+        logger.info('');
       }
     });
 
@@ -388,7 +417,9 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     const selectedTemplate = templates[selectedIndex];
 
     // Show detailed template information
-    await this.showTemplateDetails(selectedTemplate);
+    await this.showTemplateDetails(
+      selectedTemplate as unknown as MarketplaceTemplate
+    );
 
     // Confirm installation
     const confirmed = await this.confirm(
@@ -455,10 +486,10 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
       `👤 ${chalk.blue(template.author.name)}${template.author.verified ? ' ✓' : ''}`
     );
     logger.info(
-      `⭐ ${InstallWizardCommand.formatRating(template.rating.average)} (${template.rating.total} reviews)`
+      `⭐ ${InstallWizardCommand.formatRating(typeof template.rating === 'number' ? template.rating : template.rating.average)} (${typeof template.rating === 'number' ? template.reviewCount : template.rating.total} reviews)`
     );
     logger.info(
-      `📊 ${chalk.gray(`${InstallWizardCommand.formatNumber(template.stats.downloads)} downloads`)}`
+      `📊 ${chalk.gray(`${InstallWizardCommand.formatNumber(template.stats?.downloads ?? 0)} downloads`)}`
     );
     logger.info(`🏷️  ${chalk.magenta(template.category)}`);
 

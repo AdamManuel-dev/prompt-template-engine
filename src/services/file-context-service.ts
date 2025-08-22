@@ -22,6 +22,7 @@ import {
   NodeGlobService,
   NodeIgnoreService,
 } from '../implementations/node-file-system';
+import { logger } from '../utils/logger';
 
 export interface FileInfo {
   path: string;
@@ -130,7 +131,7 @@ export class FileContextService {
         error.type !== FileSystemErrorType.FILE_NOT_FOUND
       ) {
         // Log non-file-not-found errors for debugging
-        console.warn(`Warning: Could not load .gitignore: ${error.message}`);
+        logger.warn(`Could not load .gitignore: ${error.message}`);
       }
     }
   }
@@ -489,9 +490,9 @@ export class FileContextService {
 
 // Export singleton instance with default dependencies
 export const fileContextService = new FileContextService(
-  {},
-  process.cwd(),
   new NodeFileSystem(),
   new NodeGlobService(),
-  new NodeIgnoreService()
+  new NodeIgnoreService(),
+  {},
+  process.cwd()
 );

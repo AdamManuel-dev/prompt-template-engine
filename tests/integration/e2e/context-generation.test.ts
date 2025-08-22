@@ -11,7 +11,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { TemplateEngine } from '../../src/core/template-engine';
+import { TemplateEngine } from '../../../src/core/template-engine';
 
 describe('E2E: Context-Aware Template Generation', () => {
   let tempDir: string;
@@ -20,7 +20,7 @@ describe('E2E: Context-Aware Template Generation', () => {
   beforeEach(() => {
     // Create temp directory for test files
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cursor-prompt-test-'));
-    
+
     // Initialize template engine
     templateEngine = new TemplateEngine();
   });
@@ -37,11 +37,11 @@ describe('E2E: Context-Aware Template Generation', () => {
     it('should generate a simple template without context', async () => {
       // Create a simple template
       const templateContent = 'Hello {{name}}!';
-      
+
       const result = await templateEngine.render(templateContent, {
         name: 'World',
       });
-      
+
       expect(result).toBe('Hello World!');
     });
 
@@ -53,11 +53,11 @@ description: A test template
 # {{title}}
 
 Content here`;
-      
+
       const result = await templateEngine.render(templateContent, {
         title: 'Test Title',
       });
-      
+
       expect(result).toContain('# Test Title');
       expect(result).not.toContain('---');
     });
@@ -67,12 +67,12 @@ Content here`;
     it('should include variables in context', async () => {
       const templateContent = `Branch: {{branch}}
 Clean: {{isClean}}`;
-      
+
       const result = await templateEngine.render(templateContent, {
         branch: 'main',
         isClean: false,
       });
-      
+
       expect(result).toContain('Branch: main');
       expect(result).toContain('Clean: false');
     });
@@ -80,14 +80,14 @@ Clean: {{isClean}}`;
     it('should handle nested context', async () => {
       const templateContent = `Platform: {{system.platform}}
 Node: {{system.nodeVersion}}`;
-      
+
       const result = await templateEngine.render(templateContent, {
         system: {
           platform: 'darwin',
           nodeVersion: 'v22.0.0',
         },
       });
-      
+
       expect(result).toContain('Platform: darwin');
       expect(result).toContain('Node: v22.0.0');
     });
@@ -100,12 +100,12 @@ Git is available: {{branch}}
 {{else}}
 No git repository
 {{/if}}`;
-      
+
       const result = await templateEngine.render(templateContent, {
         hasGit: true,
         branch: 'main',
       });
-      
+
       expect(result).toContain('Git is available: main');
       expect(result).not.toContain('No git repository');
     });
@@ -115,11 +115,11 @@ No git repository
 {{#each files}}
 - {{this}}
 {{/each}}`;
-      
+
       const result = await templateEngine.render(templateContent, {
         files: ['file1.ts', 'file2.ts', 'file3.ts'],
       });
-      
+
       expect(result).toContain('Modified files:');
       expect(result).toContain('- file1.ts');
       expect(result).toContain('- file2.ts');
@@ -130,16 +130,16 @@ No git repository
       // Create header template
       const headerPath = path.join(tempDir, 'header.md');
       fs.writeFileSync(headerPath, '# {{title}}');
-      
+
       // Create main template with include
       const mainContent = `{{#include "${headerPath}"}}
 
 Content goes here`;
-      
+
       const result = await templateEngine.render(mainContent, {
         title: 'Test Document',
       });
-      
+
       expect(result).toContain('# Test Document');
       expect(result).toContain('Content goes here');
     });
@@ -148,16 +148,16 @@ Content goes here`;
   describe('Error Handling', () => {
     it('should handle missing required variables gracefully', async () => {
       const templateContent = 'Hello {{name}}!';
-      
+
       const result = await templateEngine.render(templateContent, {});
-      
+
       // Should render with empty value or placeholder
       expect(result).toBeDefined();
     });
 
     it('should handle invalid template syntax', async () => {
       const templateContent = '{{#if}}Missing condition{{/if}}';
-      
+
       await expect(
         templateEngine.render(templateContent, {})
       ).rejects.toThrow();
@@ -171,7 +171,7 @@ Content goes here`;
   "version": "{{project.version}}",
   "files": [{{#each project.files}}"{{this}}"{{#unless @last}},{{/unless}}{{/each}}]
 }`;
-      
+
       const result = await templateEngine.render(templateContent, {
         project: {
           name: 'test-project',
@@ -179,7 +179,7 @@ Content goes here`;
           files: ['index.ts', 'config.ts', 'utils.ts'],
         },
       });
-      
+
       const parsed = JSON.parse(result);
       expect(parsed.name).toBe('test-project');
       expect(parsed.version).toBe('1.0.0');
@@ -202,7 +202,7 @@ Package.json:
   "version": "{{package.version}}"
 }
 {{/if}}`;
-      
+
       const result = await templateEngine.render(smartDebugTemplate, {
         issue: 'Application crashes on startup',
         system: {
@@ -218,7 +218,7 @@ Package.json:
           version: '1.0.0',
         },
       });
-      
+
       expect(result).toContain('Debug: Application crashes on startup');
       expect(result).toContain('Git Branch: main');
       expect(result).toContain('Files Modified: file1.ts file2.ts');

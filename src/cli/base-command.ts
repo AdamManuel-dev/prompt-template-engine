@@ -92,8 +92,7 @@ export abstract class BaseCommand implements ICommand {
    */
   // eslint-disable-next-line class-methods-use-this
   protected success(message: string): void {
-    // eslint-disable-next-line no-console
-    console.log(chalk.green('✓'), message);
+    logger.info(`${chalk.green('✓')} ${message}`);
   }
 
   /**
@@ -101,8 +100,7 @@ export abstract class BaseCommand implements ICommand {
    */
   // eslint-disable-next-line class-methods-use-this
   protected info(message: string): void {
-    // eslint-disable-next-line no-console
-    console.log(chalk.blue('ℹ'), message);
+    logger.info(`${chalk.blue('ℹ')} ${message}`);
   }
 
   /**
@@ -110,8 +108,7 @@ export abstract class BaseCommand implements ICommand {
    */
   // eslint-disable-next-line class-methods-use-this
   protected warn(message: string): void {
-    // eslint-disable-next-line no-console
-    console.log(chalk.yellow('⚠'), message);
+    logger.warn(`${chalk.yellow('⚠')} ${message}`);
   }
 
   /**
@@ -119,8 +116,7 @@ export abstract class BaseCommand implements ICommand {
    */
   // eslint-disable-next-line class-methods-use-this
   protected error(message: string): void {
-    // eslint-disable-next-line no-console
-    console.log(chalk.red('✗'), message);
+    logger.error(`${chalk.red('✗')} ${message}`);
   }
 
   /**

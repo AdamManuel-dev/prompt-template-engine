@@ -49,7 +49,7 @@ export class CursorExtensionBridge
   extends EventEmitter
   implements ICursorExtensionBridge
 {
-  private static instance: ICursorExtensionBridge;
+  private static instance: CursorExtensionBridge;
 
   private commands: Map<string, ExtensionCommand> = new Map();
 
@@ -74,11 +74,11 @@ export class CursorExtensionBridge
   /**
    * Initialize the extension bridge
    */
-  private async initialize(): Promise<void> {
+  async initialize(): Promise<void> {
     try {
       await this.detectCursorInstallation();
       await this.loadExtensionManifest();
-      await this.registerCommands();
+      await this.registerAllCommands();
       this.initialized = true;
       this.emit('initialized');
     } catch (error) {
@@ -133,7 +133,7 @@ export class CursorExtensionBridge
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
       if (manifest.contributes && manifest.contributes.commands) {
-        manifest.contributes.commands.forEach(command => {
+        manifest.contributes.commands.forEach((command: ExtensionCommand) => {
           this.commands.set(command.command, command);
         });
       }
@@ -248,7 +248,19 @@ export class CursorExtensionBridge
   /**
    * Register commands with Cursor
    */
-  private async registerCommands(): Promise<void> {
+  public async registerCommands(commands?: Record<string, ExtensionCommand>): Promise<void> {
+    // If commands provided, add them first
+    if (commands) {
+      Object.entries(commands).forEach(([id, command]) => {
+        this.commands.set(id, command);
+      });
+    }
+    
+    // Then register all commands
+    await this.registerAllCommands();
+  }
+
+  private async registerAllCommands(): Promise<void> {
     if (!this.cursorIntegration.isConnected()) {
       logger.debug('Cursor not connected, skipping command registration');
       return;
@@ -491,7 +503,7 @@ export class CursorExtensionBridge
     message: string,
     ...actions: string[]
   ): Promise<string | undefined> {
-    console.warn(`⚠️  ${message}`);
+    logger.warn(message);
     if (actions.length > 0) {
       logger.info(`   Actions: ${actions.join(', ')}`);
     }

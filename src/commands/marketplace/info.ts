@@ -58,7 +58,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -115,7 +115,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
         InfoCommand.displayExamples(template);
       }
 
-      if (options.all || options.reviews) {
+      if (options.all || options.showReviews) {
         await InfoCommand.displayRecentReviews(template);
       }
 
@@ -159,7 +159,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
     logger.info(`   Category: ${chalk.magenta(template.category)}`);
     logger.info(`   Current Version: ${chalk.yellow(template.currentVersion)}`);
     logger.info(
-      `   Author: ${chalk.blue(template.author.name)}${template.author.verified ? ' ✓' : ''}`
+      `   Author: ${chalk.blue(typeof template.author === 'string' ? template.author : ((template.author as any)?.name ?? 'Unknown'))}${(template.author as any)?.verified ? ' ✓' : ''}`
     );
     logger.info(`   License: ${chalk.gray(template.metadata.license)}`);
     logger.info(
@@ -172,24 +172,24 @@ export class InfoCommand extends BaseCommand implements ICommand {
     // Rating and stats
     logger.info(chalk.bold('\n⭐ Rating & Stats:'));
     logger.info(
-      `   Rating: ${InfoCommand.formatRating(template.rating.average)} (${template.rating.total} reviews)`
+      `   Rating: ${InfoCommand.formatRating(typeof template.rating === 'number' ? template.rating : ((template.rating as any)?.average ?? 0))} (${(template.rating as any)?.total ?? 0} reviews)`
     );
     logger.info(
-      `   Downloads: ${chalk.cyan(InfoCommand.formatNumber(template.stats.downloads))}`
+      `   Downloads: ${chalk.cyan(InfoCommand.formatNumber(template.stats?.downloads || 0))}`
     );
     logger.info(
-      `   Weekly: ${chalk.cyan(InfoCommand.formatNumber(template.stats.weeklyDownloads))}`
+      `   Weekly: ${chalk.cyan(InfoCommand.formatNumber(template.stats?.weeklyDownloads || 0))}`
     );
     logger.info(
-      `   Monthly: ${chalk.cyan(InfoCommand.formatNumber(template.stats.monthlyDownloads))}`
+      `   Monthly: ${chalk.cyan(InfoCommand.formatNumber(template.stats?.monthlyDownloads || 0))}`
     );
 
-    if (template.stats.trending) {
+    if (template.stats?.trending) {
       logger.info(`   ${chalk.red('🔥 Trending')}`);
     }
 
     // Tags
-    if (template.tags.length > 0) {
+    if (template.tags && template.tags.length > 0) {
       logger.info(chalk.bold('\n🏷️  Tags:'));
       logger.info(
         `   ${template.tags.map(tag => chalk.gray(`#${tag}`)).join(' ')}`
@@ -204,13 +204,15 @@ export class InfoCommand extends BaseCommand implements ICommand {
       );
     }
 
-    if (template.author.website) {
-      logger.info(`   Author Website: ${chalk.blue(template.author.website)}`);
+    if ((template.author as any)?.website) {
+      logger.info(
+        `   Author Website: ${chalk.blue((template.author as any).website)}`
+      );
     }
 
-    if (template.author.github) {
+    if ((template.author as any)?.github) {
       logger.info(
-        `   GitHub: ${chalk.blue(`https://github.com/${template.author.github}`)}`
+        `   GitHub: ${chalk.blue(`https://github.com/${(template.author as any).github}`)}`
       );
     }
   }
@@ -349,9 +351,9 @@ export class InfoCommand extends BaseCommand implements ICommand {
         }
       });
 
-      if (template.rating.total > 3) {
+      if ((template.rating as any)?.total > 3) {
         logger.info(
-          `\n   ${chalk.gray(`... and ${template.rating.total - 3} more reviews`)}`
+          `\n   ${chalk.gray(`... and ${(template.rating as any).total - 3} more reviews`)}`
         );
       }
     } catch {
@@ -364,40 +366,50 @@ export class InfoCommand extends BaseCommand implements ICommand {
 
     const { stats } = template;
 
-    logger.info(
-      `   Total Downloads: ${chalk.cyan(InfoCommand.formatNumber(stats.downloads))}`
-    );
-    logger.info(
-      `   Weekly Downloads: ${chalk.cyan(InfoCommand.formatNumber(stats.weeklyDownloads))}`
-    );
-    logger.info(
-      `   Monthly Downloads: ${chalk.cyan(InfoCommand.formatNumber(stats.monthlyDownloads))}`
-    );
-    logger.info(
-      `   Favorites: ${chalk.cyan(InfoCommand.formatNumber(stats.favorites))}`
-    );
-    logger.info(
-      `   Forks: ${chalk.cyan(InfoCommand.formatNumber(stats.forks))}`
-    );
+    if (stats) {
+      logger.info(
+        `   Total Downloads: ${chalk.cyan(InfoCommand.formatNumber(stats.downloads))}`
+      );
+      logger.info(
+        `   Weekly Downloads: ${chalk.cyan(InfoCommand.formatNumber(stats.weeklyDownloads))}`
+      );
+      logger.info(
+        `   Monthly Downloads: ${chalk.cyan(InfoCommand.formatNumber(stats.monthlyDownloads))}`
+      );
+      logger.info(
+        `   Favorites: ${chalk.cyan(InfoCommand.formatNumber(stats.favorites))}`
+      );
+      logger.info(
+        `   Forks: ${chalk.cyan(InfoCommand.formatNumber(stats.forks))}`
+      );
 
-    if (stats.issues > 0) {
-      logger.info(`   Open Issues: ${chalk.yellow(stats.issues)}`);
+      if (stats.issues > 0) {
+        logger.info(`   Open Issues: ${chalk.yellow(stats.issues)}`);
+      }
+
+      logger.info(
+        `   Popularity Score: ${chalk.cyan(stats.popularityScore.toFixed(1))}`
+      );
+      logger.info(
+        `   Last Download: ${chalk.gray(new Date(stats.lastDownload).toLocaleDateString())}`
+      );
+    } else {
+      logger.info('   Statistics not available');
     }
 
-    logger.info(
-      `   Popularity Score: ${chalk.cyan(stats.popularityScore.toFixed(1))}`
-    );
-    logger.info(
-      `   Last Download: ${chalk.gray(new Date(stats.lastDownload).toLocaleDateString())}`
-    );
-
     // Author stats
-    logger.info(chalk.bold('\n👤 Author Statistics:'));
-    logger.info(`   Templates: ${chalk.cyan(template.author.totalTemplates)}`);
-    logger.info(
-      `   Total Downloads: ${chalk.cyan(InfoCommand.formatNumber(template.author.totalDownloads))}`
-    );
-    logger.info(`   Reputation: ${chalk.cyan(template.author.reputation)}`);
+    if ((template.author as any)?.totalTemplates !== undefined) {
+      logger.info(chalk.bold('\n👤 Author Statistics:'));
+      logger.info(
+        `   Templates: ${chalk.cyan((template.author as any).totalTemplates)}`
+      );
+      logger.info(
+        `   Total Downloads: ${chalk.cyan(InfoCommand.formatNumber((template.author as any).totalDownloads))}`
+      );
+      logger.info(
+        `   Reputation: ${chalk.cyan((template.author as any).reputation)}`
+      );
+    }
   }
 
   private static displayUsageInstructions(
@@ -440,7 +452,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
       badges.push(chalk.green('✓ VERIFIED'));
     }
 
-    if (template.stats.trending) {
+    if (template.stats?.trending) {
       badges.push(chalk.red('🔥 TRENDING'));
     }
 

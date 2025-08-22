@@ -26,13 +26,13 @@ describe('Template Workflow Integration', () => {
   beforeEach(() => {
     // Create real temp directory for integration tests
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-integration-'));
-    
+
     // Initialize services with real dependencies
     templateEngine = new TemplateEngine();
     fileContextService = new FileContextService({}, tempDir);
     gitService = new GitService(tempDir);
     configService = new ConfigService();
-    
+
     // Setup test project structure
     setupTestProject();
   });
@@ -46,7 +46,14 @@ describe('Template Workflow Integration', () => {
 
   function setupTestProject(): void {
     // Create directory structure
-    const dirs = ['src', 'src/components', 'src/utils', 'tests', 'docs', 'templates'];
+    const dirs = [
+      'src',
+      'src/components',
+      'src/utils',
+      'tests',
+      'docs',
+      'templates',
+    ];
     dirs.forEach(dir => {
       fs.mkdirSync(path.join(tempDir, dir), { recursive: true });
     });
@@ -61,8 +68,8 @@ describe('Template Workflow Integration', () => {
         test: 'jest',
       },
       dependencies: {
-        'react': '^18.0.0',
-        'typescript': '^5.0.0',
+        react: '^18.0.0',
+        typescript: '^5.0.0',
       },
     };
     fs.writeFileSync(
@@ -215,7 +222,7 @@ coverage/
   describe('File Context Integration', () => {
     it('should gather comprehensive project context', async () => {
       const projectSummary = await fileContextService.getProjectSummary();
-      
+
       expect(projectSummary).toContain('test-integration-project');
       expect(projectSummary).toContain('TypeScript');
       expect(projectSummary).toContain('JSON');
@@ -226,7 +233,7 @@ coverage/
     it('should find files by patterns', async () => {
       const tsFiles = await fileContextService.findFiles(['**/*.ts']);
       const allFiles = await fileContextService.findFiles(['**/*']);
-      
+
       expect(tsFiles.length).toBeGreaterThan(0);
       expect(allFiles.length).toBeGreaterThan(tsFiles.length);
       expect(tsFiles.every(f => f.extension === '.ts')).toBe(true);
@@ -238,12 +245,12 @@ coverage/
         'src/index.ts',
         'README.md',
       ]);
-      
+
       expect(context.size).toBe(3);
-      
+
       const packageContext = context.get('package.json');
       expect(packageContext?.content).toContain('test-integration-project');
-      
+
       const indexContext = context.get('src/index.ts');
       expect(indexContext?.content).toContain('Application');
       expect(indexContext?.lines).toBeGreaterThan(5);
@@ -251,11 +258,11 @@ coverage/
 
     it('should build project structure', async () => {
       const structure = await fileContextService.getProjectStructure();
-      
+
       expect(structure.root).toBe(tempDir);
       expect(structure.totalFiles).toBeGreaterThan(5);
       expect(structure.totalDirectories).toBeGreaterThan(3);
-      
+
       const srcDir = structure.tree.find(item => item.name === 'src');
       expect(srcDir?.type).toBe('directory');
       expect(srcDir?.children).toBeDefined();
@@ -279,7 +286,7 @@ coverage/
       try {
         const isRepo = await gitService.isGitRepository();
         const context = await gitService.getGitContext();
-        
+
         if (isRepo) {
           expect(context.isRepo).toBe(true);
           expect(context.branch).toBeDefined();
@@ -297,7 +304,7 @@ coverage/
         const filePath = path.join(tempDir, 'src/index.ts');
         const originalContent = fs.readFileSync(filePath, 'utf8');
         fs.writeFileSync(filePath, originalContent + '\n// Modified for test');
-        
+
         const status = await gitService.getWorkingTreeStatus();
         expect(status.modifiedFiles.length).toBeGreaterThan(0);
       } catch (error) {
@@ -334,10 +341,13 @@ Source files are located in the \`src/\` directory:
 `;
 
       // Gather project context
-      const packageContent = fs.readFileSync(path.join(tempDir, 'package.json'), 'utf8');
+      const packageContent = fs.readFileSync(
+        path.join(tempDir, 'package.json'),
+        'utf8'
+      );
       const packageData = JSON.parse(packageContent);
       const sourceFiles = await fileContextService.findFiles(['src/**/*.ts']);
-      
+
       const context = {
         project: packageData,
         hasSource: sourceFiles.length > 0,
@@ -345,7 +355,7 @@ Source files are located in the \`src/\` directory:
       };
 
       const result = await templateEngine.render(template, context);
-      
+
       expect(result).toContain('# test-integration-project v1.2.3');
       expect(result).toContain('Integration test project');
       expect(result).toContain('react: ^18.0.0');
@@ -386,7 +396,7 @@ Source files are located in the \`src/\` directory:
 
       try {
         const result = await templateEngine.render(mainTemplate, context);
-        
+
         expect(result).toContain('# Project Documentation');
         expect(result).toContain('Generated on');
         expect(result).toContain('## Project: test-integration-project');
@@ -397,11 +407,15 @@ Source files are located in the \`src/\` directory:
     });
 
     it('should validate template context against project data', async () => {
-      const template = 'Project: {{project.name}}, Version: {{project.version}}, Author: {{project.author}}';
-      
-      const packageContent = fs.readFileSync(path.join(tempDir, 'package.json'), 'utf8');
+      const template =
+        'Project: {{project.name}}, Version: {{project.version}}, Author: {{project.author}}';
+
+      const packageContent = fs.readFileSync(
+        path.join(tempDir, 'package.json'),
+        'utf8'
+      );
       const packageData = JSON.parse(packageContent);
-      
+
       const context = {
         project: {
           name: packageData.name,
@@ -411,7 +425,7 @@ Source files are located in the \`src/\` directory:
       };
 
       const validation = templateEngine.validateContext(template, context);
-      
+
       expect(validation.valid).toBe(false);
       expect(validation.missing).toContain('project.author');
     });
@@ -433,7 +447,7 @@ Environment: {{env.NODE_ENV}}
 `;
 
       const variables = templateEngine.extractVariables(complexTemplate);
-      
+
       const expectedVariables = [
         'project.name',
         'project.description',
@@ -452,7 +466,7 @@ Environment: {{env.NODE_ENV}}
   describe('Error Handling Integration', () => {
     it('should handle missing template files gracefully', async () => {
       const templateWithBadInclude = '{{#include "nonexistent/template.md"}}';
-      
+
       await expect(
         templateEngine.render(templateWithBadInclude, {})
       ).rejects.toThrow('Include file not found');
@@ -474,9 +488,9 @@ Environment: {{env.NODE_ENV}}
       // Create malformed package.json
       const malformedPath = path.join(tempDir, 'malformed.json');
       fs.writeFileSync(malformedPath, '{ invalid json }');
-      
+
       const content = await fileContextService.getFileContent(malformedPath);
-      
+
       expect(content?.content).toContain('{ invalid json }');
       // Should not throw, just return the content as-is
     });
@@ -484,17 +498,23 @@ Environment: {{env.NODE_ENV}}
     it('should handle circular template includes', async () => {
       const templateA = '{{#include "templates/templateB.md"}}';
       const templateB = '{{#include "templates/templateA.md"}}';
-      
-      fs.writeFileSync(path.join(tempDir, 'templates', 'templateA.md'), templateA);
-      fs.writeFileSync(path.join(tempDir, 'templates', 'templateB.md'), templateB);
-      
+
+      fs.writeFileSync(
+        path.join(tempDir, 'templates', 'templateA.md'),
+        templateA
+      );
+      fs.writeFileSync(
+        path.join(tempDir, 'templates', 'templateB.md'),
+        templateB
+      );
+
       const originalCwd = process.cwd();
       process.chdir(tempDir);
-      
+
       try {
-        await expect(
-          templateEngine.render(templateA, {})
-        ).rejects.toThrow('Circular dependency detected');
+        await expect(templateEngine.render(templateA, {})).rejects.toThrow(
+          'Circular dependency detected'
+        );
       } finally {
         process.chdir(originalCwd);
       }
@@ -507,7 +527,7 @@ Environment: {{env.NODE_ENV}}
       const fileCount = 100;
       const largeDir = path.join(tempDir, 'large');
       fs.mkdirSync(largeDir, { recursive: true });
-      
+
       for (let i = 0; i < fileCount; i++) {
         fs.writeFileSync(
           path.join(largeDir, `file${i}.ts`),
@@ -518,7 +538,7 @@ Environment: {{env.NODE_ENV}}
       const startTime = Date.now();
       const files = await fileContextService.findFiles(['large/**/*.ts']);
       const duration = Date.now() - startTime;
-      
+
       expect(files).toHaveLength(fileCount);
       expect(duration).toBeLessThan(2000); // Should complete within 2 seconds
     });
@@ -527,11 +547,11 @@ Environment: {{env.NODE_ENV}}
       const largeContent = 'x'.repeat(100000); // 100KB
       const largePath = path.join(tempDir, 'large.txt');
       fs.writeFileSync(largePath, largeContent);
-      
+
       const startTime = Date.now();
       const content = await fileContextService.getFileContent(largePath, 1000);
       const duration = Date.now() - startTime;
-      
+
       expect(content?.truncated).toBe(true);
       expect(content?.size).toBe(largeContent.length);
       expect(duration).toBeLessThan(1000); // Should complete within 1 second
@@ -539,17 +559,17 @@ Environment: {{env.NODE_ENV}}
 
     it('should cache repeated operations', async () => {
       const filePath = path.join(tempDir, 'package.json');
-      
+
       // First call
       const start1 = Date.now();
       await fileContextService.getFileInfo(filePath);
       const duration1 = Date.now() - start1;
-      
+
       // Second call (should be faster due to caching)
       const start2 = Date.now();
       await fileContextService.getFileInfo(filePath);
       const duration2 = Date.now() - start2;
-      
+
       // Second call should be faster (though this may be flaky)
       expect(duration2).toBeLessThanOrEqual(duration1);
     });
@@ -587,17 +607,20 @@ npm install
 {{/each}}
 `;
 
-      const packageContent = fs.readFileSync(path.join(tempDir, 'package.json'), 'utf8');
+      const packageContent = fs.readFileSync(
+        path.join(tempDir, 'package.json'),
+        'utf8'
+      );
       const packageData = JSON.parse(packageContent);
       const structure = await fileContextService.getProjectStructure(2); // Limited depth
-      
+
       const context = {
         project: packageData,
         structure,
       };
 
       const result = await templateEngine.render(readmeTemplate, context);
-      
+
       expect(result).toContain('# test-integration-project');
       expect(result).toContain('Integration test project');
       expect(result).toContain('npm install');
@@ -627,23 +650,24 @@ npm install
           {
             name: 'Application',
             description: 'Main application class',
-            methods: [
-              { name: 'start', description: 'Start the application' },
-            ],
+            methods: [{ name: 'start', description: 'Start the application' }],
           },
           {
             name: 'ComponentManager',
             description: 'Manages application components',
             methods: [
               { name: 'initialize', description: 'Initialize all components' },
-              { name: 'registerComponent', description: 'Register a new component' },
+              {
+                name: 'registerComponent',
+                description: 'Register a new component',
+              },
             ],
           },
         ],
       };
 
       const result = await templateEngine.render(apiTemplate, context);
-      
+
       expect(result).toContain('# API Documentation');
       expect(result).toContain('### Application');
       expect(result).toContain('#### start()');

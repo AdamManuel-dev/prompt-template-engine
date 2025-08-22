@@ -41,6 +41,6 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'json'],
   extensionsToTreatAsEsm: [],
   transformIgnorePatterns: [
-    'node_modules/(?!(chalk|ansi-styles|clipboardy|execa|strip-final-newline|npm-run-path|path-key|onetime|mimic-fn|human-signals|is-stream|get-stream)/)'
+    'node_modules/(?!(clipboardy|execa|strip-final-newline|npm-run-path|path-key|onetime|mimic-fn|human-signals|is-stream|get-stream)/)'
   ]
 };

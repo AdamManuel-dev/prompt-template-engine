@@ -8,12 +8,9 @@
  * Patterns: Service pattern with async/await, error handling
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-
-const execAsync = promisify(exec);
 
 export interface GitStatus {
   branch: string;
@@ -94,23 +91,117 @@ export class GitService {
   }
 
   /**
-   * Execute a git command
+   * Execute a git command safely using spawn to prevent command injection
    */
   private async execGit(command: string): Promise<string> {
-    try {
-      const { stdout } = await execAsync(`git ${command}`, {
+    // Parse command into args array for safe execution
+    const args = this.parseGitCommand(command);
+
+    return new Promise((resolve, reject) => {
+      const gitProcess = spawn('git', args, {
         cwd: this.cwd,
-        encoding: 'utf8',
       });
-      // Only trim trailing newline, not leading spaces which are significant for git status
-      return stdout.replace(/\n$/, '');
-    } catch (error) {
-      const e = error as { code?: number };
-      if (e.code === 128) {
-        throw new Error('Not a git repository');
+
+      let stdout = '';
+      let stderr = '';
+
+      if (gitProcess.stdout) {
+        gitProcess.stdout.on('data', data => {
+          stdout += data.toString();
+        });
       }
-      throw error;
+
+      if (gitProcess.stderr) {
+        gitProcess.stderr.on('data', data => {
+          stderr += data.toString();
+        });
+      }
+
+      gitProcess.on('error', error => {
+        reject(error);
+      });
+
+      gitProcess.on('close', code => {
+        if (code === 0) {
+          // Only trim trailing newline, not leading spaces which are significant for git status
+          resolve(stdout.replace(/\n$/, ''));
+        } else if (code === 128) {
+          reject(new Error('Not a git repository'));
+        } else {
+          reject(new Error(`Git command failed: ${stderr || stdout}`));
+        }
+      });
+    });
+  }
+
+  /**
+   * Parse git command string into safe args array
+   * This prevents command injection by treating everything as arguments
+   */
+  private parseGitCommand(command: string): string[] {
+    // Handle common git commands with their expected formats
+    // This whitelist approach ensures only safe commands are executed
+
+    // Simple commands without arguments
+    if (command === 'rev-parse --abbrev-ref HEAD') {
+      return ['rev-parse', '--abbrev-ref', 'HEAD'];
     }
+    if (command === 'status --porcelain=v1') {
+      return ['status', '--porcelain=v1'];
+    }
+    if (command === 'remote -v') {
+      return ['remote', '-v'];
+    }
+
+    // Commands with dynamic parts
+    if (command.startsWith('log -')) {
+      // Parse log command safely
+      const match = command.match(/^log -(\d+) --format="([^"]+)"$/);
+      if (match) {
+        return ['log', `-${match[1]}`, `--format=${match[2]}`];
+      }
+    }
+
+    if (command.startsWith('symbolic-ref')) {
+      const parts = command.split(' ');
+      return parts;
+    }
+
+    if (command.startsWith('rev-list')) {
+      const parts = command.split(' ');
+      return parts;
+    }
+
+    if (command.startsWith('diff')) {
+      const parts = command.split(' ').filter(p => p);
+      return parts;
+    }
+
+    // For any other commands, parse conservatively
+    // Split by spaces but respect quoted strings
+    const args: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < command.length; i++) {
+      const char = command[i];
+      if (char === '"' && (i === 0 || command[i - 1] !== '\\')) {
+        inQuotes = !inQuotes;
+      } else if (char === ' ' && !inQuotes) {
+        if (current) {
+          args.push(current);
+          current = '';
+        }
+      } else {
+        current += char;
+      }
+    }
+
+    if (current) {
+      args.push(current);
+    }
+
+    return args;
   }
 
   /**

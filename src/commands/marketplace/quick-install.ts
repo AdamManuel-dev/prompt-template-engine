@@ -19,6 +19,37 @@ import {
   MarketplaceTemplateVersion,
 } from '../../types';
 import { logger } from '../../utils/logger';
+import { TemplateModel } from '../../marketplace/models/template.model';
+
+/**
+ * Convert TemplateModel to MarketplaceTemplate
+ */
+function convertToMarketplaceTemplate(
+  template: TemplateModel
+): MarketplaceTemplate {
+  return {
+    id: template.id,
+    name: template.name,
+    description: template.description || '',
+    category: template.category || 'other',
+    tags: template.tags || [],
+    author: template.author || {
+      id: 'unknown',
+      name: 'Unknown',
+      verified: false,
+    },
+    currentVersion: template.currentVersion || '1.0.0',
+    versions: [],
+    downloads: template.downloads || 0,
+    rating: template.rating || 0,
+    reviewCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    repository: template.repository,
+    displayName: template.displayName,
+    stats: template.stats,
+  } as MarketplaceTemplate;
+}
 
 export class QuickInstallCommand extends BaseCommand implements ICommand {
   name = 'quick-install';
@@ -56,7 +87,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -143,7 +174,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
       if (options.showProgress) {
         logger.info(chalk.green('✓ Template found by exact match'));
       }
-      return template;
+      return convertToMarketplaceTemplate(template);
     } catch {
       // Continue to search
     }
@@ -188,7 +219,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
       }
     }
 
-    return selectedTemplate;
+    return convertToMarketplaceTemplate(selectedTemplate);
   }
 
   private async quickInstall(
@@ -210,7 +241,10 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
       const versionInfo = template.versions.find(
         (v: MarketplaceTemplateVersion) => v.version === targetVersion
       );
-      if (versionInfo?.dependencies?.length > 0) {
+      if (
+        versionInfo?.dependencies?.length &&
+        versionInfo.dependencies.length > 0
+      ) {
         logger.info(
           chalk.gray(
             `📋 Auto-installing ${versionInfo.dependencies.length} dependencies...`
@@ -288,9 +322,13 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     template: MarketplaceTemplate,
     version: string
   ): string {
-    const rating = QuickInstallCommand.formatRating(template.rating.average);
+    const rating = QuickInstallCommand.formatRating(
+      typeof template.rating === 'number'
+        ? template.rating
+        : template.rating.average
+    );
     const downloads = QuickInstallCommand.formatNumber(
-      template.stats.downloads
+      template.stats?.downloads ?? 0
     );
 
     return (

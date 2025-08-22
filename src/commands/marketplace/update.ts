@@ -20,6 +20,7 @@ import {
   MarketplaceTemplateVersion,
 } from '../../types';
 import { logger } from '../../utils/logger';
+import { TemplateVersion } from '../../marketplace/models/template.model';
 
 export class UpdateCommand extends BaseCommand implements ICommand {
   name = 'update';
@@ -66,7 +67,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -117,7 +118,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
 
       if (!options.version) {
         const availableVersions = latestTemplate.versions.map(
-          (v: MarketplaceTemplateVersion) => v.version
+          (v: TemplateVersion) => v.version
         );
         const updateOptions = versionManager.getUpgradeOptions(
           currentVersion,
@@ -180,10 +181,10 @@ export class UpdateCommand extends BaseCommand implements ICommand {
 
       // Show update information
       this.displayUpdateInfo(
-        template,
+        template.metadata as unknown as MarketplaceTemplate,
         currentVersion,
         targetVersion,
-        latestTemplate,
+        latestTemplate as unknown as MarketplaceTemplate,
         versionManager
       );
 
@@ -329,7 +330,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
         logger.info(`${index + 1}. ${chalk.cyan(update.templateId)}`);
         logger.info(`   Current: ${chalk.yellow(update.currentVersion)}`);
         logger.info(`   Latest: ${chalk.yellow(update.latestVersion)}`);
-        logger.info();
+        logger.info('');
       });
 
       logger.info(
@@ -384,14 +385,14 @@ export class UpdateCommand extends BaseCommand implements ICommand {
       (v: MarketplaceTemplateVersion) => v.version === targetVersion
     );
     if (versionInfo) {
-      logger.info(`   Size: ${UpdateCommand.formatBytes(versionInfo.size)}`);
+      logger.info(`   Size: ${UpdateCommand.formatBytes(versionInfo.size || 0)}`);
 
-      if (versionInfo.dependencies.length > 0) {
+      if (versionInfo.dependencies && versionInfo.dependencies.length > 0) {
         logger.info(`   Dependencies: ${versionInfo.dependencies.length}`);
       }
 
       logger.info(
-        `   Released: ${new Date(versionInfo.created).toLocaleDateString()}`
+        `   Released: ${new Date(versionInfo.created || new Date()).toLocaleDateString()}`
       );
     }
   }

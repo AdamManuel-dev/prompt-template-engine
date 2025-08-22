@@ -15,7 +15,7 @@ import {
   FileDefinition,
   CommandDefinition,
   TemplateSchema,
-} from '../../src/core/template-validator';
+} from '../../../src/core/template-validator';
 
 describe('TemplateValidator', () => {
   let validator: TemplateValidator;
@@ -144,21 +144,29 @@ describe('TemplateValidator', () => {
           expect(result.valid).toBe(false);
           expect(result.errors).toContain('Template must be a non-null object');
         }
-        
+
         // Arrays are objects in JavaScript, so they pass the typeof check
         // but fail field validation
         const arrayResult = await validator.validate([]);
         expect(arrayResult.valid).toBe(false);
-        expect(arrayResult.errors).toContain('Template must have a name field of type string');
+        expect(arrayResult.errors).toContain(
+          'Template must have a name field of type string'
+        );
       });
 
       it('should reject empty object', async () => {
         const result = await validator.validate({});
 
         expect(result.valid).toBe(false);
-        expect(result.errors).toContain('Template must have a name field of type string');
-        expect(result.errors).toContain('Template must have a description field of type string');
-        expect(result.errors).toContain('Template must have a version field of type string');
+        expect(result.errors).toContain(
+          'Template must have a name field of type string'
+        );
+        expect(result.errors).toContain(
+          'Template must have a description field of type string'
+        );
+        expect(result.errors).toContain(
+          'Template must have a version field of type string'
+        );
       });
     });
 
@@ -172,7 +180,9 @@ describe('TemplateValidator', () => {
         const result = await validator.validate(template);
 
         expect(result.valid).toBe(false);
-        expect(result.errors).toContain('Template must have a name field of type string');
+        expect(result.errors).toContain(
+          'Template must have a name field of type string'
+        );
       });
 
       it('should require name to be a string', async () => {
@@ -185,7 +195,9 @@ describe('TemplateValidator', () => {
         const result = await validator.validate(template);
 
         expect(result.valid).toBe(false);
-        expect(result.errors).toContain('Template must have a name field of type string');
+        expect(result.errors).toContain(
+          'Template must have a name field of type string'
+        );
       });
 
       it('should require description field', async () => {
@@ -197,7 +209,9 @@ describe('TemplateValidator', () => {
         const result = await validator.validate(template);
 
         expect(result.valid).toBe(false);
-        expect(result.errors).toContain('Template must have a description field of type string');
+        expect(result.errors).toContain(
+          'Template must have a description field of type string'
+        );
       });
 
       it('should require description to be a string', async () => {
@@ -210,7 +224,9 @@ describe('TemplateValidator', () => {
         const result = await validator.validate(template);
 
         expect(result.valid).toBe(false);
-        expect(result.errors).toContain('Template must have a description field of type string');
+        expect(result.errors).toContain(
+          'Template must have a description field of type string'
+        );
       });
 
       it('should require version field', async () => {
@@ -222,7 +238,9 @@ describe('TemplateValidator', () => {
         const result = await validator.validate(template);
 
         expect(result.valid).toBe(false);
-        expect(result.errors).toContain('Template must have a version field of type string');
+        expect(result.errors).toContain(
+          'Template must have a version field of type string'
+        );
       });
 
       it('should require version to be a string', async () => {
@@ -235,7 +253,9 @@ describe('TemplateValidator', () => {
         const result = await validator.validate(template);
 
         expect(result.valid).toBe(false);
-        expect(result.errors).toContain('Template must have a version field of type string');
+        expect(result.errors).toContain(
+          'Template must have a version field of type string'
+        );
       });
     });
 
@@ -355,7 +375,9 @@ describe('TemplateValidator', () => {
       const result = await validator.validate(template);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("Variable 'invalidVar' must be an object");
+      expect(result.errors).toContain(
+        "Variable 'invalidVar' must be an object"
+      );
     });
 
     it('should reject variables with invalid types', async () => {
@@ -455,7 +477,9 @@ describe('TemplateValidator', () => {
       const result = await validator.validate(template);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("Variable 'choiceVar' choices array cannot be empty");
+      expect(result.errors).toContain(
+        "Variable 'choiceVar' choices array cannot be empty"
+      );
     });
 
     it('should reject variables with non-string description', async () => {
@@ -474,7 +498,9 @@ describe('TemplateValidator', () => {
       const result = await validator.validate(template);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("Variable 'varWithBadDesc' description must be a string");
+      expect(result.errors).toContain(
+        "Variable 'varWithBadDesc' description must be a string"
+      );
     });
 
     it('should reject variables with non-string pattern', async () => {
@@ -493,7 +519,9 @@ describe('TemplateValidator', () => {
       const result = await validator.validate(template);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain("Variable 'varWithBadPattern' pattern must be a string");
+      expect(result.errors).toContain(
+        "Variable 'varWithBadPattern' pattern must be a string"
+      );
     });
 
     it('should validate all variable types correctly', async () => {
@@ -741,7 +769,11 @@ describe('TemplateValidator', () => {
         name: 'test-template',
         description: 'A test template',
         version: '1.0.0',
-        commands: ['npm install' as unknown, 'npm run build' as unknown, 'npm test' as unknown],
+        commands: [
+          'npm install' as unknown,
+          'npm run build' as unknown,
+          'npm test' as unknown,
+        ],
       };
 
       const result = await validator.validate(template);
@@ -761,7 +793,9 @@ describe('TemplateValidator', () => {
       const result = await validator.validate(template);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Command at index 0 must be a string or object');
+      expect(result.errors).toContain(
+        'Command at index 0 must be a string or object'
+      );
     });
 
     it('should reject command objects without command field', async () => {
@@ -820,7 +854,9 @@ describe('TemplateValidator', () => {
       const result = await validator.validate(template);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Command at index 0 description must be a string');
+      expect(result.errors).toContain(
+        'Command at index 0 description must be a string'
+      );
     });
 
     it('should reject command objects with non-string condition', async () => {
@@ -839,7 +875,9 @@ describe('TemplateValidator', () => {
       const result = await validator.validate(template);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Command at index 0 condition must be a string');
+      expect(result.errors).toContain(
+        'Command at index 0 condition must be a string'
+      );
     });
 
     it('should accept valid command objects', async () => {
@@ -892,15 +930,21 @@ describe('TemplateValidator', () => {
       const result = await validator.validate(template);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Command at index 0 must be a string or object');
+      expect(result.errors).toContain(
+        'Command at index 0 must be a string or object'
+      );
       expect(result.errors).toContain(
         "Command at index 1 must have a 'command' field of type string"
       );
       expect(result.errors).toContain(
         "Command at index 2 must have a 'command' field of type string"
       );
-      expect(result.errors).toContain('Command at index 2 description must be a string');
-      expect(result.errors).toContain('Command at index 2 condition must be a string');
+      expect(result.errors).toContain(
+        'Command at index 2 description must be a string'
+      );
+      expect(result.errors).toContain(
+        'Command at index 2 condition must be a string'
+      );
     });
   });
 
@@ -919,9 +963,15 @@ describe('TemplateValidator', () => {
 
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(5);
-      expect(result.errors).toContain('Template must have a name field of type string');
-      expect(result.errors).toContain('Template must have a description field of type string');
-      expect(result.errors).toContain('Template must have a version field of type string');
+      expect(result.errors).toContain(
+        'Template must have a name field of type string'
+      );
+      expect(result.errors).toContain(
+        'Template must have a description field of type string'
+      );
+      expect(result.errors).toContain(
+        'Template must have a version field of type string'
+      );
       expect(result.errors).toContain('Template author must be a string');
       expect(result.errors).toContain('Template tags must be an array');
       expect(result.errors).toContain('Variables must be an object');
@@ -1061,7 +1111,9 @@ describe('TemplateValidator', () => {
         pattern: '^[a-zA-Z]+$',
       };
 
-      expect(['string', 'number', 'boolean', 'choice']).toContain(variable.type);
+      expect(['string', 'number', 'boolean', 'choice']).toContain(
+        variable.type
+      );
       expect(typeof variable.description).toBe('string');
       expect(typeof variable.required).toBe('boolean');
       expect(typeof variable.pattern).toBe('string');

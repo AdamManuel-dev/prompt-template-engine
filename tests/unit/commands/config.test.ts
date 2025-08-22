@@ -65,8 +65,8 @@ import {
   getMergedConfig,
   getConfigValue,
   ConfigOptions,
-} from '../../src/commands/config';
-import { logger } from '../../src/utils/logger';
+} from '../../../src/commands/config';
+import { logger } from '../../../src/utils/logger';
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
 const mockedLogger = logger as jest.Mocked<typeof logger>;

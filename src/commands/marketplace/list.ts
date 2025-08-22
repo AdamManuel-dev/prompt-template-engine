@@ -12,7 +12,10 @@ import chalk from 'chalk';
 import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
-import { TemplateRegistry } from '../../marketplace/core/template.registry';
+import {
+  TemplateRegistry,
+  RegisteredTemplate,
+} from '../../marketplace/core/template.registry';
 import { MarketplaceCommandOptions, MarketplaceTemplate } from '../../types';
 import { logger } from '../../utils/logger';
 
@@ -55,7 +58,7 @@ export class ListCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -87,11 +90,15 @@ export class ListCommand extends BaseCommand implements ICommand {
       }
 
       if (options.author) {
-        templates = templates.filter(t =>
-          t.metadata.author.name
-            .toLowerCase()
-            .includes(options.author.toLowerCase())
-        );
+        templates = templates.filter(t => {
+          const authorName =
+            typeof t.metadata.author === 'string'
+              ? t.metadata.author
+              : t.metadata.author?.name;
+          return authorName
+            ?.toLowerCase()
+            .includes(options.author!.toLowerCase());
+        });
       }
 
       // Check for updates if requested
@@ -131,10 +138,20 @@ export class ListCommand extends BaseCommand implements ICommand {
       );
 
       templates.forEach((template, index) => {
+        // Convert RegisteredTemplate to MarketplaceTemplate format for display
+        const marketplaceTemplate = this.convertToMarketplaceTemplate(template);
         if (options.detailed) {
-          this.displayDetailedTemplate(template, index + 1, updateInfo);
+          this.displayDetailedTemplate(
+            marketplaceTemplate,
+            index + 1,
+            updateInfo
+          );
         } else {
-          this.displayCompactTemplate(template, index + 1, updateInfo);
+          this.displayCompactTemplate(
+            marketplaceTemplate,
+            index + 1,
+            updateInfo
+          );
         }
       });
 
@@ -160,6 +177,45 @@ export class ListCommand extends BaseCommand implements ICommand {
   }
 
   // eslint-disable-next-line class-methods-use-this
+  private convertToMarketplaceTemplate(
+    registered: RegisteredTemplate
+  ): MarketplaceTemplate {
+    const authorInfo =
+      typeof registered.metadata.author === 'string'
+        ? registered.metadata.author
+        : registered.metadata.author?.name || 'Unknown Author';
+
+    return {
+      id: registered.id,
+      name: registered.name,
+      description: registered.metadata.description || '',
+      category: registered.metadata.category || 'general',
+      tags: registered.metadata.tags || [],
+      author: {
+        id:
+          typeof registered.metadata.author === 'string'
+            ? registered.metadata.author
+            : registered.metadata.author?.id || 'unknown',
+        name: authorInfo,
+        verified:
+          typeof registered.metadata.author === 'object'
+            ? registered.metadata.author?.verified || false
+            : false,
+      },
+      currentVersion: registered.version,
+      versions: [],
+      downloads: 0,
+      rating: 0,
+      reviewCount: 0,
+      createdAt: registered.registered.toISOString(),
+      updatedAt: registered.registered.toISOString(),
+      displayName: registered.metadata.displayName || registered.name,
+      registered: registered.registered.toISOString(),
+      path: registered.path,
+    };
+  }
+
+  // eslint-disable-next-line class-methods-use-this
   private displayCompactTemplate(
     template: MarketplaceTemplate,
     position: number,
@@ -171,21 +227,23 @@ export class ListCommand extends BaseCommand implements ICommand {
       : '';
 
     const badges = ListCommand.formatBadges(template);
-    const ratingStars = ListCommand.formatRating(
-      template.metadata.rating.average
-    );
+    const rating =
+      typeof template.rating === 'number'
+        ? template.rating
+        : template.rating.average;
+    const ratingStars = ListCommand.formatRating(rating);
 
     logger.info(
-      `${position}. ${chalk.bold(template.metadata.displayName || template.name)} ${badges}`
+      `${position}. ${chalk.bold(template.displayName || template.name)} ${badges}`
     );
-    logger.info(`   ${chalk.gray(template.metadata.description)}`);
+    logger.info(`   ${chalk.gray(template.description)}`);
     logger.info(
-      `   ${chalk.yellow(`v${template.version}`)}${updateText} ${chalk.gray('•')} ${chalk.magenta(template.metadata.category)} ${chalk.gray('•')} ${ratingStars}`
+      `   ${chalk.yellow(`v${template.currentVersion}`)}${updateText} ${chalk.gray('•')} ${chalk.magenta(template.category)} ${chalk.gray('•')} ${ratingStars}`
     );
     logger.info(
-      `   ${chalk.gray('by')} ${chalk.blue(template.metadata.author.name)} ${chalk.gray('•')} ${chalk.gray('installed')} ${chalk.gray(new Date(template.registered).toLocaleDateString())}`
+      `   ${chalk.gray('by')} ${chalk.blue(template.author.name)} ${chalk.gray('•')} ${chalk.gray('installed')} ${chalk.gray(new Date(template.registered || template.createdAt).toLocaleDateString())}`
     );
-    logger.info();
+    logger.info('');
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -202,34 +260,47 @@ export class ListCommand extends BaseCommand implements ICommand {
     const badges = ListCommand.formatBadges(template);
 
     logger.info(
-      `${position}. ${chalk.bold.underline(template.metadata.displayName || template.name)} ${badges}`
+      `${position}. ${chalk.bold.underline(template.displayName || template.name)} ${badges}`
     );
     logger.info(`   ID: ${chalk.gray(template.id)}`);
-    logger.info(`   ${template.metadata.description}`);
-    logger.info(`   Version: ${chalk.yellow(template.version)}${updateText}`);
-    logger.info(`   Category: ${chalk.magenta(template.metadata.category)}`);
+    logger.info(`   ${template.description}`);
     logger.info(
-      `   Author: ${chalk.blue(template.metadata.author.name)}${template.metadata.author.verified ? ' ✓' : ''}`
+      `   Version: ${chalk.yellow(template.currentVersion)}${updateText}`
+    );
+    logger.info(`   Category: ${chalk.magenta(template.category)}`);
+    logger.info(
+      `   Author: ${chalk.blue(template.author.name)}${template.author.verified ? ' ✓' : ''}`
+    );
+    const ratingValue =
+      typeof template.rating === 'number'
+        ? template.rating
+        : template.rating.average;
+    const totalReviews =
+      typeof template.rating === 'number'
+        ? template.reviewCount
+        : template.rating.total;
+    logger.info(
+      `   Rating: ${ListCommand.formatRating(ratingValue)} (${totalReviews} reviews)`
     );
     logger.info(
-      `   Rating: ${ListCommand.formatRating(template.metadata.rating.average)} (${template.metadata.rating.total} reviews)`
+      `   Downloads: ${chalk.cyan(ListCommand.formatNumber(template.stats?.downloads || 0))}`
     );
     logger.info(
-      `   Downloads: ${chalk.cyan(ListCommand.formatNumber(template.metadata.stats.downloads))}`
-    );
-    logger.info(
-      `   Installed: ${chalk.gray(new Date(template.registered).toLocaleDateString())}`
+      `   Installed: ${chalk.gray(new Date(template.registered || template.createdAt).toLocaleDateString())}`
     );
     logger.info(`   Location: ${chalk.gray(template.path)}`);
 
-    if (template.metadata.tags.length > 0) {
+    if (template.tags && template.tags.length > 0) {
       logger.info(
-        `   Tags: ${template.metadata.tags.map((tag: string) => chalk.gray(`#${tag}`)).join(' ')}`
+        `   Tags: ${template.tags.map((tag: string) => chalk.gray(`#${tag}`)).join(' ')}`
       );
     }
 
     // Show dependencies
-    if (template.versionInfo.dependencies.length > 0) {
+    if (
+      template.versionInfo?.dependencies &&
+      template.versionInfo.dependencies.length > 0
+    ) {
       logger.info(
         `   Dependencies: ${template.versionInfo.dependencies.length} required`
       );
@@ -256,7 +327,7 @@ export class ListCommand extends BaseCommand implements ICommand {
       );
     }
 
-    logger.info();
+    logger.info('');
   }
 
   private static displayStats(stats: Record<string, unknown>): void {
@@ -264,16 +335,18 @@ export class ListCommand extends BaseCommand implements ICommand {
     logger.info(`   Total templates: ${chalk.cyan(stats.total)}`);
     logger.info(`   Active templates: ${chalk.green(stats.active)}`);
 
-    if (Object.keys(stats.categories).length > 0) {
+    const categories = stats.categories as Record<string, number> | undefined;
+    if (categories && Object.keys(categories).length > 0) {
       logger.info('\n   Categories:');
-      Object.entries(stats.categories).forEach(([category, count]) => {
+      Object.entries(categories).forEach(([category, count]) => {
         logger.info(`     ${chalk.magenta(category)}: ${count}`);
       });
     }
 
-    if (Object.keys(stats.authors).length > 0) {
+    const authors = stats.authors as Record<string, number> | undefined;
+    if (authors && Object.keys(authors).length > 0) {
       logger.info('\n   Top Authors:');
-      Object.entries(stats.authors)
+      Object.entries(authors)
         .sort(([, a], [, b]) => (b as number) - (a as number))
         .slice(0, 5)
         .forEach(([author, count]) => {
@@ -310,19 +383,19 @@ export class ListCommand extends BaseCommand implements ICommand {
   private static formatBadges(template: MarketplaceTemplate): string {
     const badges: string[] = [];
 
-    if (template.metadata.featured) {
+    if (template.featured) {
       badges.push(chalk.yellow('⭐'));
     }
 
-    if (template.metadata.verified) {
+    if (template.verified) {
       badges.push(chalk.green('✓'));
     }
 
-    if (template.metadata.stats.trending) {
+    if (template.stats && (template.stats as any).trending) {
       badges.push(chalk.red('🔥'));
     }
 
-    if (template.metadata.deprecated) {
+    if (template.deprecated) {
       badges.push(chalk.red('⚠️'));
     }
 

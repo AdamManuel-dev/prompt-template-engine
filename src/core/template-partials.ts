@@ -10,6 +10,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from '../utils/logger';
 
 export interface PartialContext {
   [key: string]: unknown;
@@ -85,7 +86,7 @@ export class TemplatePartials {
         }
       }
     } catch (error) {
-      console.error(`Failed to load partials from directory: ${error}`);
+      logger.error(`Failed to load partials from directory: ${error}`);
     }
   }
 
@@ -118,6 +119,15 @@ export class TemplatePartials {
   }
 
   /**
+   * Process partial references in a template (simplified version)
+   */
+  process(template: string, context: PartialContext): string {
+    // Simple render callback that just returns the template
+    const renderCallback = (tmpl: string) => tmpl;
+    return this.processPartials(template, context, renderCallback);
+  }
+
+  /**
    * Process partial references in a template
    * Syntax: {{> partialName}}
    * With context: {{> partialName context}}
@@ -147,7 +157,7 @@ export class TemplatePartials {
 
         const partial = this.get(partialName);
         if (!partial) {
-          console.warn(`Partial not found: ${partialName}`);
+          logger.warn(`Partial not found: ${partialName}`);
           return match; // Return original if partial not found
         }
 

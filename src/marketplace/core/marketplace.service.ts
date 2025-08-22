@@ -11,7 +11,8 @@
 import { EventEmitter } from 'events';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { logger } from '../../utils/logger';
+
+import { MarketplaceAPI } from '../api/marketplace.api';
 import {
   TemplateModel,
   TemplateSearchQuery,
@@ -22,9 +23,13 @@ import {
   TemplateReview,
   MarketplacePreferences,
 } from '../models/template.model';
-import { MarketplaceAPI } from '../api/marketplace.api';
+import {
+  InstallationResult,
+  MarketplaceTemplate,
+  TemplateDependency,
+} from '../../types';
+import { logger } from '../../utils/logger';
 import { TemplateRegistry } from './template.registry';
-import { TemplateDependency, InstallationResult } from '../../types';
 // import { VersionManager } from './version.manager'; // Reserved for future use
 
 // Interface declaration to resolve no-use-before-define
@@ -34,7 +39,11 @@ interface IMarketplaceService {
   install(templateId: string, version?: string): Promise<InstallationResult>;
   update(templateId: string): Promise<InstallationResult>;
   uninstall(templateId: string): Promise<void>;
-  rate(templateId: string, rating: number, comment?: string): Promise<void>;
+  rate(
+    templateId: string,
+    rating: number,
+    review?: Partial<TemplateReview>
+  ): Promise<void>;
 }
 
 export class MarketplaceService
@@ -185,7 +194,8 @@ export class MarketplaceService
   async install(
     templateId: string,
     version?: string
-  ): Promise<TemplateInstallation> {
+  ): Promise<InstallationResult> {
+    const startTime = Date.now();
     try {
       this.emit('install:started', { templateId, version });
 
@@ -249,7 +259,17 @@ export class MarketplaceService
         `Template ${templateId}@${targetVersion} installed successfully`
       );
 
-      return installation;
+      // Convert TemplateInstallation to InstallationResult
+      const templateForResult = await this.getTemplate(templateId);
+      const result: InstallationResult = {
+        success: true,
+        template: templateForResult as unknown as MarketplaceTemplate,
+        version: installation.version,
+        installPath: installation.installPath,
+        duration: Date.now() - startTime,
+        warnings: [],
+      };
+      return result;
     } catch (error) {
       logger.error(`Failed to install template ${templateId}: ${error}`);
       this.emit('install:error', { templateId, version, error });
@@ -263,7 +283,8 @@ export class MarketplaceService
   async update(
     templateId: string,
     version?: string
-  ): Promise<TemplateInstallation> {
+  ): Promise<InstallationResult> {
+    const startTime = Date.now();
     try {
       this.emit('update:started', { templateId, version });
 
@@ -280,7 +301,16 @@ export class MarketplaceService
         logger.info(
           `Template ${templateId} is already at version ${targetVersion}`
         );
-        return installation;
+        const templateForResult = await this.getTemplate(templateId);
+        const result: InstallationResult = {
+          success: true,
+          template: templateForResult as unknown as MarketplaceTemplate,
+          version: installation.version,
+          installPath: installation.installPath,
+          duration: Date.now() - startTime,
+          warnings: [],
+        };
+        return result;
       }
 
       // Backup current installation if needed
@@ -300,7 +330,17 @@ export class MarketplaceService
         `Template ${templateId} updated from ${installation.version} to ${targetVersion}`
       );
 
-      return updatedInstallation;
+      // Convert TemplateInstallation to InstallationResult
+      const templateForResult = await this.getTemplate(templateId);
+      const result: InstallationResult = {
+        success: true,
+        template: templateForResult as unknown as MarketplaceTemplate,
+        version: updatedInstallation.version,
+        installPath: updatedInstallation.installPath,
+        duration: Date.now() - startTime,
+        warnings: [],
+      };
+      return result;
     } catch (error) {
       logger.error(`Failed to update template ${templateId}: ${error}`);
       this.emit('update:error', { templateId, version, error });
@@ -346,7 +386,7 @@ export class MarketplaceService
   /**
    * Rate and review template
    */
-  async rateTemplate(
+  async rate(
     templateId: string,
     rating: number,
     review?: Partial<TemplateReview>
@@ -485,7 +525,20 @@ export class MarketplaceService
           logger.info(
             `Auto-updating ${template.name} from ${existing.version} to ${targetVersion}`
           );
-          const installation = await this.update(template.id, targetVersion);
+          const installationResult = await this.update(
+            template.id,
+            targetVersion
+          );
+
+          // Convert InstallationResult back to TemplateInstallation for consistency
+          const installation: TemplateInstallation = {
+            templateId: template.id,
+            version: installationResult.version,
+            installPath: installationResult.installPath,
+            installed: new Date(),
+            autoUpdate: existing.autoUpdate,
+            customizations: existing.customizations,
+          };
 
           this.emit('quick-install:updated', { template, installation });
           return { template, installation };
@@ -496,7 +549,16 @@ export class MarketplaceService
       }
 
       // Perform quick installation
-      const installation = await this.install(template.id, targetVersion);
+      const installationResult = await this.install(template.id, targetVersion);
+
+      // Convert InstallationResult to TemplateInstallation for consistency
+      const installation: TemplateInstallation = {
+        templateId: template.id,
+        version: installationResult.version,
+        installPath: installationResult.installPath,
+        installed: new Date(),
+        autoUpdate: options.enableAutoUpdate || false,
+      };
 
       // Enable auto-update if requested
       if (options.enableAutoUpdate && this.manifest) {
@@ -626,7 +688,17 @@ export class MarketplaceService
     for (const dep of requiredDeps) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        const depInstallation = await this.install(dep.name, dep.version);
+        const depInstallationResult = await this.install(dep.name, dep.version);
+
+        // Convert InstallationResult to TemplateInstallation
+        const depInstallation: TemplateInstallation = {
+          templateId: dep.name,
+          version: depInstallationResult.version,
+          installPath: depInstallationResult.installPath,
+          installed: new Date(),
+          autoUpdate: false,
+        };
+
         installedDeps.push(depInstallation);
         logger.info(`Installed dependency: ${dep.name}@${dep.version}`);
       } catch (error) {
@@ -640,7 +712,19 @@ export class MarketplaceService
     }
 
     // Install primary template
-    const primaryInstallation = await this.install(templateId, targetVersion);
+    const primaryInstallationResult = await this.install(
+      templateId,
+      targetVersion
+    );
+
+    // Convert InstallationResult to TemplateInstallation
+    const primaryInstallation: TemplateInstallation = {
+      templateId,
+      version: primaryInstallationResult.version,
+      installPath: primaryInstallationResult.installPath,
+      installed: new Date(),
+      autoUpdate: false,
+    };
 
     this.emit('install-with-deps:completed', {
       primary: primaryInstallation,

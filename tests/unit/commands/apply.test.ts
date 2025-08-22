@@ -10,11 +10,42 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { applyCommand, ApplyOptions } from '../../src/commands/apply';
-import { TemplateEngine } from '../../src/core/template-engine';
-import { TemplateValidator } from '../../src/core/template-validator';
-import { loadConfig } from '../../src/utils/config';
-import { logger } from '../../src/utils/logger';
+import { Stats } from 'fs';
+import { applyCommand, ApplyOptions } from '../../../src/commands/apply';
+import { TemplateEngine } from '../../../src/core/template-engine';
+import { TemplateValidator } from '../../../src/core/template-validator';
+import { loadConfig } from '../../../src/utils/config';
+import { logger } from '../../../src/utils/logger';
+
+// Helper to create mock Stats object
+const createMockStats = (isDirectory: boolean): Stats =>
+  ({
+    isDirectory: () => isDirectory,
+    isFile: () => !isDirectory,
+    isBlockDevice: () => false,
+    isCharacterDevice: () => false,
+    isSymbolicLink: () => false,
+    isFIFO: () => false,
+    isSocket: () => false,
+    dev: 0,
+    ino: 0,
+    mode: 0,
+    nlink: 0,
+    uid: 0,
+    gid: 0,
+    rdev: 0,
+    size: 0,
+    blksize: 0,
+    blocks: 0,
+    atimeMs: 0,
+    mtimeMs: 0,
+    ctimeMs: 0,
+    birthtimeMs: 0,
+    atime: new Date(),
+    mtime: new Date(),
+    ctime: new Date(),
+    birthtime: new Date(),
+  }) as Stats;
 
 // Mock all dependencies
 jest.mock('fs');
@@ -38,8 +69,12 @@ jest.mock('chalk', () => ({
 const mockFs = fs as jest.Mocked<typeof fs>;
 const mockPath = path as jest.Mocked<typeof path>;
 const mockLoadConfig = loadConfig as jest.MockedFunction<typeof loadConfig>;
-const MockTemplateEngine = TemplateEngine as jest.MockedClass<typeof TemplateEngine>;
-const MockTemplateValidator = TemplateValidator as jest.MockedClass<typeof TemplateValidator>;
+const MockTemplateEngine = TemplateEngine as jest.MockedClass<
+  typeof TemplateEngine
+>;
+const MockTemplateValidator = TemplateValidator as jest.MockedClass<
+  typeof TemplateValidator
+>;
 
 describe('Apply Command', () => {
   let mockTemplateEngine: jest.Mocked<TemplateEngine>;
@@ -47,18 +82,18 @@ describe('Apply Command', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock console methods since logger uses console under the hood
     jest.spyOn(console, 'log').mockImplementation();
     jest.spyOn(console, 'error').mockImplementation();
-    
+
     // Mock logger methods as well for direct testing
     jest.spyOn(logger, 'info').mockImplementation();
     jest.spyOn(logger, 'error').mockImplementation();
     jest.spyOn(logger, 'warn').mockImplementation();
     jest.spyOn(logger, 'success').mockImplementation();
     jest.spyOn(logger, 'debug').mockImplementation();
-    
+
     // Setup default mocks
     mockTemplateEngine = {
       render: jest.fn(),
@@ -78,21 +113,32 @@ describe('Apply Command', () => {
       defaultTemplate: 'default',
       variables: {},
       formats: { default: 'markdown', supported: ['markdown', 'json'] },
-      features: { clipboard: true, preview: true, validation: true, autoBackup: false },
-      metadata: { version: '1.0.0', created: '2025-01-01', lastModified: '2025-01-01' }
+      features: {
+        clipboard: true,
+        preview: true,
+        validation: true,
+        autoBackup: false,
+      },
+      metadata: {
+        version: '1.0.0',
+        created: '2025-01-01',
+        lastModified: '2025-01-01',
+      },
     });
 
     // Default validation success
     mockTemplateValidator.validate.mockResolvedValue({
       valid: true,
       errors: [],
-      warnings: []
+      warnings: [],
     });
 
     // Mock path methods
     mockPath.join.mockImplementation((...args: string[]) => args.join('/'));
     mockPath.resolve.mockImplementation((p: string) => `/resolved/${p}`);
-    mockPath.dirname.mockImplementation((p: string) => p.split('/').slice(0, -1).join('/') || '/');
+    mockPath.dirname.mockImplementation(
+      (p: string) => p.split('/').slice(0, -1).join('/') || '/'
+    );
     mockPath.basename.mockImplementation((p: string) => {
       if (p === '/mock/cwd') return 'test-project';
       return p.split('/').pop() || p;
@@ -107,9 +153,8 @@ describe('Apply Command', () => {
 
     // Mock Date
     const mockDate = new Date('2025-08-22T15:30:00Z');
-    jest.spyOn(global, 'Date').mockImplementation(() => mockDate as unknown);
-    (global.Date as unknown).prototype.toISOString = () => '2025-08-22T15:30:00.000Z';
-    (global.Date as unknown).prototype.getFullYear = () => 2025;
+    jest.spyOn(global, 'Date').mockImplementation(() => mockDate as any);
+    (global.Date as any).prototype = Date.prototype;
   });
 
   afterEach(() => {
@@ -126,9 +171,9 @@ describe('Apply Command', () => {
         files: [
           {
             path: 'test-file.md',
-            content: 'Test content'
-          }
-        ]
+            content: 'Test content',
+          },
+        ],
       };
 
       // Mock file system operations
@@ -138,8 +183,8 @@ describe('Apply Command', () => {
         if (path === '/resolved') return false;
         return false;
       });
-      
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
       mockFs.mkdirSync.mockImplementation();
@@ -147,7 +192,11 @@ describe('Apply Command', () => {
       await applyCommand(templateName);
 
       // Test core functionality
-      expect(mockFs.writeFileSync).toHaveBeenCalledWith('/resolved/test-file.md', 'Test content', 'utf8');
+      expect(mockFs.writeFileSync).toHaveBeenCalledWith(
+        '/resolved/test-file.md',
+        'Test content',
+        'utf8'
+      );
       expect(logger.info).toHaveBeenCalled(); // Called at least once
       expect(logger.success).toHaveBeenCalled(); // Called at least once
     });
@@ -157,8 +206,10 @@ describe('Apply Command', () => {
 
       mockFs.existsSync.mockReturnValue(false);
 
-      await expect(applyCommand(templateName)).rejects.toThrow("Template 'nonexistent-template' not found");
-      
+      await expect(applyCommand(templateName)).rejects.toThrow(
+        "Template 'nonexistent-template' not found"
+      );
+
       expect(logger.error).toHaveBeenCalled(); // Should log error
     });
 
@@ -170,16 +221,18 @@ describe('Apply Command', () => {
         if (path === '/mock/templates/invalid-template.json') return true;
         return false;
       });
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
 
       mockTemplateValidator.validate.mockResolvedValue({
         valid: false,
         errors: ['Missing required field: version', 'Invalid file structure'],
-        warnings: []
+        warnings: [],
       });
 
-      await expect(applyCommand(templateName)).rejects.toThrow('Invalid template');
+      await expect(applyCommand(templateName)).rejects.toThrow(
+        'Invalid template'
+      );
 
       expect(logger.error).toHaveBeenCalled(); // Should log validation errors
     });
@@ -193,17 +246,17 @@ describe('Apply Command', () => {
         files: [
           {
             path: 'preview-file.md',
-            content: 'Preview content'
-          }
+            content: 'Preview content',
+          },
         ],
         variables: {
           testVar: {
             type: 'string',
-            default: 'default-value'
-          }
-        }
+            default: 'default-value',
+          },
+        },
       };
-      
+
       const options: ApplyOptions = { preview: true };
 
       mockFs.existsSync.mockImplementation((path: unknown) => {
@@ -211,8 +264,8 @@ describe('Apply Command', () => {
         if (path === 'preview-file.md') return false;
         return false;
       });
-      
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
 
       await applyCommand(templateName, options);
@@ -228,11 +281,11 @@ describe('Apply Command', () => {
         files: [
           {
             path: 'existing-file.md',
-            content: 'New content'
-          }
-        ]
+            content: 'New content',
+          },
+        ],
       };
-      
+
       const options: ApplyOptions = { force: true };
 
       mockFs.existsSync.mockImplementation((path: unknown) => {
@@ -240,14 +293,18 @@ describe('Apply Command', () => {
         if (path === '/resolved/existing-file.md') return true; // File exists
         return false;
       });
-      
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
 
       await applyCommand(templateName, options);
 
-      expect(mockFs.writeFileSync).toHaveBeenCalledWith('/resolved/existing-file.md', 'New content', 'utf8');
+      expect(mockFs.writeFileSync).toHaveBeenCalledWith(
+        '/resolved/existing-file.md',
+        'New content',
+        'utf8'
+      );
       expect(logger.info).toHaveBeenCalled(); // Should log file update
     });
 
@@ -258,9 +315,9 @@ describe('Apply Command', () => {
         files: [
           {
             path: 'existing-file.md',
-            content: 'New content'
-          }
-        ]
+            content: 'New content',
+          },
+        ],
       };
 
       mockFs.existsSync.mockImplementation((path: unknown) => {
@@ -268,8 +325,8 @@ describe('Apply Command', () => {
         if (path === '/resolved/existing-file.md') return true; // File exists
         return false;
       });
-      
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
 
       await applyCommand(templateName, {});
@@ -285,13 +342,13 @@ describe('Apply Command', () => {
         files: [
           {
             path: 'variable-file.md',
-            template: 'Hello {{name}}!'
-          }
-        ]
+            template: 'Hello {{name}}!',
+          },
+        ],
       };
-      
+
       const options: ApplyOptions = {
-        variables: { name: 'World' }
+        variables: { name: 'World' },
       };
 
       mockFs.existsSync.mockImplementation((path: unknown) => {
@@ -300,7 +357,7 @@ describe('Apply Command', () => {
         if (path === '/resolved') return false;
         return false;
       });
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
 
@@ -323,22 +380,29 @@ describe('Apply Command', () => {
       const templateName = 'dir-template';
       const mockTemplate = {
         name: 'Directory Template',
-        files: [{ path: 'dir-file.md', content: 'Directory content' }]
+        files: [{ path: 'dir-file.md', content: 'Directory content' }],
       };
 
       mockFs.existsSync.mockImplementation((path: unknown) => {
         if (path === '/mock/templates/dir-template/template.json') return true;
         return false;
       });
-      
-      mockFs.statSync.mockReturnValue({ isDirectory: () => true } as unknown);
+
+      mockFs.statSync.mockReturnValue(createMockStats(true));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
 
       await applyCommand(templateName);
 
-      expect(mockFs.readFileSync).toHaveBeenCalledWith('/mock/templates/dir-template/template.json', 'utf8');
-      expect(mockFs.writeFileSync).toHaveBeenCalledWith('/resolved/dir-file.md', 'Directory content', 'utf8');
+      expect(mockFs.readFileSync).toHaveBeenCalledWith(
+        '/mock/templates/dir-template/template.json',
+        'utf8'
+      );
+      expect(mockFs.writeFileSync).toHaveBeenCalledWith(
+        '/resolved/dir-file.md',
+        'Directory content',
+        'utf8'
+      );
     });
 
     it('should handle YAML template rejection', async () => {
@@ -348,11 +412,13 @@ describe('Apply Command', () => {
         if (path === '/mock/templates/yaml-template.yaml') return true;
         return false;
       });
-      
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue('name: YAML Template');
 
-      await expect(applyCommand(templateName)).rejects.toThrow('YAML templates not yet supported');
+      await expect(applyCommand(templateName)).rejects.toThrow(
+        'YAML templates not yet supported'
+      );
     });
 
     it('should handle unsupported template format', async () => {
@@ -362,12 +428,14 @@ describe('Apply Command', () => {
         if (path === '/mock/templates/unsupported-template.xml') return true;
         return false;
       });
-      
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue('<template></template>');
 
       // The apply command doesn't find .xml files, so it throws "not found"
-      await expect(applyCommand(templateName)).rejects.toThrow(`Template 'unsupported-template.xml' not found`);
+      await expect(applyCommand(templateName)).rejects.toThrow(
+        `Template 'unsupported-template.xml' not found`
+      );
     });
 
     it('should create directories when they do not exist', async () => {
@@ -377,9 +445,9 @@ describe('Apply Command', () => {
         files: [
           {
             path: 'nested/deep/file.md',
-            content: 'Nested content'
-          }
-        ]
+            content: 'Nested content',
+          },
+        ],
       };
 
       mockFs.existsSync.mockImplementation((path: unknown) => {
@@ -387,16 +455,22 @@ describe('Apply Command', () => {
         if (path === '/resolved/nested/deep') return false; // Directory doesn't exist
         return false;
       });
-      
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
       mockFs.mkdirSync.mockImplementation();
 
       await applyCommand(templateName);
 
-      expect(mockFs.mkdirSync).toHaveBeenCalledWith('/resolved/nested/deep', { recursive: true });
-      expect(mockFs.writeFileSync).toHaveBeenCalledWith('/resolved/nested/deep/file.md', 'Nested content', 'utf8');
+      expect(mockFs.mkdirSync).toHaveBeenCalledWith('/resolved/nested/deep', {
+        recursive: true,
+      });
+      expect(mockFs.writeFileSync).toHaveBeenCalledWith(
+        '/resolved/nested/deep/file.md',
+        'Nested content',
+        'utf8'
+      );
     });
 
     it('should handle file processing errors gracefully', async () => {
@@ -406,13 +480,13 @@ describe('Apply Command', () => {
         files: [
           {
             path: 'good-file.md',
-            content: 'Good content'
+            content: 'Good content',
           },
           {
             path: 'bad-file.md',
-            content: 'Bad content'
-          }
-        ]
+            content: 'Bad content',
+          },
+        ],
       };
 
       mockFs.existsSync.mockImplementation((path: unknown) => {
@@ -422,17 +496,19 @@ describe('Apply Command', () => {
         if (path === '/resolved') return false;
         return false;
       });
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.mkdirSync.mockImplementation();
-      
+
       mockFs.writeFileSync.mockImplementation((path: unknown) => {
         if (path === '/resolved/bad-file.md') {
           throw new Error('Permission denied');
         }
       });
 
-      await expect(applyCommand(templateName)).rejects.toThrow('Template application failed');
+      await expect(applyCommand(templateName)).rejects.toThrow(
+        'Template application failed'
+      );
 
       expect(logger.info).toHaveBeenCalled(); // Should log successful file creation
       expect(logger.error).toHaveBeenCalled(); // Should log errors
@@ -445,9 +521,9 @@ describe('Apply Command', () => {
         files: [
           {
             path: 'vars-file.md',
-            template: 'Project: {{projectName}}, Year: {{year}}'
-          }
-        ]
+            template: 'Project: {{projectName}}, Year: {{year}}',
+          },
+        ],
       };
 
       mockFs.existsSync.mockImplementation((path: unknown) => {
@@ -456,11 +532,13 @@ describe('Apply Command', () => {
         if (path === '/resolved') return false;
         return false;
       });
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
 
-      mockTemplateEngine.render.mockResolvedValue('Project: test-project, Year: 2025');
+      mockTemplateEngine.render.mockResolvedValue(
+        'Project: test-project, Year: 2025'
+      );
 
       await applyCommand(templateName);
 
@@ -470,7 +548,7 @@ describe('Apply Command', () => {
           projectName: 'test-project',
           projectPath: '/mock/cwd',
           timestamp: '2025-08-22T15:30:00.000Z',
-          year: 2025
+          year: 2025,
         })
       );
     });
@@ -485,30 +563,30 @@ describe('Apply Command', () => {
           username: {
             type: 'string',
             default: 'admin',
-            description: 'The username'
+            description: 'The username',
           },
           port: {
             type: 'number',
-            default: 3000
-          }
+            default: 3000,
+          },
         },
         files: [
           {
             path: 'config.json',
-            template: '{"username": "{{username}}", "port": {{port}}}'
-          }
+            template: '{"username": "{{username}}", "port": {{port}}}',
+          },
         ],
         commands: [
           {
             command: 'npm install',
-            description: 'Install dependencies'
-          }
-        ]
+            description: 'Install dependencies',
+          },
+        ],
       };
-      
-      const options: ApplyOptions = { 
+
+      const options: ApplyOptions = {
         preview: true,
-        variables: { username: 'custom-user' }
+        variables: { username: 'custom-user' },
       };
 
       mockFs.existsSync.mockImplementation((path: unknown) => {
@@ -516,8 +594,8 @@ describe('Apply Command', () => {
         if (path === 'config.json') return false;
         return false;
       });
-      
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
 
       await applyCommand(templateName, options);
@@ -530,19 +608,32 @@ describe('Apply Command', () => {
       const templateName = 'multi-dir-template';
       const mockTemplate = {
         name: 'Multi Directory Template',
-        files: [{ path: 'multi-file.md', content: 'Multi content' }]
+        files: [{ path: 'multi-file.md', content: 'Multi content' }],
       };
 
       // Mock config with multiple template paths
       mockLoadConfig.mockResolvedValue({
-        templatePaths: ['/mock/templates1', '/mock/templates2', '/mock/templates3'],
+        templatePaths: [
+          '/mock/templates1',
+          '/mock/templates2',
+          '/mock/templates3',
+        ],
         projectName: 'test-project',
         outputPath: './output',
         defaultTemplate: 'default',
         variables: {},
         formats: { default: 'markdown', supported: ['markdown', 'json'] },
-        features: { clipboard: true, preview: true, validation: true, autoBackup: false },
-        metadata: { version: '1.0.0', created: '2025-01-01', lastModified: '2025-01-01' }
+        features: {
+          clipboard: true,
+          preview: true,
+          validation: true,
+          autoBackup: false,
+        },
+        metadata: {
+          version: '1.0.0',
+          created: '2025-01-01',
+          lastModified: '2025-01-01',
+        },
       });
 
       mockFs.existsSync.mockImplementation((path: unknown) => {
@@ -550,22 +641,29 @@ describe('Apply Command', () => {
         if (path === '/mock/templates2/multi-dir-template.json') return true;
         return false;
       });
-      
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockTemplate));
       mockFs.writeFileSync.mockImplementation();
 
       await applyCommand(templateName);
 
-      expect(mockFs.readFileSync).toHaveBeenCalledWith('/mock/templates2/multi-dir-template.json', 'utf8');
-      expect(mockFs.writeFileSync).toHaveBeenCalledWith('/resolved/multi-file.md', 'Multi content', 'utf8');
+      expect(mockFs.readFileSync).toHaveBeenCalledWith(
+        '/mock/templates2/multi-dir-template.json',
+        'utf8'
+      );
+      expect(mockFs.writeFileSync).toHaveBeenCalledWith(
+        '/resolved/multi-file.md',
+        'Multi content',
+        'utf8'
+      );
     });
 
     it('should handle JSON parsing errors', async () => {
       const templateName = 'invalid-json-template';
 
       mockFs.existsSync.mockReturnValue(true);
-      mockFs.statSync.mockReturnValue({ isDirectory: () => false } as unknown);
+      mockFs.statSync.mockReturnValue(createMockStats(false));
       mockFs.readFileSync.mockReturnValue('{ invalid json }');
 
       await expect(applyCommand(templateName)).rejects.toThrow();

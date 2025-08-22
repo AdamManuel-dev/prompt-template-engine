@@ -36,12 +36,21 @@ export class MockFactory {
   /**
    * Create a comprehensive file system mock with predefined structure
    */
-  static createFileSystemMock(options: MockFileSystemOptions = {}): typeof mockFileSystem {
+  static createFileSystemMock(
+    options: MockFileSystemOptions = {}
+  ): typeof mockFileSystem {
     mockFileSystem.reset();
 
     // Add default directories
-    const defaultDirectories = ['src', 'tests', 'dist', ...options.directories || []];
-    defaultDirectories.forEach(dir => mockFileSystem.addDirectory(`/test/project/${dir}`));
+    const defaultDirectories = [
+      'src',
+      'tests',
+      'dist',
+      ...(options.directories || []),
+    ];
+    defaultDirectories.forEach(dir =>
+      mockFileSystem.addDirectory(`/test/project/${dir}`)
+    );
 
     // Add default files
     const defaultFiles = {
@@ -52,7 +61,7 @@ export class MockFactory {
       }),
       '/test/project/README.md': '# Test Project\n\nThis is a test project.',
       '/test/project/.gitignore': 'node_modules/\n*.log\n.DS_Store',
-      ...options.files || {},
+      ...(options.files || {}),
     };
 
     Object.entries(defaultFiles).forEach(([path, content]) => {
@@ -101,7 +110,9 @@ export class MockFactory {
   /**
    * Create a mock file context service
    */
-  static createFileContextServiceMock(options: MockServiceOptions = {}): unknown {
+  static createFileContextServiceMock(
+    options: MockServiceOptions = {}
+  ): unknown {
     const mockService = {
       getFileInfo: jest.fn().mockImplementation((path: string) => {
         if (options.throwOnError) {
@@ -150,13 +161,17 @@ export class MockFactory {
         },
       ]),
 
-      getContext: jest.fn().mockResolvedValue(new Map([
-        ['src/index.ts', { content: '// Mock content', lines: 10 }],
-      ])),
+      getContext: jest
+        .fn()
+        .mockResolvedValue(
+          new Map([['src/index.ts', { content: '// Mock content', lines: 10 }]])
+        ),
 
-      getProjectSummary: jest.fn().mockResolvedValue(
-        'Project: test-project\nFiles: 10\nLanguages: TypeScript, JSON'
-      ),
+      getProjectSummary: jest
+        .fn()
+        .mockResolvedValue(
+          'Project: test-project\nFiles: 10\nLanguages: TypeScript, JSON'
+        ),
     };
 
     return mockService;
@@ -167,26 +182,39 @@ export class MockFactory {
    */
   static createTemplateEngineMock(options: MockServiceOptions = {}): unknown {
     const mockEngine = {
-      render: jest.fn().mockImplementation(async (template: string, context: TemplateContext) => {
-        if (options.throwOnError) {
-          throw new Error('Template rendering failed');
-        }
-        
-        if (options.delayMs) {
-          await new Promise(resolve => setTimeout(resolve, options.delayMs));
-        }
+      render: jest
+        .fn()
+        .mockImplementation(
+          async (template: string, context: TemplateContext) => {
+            if (options.throwOnError) {
+              throw new Error('Template rendering failed');
+            }
 
-        // Simple template replacement for testing
-        return template.replace(/\{\{(\w+(\.\w+)*)\}\}/g, (match, key) => {
-          const value = MockFactory.getNestedValue(context, key);
-          return value !== undefined ? String(value) : match;
-        });
-      }),
+            if (options.delayMs) {
+              await new Promise(resolve =>
+                setTimeout(resolve, options.delayMs)
+              );
+            }
 
-      renderFile: jest.fn().mockImplementation(async (filePath: string, context: TemplateContext) => {
-        const template = mockFileSystem.readFileSync(filePath, 'utf8') as string;
-        return mockEngine.render(template, context);
-      }),
+            // Simple template replacement for testing
+            return template.replace(/\{\{(\w+(\.\w+)*)\}\}/g, (match, key) => {
+              const value = MockFactory.getNestedValue(context, key);
+              return value !== undefined ? String(value) : match;
+            });
+          }
+        ),
+
+      renderFile: jest
+        .fn()
+        .mockImplementation(
+          async (filePath: string, context: TemplateContext) => {
+            const template = mockFileSystem.readFileSync(
+              filePath,
+              'utf8'
+            ) as string;
+            return mockEngine.render(template, context);
+          }
+        ),
 
       hasVariables: jest.fn().mockImplementation((template: string) => {
         return /\{\{\w+(\.\w+)*\}\}/.test(template);
@@ -197,17 +225,20 @@ export class MockFactory {
         return matches.map(match => match.slice(2, -2).trim());
       }),
 
-      validateContext: jest.fn().mockImplementation((template: string, context: TemplateContext) => {
-        const variables = mockEngine.extractVariables(template);
-        const missing = variables.filter((variable: string) => 
-          MockFactory.getNestedValue(context, variable) === undefined
-        );
-        
-        return {
-          valid: missing.length === 0,
-          missing,
-        };
-      }),
+      validateContext: jest
+        .fn()
+        .mockImplementation((template: string, context: TemplateContext) => {
+          const variables = mockEngine.extractVariables(template);
+          const missing = variables.filter(
+            (variable: string) =>
+              MockFactory.getNestedValue(context, variable) === undefined
+          );
+
+          return {
+            valid: missing.length === 0,
+            missing,
+          };
+        }),
     };
 
     return mockEngine;
@@ -230,9 +261,11 @@ export class MockFactory {
         defaultConfig[key] = value;
       }),
       getMergedConfig: jest.fn().mockReturnValue(defaultConfig),
-      getConfigValue: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
-        return MockFactory.getNestedValue(defaultConfig, key) ?? defaultValue;
-      }),
+      getConfigValue: jest
+        .fn()
+        .mockImplementation((key: string, defaultValue?: any) => {
+          return MockFactory.getNestedValue(defaultConfig, key) ?? defaultValue;
+        }),
       validateConfig: jest.fn().mockReturnValue({ valid: true, errors: [] }),
     };
   }
@@ -271,8 +304,11 @@ export class MockFactory {
   /**
    * Create a promise that rejects after a delay (for error testing)
    */
-  static rejectAfter(ms: number, message: string = 'Mock rejection'): Promise<never> {
-    return new Promise((_, reject) => 
+  static rejectAfter(
+    ms: number,
+    message: string = 'Mock rejection'
+  ): Promise<never> {
+    return new Promise((_, reject) =>
       setTimeout(() => reject(new Error(message)), ms)
     );
   }

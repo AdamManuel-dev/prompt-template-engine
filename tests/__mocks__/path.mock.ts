@@ -10,18 +10,12 @@
 
 export const pathMock = {
   join: jest.fn((...paths: string[]): string => {
-    return paths
-      .filter(Boolean)
-      .join('/')
-      .replace(/\/+/g, '/'); // Normalize multiple slashes
+    return paths.filter(Boolean).join('/').replace(/\/+/g, '/'); // Normalize multiple slashes
   }),
 
   resolve: jest.fn((...paths: string[]): string => {
-    const resolved = paths
-      .filter(Boolean)
-      .join('/')
-      .replace(/\/+/g, '/');
-    
+    const resolved = paths.filter(Boolean).join('/').replace(/\/+/g, '/');
+
     // Make absolute if not already
     if (!resolved.startsWith('/')) {
       return `/test/cwd/${resolved}`;
@@ -39,22 +33,22 @@ export const pathMock = {
   basename: jest.fn((path: string, ext?: string): string => {
     const lastSlash = path.lastIndexOf('/');
     let basename = lastSlash === -1 ? path : path.slice(lastSlash + 1);
-    
+
     if (ext && basename.endsWith(ext)) {
       basename = basename.slice(0, -ext.length);
     }
-    
+
     return basename;
   }),
 
   extname: jest.fn((path: string): string => {
     const lastDot = path.lastIndexOf('.');
     const lastSlash = path.lastIndexOf('/');
-    
+
     if (lastDot === -1 || lastDot < lastSlash) {
       return '';
     }
-    
+
     return path.slice(lastDot);
   }),
 
@@ -89,10 +83,7 @@ pathMock.win32 = {
   sep: '\\',
   delimiter: ';',
   join: jest.fn((...paths: string[]): string => {
-    return paths
-      .filter(Boolean)
-      .join('\\')
-      .replace(/\\+/g, '\\');
+    return paths.filter(Boolean).join('\\').replace(/\\+/g, '\\');
   }),
 };
 

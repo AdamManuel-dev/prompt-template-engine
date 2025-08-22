@@ -13,9 +13,42 @@ import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
-import { TemplateReview } from '../../marketplace/models/template.model';
+import {
+  TemplateReview,
+  TemplateModel,
+} from '../../marketplace/models/template.model';
 import { MarketplaceCommandOptions, MarketplaceTemplate } from '../../types';
 import { logger } from '../../utils/logger';
+
+/**
+ * Convert TemplateModel to MarketplaceTemplate
+ */
+function convertToMarketplaceTemplate(
+  template: TemplateModel
+): MarketplaceTemplate {
+  return {
+    id: template.id,
+    name: template.name,
+    description: template.description || '',
+    category: template.category || 'other',
+    tags: template.tags || [],
+    author: template.author || {
+      id: 'unknown',
+      name: 'Unknown',
+      verified: false,
+    },
+    currentVersion: template.currentVersion || '1.0.0',
+    versions: [],
+    downloads: template.downloads || 0,
+    rating: template.rating || 0,
+    reviewCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    repository: template.repository,
+    displayName: template.displayName,
+    stats: template.stats,
+  } as MarketplaceTemplate;
+}
 
 export class RateCommand extends BaseCommand implements ICommand {
   name = 'rate';
@@ -60,7 +93,7 @@ export class RateCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -93,7 +126,7 @@ export class RateCommand extends BaseCommand implements ICommand {
 
       // Show existing reviews if requested
       if (options.showReviews) {
-        await this.displayReviews(template);
+        await this.displayReviews(convertToMarketplaceTemplate(template));
         return;
       }
 
@@ -105,7 +138,7 @@ export class RateCommand extends BaseCommand implements ICommand {
 
       // Interactive mode
       if (options.interactive) {
-        await this.interactiveRating(template);
+        await this.interactiveRating(convertToMarketplaceTemplate(template));
         return;
       }
 
@@ -118,7 +151,7 @@ export class RateCommand extends BaseCommand implements ICommand {
       }
 
       // Submit rating
-      await this.submitRating(template, rating, {
+      await this.submitRating(convertToMarketplaceTemplate(template), rating, {
         title: options.title,
         comment: options.comment,
         version: installedTemplate.version,
@@ -190,7 +223,7 @@ export class RateCommand extends BaseCommand implements ICommand {
         version: review.version || template.currentVersion,
       };
 
-      await marketplace.rateTemplate(template.id, rating, reviewData);
+      await marketplace.rate(template.id, rating, reviewData);
 
       // Show success message
       logger.info(chalk.green('\n✓ Review submitted successfully!'));
@@ -233,11 +266,13 @@ export class RateCommand extends BaseCommand implements ICommand {
     // Show overall rating
     const { rating } = template;
     logger.info(
-      `Overall Rating: ${RateCommand.formatStars(rating.average)} (${rating.total} reviews)`
+      `Overall Rating: ${RateCommand.formatStars(typeof rating === 'number' ? rating : rating.average)} (${typeof rating === 'number' ? template.reviewCount : rating.total} reviews)`
     );
 
     // Show rating distribution
-    RateCommand.displayRatingDistribution(rating.distribution);
+    if (typeof rating !== 'number' && rating.distribution) {
+      RateCommand.displayRatingDistribution(rating.distribution);
+    }
 
     // Get and display reviews
     try {
@@ -317,7 +352,7 @@ export class RateCommand extends BaseCommand implements ICommand {
       logger.info(`   ${chalk.gray(`for version ${review.version}`)}`);
     }
 
-    logger.info();
+    logger.info('');
   }
 
   // eslint-disable-next-line no-unused-vars

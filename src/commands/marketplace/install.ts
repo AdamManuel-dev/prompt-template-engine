@@ -55,7 +55,7 @@ export class InstallCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -117,7 +117,7 @@ export class InstallCommand extends BaseCommand implements ICommand {
       }
 
       // Show template information
-      this.displayTemplateInfo(template);
+      this.displayTemplateInfo(template as unknown as MarketplaceTemplate);
 
       // Check version
       const targetVersion = options.version || template.currentVersion;
@@ -201,8 +201,21 @@ export class InstallCommand extends BaseCommand implements ICommand {
     logger.info(
       `   ${chalk.gray('by')} ${chalk.blue(template.author.name)}${template.author.verified ? ' ✓' : ''}`
     );
+    const ratingValue = (() => {
+      if (typeof template.rating === 'number') {
+        return template.rating;
+      }
+      if (
+        template.rating &&
+        typeof template.rating === 'object' &&
+        'average' in template.rating
+      ) {
+        return template.rating.average;
+      }
+      return 0;
+    })();
     logger.info(
-      `   ${InstallCommand.formatRating(template.rating.average)} • ${chalk.cyan(`${InstallCommand.formatNumber(template.stats.downloads)} downloads`)}`
+      `   ${InstallCommand.formatRating(ratingValue)} • ${chalk.cyan(`${InstallCommand.formatNumber(template.stats?.downloads ?? 0)} downloads`)}`
     );
     logger.info(
       `   ${chalk.magenta(template.category)} • ${chalk.yellow(`v${template.currentVersion}`)}`

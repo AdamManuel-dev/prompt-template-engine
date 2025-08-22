@@ -11,7 +11,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { TemplateEngine, TemplateContext } from '../../src/core/template-engine';
+import {
+  TemplateEngine,
+  TemplateContext,
+} from '../../../src/core/template-engine';
 
 describe('TemplateEngine', () => {
   let engine: TemplateEngine;
@@ -87,7 +90,8 @@ describe('TemplateEngine', () => {
       });
 
       it('should resolve deeply nested properties', async () => {
-        const template = 'Address: {{user.profile.address.street}}, {{user.profile.address.city}}';
+        const template =
+          'Address: {{user.profile.address.street}}, {{user.profile.address.city}}';
         const context: TemplateContext = {
           user: {
             profile: {
@@ -114,7 +118,8 @@ describe('TemplateEngine', () => {
       });
 
       it('should handle mixed nested objects and arrays', async () => {
-        const template = 'First user: {{users.0.name}}, Second user email: {{users.1.email}}';
+        const template =
+          'First user: {{users.0.name}}, Second user email: {{users.1.email}}';
         const context: TemplateContext = {
           users: [
             { name: 'Alice', email: 'alice@example.com' },
@@ -123,7 +128,9 @@ describe('TemplateEngine', () => {
         };
 
         const result = await engine.render(template, context);
-        expect(result).toBe('First user: Alice, Second user email: bob@example.com');
+        expect(result).toBe(
+          'First user: Alice, Second user email: bob@example.com'
+        );
       });
     });
 
@@ -183,7 +190,9 @@ describe('TemplateEngine', () => {
         };
 
         const result = await engine.render(template, context);
-        expect(result).toBe('Message: Hello @world! #testing $pecial chars & symbols');
+        expect(result).toBe(
+          'Message: Hello @world! #testing $pecial chars & symbols'
+        );
       });
 
       it('should handle numeric values', async () => {
@@ -255,14 +264,17 @@ The Team`);
       });
 
       it('should handle malformed variable syntax', async () => {
-        const template = 'Single brace: {name}, Triple brace: {{{name}}}, No closing: {{name';
+        const template =
+          'Single brace: {name}, Triple brace: {{{name}}}, No closing: {{name';
         const context: TemplateContext = {
           name: 'John',
         };
 
         const result = await engine.render(template, context);
         // The regex will match {{name}} inside {{{name}}} and replace it
-        expect(result).toBe('Single brace: {name}, Triple brace: {John}, No closing: {{name');
+        expect(result).toBe(
+          'Single brace: {name}, Triple brace: {John}, No closing: {{name'
+        );
       });
     });
   });
@@ -282,7 +294,7 @@ The Team`);
 
       const result = await engine.renderFile(tempFile, context);
       expect(result).toBe('Hello John, welcome to TypeScript!');
-      
+
       // Cleanup
       fs.rmSync(tempDir, { recursive: true, force: true });
     });
@@ -304,7 +316,7 @@ The Team`);
 
       const result = await engine.renderFile(tempFile, context);
       expect(result).toBe('');
-      
+
       // Cleanup
       fs.rmSync(tempDir, { recursive: true, force: true });
     });
@@ -343,7 +355,7 @@ Description: {{description}}
       fs.writeFileSync(tempFile, templateContent);
 
       const result = await engine.renderFile(tempFile, context);
-      
+
       // Cleanup
       fs.rmSync(tempDir, { recursive: true, force: true });
 
@@ -366,8 +378,12 @@ Description: A comprehensive project template
     it('should return true for templates with variables (individual tests)', () => {
       // Test each case individually to avoid global regex state issues
       expect(new TemplateEngine().hasVariables('Hello {{name}}')).toBe(true);
-      expect(new TemplateEngine().hasVariables('Multiple {{var1}} and {{var2}}')).toBe(true);
-      expect(new TemplateEngine().hasVariables('With whitespace: {{ name }}')).toBe(true);
+      expect(
+        new TemplateEngine().hasVariables('Multiple {{var1}} and {{var2}}')
+      ).toBe(true);
+      expect(
+        new TemplateEngine().hasVariables('With whitespace: {{ name }}')
+      ).toBe(true);
       expect(new TemplateEngine().hasVariables('{{user.email}}')).toBe(true);
     });
 
@@ -386,17 +402,19 @@ Description: A comprehensive project template
       expect(engine.hasVariables('Empty braces: {{}}')).toBe(false);
       expect(engine.hasVariables('Just braces: {{')).toBe(false);
       // This will actually match because it contains {{name}}
-      expect(new TemplateEngine().hasVariables('Triple brace: {{{name}}}')).toBe(true);
+      expect(
+        new TemplateEngine().hasVariables('Triple brace: {{{name}}}')
+      ).toBe(true);
     });
 
     it('should demonstrate global regex state limitation', () => {
       // This test documents a limitation in the current implementation
       // The global regex maintains state between calls
       const testEngine = new TemplateEngine();
-      
+
       // First call works correctly
       expect(testEngine.hasVariables('{{name}}')).toBe(true);
-      
+
       // Subsequent calls may fail due to regex lastIndex state
       // This is why we need fresh engines for reliable testing
       const result = testEngine.hasVariables('{{email}}');
@@ -407,28 +425,41 @@ Description: A comprehensive project template
 
   describe('extractVariables()', () => {
     it('should extract simple variables', () => {
-      const variables = engine.extractVariables('Hello {{name}}, welcome to {{place}}!');
+      const variables = engine.extractVariables(
+        'Hello {{name}}, welcome to {{place}}!'
+      );
       expect(variables).toEqual(['name', 'place']);
     });
 
     it('should extract nested variables', () => {
-      const variables = engine.extractVariables('User: {{user.name}}, Email: {{user.email}}');
+      const variables = engine.extractVariables(
+        'User: {{user.name}}, Email: {{user.email}}'
+      );
       expect(variables).toEqual(['user.name', 'user.email']);
     });
 
     it('should handle variables with whitespace', () => {
-      const variables = engine.extractVariables('Hello {{ name }}, welcome to {{  place  }}!');
+      const variables = engine.extractVariables(
+        'Hello {{ name }}, welcome to {{  place  }}!'
+      );
       expect(variables).toEqual(['name', 'place']);
     });
 
     it('should deduplicate repeated variables', () => {
-      const variables = engine.extractVariables('{{name}} says hello to {{name}} again');
+      const variables = engine.extractVariables(
+        '{{name}} says hello to {{name}} again'
+      );
       expect(variables).toEqual(['name']);
     });
 
     it('should handle complex nested paths', () => {
-      const variables = engine.extractVariables('{{user.profile.address.street}} {{user.profile.address.city}}');
-      expect(variables).toEqual(['user.profile.address.street', 'user.profile.address.city']);
+      const variables = engine.extractVariables(
+        '{{user.profile.address.street}} {{user.profile.address.city}}'
+      );
+      expect(variables).toEqual([
+        'user.profile.address.street',
+        'user.profile.address.city',
+      ]);
     });
 
     it('should return empty array for templates without variables', () => {
@@ -438,12 +469,16 @@ Description: A comprehensive project template
     });
 
     it('should handle variables with underscores and numbers', () => {
-      const variables = engine.extractVariables('{{user_id}} {{version_2}} {{item_count_3}}');
+      const variables = engine.extractVariables(
+        '{{user_id}} {{version_2}} {{item_count_3}}'
+      );
       expect(variables).toEqual(['user_id', 'version_2', 'item_count_3']);
     });
 
     it('should maintain order of first occurrence', () => {
-      const variables = engine.extractVariables('{{third}} {{first}} {{second}} {{first}}');
+      const variables = engine.extractVariables(
+        '{{third}} {{first}} {{second}} {{first}}'
+      );
       expect(variables).toEqual(['third', 'first', 'second']);
     });
   });
@@ -500,7 +535,8 @@ Description: A comprehensive project template
     });
 
     it('should identify missing nested properties', () => {
-      const template = 'User: {{user.name}}, Email: {{user.email}}, Age: {{user.age}}';
+      const template =
+        'User: {{user.name}}, Email: {{user.email}}, Age: {{user.age}}';
       const context: TemplateContext = {
         user: {
           name: 'John',
@@ -535,7 +571,8 @@ Description: A comprehensive project template
     });
 
     it('should consider falsy values as valid', () => {
-      const template = 'Count: {{count}}, Active: {{active}}, Message: {{message}}, Null: {{nullValue}}';
+      const template =
+        'Count: {{count}}, Active: {{active}}, Message: {{message}}, Null: {{nullValue}}';
       const context: TemplateContext = {
         count: 0,
         active: false,
@@ -662,7 +699,8 @@ Version: 1.0.0`);
     });
 
     it('should handle workflow with missing variables', async () => {
-      const template = 'Hello {{name}}, your score is {{score}} out of {{total}}';
+      const template =
+        'Hello {{name}}, your score is {{score}} out of {{total}}';
       const context: TemplateContext = {
         name: 'Alice',
         score: 85,
@@ -684,7 +722,7 @@ Version: 1.0.0`);
     it('should handle simple array iteration', async () => {
       const template = `Items: {{#each items}}{{this}} {{/each}}`;
       const context: TemplateContext = {
-        items: ['apple', 'banana', 'cherry']
+        items: ['apple', 'banana', 'cherry'],
       };
 
       const result = await engine.render(template, context);
@@ -694,7 +732,7 @@ Version: 1.0.0`);
     it('should provide context variables (@index, @first, @last)', async () => {
       const template = `{{#each items}}{{@index}}: {{this}} {{/each}}`;
       const context: TemplateContext = {
-        items: ['first', 'second', 'third']
+        items: ['first', 'second', 'third'],
       };
 
       const result = await engine.render(template, context);
@@ -706,8 +744,8 @@ Version: 1.0.0`);
       const context: TemplateContext = {
         users: [
           { name: 'John', email: 'john@example.com' },
-          { name: 'Jane', email: 'jane@example.com' }
-        ]
+          { name: 'Jane', email: 'jane@example.com' },
+        ],
       };
 
       const result = await engine.render(template, context);
@@ -717,7 +755,7 @@ Version: 1.0.0`);
     it('should handle empty arrays gracefully', async () => {
       const template = `Items: {{#each items}}{{this}}{{/each}} Done.`;
       const context: TemplateContext = {
-        items: []
+        items: [],
       };
 
       const result = await engine.render(template, context);
@@ -727,7 +765,7 @@ Version: 1.0.0`);
     it('should handle non-array values gracefully', async () => {
       const template = `Items: {{#each items}}{{this}}{{/each}} Done.`;
       const context: TemplateContext = {
-        items: null
+        items: null,
       };
 
       const result = await engine.render(template, context);
@@ -739,8 +777,8 @@ Version: 1.0.0`);
       const context: TemplateContext = {
         categories: [
           { name: 'Fruits', items: ['apple', 'banana'] },
-          { name: 'Colors', items: ['red', 'green'] }
-        ]
+          { name: 'Colors', items: ['red', 'green'] },
+        ],
       };
 
       const result = await engine.render(template, context);
@@ -751,7 +789,7 @@ Version: 1.0.0`);
       const template = `Project: {{project}} - Files: {{#each files}}{{this}} {{/each}}`;
       const context: TemplateContext = {
         project: 'MyApp',
-        files: ['index.ts', 'config.json']
+        files: ['index.ts', 'config.json'],
       };
 
       const result = await engine.render(template, context);
@@ -762,7 +800,7 @@ Version: 1.0.0`);
       const template = `Fruits: {{#each fruits}}{{this}} {{/each}}; Colors: {{#each colors}}{{this}} {{/each}}`;
       const context: TemplateContext = {
         fruits: ['apple', 'orange'],
-        colors: ['red', 'blue']
+        colors: ['red', 'blue'],
       };
 
       const result = await engine.render(template, context);
@@ -788,18 +826,18 @@ Items:
             description: 'Database configuration',
             items: [
               { name: 'host', value: 'localhost' },
-              { name: 'port', value: '5432' }
-            ]
+              { name: 'port', value: '5432' },
+            ],
           },
           {
             name: 'Cache',
             description: 'Cache configuration',
             items: [
               { name: 'type', value: 'redis' },
-              { name: 'ttl', value: '3600' }
-            ]
-          }
-        ]
+              { name: 'ttl', value: '3600' },
+            ],
+          },
+        ],
       };
 
       const result = await engine.render(template, context);
@@ -829,7 +867,7 @@ Items:
       it('should render content when condition is truthy', async () => {
         const template = '{{#if showMessage}}Hello World!{{/if}}';
         const context: TemplateContext = { showMessage: true };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Hello World!');
       });
@@ -837,59 +875,62 @@ Items:
       it('should not render content when condition is falsy', async () => {
         const template = '{{#if showMessage}}Hello World!{{/if}}';
         const context: TemplateContext = { showMessage: false };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('');
       });
 
       it('should handle nested variables within if blocks', async () => {
         const template = '{{#if user}}Hello {{user.name}}!{{/if}}';
-        const context: TemplateContext = { 
-          user: { name: 'John' }
+        const context: TemplateContext = {
+          user: { name: 'John' },
         };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Hello John!');
       });
 
       it('should handle nested if blocks', async () => {
-        const template = '{{#if user}}{{#if user.active}}Active user: {{user.name}}{{/if}}{{/if}}';
-        const context: TemplateContext = { 
-          user: { name: 'John', active: true }
+        const template =
+          '{{#if user}}{{#if user.active}}Active user: {{user.name}}{{/if}}{{/if}}';
+        const context: TemplateContext = {
+          user: { name: 'John', active: true },
         };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Active user: John');
       });
 
       it('should handle multiple if blocks', async () => {
-        const template = '{{#if showA}}A{{/if}}{{#if showB}}B{{/if}}{{#if showC}}C{{/if}}';
-        const context: TemplateContext = { 
+        const template =
+          '{{#if showA}}A{{/if}}{{#if showB}}B{{/if}}{{#if showC}}C{{/if}}';
+        const context: TemplateContext = {
           showA: true,
           showB: false,
-          showC: true
+          showC: true,
         };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('AC');
       });
 
       it('should handle if blocks with arrays', async () => {
         const template = '{{#if items}}Found {{items.length}} items{{/if}}';
-        const context: TemplateContext = { 
-          items: ['a', 'b', 'c']
+        const context: TemplateContext = {
+          items: ['a', 'b', 'c'],
         };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Found 3 items');
       });
 
       it('should handle if blocks with empty arrays', async () => {
-        const template = '{{#if items}}Has items{{/if}}{{#unless items}}No items{{/unless}}';
-        const context: TemplateContext = { 
-          items: []
+        const template =
+          '{{#if items}}Has items{{/if}}{{#unless items}}No items{{/unless}}';
+        const context: TemplateContext = {
+          items: [],
         };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('No items');
       });
@@ -899,7 +940,7 @@ Items:
       it('should render content when condition is falsy', async () => {
         const template = '{{#unless hideMessage}}Hello World!{{/unless}}';
         const context: TemplateContext = { hideMessage: false };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Hello World!');
       });
@@ -907,27 +948,29 @@ Items:
       it('should not render content when condition is truthy', async () => {
         const template = '{{#unless hideMessage}}Hello World!{{/unless}}';
         const context: TemplateContext = { hideMessage: true };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('');
       });
 
       it('should handle nested variables within unless blocks', async () => {
-        const template = '{{#unless user.disabled}}User {{user.name}} is enabled{{/unless}}';
-        const context: TemplateContext = { 
-          user: { name: 'John', disabled: false }
+        const template =
+          '{{#unless user.disabled}}User {{user.name}} is enabled{{/unless}}';
+        const context: TemplateContext = {
+          user: { name: 'John', disabled: false },
         };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('User John is enabled');
       });
 
       it('should handle nested unless blocks', async () => {
-        const template = '{{#unless user.disabled}}{{#unless user.suspended}}Active: {{user.name}}{{/unless}}{{/unless}}';
-        const context: TemplateContext = { 
-          user: { name: 'John', disabled: false, suspended: false }
+        const template =
+          '{{#unless user.disabled}}{{#unless user.suspended}}Active: {{user.name}}{{/unless}}{{/unless}}';
+        const context: TemplateContext = {
+          user: { name: 'John', disabled: false, suspended: false },
         };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Active: John');
       });
@@ -937,7 +980,7 @@ Items:
       it('should render else content when #if condition is false', async () => {
         const template = '{{#if showMessage}}Hello!{{else}}Goodbye!{{/if}}';
         const context: TemplateContext = { showMessage: false };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Goodbye!');
       });
@@ -945,39 +988,43 @@ Items:
       it('should render if content when #if condition is true', async () => {
         const template = '{{#if showMessage}}Hello!{{else}}Goodbye!{{/if}}';
         const context: TemplateContext = { showMessage: true };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Hello!');
       });
 
       it('should render else content when #unless condition is true', async () => {
-        const template = '{{#unless hideMessage}}Visible{{else}}Hidden{{/unless}}';
+        const template =
+          '{{#unless hideMessage}}Visible{{else}}Hidden{{/unless}}';
         const context: TemplateContext = { hideMessage: true };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Hidden');
       });
 
       it('should render unless content when #unless condition is false', async () => {
-        const template = '{{#unless hideMessage}}Visible{{else}}Hidden{{/unless}}';
+        const template =
+          '{{#unless hideMessage}}Visible{{else}}Hidden{{/unless}}';
         const context: TemplateContext = { hideMessage: false };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Visible');
       });
 
       it('should handle nested else blocks', async () => {
-        const template = '{{#if outer}}{{#if inner}}Inner true{{else}}Inner false{{/if}}{{else}}Outer false{{/if}}';
+        const template =
+          '{{#if outer}}{{#if inner}}Inner true{{else}}Inner false{{/if}}{{else}}Outer false{{/if}}';
         const context: TemplateContext = { outer: true, inner: false };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Inner false');
       });
 
       it('should work with variables in else blocks', async () => {
-        const template = '{{#if hasName}}Hello {{name}}!{{else}}Hello stranger!{{/if}}';
+        const template =
+          '{{#if hasName}}Hello {{name}}!{{else}}Hello stranger!{{/if}}';
         const context: TemplateContext = { hasName: false };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Hello stranger!');
       });
@@ -985,13 +1032,13 @@ Items:
       it('should work with complex templates', async () => {
         const template = `{{#if user}}Welcome {{user.name}}!
 {{#if user.isAdmin}}You have admin access.{{else}}You have regular access.{{/if}}{{else}}Please log in.{{/if}}`;
-        const context: TemplateContext = { 
-          user: { 
+        const context: TemplateContext = {
+          user: {
             name: 'John',
-            isAdmin: false 
-          } 
+            isAdmin: false,
+          },
         };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Welcome John!\nYou have regular access.');
       });
@@ -1000,7 +1047,7 @@ Items:
         const template = `{{#if hasItems}}{{#each items}}- {{this}}
 {{/each}}{{else}}No items to display.{{/if}}`;
         const context: TemplateContext = { hasItems: false, items: [] };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('No items to display.');
       });
@@ -1008,30 +1055,34 @@ Items:
 
     describe('conditional truthiness', () => {
       it('should treat empty strings as falsy', async () => {
-        const template = '{{#if message}}Has message{{/if}}{{#unless message}}No message{{/unless}}';
+        const template =
+          '{{#if message}}Has message{{/if}}{{#unless message}}No message{{/unless}}';
         const context: TemplateContext = { message: '' };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('No message');
       });
 
       it('should treat zero as falsy', async () => {
-        const template = '{{#if count}}Has count{{/if}}{{#unless count}}No count{{/unless}}';
+        const template =
+          '{{#if count}}Has count{{/if}}{{#unless count}}No count{{/unless}}';
         const context: TemplateContext = { count: 0 };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('No count');
       });
 
       it('should treat null and undefined as falsy', async () => {
-        const template1 = '{{#if nullValue}}Has value{{/if}}{{#unless nullValue}}No value{{/unless}}';
-        const template2 = '{{#if undefinedValue}}Has value{{/if}}{{#unless undefinedValue}}No value{{/unless}}';
-        
-        const context: TemplateContext = { 
+        const template1 =
+          '{{#if nullValue}}Has value{{/if}}{{#unless nullValue}}No value{{/unless}}';
+        const template2 =
+          '{{#if undefinedValue}}Has value{{/if}}{{#unless undefinedValue}}No value{{/unless}}';
+
+        const context: TemplateContext = {
           nullValue: null,
-          undefinedValue: undefined
+          undefinedValue: undefined,
         };
-        
+
         const result1 = await engine.render(template1, context);
         const result2 = await engine.render(template2, context);
         expect(result1).toBe('No value');
@@ -1041,7 +1092,7 @@ Items:
       it('should treat non-empty strings as truthy', async () => {
         const template = '{{#if message}}Message: {{message}}{{/if}}';
         const context: TemplateContext = { message: 'Hello' };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Message: Hello');
       });
@@ -1049,15 +1100,16 @@ Items:
       it('should treat non-zero numbers as truthy', async () => {
         const template = '{{#if count}}Count: {{count}}{{/if}}';
         const context: TemplateContext = { count: 42 };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Count: 42');
       });
 
       it('should treat empty objects as falsy', async () => {
-        const template = '{{#if obj}}Has object{{/if}}{{#unless obj}}No object{{/unless}}';
+        const template =
+          '{{#if obj}}Has object{{/if}}{{#unless obj}}No object{{/unless}}';
         const context: TemplateContext = { obj: {} };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('No object');
       });
@@ -1065,7 +1117,7 @@ Items:
       it('should treat non-empty objects as truthy', async () => {
         const template = '{{#if obj}}Has object: {{obj.name}}{{/if}}';
         const context: TemplateContext = { obj: { name: 'test' } };
-        
+
         const result = await engine.render(template, context);
         expect(result).toBe('Has object: test');
       });
@@ -1076,15 +1128,15 @@ Items:
         const template = `{{#if items}}Items:
 {{#each items}}{{#if this.active}}- {{this.name}} (active)
 {{/if}}{{/each}}{{/if}}`;
-        
+
         const context: TemplateContext = {
           items: [
             { name: 'Item 1', active: true },
             { name: 'Item 2', active: false },
-            { name: 'Item 3', active: true }
-          ]
+            { name: 'Item 3', active: true },
+          ],
         };
-        
+
         const result = await engine.render(template, context);
         const expected = `Items:
 - Item 1 (active)
@@ -1098,18 +1150,18 @@ Items:
 {{#if user.projects}}Projects:
 {{#each user.projects}}{{#unless this.archived}}  - {{this.name}}{{#if this.priority}} ({{this.priority}}){{/if}}
 {{/unless}}{{/each}}{{/if}}{{/if}}`;
-        
+
         const context: TemplateContext = {
           user: {
             name: 'John',
             projects: [
               { name: 'Project A', archived: false, priority: 'high' },
               { name: 'Project B', archived: true, priority: 'low' },
-              { name: 'Project C', archived: false }
-            ]
-          }
+              { name: 'Project C', archived: false },
+            ],
+          },
         };
-        
+
         const result = await engine.render(template, context);
         const expected = `User: John
 Projects:
@@ -1123,7 +1175,7 @@ Projects:
 
   describe('template includes (#include)', () => {
     let tmpDir: string;
-    
+
     beforeEach(() => {
       // Create temp directory for test templates
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'template-includes-'));
@@ -1148,21 +1200,22 @@ Projects:
 
       const context = { username: 'Alice' };
       const result = await engine.render(mainTemplate, context);
-      
+
       expect(result).toContain('<header>Welcome Alice!</header>');
       expect(result).toContain('<main>Content goes here</main>');
     });
 
     it('should handle nested includes', async () => {
       // Create nested templates
-      const navTemplate = '<nav>{{#each navItems}}<a>{{this}}</a>{{/each}}</nav>';
+      const navTemplate =
+        '<nav>{{#each navItems}}<a>{{this}}</a>{{/each}}</nav>';
       const headerTemplate = `
         <header>
           <h1>{{title}}</h1>
           {{#include "${tmpDir}/nav.html"}}
         </header>
       `;
-      
+
       fs.writeFileSync(`${tmpDir}/nav.html`, navTemplate);
       fs.writeFileSync(`${tmpDir}/header.html`, headerTemplate);
 
@@ -1174,11 +1227,11 @@ Projects:
       const context = {
         title: 'My Site',
         navItems: ['Home', 'About', 'Contact'],
-        content: 'Welcome to our site!'
+        content: 'Welcome to our site!',
       };
 
       const result = await engine.render(mainTemplate, context);
-      
+
       expect(result).toContain('<h1>My Site</h1>');
       expect(result).toContain('<a>Home</a>');
       expect(result).toContain('<a>About</a>');
@@ -1190,37 +1243,38 @@ Projects:
       // Create templates with circular dependency
       const templateA = `A: {{#include "${tmpDir}/templateB.html"}}`;
       const templateB = `B: {{#include "${tmpDir}/templateA.html"}}`;
-      
+
       fs.writeFileSync(`${tmpDir}/templateA.html`, templateA);
       fs.writeFileSync(`${tmpDir}/templateB.html`, templateB);
 
-      await expect(
-        engine.render(templateA, {})
-      ).rejects.toThrow('Circular dependency detected');
+      await expect(engine.render(templateA, {})).rejects.toThrow(
+        'Circular dependency detected'
+      );
     });
 
     it('should throw error for missing include files', async () => {
       const template = `{{#include "${tmpDir}/nonexistent.html"}}`;
-      
-      await expect(
-        engine.render(template, {})
-      ).rejects.toThrow('Include file not found');
+
+      await expect(engine.render(template, {})).rejects.toThrow(
+        'Include file not found'
+      );
     });
 
     it('should respect maximum include depth', async () => {
       // Create deeply nested includes
       for (let i = 0; i < 15; i++) {
-        const content = i < 14 
-          ? `Level ${i}: {{#include "${tmpDir}/template${i + 1}.html"}}` 
-          : `Level ${i}: End`;
+        const content =
+          i < 14
+            ? `Level ${i}: {{#include "${tmpDir}/template${i + 1}.html"}}`
+            : `Level ${i}: End`;
         fs.writeFileSync(`${tmpDir}/template${i}.html`, content);
       }
 
       const template = `{{#include "${tmpDir}/template0.html"}}`;
-      
-      await expect(
-        engine.render(template, {})
-      ).rejects.toThrow('Maximum include depth');
+
+      await expect(engine.render(template, {})).rejects.toThrow(
+        'Maximum include depth'
+      );
     });
 
     it('should process variables in included templates', async () => {
@@ -1232,7 +1286,7 @@ Projects:
           </details>
         {{/if}}
       `;
-      
+
       fs.writeFileSync(`${tmpDir}/user-details.html`, partialTemplate);
 
       const mainTemplate = `
@@ -1245,12 +1299,12 @@ Projects:
         showDetails: true,
         user: {
           name: 'Bob Smith',
-          email: 'bob@example.com'
-        }
+          email: 'bob@example.com',
+        },
       };
 
       const result = await engine.render(mainTemplate, context);
-      
+
       expect(result).toContain('Name: Bob Smith');
       expect(result).toContain('Email: bob@example.com');
     });
@@ -1266,7 +1320,7 @@ Projects:
       `;
 
       const variables = engine.extractVariables(mainTemplate);
-      
+
       expect(variables).toContain('user.name');
       expect(variables).toContain('user.role');
       expect(variables).toContain('status');
@@ -1275,7 +1329,7 @@ Projects:
     it('should handle multiple includes in same template', async () => {
       const headerTemplate = '<header>{{siteName}}</header>';
       const footerTemplate = '<footer>© {{year}} {{company}}</footer>';
-      
+
       fs.writeFileSync(`${tmpDir}/header.html`, headerTemplate);
       fs.writeFileSync(`${tmpDir}/footer.html`, footerTemplate);
 
@@ -1288,11 +1342,11 @@ Projects:
       const context = {
         siteName: 'My Website',
         year: 2025,
-        company: 'ACME Corp'
+        company: 'ACME Corp',
       };
 
       const result = await engine.render(mainTemplate, context);
-      
+
       expect(result).toContain('<header>My Website</header>');
       expect(result).toContain('<footer>© 2025 ACME Corp</footer>');
     });

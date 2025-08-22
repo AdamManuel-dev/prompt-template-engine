@@ -29,6 +29,22 @@ import { ConfigManager } from './config/config-manager';
 import { CursorIntegration } from './integrations/cursor-ide';
 import { CursorExtensionBridge } from './integrations/cursor-extension-bridge';
 
+// Marketplace Commands
+import { SearchCommand as MarketplaceSearchCommand } from './commands/marketplace/search';
+import { InstallCommand as MarketplaceInstallCommand } from './commands/marketplace/install';
+import { ListCommand as MarketplaceListCommand } from './commands/marketplace/list';
+import { UpdateCommand as MarketplaceUpdateCommand } from './commands/marketplace/update';
+import { InfoCommand as MarketplaceInfoCommand } from './commands/marketplace/info';
+import { RateCommand as MarketplaceRateCommand } from './commands/marketplace/rate';
+import { AuthorCommand } from './commands/marketplace/author';
+import type {
+  MarketplaceInstallOptions,
+  MarketplaceListOptions,
+  MarketplaceUpdateOptions,
+  MarketplaceInfoOptions,
+  MarketplaceRateOptions,
+} from './types';
+
 interface CLIValidateOptions {
   strict?: boolean;
   fix?: boolean;
@@ -446,6 +462,146 @@ function configureProgram(): void {
         process.exit(ErrorUtils.getExitCode(error));
       }
     });
+
+  // Marketplace Commands
+  program
+    .command('marketplace:search [query]')
+    .description('search for templates in the marketplace')
+    .option('-c, --category <category>', 'filter by category')
+    .option('-t, --tags <tags>', 'filter by tags (comma-separated)')
+    .option('-p, --page <number>', 'page number', '1')
+    .option('-l, --limit <number>', 'results per page', '10')
+    .option(
+      '-s, --sort <field>',
+      'sort by field (downloads, rating, created, updated)'
+    )
+    .option('-o, --order <order>', 'sort order (asc, desc)', 'desc')
+    .action(async (query: string | undefined, options: any) => {
+      try {
+        const command = new MarketplaceSearchCommand();
+        await command.execute(query || '', options);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
+  program
+    .command('marketplace:install <template>')
+    .description('install a template from the marketplace')
+    .option('-v, --version <version>', 'specific version to install')
+    .option('-f, --force', 'force installation even if already installed')
+    .option('-d, --dependencies', 'install dependencies')
+    .option('-g, --global', 'install globally')
+    .option('--no-confirm', 'skip confirmation prompts')
+    .action(async (template: string, options: MarketplaceInstallOptions) => {
+      try {
+        const command = new MarketplaceInstallCommand();
+        await command.execute(template, options);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
+  program
+    .command('marketplace:list')
+    .description('list templates from the marketplace')
+    .option('-c, --category <category>', 'filter by category')
+    .option('-t, --tags <tags>', 'filter by tags (comma-separated)')
+    .option('--featured', 'show only featured templates')
+    .option('--trending', 'show trending templates')
+    .option('-p, --page <number>', 'page number', '1')
+    .option('-l, --limit <number>', 'results per page', '10')
+    .action(async (options: MarketplaceListOptions) => {
+      try {
+        const command = new MarketplaceListCommand();
+        await command.execute('', options);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
+  program
+    .command('marketplace:update [template]')
+    .description('update installed marketplace templates')
+    .option('-a, --all', 'update all installed templates')
+    .option('-f, --force', 'force update even if up to date')
+    .option('--check-only', 'only check for updates without installing')
+    .action(
+      async (
+        template: string | undefined,
+        options: MarketplaceUpdateOptions
+      ) => {
+        try {
+          const command = new MarketplaceUpdateCommand();
+          await command.execute(template || '', options);
+        } catch (error) {
+          ErrorUtils.logError(error, logger);
+          process.exit(ErrorUtils.getExitCode(error));
+        }
+      }
+    );
+
+  program
+    .command('marketplace:info <template>')
+    .description('show detailed information about a marketplace template')
+    .option('-v, --version <version>', 'show info for specific version')
+    .option('--reviews', 'include reviews')
+    .option('--dependencies', 'show dependency tree')
+    .action(async (template: string, options: MarketplaceInfoOptions) => {
+      try {
+        const command = new MarketplaceInfoCommand();
+        await command.execute(template, options);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
+  program
+    .command('marketplace:rate <template> <rating>')
+    .description('rate a marketplace template (1-5 stars)')
+    .option('-r, --review <text>', 'add a review')
+    .option('-t, --title <title>', 'review title')
+    .action(
+      async (
+        template: string,
+        rating: string,
+        options: MarketplaceRateOptions
+      ) => {
+        try {
+          const command = new MarketplaceRateCommand();
+          await command.execute(template, {
+            ...options,
+            rating: rating,
+          });
+        } catch (error) {
+          ErrorUtils.logError(error, logger);
+          process.exit(ErrorUtils.getExitCode(error));
+        }
+      }
+    );
+
+  program
+    .command('marketplace:author <action> [author]')
+    .description('manage marketplace authors')
+    .option('-p, --profile', 'show author profile')
+    .option('-t, --templates', 'list author templates')
+    .option('-f, --follow', 'follow author')
+    .option('-u, --unfollow', 'unfollow author')
+    .action(
+      async (action: string, author: string | undefined, options: any) => {
+        try {
+          const command = new AuthorCommand();
+          await command.execute(action, { ...options, author });
+        } catch (error) {
+          ErrorUtils.logError(error, logger);
+          process.exit(ErrorUtils.getExitCode(error));
+        }
+      }
+    );
 
   // Error handling
   program.configureOutput({

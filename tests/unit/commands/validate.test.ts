@@ -10,16 +10,14 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { logger } from '../../src/utils/logger';
-import {
-  validateCommand,
-} from '../../src/commands/validate';
+import { logger } from '../../../src/utils/logger';
+import { validateCommand } from '../../../src/commands/validate';
 import {
   TemplateEngineError,
   ValidationError,
   FileNotFoundError,
-} from '../../src/utils/errors';
-import { loadConfig } from '../../src/utils/config';
+} from '../../../src/utils/errors';
+import { loadConfig } from '../../../src/utils/config';
 
 // Mock all external dependencies
 jest.mock('fs/promises');
@@ -45,7 +43,7 @@ const mockedLoadConfig = jest.mocked(loadConfig);
 describe('Validate Command', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Default logger mock implementations
     mockedLogger.info = jest.fn();
     mockedLogger.debug = jest.fn();
@@ -119,8 +117,12 @@ describe('Validate Command', () => {
 
       await validateCommand('/test/template.json');
 
-      expect(mockedLogger.info).toHaveBeenCalledWith('🔍 Validating template...');
-      expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('✅ Template validation passed'));
+      expect(mockedLogger.info).toHaveBeenCalledWith(
+        '🔍 Validating template...'
+      );
+      expect(mockedLogger.success).toHaveBeenCalledWith(
+        expect.stringContaining('✅ Template validation passed')
+      );
     });
 
     it('should handle template not found', async () => {
@@ -128,15 +130,21 @@ describe('Validate Command', () => {
       enoentError.code = 'ENOENT';
       mockedFs.stat.mockRejectedValue(enoentError);
 
-      await expect(validateCommand('/nonexistent/template.json')).rejects.toThrow(FileNotFoundError);
-      expect(mockedLogger.error).toHaveBeenCalledWith(expect.stringContaining('❌ Validation failed'));
+      await expect(
+        validateCommand('/nonexistent/template.json')
+      ).rejects.toThrow(FileNotFoundError);
+      expect(mockedLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('❌ Validation failed')
+      );
     });
 
     it('should handle invalid JSON template', async () => {
       mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
       mockedFs.readFile.mockResolvedValue('{ invalid json }');
 
-      await expect(validateCommand('/test/invalid.json')).rejects.toThrow(TemplateEngineError);
+      await expect(validateCommand('/test/invalid.json')).rejects.toThrow(
+        TemplateEngineError
+      );
     });
 
     it('should handle template directory with template.json', async () => {
@@ -156,14 +164,16 @@ describe('Validate Command', () => {
       mockedFs.stat.mockResolvedValue({ isDirectory: () => true } as any);
       mockedFs.readFile.mockRejectedValue(new Error('ENOENT: no such file'));
 
-      await expect(validateCommand('/test/empty-dir')).rejects.toThrow(FileNotFoundError);
+      await expect(validateCommand('/test/empty-dir')).rejects.toThrow(
+        FileNotFoundError
+      );
     });
 
     it('should search for template in configured paths', async () => {
       // Mock template search behavior - template is found in configured paths
       const enoentError = new Error('ENOENT: no such file') as any;
       enoentError.code = 'ENOENT';
-      
+
       // Mock file system calls for template finding
       mockedFs.access
         .mockRejectedValueOnce(new Error('ENOENT')) // absolute path fails
@@ -171,7 +181,7 @@ describe('Validate Command', () => {
         .mockRejectedValueOnce(new Error('ENOENT')) // template dir doesn't exist
         .mockResolvedValueOnce(undefined) // found in configured path
         .mockResolvedValue(undefined); // template file exists
-      
+
       mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
       mockedFs.readFile.mockResolvedValue(JSON.stringify(validTemplate));
 
@@ -196,30 +206,40 @@ describe('Validate Command', () => {
           files: [],
         };
 
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithoutRecommended));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithoutRecommended)
+        );
 
         await validateCommand('/test/template.json', { strict: true });
 
-        expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('warning'));
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('warning')
+        );
       });
 
       it('should handle different output formats - json', async () => {
         await validateCommand('/test/template.json', { format: 'json' });
 
-        expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('"valid":'));
+        expect(mockedLogger.info).toHaveBeenCalledWith(
+          expect.stringContaining('"valid":')
+        );
       });
 
       it('should handle different output formats - yaml', async () => {
         await validateCommand('/test/template.json', { format: 'yaml' });
 
-        expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('template:'));
+        expect(mockedLogger.info).toHaveBeenCalledWith(
+          expect.stringContaining('template:')
+        );
       });
 
       it('should handle detailed output option', async () => {
         await validateCommand('/test/template.json', { detailed: true });
 
         // Template should validate successfully and detailed flag should not cause errors
-        expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('✅ Template validation passed'));
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('✅ Template validation passed')
+        );
         // Detailed mode should call logger.info multiple times
         expect(mockedLogger.info).toHaveBeenCalled();
       });
@@ -230,17 +250,25 @@ describe('Validate Command', () => {
         const customError = new TemplateEngineError('Custom validation error');
         mockedFs.stat.mockRejectedValue(customError);
 
-        await expect(validateCommand('/test/template.json')).rejects.toThrow(TemplateEngineError);
-        expect(mockedLogger.error).toHaveBeenCalledWith(expect.stringContaining('❌ Validation failed'));
+        await expect(validateCommand('/test/template.json')).rejects.toThrow(
+          TemplateEngineError
+        );
+        expect(mockedLogger.error).toHaveBeenCalledWith(
+          expect.stringContaining('❌ Validation failed')
+        );
       });
 
       it('should handle unexpected errors', async () => {
         const unexpectedError = new Error('Unexpected error');
         mockedFs.stat.mockRejectedValue(unexpectedError);
 
-        await expect(validateCommand('/test/template.json')).rejects.toThrow(TemplateEngineError);
+        await expect(validateCommand('/test/template.json')).rejects.toThrow(
+          TemplateEngineError
+        );
         // The error message will be "❌ Validation failed: Failed to load template: Error: Unexpected error"
-        expect(mockedLogger.error).toHaveBeenCalledWith(expect.stringContaining('❌ Validation failed'));
+        expect(mockedLogger.error).toHaveBeenCalledWith(
+          expect.stringContaining('❌ Validation failed')
+        );
       });
 
       it('should throw ValidationError for invalid templates', async () => {
@@ -253,8 +281,12 @@ describe('Validate Command', () => {
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
         mockedFs.readFile.mockResolvedValue(JSON.stringify(invalidTemplate));
 
-        await expect(validateCommand('/test/template.json')).rejects.toThrow(ValidationError);
-        expect(mockedLogger.error).toHaveBeenCalledWith(expect.stringContaining('❌ Template validation failed'));
+        await expect(validateCommand('/test/template.json')).rejects.toThrow(
+          ValidationError
+        );
+        expect(mockedLogger.error).toHaveBeenCalledWith(
+          expect.stringContaining('❌ Template validation failed')
+        );
       });
     });
   });
@@ -295,7 +327,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithoutName));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithoutName)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -308,7 +342,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithEmptyName));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithEmptyName)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -321,7 +357,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidName));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidName)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -333,7 +371,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithoutVersion));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithoutVersion)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -345,7 +385,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithoutDescription));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithoutDescription)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -374,7 +416,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidFiles));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidFiles)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -386,11 +430,15 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithEmptyFiles));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithEmptyFiles)
+        );
 
         await validateCommand('/test/template.json');
 
-        expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('warning'));
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('warning')
+        );
       });
 
       it('should reject file without source property', async () => {
@@ -404,7 +452,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidFile));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidFile)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -420,7 +470,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidFile));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidFile)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -437,7 +489,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithMissingSource));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithMissingSource)
+        );
         mockedFs.access.mockRejectedValue(new Error('ENOENT: no such file'));
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
@@ -456,7 +510,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidPermissions));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidPermissions)
+        );
         mockedFs.access.mockResolvedValue(undefined);
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
@@ -475,7 +531,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithValidPermissions));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithValidPermissions)
+        );
         mockedFs.access.mockResolvedValue(undefined);
 
         await validateCommand('/test/template.json');
@@ -507,7 +565,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidVariables));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidVariables)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -523,7 +583,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidVariable));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidVariable)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -540,7 +602,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidVariable));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidVariable)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -556,7 +620,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidVariable));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidVariable)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -573,7 +639,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidChoice));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidChoice)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -591,7 +659,9 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithEmptyChoices));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithEmptyChoices)
+        );
 
         await expect(validateCommand('/test/template.json')).rejects.toThrow();
       });
@@ -609,11 +679,15 @@ describe('Validate Command', () => {
         };
 
         mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithTypeMismatch));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithTypeMismatch)
+        );
 
         await validateCommand('/test/template.json');
 
-        expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('warning'));
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('warning')
+        );
       });
     });
 
@@ -634,7 +708,9 @@ describe('Validate Command', () => {
 
         await validateCommand('/test/template.json', { strict: true });
 
-        expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('warning'));
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('warning')
+        );
       });
 
       it('should warn about invalid version format in strict mode', async () => {
@@ -643,11 +719,15 @@ describe('Validate Command', () => {
           version: 'invalid-version',
         };
 
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidVersion));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidVersion)
+        );
 
         await validateCommand('/test/template.json', { strict: true });
 
-        expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('warning'));
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('warning')
+        );
       });
 
       it('should warn about template naming convention in strict mode', async () => {
@@ -655,7 +735,9 @@ describe('Validate Command', () => {
 
         await validateCommand('/test/badname.json', { strict: true });
 
-        expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('warning'));
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('warning')
+        );
       });
 
       it('should reject invalid tags type in strict mode', async () => {
@@ -664,9 +746,13 @@ describe('Validate Command', () => {
           tags: 'not an array',
         };
 
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidTags));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidTags)
+        );
 
-        await expect(validateCommand('/test/template.json', { strict: true })).rejects.toThrow();
+        await expect(
+          validateCommand('/test/template.json', { strict: true })
+        ).rejects.toThrow();
       });
 
       it('should reject non-string tags in strict mode', async () => {
@@ -675,9 +761,13 @@ describe('Validate Command', () => {
           tags: ['valid-tag', 123, 'another-tag'],
         };
 
-        mockedFs.readFile.mockResolvedValue(JSON.stringify(templateWithInvalidTags));
+        mockedFs.readFile.mockResolvedValue(
+          JSON.stringify(templateWithInvalidTags)
+        );
 
-        await expect(validateCommand('/test/template.json', { strict: true })).rejects.toThrow();
+        await expect(
+          validateCommand('/test/template.json', { strict: true })
+        ).rejects.toThrow();
       });
     });
 
@@ -687,7 +777,9 @@ describe('Validate Command', () => {
 
         await expect(validateCommand('/test/template.yaml')).rejects.toThrow(
           expect.objectContaining({
-            message: expect.stringContaining('YAML templates not yet supported'),
+            message: expect.stringContaining(
+              'YAML templates not yet supported'
+            ),
           })
         );
       });
@@ -717,7 +809,9 @@ describe('Validate Command', () => {
         await validateCommand('/test/different-filename.json');
 
         // Template should validate successfully since it has all required fields
-        expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('✅ Template validation passed'));
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('✅ Template validation passed')
+        );
       });
 
       it('should extract name from file path when template has no name', async () => {
@@ -733,7 +827,9 @@ describe('Validate Command', () => {
         await validateCommand('/test/extracted-from-path.json');
 
         // Template should validate successfully since it has all required fields
-        expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('✅ Template validation passed'));
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('✅ Template validation passed')
+        );
       });
     });
 
@@ -764,7 +860,9 @@ describe('Validate Command', () => {
         await validateCommand('/test/template.json', { detailed: true });
 
         // Template should validate successfully with detailed output
-        expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('✅ Template validation passed'));
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('✅ Template validation passed')
+        );
         // Detailed mode should produce more log output than non-detailed
         expect(mockedLogger.info).toHaveBeenCalled();
       });
@@ -775,11 +873,13 @@ describe('Validate Command', () => {
     it('should handle validation exception gracefully', async () => {
       // Mock a condition that causes an exception during validation
       mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
-      mockedFs.readFile.mockResolvedValue(JSON.stringify({
-        name: 'test',
-        version: '1.0.0',
-        description: 'test',
-      }));
+      mockedFs.readFile.mockResolvedValue(
+        JSON.stringify({
+          name: 'test',
+          version: '1.0.0',
+          description: 'test',
+        })
+      );
 
       // Mock fs.access to throw during file reference validation
       mockedFs.access.mockImplementation(() => {
@@ -832,7 +932,7 @@ describe('Validate Command', () => {
 
       mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
       mockedFs.readFile.mockResolvedValue(JSON.stringify(template));
-      
+
       // Simulate some files existing and others not
       mockedFs.access
         .mockResolvedValueOnce(undefined) // file1 exists
@@ -861,7 +961,9 @@ describe('Validate Command', () => {
 
       await validateCommand('/test/template.json');
 
-      expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('✅ Template validation passed'));
+      expect(mockedLogger.success).toHaveBeenCalledWith(
+        expect.stringContaining('✅ Template validation passed')
+      );
     });
 
     it('should handle template with multiple validation exceptions', async () => {
@@ -883,10 +985,12 @@ describe('Validate Command', () => {
       const longPath = '/very/long/path/that/goes/on/and/on/template.json';
       const enoentError = new Error('ENOENT: no such file') as any;
       enoentError.code = 'ENOENT';
-      
+
       mockedFs.stat.mockRejectedValue(enoentError);
 
-      await expect(validateCommand(longPath)).rejects.toThrow(FileNotFoundError);
+      await expect(validateCommand(longPath)).rejects.toThrow(
+        FileNotFoundError
+      );
     });
   });
 
@@ -906,7 +1010,9 @@ describe('Validate Command', () => {
       await validateCommand('/test/template.json', { format: 'table' });
 
       // Template should validate successfully and display table format
-      expect(mockedLogger.success).toHaveBeenCalledWith(expect.stringContaining('✅ Template validation passed'));
+      expect(mockedLogger.success).toHaveBeenCalledWith(
+        expect.stringContaining('✅ Template validation passed')
+      );
       // Table format should log multiple info messages
       expect(mockedLogger.info).toHaveBeenCalled();
     });
@@ -915,7 +1021,10 @@ describe('Validate Command', () => {
       await validateCommand('/test/template.json', { format: 'json' });
 
       const jsonOutput = mockedLogger.info.mock.calls.find(
-        call => call[0] && typeof call[0] === 'string' && call[0].includes('"templateName"')
+        call =>
+          call[0] &&
+          typeof call[0] === 'string' &&
+          call[0].includes('"templateName"')
       );
       expect(jsonOutput).toBeDefined();
     });
@@ -923,9 +1032,15 @@ describe('Validate Command', () => {
     it('should display results in YAML-like format', async () => {
       await validateCommand('/test/template.json', { format: 'yaml' });
 
-      expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('- template:'));
-      expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('path:'));
-      expect(mockedLogger.info).toHaveBeenCalledWith(expect.stringContaining('valid:'));
+      expect(mockedLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('- template:')
+      );
+      expect(mockedLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('path:')
+      );
+      expect(mockedLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('valid:')
+      );
     });
 
     it('should show detailed error information when detailed flag is set', async () => {
@@ -944,7 +1059,9 @@ describe('Validate Command', () => {
       mockedFs.readFile.mockResolvedValue(JSON.stringify(invalidTemplate));
       mockedFs.access.mockRejectedValue(new Error('ENOENT'));
 
-      await expect(validateCommand('/test/template.json', { detailed: true })).rejects.toThrow();
+      await expect(
+        validateCommand('/test/template.json', { detailed: true })
+      ).rejects.toThrow();
     });
   });
 });

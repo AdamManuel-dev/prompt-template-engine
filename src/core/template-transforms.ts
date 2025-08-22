@@ -8,6 +8,8 @@
  * Patterns: Unix-style pipes, functional transformations
  */
 
+import { logger } from '../utils/logger';
+
 export type TransformFunction = (value: unknown, ...args: unknown[]) => unknown;
 
 export class TemplateTransforms {
@@ -358,7 +360,7 @@ export class TemplateTransforms {
   apply(name: string, value: unknown, ...args: unknown[]): unknown {
     const transform = this.transforms.get(name);
     if (!transform) {
-      console.warn(`Transform '${name}' not found`);
+      logger.warn(`Transform '${name}' not found`);
       return value;
     }
     return transform(value, ...args);

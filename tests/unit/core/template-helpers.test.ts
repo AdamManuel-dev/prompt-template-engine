@@ -21,9 +21,15 @@ describe('TemplateHelpers', () => {
 
     it('should handle comparison operators', async () => {
       expect(await engine.render('{{lt value 10}}', { value: 5 })).toBe('true');
-      expect(await engine.render('{{gt value 10}}', { value: 15 })).toBe('true');
-      expect(await engine.render('{{lte value 10}}', { value: 10 })).toBe('true');
-      expect(await engine.render('{{gte value 10}}', { value: 10 })).toBe('true');
+      expect(await engine.render('{{gt value 10}}', { value: 15 })).toBe(
+        'true'
+      );
+      expect(await engine.render('{{lte value 10}}', { value: 10 })).toBe(
+        'true'
+      );
+      expect(await engine.render('{{gte value 10}}', { value: 10 })).toBe(
+        'true'
+      );
     });
 
     it('should handle logical operators', async () => {
@@ -75,15 +81,21 @@ describe('TemplateHelpers', () => {
 
     it('should manipulate strings', async () => {
       expect(await engine.render('{{trim "  hello  "}}', {})).toBe('hello');
-      expect(await engine.render('{{replace "hello world" "world" "universe"}}', {})).toBe('hello universe');
+      expect(
+        await engine.render('{{replace "hello world" "world" "universe"}}', {})
+      ).toBe('hello universe');
       expect(await engine.render('{{substring "hello" 1 4}}', {})).toBe('ell');
       expect(await engine.render('{{substring "hello" 2}}', {})).toBe('llo');
     });
 
     it('should check string properties', async () => {
       expect(await engine.render('{{length "hello"}}', {})).toBe('5');
-      expect(await engine.render('{{contains "hello world" "world"}}', {})).toBe('true');
-      expect(await engine.render('{{startsWith "hello" "he"}}', {})).toBe('true');
+      expect(
+        await engine.render('{{contains "hello world" "world"}}', {})
+      ).toBe('true');
+      expect(await engine.render('{{startsWith "hello" "he"}}', {})).toBe(
+        'true'
+      );
       expect(await engine.render('{{endsWith "hello" "lo"}}', {})).toBe('true');
     });
 
@@ -124,27 +136,29 @@ describe('TemplateHelpers', () => {
         num: 42,
         bool: true,
         nothing: null,
-        missing: undefined
+        missing: undefined,
       };
-      
+
       expect(await engine.render('{{isArray arr}}', context)).toBe('true');
       expect(await engine.render('{{isObject obj}}', context)).toBe('true');
       expect(await engine.render('{{isString str}}', context)).toBe('true');
       expect(await engine.render('{{isNumber num}}', context)).toBe('true');
       expect(await engine.render('{{isBoolean bool}}', context)).toBe('true');
       expect(await engine.render('{{isNull nothing}}', context)).toBe('true');
-      expect(await engine.render('{{isUndefined missing}}', context)).toBe('true');
+      expect(await engine.render('{{isUndefined missing}}', context)).toBe(
+        'true'
+      );
       expect(await engine.render('{{isDefined str}}', context)).toBe('true');
     });
 
     it('should check for empty values', async () => {
       expect(await engine.render('{{isEmpty ""}}', {})).toBe('true');
       expect(await engine.render('{{isEmpty "hello"}}', {})).toBe('false');
-      const context = { 
+      const context = {
         emptyArr: [],
         fullArr: [1],
         emptyObj: {},
-        fullObj: { a: 1 }
+        fullObj: { a: 1 },
       };
       expect(await engine.render('{{isEmpty emptyArr}}', context)).toBe('true');
       expect(await engine.render('{{isEmpty fullArr}}', context)).toBe('false');
@@ -156,8 +170,12 @@ describe('TemplateHelpers', () => {
   describe('Utility helpers', () => {
     it('should provide default values', async () => {
       const context = { value: null, existing: 'hello' };
-      expect(await engine.render('{{default value "fallback"}}', context)).toBe('fallback');
-      expect(await engine.render('{{default existing "fallback"}}', context)).toBe('hello');
+      expect(await engine.render('{{default value "fallback"}}', context)).toBe(
+        'fallback'
+      );
+      expect(
+        await engine.render('{{default existing "fallback"}}', context)
+      ).toBe('hello');
     });
 
     it('should handle JSON operations', async () => {
@@ -170,7 +188,7 @@ describe('TemplateHelpers', () => {
     it('should provide date/time helpers', async () => {
       const result = await engine.render('{{now}}', {});
       expect(result).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
-      
+
       const dateResult = await engine.render('{{date "iso"}}', {});
       expect(dateResult).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
@@ -185,9 +203,22 @@ describe('TemplateHelpers', () => {
 
     it('should work with complex expressions', async () => {
       // Test individual comparisons since nested helpers aren't supported yet
-      expect(await engine.render('{{#if (gt age 18)}}Adult{{else}}Minor{{/if}}', { age: 30 })).toBe('Adult');
-      expect(await engine.render('{{#if (lt age 65)}}Under 65{{else}}65 or over{{/if}}', { age: 30 })).toBe('Under 65');
-      expect(await engine.render('{{#if (gt age 18)}}Adult{{else}}Minor{{/if}}', { age: 15 })).toBe('Minor');
+      expect(
+        await engine.render('{{#if (gt age 18)}}Adult{{else}}Minor{{/if}}', {
+          age: 30,
+        })
+      ).toBe('Adult');
+      expect(
+        await engine.render(
+          '{{#if (lt age 65)}}Under 65{{else}}65 or over{{/if}}',
+          { age: 30 }
+        )
+      ).toBe('Under 65');
+      expect(
+        await engine.render('{{#if (gt age 18)}}Adult{{else}}Minor{{/if}}', {
+          age: 15,
+        })
+      ).toBe('Minor');
     });
 
     it('should work in each blocks', async () => {
@@ -203,7 +234,9 @@ describe('TemplateHelpers', () => {
 
   describe('Helper error handling', () => {
     it('should handle invalid helper names gracefully', async () => {
-      const result = await engine.render('{{invalidHelper arg}}', { arg: 'test' });
+      const result = await engine.render('{{invalidHelper arg}}', {
+        arg: 'test',
+      });
       expect(result).toBe('{{invalidHelper arg}}');
     });
 
@@ -221,22 +254,30 @@ describe('TemplateHelpers', () => {
   describe('Complex template scenarios', () => {
     it('should handle simple helper calls in conditionals', async () => {
       // Test that isArray helper works correctly
-      expect(await engine.render('{{isArray items}}', { items: [] })).toBe('true');
-      expect(await engine.render('{{isArray items}}', { items: ['apple'] })).toBe('true');
-      expect(await engine.render('{{isArray items}}', { items: 'not array' })).toBe('false');
-      
+      expect(await engine.render('{{isArray items}}', { items: [] })).toBe(
+        'true'
+      );
+      expect(
+        await engine.render('{{isArray items}}', { items: ['apple'] })
+      ).toBe('true');
+      expect(
+        await engine.render('{{isArray items}}', { items: 'not array' })
+      ).toBe('false');
+
       const template = `
 {{#if (isArray items)}}
   Items: {{#each items}}{{uppercase this}} {{/each}}
 {{else}}
   No items
 {{/if}}`;
-      
-      const withItems = await engine.render(template, { items: ['apple', 'banana'] });
+
+      const withItems = await engine.render(template, {
+        items: ['apple', 'banana'],
+      });
       expect(withItems).toContain('APPLE');
       expect(withItems).toContain('BANANA');
-      
-      // For empty array, isArray should return true, so it should show "Items:" 
+
+      // For empty array, isArray should return true, so it should show "Items:"
       const noItems = await engine.render(template, { items: [] });
       expect(noItems).toContain('Items:');
     });
@@ -252,17 +293,17 @@ describe('TemplateHelpers', () => {
 Name: {{capitalize user.firstName}} {{uppercase user.lastName}}
 Email: {{lowercase user.email}}
 Account Age: {{subtract currentYear user.joinYear}} years`;
-      
+
       const context = {
         user: {
           firstName: 'john',
           lastName: 'doe',
           email: 'JOHN.DOE@EXAMPLE.COM',
-          joinYear: 2020
+          joinYear: 2020,
         },
-        currentYear: 2025
+        currentYear: 2025,
       };
-      
+
       const result = await engine.render(template, context);
       expect(result).toContain('Name: John DOE');
       expect(result).toContain('Email: john.doe@example.com');
@@ -273,58 +314,125 @@ Account Age: {{subtract currentYear user.joinYear}} years`;
   describe('Nested Helper Expressions', () => {
     describe('Function call syntax', () => {
       it('should support simple nested function calls', async () => {
-        expect(await engine.render('{{uppercase(capitalize(name))}}', { name: 'john doe' })).toBe('JOHN DOE');
-        expect(await engine.render('{{length(uppercase(name))}}', { name: 'test' })).toBe('4');
+        expect(
+          await engine.render('{{uppercase(capitalize(name))}}', {
+            name: 'john doe',
+          })
+        ).toBe('JOHN DOE');
+        expect(
+          await engine.render('{{length(uppercase(name))}}', { name: 'test' })
+        ).toBe('4');
       });
 
       it('should support nested expressions with arguments', async () => {
-        expect(await engine.render('{{add(multiply(x 2) divide(y 2))}}', { x: 10, y: 6 })).toBe('23'); // (10 * 2) + (6 / 2) = 23
-        expect(await engine.render('{{subtract(add(x 5) multiply(y 2))}}', { x: 10, y: 3 })).toBe('9'); // (10 + 5) - (3 * 2) = 9
+        expect(
+          await engine.render('{{add(multiply(x 2) divide(y 2))}}', {
+            x: 10,
+            y: 6,
+          })
+        ).toBe('23'); // (10 * 2) + (6 / 2) = 23
+        expect(
+          await engine.render('{{subtract(add(x 5) multiply(y 2))}}', {
+            x: 10,
+            y: 3,
+          })
+        ).toBe('9'); // (10 + 5) - (3 * 2) = 9
       });
 
       it('should support deep nesting', async () => {
-        expect(await engine.render('{{add(multiply(add(x 1) 2) divide(y 2))}}', { x: 10, y: 6 })).toBe('25'); // ((10 + 1) * 2) + (6 / 2) = 25
-        expect(await engine.render('{{length(uppercase(capitalize(substring(name 0 4))))}}', { name: 'javascript' })).toBe('4'); // length('JAVA') = 4
+        expect(
+          await engine.render('{{add(multiply(add(x 1) 2) divide(y 2))}}', {
+            x: 10,
+            y: 6,
+          })
+        ).toBe('25'); // ((10 + 1) * 2) + (6 / 2) = 25
+        expect(
+          await engine.render(
+            '{{length(uppercase(capitalize(substring(name 0 4))))}}',
+            { name: 'javascript' }
+          )
+        ).toBe('4'); // length('JAVA') = 4
       });
 
       it('should support array helpers with nesting', async () => {
         const context = { items: ['apple', 'banana', 'cherry'] };
-        expect(await engine.render('{{uppercase(first(items))}}', context)).toBe('APPLE');
-        expect(await engine.render('{{length(last(items))}}', context)).toBe('6'); // length('cherry') = 6
+        expect(
+          await engine.render('{{uppercase(first(items))}}', context)
+        ).toBe('APPLE');
+        expect(await engine.render('{{length(last(items))}}', context)).toBe(
+          '6'
+        ); // length('cherry') = 6
       });
 
       it('should support complex string operations', async () => {
         const context = { firstName: 'john', lastName: 'doe', separator: ' ' };
-        expect(await engine.render('{{uppercase(trim(replace(firstName "john" "jane")))}}', context)).toBe('JANE');
-        expect(await engine.render('{{length(join(split(firstName "") "-"))}}', context)).toBe('7'); // j-o-h-n
+        expect(
+          await engine.render(
+            '{{uppercase(trim(replace(firstName "john" "jane")))}}',
+            context
+          )
+        ).toBe('JANE');
+        expect(
+          await engine.render(
+            '{{length(join(split(firstName "") "-"))}}',
+            context
+          )
+        ).toBe('7'); // j-o-h-n
       });
 
       it('should support comparison helpers with nesting', async () => {
-        expect(await engine.render('{{eq(length(name) 8)}}', { name: 'template' })).toBe('true');
-        expect(await engine.render('{{gt(add(x 5) multiply(y 2))}}', { x: 10, y: 3 })).toBe('true'); // (10 + 5) > (3 * 2)
+        expect(
+          await engine.render('{{eq(length(name) 8)}}', { name: 'template' })
+        ).toBe('true');
+        expect(
+          await engine.render('{{gt(add(x 5) multiply(y 2))}}', { x: 10, y: 3 })
+        ).toBe('true'); // (10 + 5) > (3 * 2)
       });
 
       it('should support type checking with nesting', async () => {
         const context = { items: ['a', 'b'], emptyItems: [] };
-        expect(await engine.render('{{and(isArray(items) gt(length(items) 0))}}', context)).toBe('true');
-        expect(await engine.render('{{isEmpty(first(emptyItems))}}', context)).toBe('true'); // first([]) is undefined
+        expect(
+          await engine.render(
+            '{{and(isArray(items) gt(length(items) 0))}}',
+            context
+          )
+        ).toBe('true');
+        expect(
+          await engine.render('{{isEmpty(first(emptyItems))}}', context)
+        ).toBe('true'); // first([]) is undefined
       });
     });
 
     describe('Mixed syntax support', () => {
       it('should support both traditional and function call syntax together', async () => {
-        expect(await engine.render('{{add (multiply x 2) divide(y 2)}}', { x: 10, y: 6 })).toBe('23');
-        expect(await engine.render('{{add(multiply x 2) (divide y 2)}}', { x: 10, y: 6 })).toBe('23');
+        expect(
+          await engine.render('{{add (multiply x 2) divide(y 2)}}', {
+            x: 10,
+            y: 6,
+          })
+        ).toBe('23');
+        expect(
+          await engine.render('{{add(multiply x 2) (divide y 2)}}', {
+            x: 10,
+            y: 6,
+          })
+        ).toBe('23');
       });
 
       it('should work with conditionals using nested helpers', async () => {
-        const template = '{{#if (gt(length(name) 5))}}Long name{{else}}Short name{{/if}}';
-        expect(await engine.render(template, { name: 'JavaScript' })).toBe('Long name');
-        expect(await engine.render(template, { name: 'JS' })).toBe('Short name');
+        const template =
+          '{{#if (gt(length(name) 5))}}Long name{{else}}Short name{{/if}}';
+        expect(await engine.render(template, { name: 'JavaScript' })).toBe(
+          'Long name'
+        );
+        expect(await engine.render(template, { name: 'JS' })).toBe(
+          'Short name'
+        );
       });
 
       it('should work within each blocks', async () => {
-        const template = '{{#each items}}{{uppercase(this)}} ({{length(this)}}), {{/each}}';
+        const template =
+          '{{#each items}}{{uppercase(this)}} ({{length(this)}}), {{/each}}';
         const context = { items: ['cat', 'dog', 'bird'] };
         const result = await engine.render(template, context);
         expect(result).toContain('CAT (3),');
@@ -335,19 +443,34 @@ Account Age: {{subtract currentYear user.joinYear}} years`;
 
     describe('Error handling for nested expressions', () => {
       it('should handle invalid helper names in nested calls', async () => {
-        const result = await engine.render('{{uppercase(invalidHelper(name))}}', { name: 'test' });
+        const result = await engine.render(
+          '{{uppercase(invalidHelper(name))}}',
+          { name: 'test' }
+        );
         // Should preserve the invalid helper call and uppercase it as a string
         expect(result).toContain('invalidHelper(test)');
       });
 
       it('should handle malformed nested expressions gracefully', async () => {
-        expect(await engine.render('{{uppercase(capitalize(name)}}', { name: 'test' })).toBe('{{uppercase(capitalize(name)}}');
-        expect(await engine.render('{{uppercase capitalize(name)}}', { name: 'test' })).toBe('{{uppercase capitalize(name)}}');
+        expect(
+          await engine.render('{{uppercase(capitalize(name)}}', {
+            name: 'test',
+          })
+        ).toBe('{{uppercase(capitalize(name)}}');
+        expect(
+          await engine.render('{{uppercase capitalize(name)}}', {
+            name: 'test',
+          })
+        ).toBe('{{uppercase capitalize(name)}}');
       });
 
       it('should handle circular references protection', async () => {
         // This should not cause infinite recursion
-        const result = await engine.render('{{add(x multiply(add(x y) z))}}', { x: 1, y: 2, z: 3 });
+        const result = await engine.render('{{add(x multiply(add(x y) z))}}', {
+          x: 1,
+          y: 2,
+          z: 3,
+        });
         expect(result).toBe('10'); // 1 + ((1 + 2) * 3) = 1 + 9 = 10
       });
     });
@@ -360,42 +483,65 @@ Account Age: {{subtract currentYear user.joinYear}} years`;
 
       it('should handle empty arguments in nested calls', async () => {
         expect(await engine.render('{{length(uppercase())}}', {})).toBe('9'); // length('undefined') = 9
-        expect(await engine.render('{{default(first() "empty")}}', {})).toBe('empty');
+        expect(await engine.render('{{default(first() "empty")}}', {})).toBe(
+          'empty'
+        );
       });
 
       it('should work with variable resolution in nested contexts', async () => {
-        const context = { 
+        const context = {
           user: { name: 'john' },
-          config: { prefix: 'Mr.' }
+          config: { prefix: 'Mr.' },
         };
-        expect(await engine.render('{{uppercase(capitalize(user.name))}}', context)).toBe('JOHN');
-        expect(await engine.render('{{length(replace(user.name "john" config.prefix))}}', context)).toBe('3'); // length('Mr.') = 3
+        expect(
+          await engine.render('{{uppercase(capitalize(user.name))}}', context)
+        ).toBe('JOHN');
+        expect(
+          await engine.render(
+            '{{length(replace(user.name "john" config.prefix))}}',
+            context
+          )
+        ).toBe('3'); // length('Mr.') = 3
       });
     });
 
     describe('Real-world usage scenarios', () => {
       it('should handle user profile formatting', async () => {
-        const template = 'Welcome {{uppercase(default(capitalize(user.firstName) "Guest"))}}!';
-        expect(await engine.render(template, { user: { firstName: 'alice' } })).toBe('Welcome ALICE!');
-        expect(await engine.render(template, { user: {} })).toBe('Welcome GUEST!');
+        const template =
+          'Welcome {{uppercase(default(capitalize(user.firstName) "Guest"))}}!';
+        expect(
+          await engine.render(template, { user: { firstName: 'alice' } })
+        ).toBe('Welcome ALICE!');
+        expect(await engine.render(template, { user: {} })).toBe(
+          'Welcome GUEST!'
+        );
       });
 
       it('should handle data validation scenarios', async () => {
-        const template = '{{#if (and(isDefined(email) contains(email "@")))}}Valid email{{else}}Invalid email{{/if}}';
-        expect(await engine.render(template, { email: 'test@example.com' })).toBe('Valid email');
-        expect(await engine.render(template, { email: 'invalid-email' })).toBe('Invalid email');
+        const template =
+          '{{#if (and(isDefined(email) contains(email "@")))}}Valid email{{else}}Invalid email{{/if}}';
+        expect(
+          await engine.render(template, { email: 'test@example.com' })
+        ).toBe('Valid email');
+        expect(await engine.render(template, { email: 'invalid-email' })).toBe(
+          'Invalid email'
+        );
         expect(await engine.render(template, {})).toBe('Invalid email');
       });
 
       it('should handle list processing scenarios', async () => {
-        const template = '{{#if (gt(length(items) 0))}}Found {{length(items)}} items: {{uppercase(join(items ", "))}}{{else}}No items{{/if}}';
-        expect(await engine.render(template, { items: ['apple', 'banana'] })).toBe('Found 2 items: APPLE, BANANA');
+        const template =
+          '{{#if (gt(length(items) 0))}}Found {{length(items)}} items: {{uppercase(join(items ", "))}}{{else}}No items{{/if}}';
+        expect(
+          await engine.render(template, { items: ['apple', 'banana'] })
+        ).toBe('Found 2 items: APPLE, BANANA');
         expect(await engine.render(template, { items: [] })).toBe('No items');
       });
 
       it('should handle mathematical calculations', async () => {
-        const template = 'Total: ${{round(multiply(add(price tax) discount) quantity))}}';
-        const context = { price: 10.50, tax: 1.25, discount: 0.95, quantity: 3 };
+        const template =
+          'Total: ${{round(multiply(add(price tax) discount) quantity))}}';
+        const context = { price: 10.5, tax: 1.25, discount: 0.95, quantity: 3 };
         expect(await engine.render(template, context)).toBe('Total: $34'); // round((10.50 + 1.25) * 0.95 * 3) = round(33.5625) = 34
       });
     });

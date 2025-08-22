@@ -92,7 +92,7 @@ export class ContextAggregator {
     this.gitService = gitService || new GitService(cwd);
     this.fileService =
       fileService ||
-      new FileContextService({}, cwd, fileSystem, globService, ignoreService);
+      new FileContextService(fileSystem, globService, ignoreService, {}, cwd);
   }
 
   /**

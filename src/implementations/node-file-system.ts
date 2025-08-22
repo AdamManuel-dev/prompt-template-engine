@@ -14,7 +14,7 @@ import { promisify } from 'util';
 import { Dirent, Stats } from 'fs';
 import { glob } from 'glob';
 import ignore from 'ignore';
-import { NodeJS } from 'node:process';
+// NodeJS types are available globally in Node.js environments
 import {
   IFileSystem,
   IGlobService,
@@ -52,7 +52,10 @@ export class NodeFileSystem implements IFileSystem {
     try {
       return await readFile(path, encoding);
     } catch (error) {
-      throw this.handleFileSystemError(error as NodeJS.ErrnoException, path);
+      throw this.handleFileSystemError(
+        error as Error & { code?: string; errno?: number; path?: string },
+        path
+      );
     }
   }
 
@@ -60,7 +63,10 @@ export class NodeFileSystem implements IFileSystem {
     try {
       return fs.readFileSync(path, encoding);
     } catch (error) {
-      throw this.handleFileSystemError(error as NodeJS.ErrnoException, path);
+      throw this.handleFileSystemError(
+        error as Error & { code?: string; errno?: number; path?: string },
+        path
+      );
     }
   }
 
@@ -68,7 +74,10 @@ export class NodeFileSystem implements IFileSystem {
     try {
       return await stat(path);
     } catch (error) {
-      throw this.handleFileSystemError(error as NodeJS.ErrnoException, path);
+      throw this.handleFileSystemError(
+        error as Error & { code?: string; errno?: number; path?: string },
+        path
+      );
     }
   }
 
@@ -87,7 +96,10 @@ export class NodeFileSystem implements IFileSystem {
       }
       return await readdir(path);
     } catch (error) {
-      throw this.handleFileSystemError(error as NodeJS.ErrnoException, path);
+      throw this.handleFileSystemError(
+        error as Error & { code?: string; errno?: number; path?: string },
+        path
+      );
     }
   }
 
@@ -95,7 +107,10 @@ export class NodeFileSystem implements IFileSystem {
     try {
       return fs.openSync(path, flags);
     } catch (error) {
-      throw this.handleFileSystemError(error as NodeJS.ErrnoException, path);
+      throw this.handleFileSystemError(
+        error as Error & { code?: string; errno?: number; path?: string },
+        path
+      );
     }
   }
 
@@ -133,7 +148,7 @@ export class NodeFileSystem implements IFileSystem {
 
   // eslint-disable-next-line class-methods-use-this
   private handleFileSystemError(
-    error: NodeJS.ErrnoException,
+    error: Error & { code?: string; errno?: number; path?: string },
     path: string
   ): FileSystemError {
     switch (error.code) {

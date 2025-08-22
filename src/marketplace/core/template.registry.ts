@@ -21,6 +21,7 @@ export interface RegisteredTemplate {
   id: string;
   name: string;
   version: string;
+  currentVersion?: string; // Alias for version
   path: string;
   metadata: TemplateModel;
   versionInfo: TemplateVersion;
@@ -43,6 +44,13 @@ export class TemplateRegistry {
   }
 
   /**
+   * Get templates directory path
+   */
+  getTemplatesPath(): string {
+    return path.join(process.cwd(), '.cursor-prompt', 'templates');
+  }
+
+  /**
    * Load registry from disk
    */
   private async loadRegistry(): Promise<void> {
@@ -50,7 +58,7 @@ export class TemplateRegistry {
       const registryData = await fs.readFile(this.registryPath, 'utf8');
       const registry = JSON.parse(registryData);
 
-      (registry.templates || []).forEach(template => {
+      (registry.templates || []).forEach((template: any) => {
         this.templates.set(template.id, {
           ...template,
           registered: new Date(template.registered),
@@ -163,12 +171,18 @@ export class TemplateRegistry {
         return false;
       }
 
-      if (query.tag && !template.metadata.tags.includes(query.tag)) {
+      if (query.tag && !template.metadata.tags?.includes(query.tag)) {
         return false;
       }
 
-      if (query.author && template.metadata.author.name !== query.author) {
-        return false;
+      if (query.author) {
+        const authorName =
+          typeof template.metadata.author === 'string'
+            ? template.metadata.author
+            : template.metadata.author?.name;
+        if (authorName !== query.author) {
+          return false;
+        }
       }
 
       return true;
@@ -355,7 +369,10 @@ export class TemplateRegistry {
       const { category } = template.metadata;
       categories[category] = (categories[category] || 0) + 1;
 
-      const author = template.metadata.author.name;
+      const author =
+        typeof template.metadata.author === 'string'
+          ? template.metadata.author
+          : (template.metadata.author?.name ?? 'Unknown');
       authors[author] = (authors[author] || 0) + 1;
     });
 

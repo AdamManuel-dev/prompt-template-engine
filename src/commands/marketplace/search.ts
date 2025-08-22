@@ -16,15 +16,11 @@ import {
   TemplateSearchQuery,
   TemplateModel,
   TemplateSortOption,
-} from '../../marketplace/models/template.model';
-import {
-  MarketplaceCommandOptions,
+  TemplateCategory,
   TemplateSearchResult,
   SearchFacets,
-  CategoryFacet,
-  TagFacet,
-  AuthorFacet,
-} from '../../types';
+} from '../../marketplace/models/template.model';
+import { MarketplaceCommandOptions } from '../../types';
 import { logger } from '../../utils/logger';
 
 export class SearchCommand extends BaseCommand implements ICommand {
@@ -101,7 +97,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -145,8 +141,8 @@ export class SearchCommand extends BaseCommand implements ICommand {
     options: MarketplaceCommandOptions
   ): TemplateSearchQuery {
     const query: TemplateSearchQuery = {
-      page: parseInt(options.page, 10),
-      limit: parseInt(options.limit, 10),
+      page: options.page ? parseInt(options.page, 10) : undefined,
+      limit: options.limit ? parseInt(options.limit, 10) : undefined,
       sortBy: options.sort as TemplateSortOption,
       sortOrder: options.order,
     };
@@ -159,19 +155,19 @@ export class SearchCommand extends BaseCommand implements ICommand {
     }
 
     if (options.category) {
-      query.category = options.category;
+      query.category = options.category as TemplateCategory;
     }
 
-    if (options.tags) {
-      query.tags = options.tags.split(',').map((tag: string) => tag.trim());
+    if (options.tag) {
+      query.tags = options.tag.split(',').map((tag: string) => tag.trim());
     }
 
     if (options.author) {
       query.author = options.author;
     }
 
-    if (options.minRating && options.minRating > 0) {
-      query.minRating = parseFloat(options.minRating);
+    if (options.rating && parseFloat(options.rating) > 0) {
+      query.minRating = parseFloat(options.rating);
     }
 
     if (options.featured) {
@@ -216,9 +212,22 @@ export class SearchCommand extends BaseCommand implements ICommand {
     template: TemplateModel,
     position: number
   ): void {
-    const ratingStars = SearchCommand.formatRating(template.rating.average);
+    const ratingAverage = (() => {
+      if (typeof template.rating === 'number') {
+        return template.rating;
+      }
+      if (
+        template.rating &&
+        typeof template.rating === 'object' &&
+        'average' in template.rating
+      ) {
+        return template.rating.average;
+      }
+      return 0;
+    })();
+    const ratingStars = SearchCommand.formatRating(ratingAverage);
     const downloadsFormatted = SearchCommand.formatNumber(
-      template.stats.downloads
+      template.stats?.downloads ?? 0
     );
     const badges = SearchCommand.formatBadges(template);
 
@@ -230,10 +239,10 @@ export class SearchCommand extends BaseCommand implements ICommand {
       `   ${ratingStars} ${chalk.cyan(`${downloadsFormatted} downloads`)} ${chalk.yellow(`v${template.currentVersion}`)}`
     );
     logger.info(
-      `   ${chalk.gray('by')} ${chalk.blue(template.author.name)} ${chalk.gray('•')} ${chalk.magenta(template.category)}`
+      `   ${chalk.gray('by')} ${chalk.blue(typeof template.author === 'string' ? template.author : (template.author?.name ?? 'Unknown'))} ${chalk.gray('•')} ${chalk.magenta(template.category)}`
     );
 
-    if (template.tags.length > 0) {
+    if (template.tags && template.tags.length > 0) {
       const tags = template.tags
         .slice(0, 3)
         .map(tag => chalk.gray(`#${tag}`))
@@ -243,7 +252,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
       );
     }
 
-    logger.info();
+    logger.info('');
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -251,7 +260,20 @@ export class SearchCommand extends BaseCommand implements ICommand {
     template: TemplateModel,
     position: number
   ): void {
-    const ratingStars = SearchCommand.formatRating(template.rating.average);
+    const ratingAverage = (() => {
+      if (typeof template.rating === 'number') {
+        return template.rating;
+      }
+      if (
+        template.rating &&
+        typeof template.rating === 'object' &&
+        'average' in template.rating
+      ) {
+        return template.rating.average;
+      }
+      return 0;
+    })();
+    const ratingStars = SearchCommand.formatRating(ratingAverage);
     const badges = SearchCommand.formatBadges(template);
 
     logger.info(
@@ -267,13 +289,13 @@ export class SearchCommand extends BaseCommand implements ICommand {
     }
 
     logger.info(
-      `   ${ratingStars} (${template.rating.total} reviews) • ${chalk.cyan(`${SearchCommand.formatNumber(template.stats.downloads)} downloads`)}`
+      `   ${ratingStars} (${typeof template.rating === 'object' && template.rating && 'total' in template.rating ? (template.rating.total ?? 0) : 0} reviews) • ${chalk.cyan(`${SearchCommand.formatNumber(template.stats?.downloads ?? 0)} downloads`)}`
     );
     logger.info(
       `   Version: ${chalk.yellow(template.currentVersion)} • Category: ${chalk.magenta(template.category)}`
     );
     logger.info(
-      `   Author: ${chalk.blue(template.author.name)}${template.author.verified ? ' ✓' : ''}`
+      `   Author: ${chalk.blue(typeof template.author === 'string' ? template.author : (template.author?.name ?? 'Unknown'))}${typeof template.author === 'object' && template.author?.verified ? ' ✓' : ''}`
     );
     logger.info(
       `   Created: ${chalk.gray(new Date(template.created).toLocaleDateString())}`
@@ -282,7 +304,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
       `   Updated: ${chalk.gray(new Date(template.updated).toLocaleDateString())}`
     );
 
-    if (template.tags.length > 0) {
+    if (template.tags && template.tags.length > 0) {
       logger.info(
         `   Tags: ${template.tags.map(tag => chalk.gray(`#${tag}`)).join(' ')}`
       );
@@ -297,7 +319,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
     logger.info(
       `   Install: ${chalk.green(`cursor-prompt install ${template.name}`)}`
     );
-    logger.info();
+    logger.info('');
   }
 
   private static displaySearchFacets(facets: SearchFacets): void {
@@ -305,15 +327,15 @@ export class SearchCommand extends BaseCommand implements ICommand {
 
     if (facets.categories && facets.categories.length > 0) {
       logger.info('📂 Categories:');
-      facets.categories.slice(0, 5).forEach((cat: CategoryFacet) => {
+      facets.categories.slice(0, 5).forEach(cat => {
         logger.info(`   ${chalk.magenta(cat.category)} (${cat.count})`);
       });
-      logger.info();
+      logger.info('');
     }
 
     if (facets.tags && facets.tags.length > 0) {
       logger.info('🏷️  Popular Tags:');
-      facets.tags.slice(0, 8).forEach((tag: TagFacet, index: number) => {
+      facets.tags.slice(0, 8).forEach((tag, index: number) => {
         const separator =
           index < facets.tags.slice(0, 8).length - 1 ? ', ' : '';
         process.stdout.write(`${chalk.gray(`#${tag.tag}`)}${separator}`);
@@ -323,12 +345,12 @@ export class SearchCommand extends BaseCommand implements ICommand {
 
     if (facets.authors && facets.authors.length > 0) {
       logger.info('👥 Top Authors:');
-      facets.authors.slice(0, 3).forEach((author: AuthorFacet) => {
+      facets.authors.slice(0, 3).forEach(author => {
         logger.info(
           `   ${chalk.blue(author.author)} (${author.count} templates)`
         );
       });
-      logger.info();
+      logger.info('');
     }
   }
 
@@ -366,7 +388,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
       badges.push(chalk.green('✓ VERIFIED'));
     }
 
-    if (template.stats.trending) {
+    if (template.stats?.trending) {
       badges.push(chalk.red('🔥 TRENDING'));
     }
 

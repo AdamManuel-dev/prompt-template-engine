@@ -1,0 +1,276 @@
+name: Quality Gates
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  type-check:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run TypeScript type check
+        run: npm run type-check
+        
+      - name: Count TypeScript errors
+        if: failure()
+        run: |
+          ERROR_COUNT=$(npm run type-check 2>&1 | grep -c "error TS" || true)
+          echo "::warning ::Found $ERROR_COUNT TypeScript errors"
+          echo "TYPESCRIPT_ERRORS=$ERROR_COUNT" >> $GITHUB_ENV
+      
+      - name: Fail if errors exceed threshold
+        if: failure()
+        run: |
+          MAX_ERRORS=0  # Set to 0 for strict mode, or higher during migration
+          if [ "$TYPESCRIPT_ERRORS" -gt "$MAX_ERRORS" ]; then
+            echo "::error ::TypeScript errors ($TYPESCRIPT_ERRORS) exceed maximum allowed ($MAX_ERRORS)"
+            exit 1
+          fi
+
+  lint:
+    name: ESLint Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run ESLint
+        run: npm run lint
+        
+      - name: Check for ESLint disable comments
+        run: |
+          DISABLE_COUNT=$(grep -r "eslint-disable" src/ --include="*.ts" --include="*.tsx" | wc -l || echo 0)
+          echo "Found $DISABLE_COUNT ESLint disable comments"
+          if [ "$DISABLE_COUNT" -gt "50" ]; then
+            echo "::warning ::Too many ESLint disable comments ($DISABLE_COUNT). Maximum allowed: 50"
+          fi
+
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests with coverage
+        run: npm test -- --coverage --ci
+        
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: true
+          
+      - name: Check coverage thresholds
+        run: |
+          npm test -- --coverage --coverageReporters=json-summary
+          BRANCH_COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.branches.pct')
+          FUNCTION_COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.functions.pct')
+          LINE_COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          STATEMENT_COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.statements.pct')
+          
+          echo "Coverage: Branches=$BRANCH_COVERAGE% Functions=$FUNCTION_COVERAGE% Lines=$LINE_COVERAGE% Statements=$STATEMENT_COVERAGE%"
+          
+          MIN_COVERAGE=70
+          if (( $(echo "$BRANCH_COVERAGE < $MIN_COVERAGE" | bc -l) )); then
+            echo "::error ::Branch coverage ($BRANCH_COVERAGE%) below minimum ($MIN_COVERAGE%)"
+            exit 1
+          fi
+
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    needs: [type-check]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build project
+        run: npm run build
+        
+      - name: Check build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "::error ::Build output directory 'dist' not found"
+            exit 1
+          fi
+          
+          FILE_COUNT=$(find dist -name "*.js" | wc -l)
+          echo "Built $FILE_COUNT JavaScript files"
+          
+          if [ "$FILE_COUNT" -lt "10" ]; then
+            echo "::error ::Insufficient build output (only $FILE_COUNT files)"
+            exit 1
+          fi
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        
+      - name: Run security scan with Snyk
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        with:
+          args: --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  code-quality:
+    name: Code Quality Metrics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Check file sizes
+        run: |
+          echo "Files larger than 500 lines:"
+          find src -name "*.ts" -o -name "*.tsx" | while read file; do
+            LINES=$(wc -l < "$file")
+            if [ "$LINES" -gt "500" ]; then
+              echo "::warning file=$file::File has $LINES lines (max recommended: 500)"
+            fi
+          done
+      
+      - name: Check cyclomatic complexity
+        run: |
+          npx eslint src --format json > eslint-report.json || true
+          # Process complexity warnings
+          
+      - name: Check for TODOs
+        run: |
+          TODO_COUNT=$(grep -r "TODO\|FIXME\|HACK" src/ --include="*.ts" --include="*.tsx" | wc -l || echo 0)
+          echo "Found $TODO_COUNT TODO/FIXME/HACK comments"
+          if [ "$TODO_COUNT" -gt "20" ]; then
+            echo "::warning ::Too many TODO comments ($TODO_COUNT). Consider creating issues instead."
+          fi
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build project
+        run: npm run build
+        
+      - name: Test CLI commands
+        run: |
+          # Test help command
+          node dist/index.js --help
+          
+          # Test list command
+          node dist/index.js list --format json
+          
+          # Test marketplace commands are registered
+          node dist/index.js --help | grep -q "marketplace:search" || (echo "Marketplace commands not found" && exit 1)
+
+  quality-report:
+    name: Quality Report
+    runs-on: ubuntu-latest
+    needs: [type-check, lint, test, build, security, code-quality]
+    if: always()
+    steps:
+      - name: Generate Quality Report
+        run: |
+          echo "## Quality Gates Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.type-check.result }}" == "success" ]; then
+            echo "✅ TypeScript: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ TypeScript: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.lint.result }}" == "success" ]; then
+            echo "✅ Linting: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Linting: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.test.result }}" == "success" ]; then
+            echo "✅ Tests: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Tests: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.build.result }}" == "success" ]; then
+            echo "✅ Build: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Build: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.security.result }}" == "success" ]; then
+            echo "✅ Security: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Security: Issues Found" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -447,7 +447,7 @@ export class ConfigManager implements IConfigManager {
       return { valid: true, errors: [] };
     }
 
-    return ConfigManager.validateValue(value, currentSchema, path);
+    return ConfigManager.validateValue(value, currentSchema, keyPath);
   }
 
   /**

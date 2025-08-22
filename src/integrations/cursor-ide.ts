@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { EventEmitter } from 'events';
 import type { WebSocket } from 'ws';
-import { NodeJS } from 'node:process';
+// Remove invalid import - NodeJS namespace is global
 import { logger } from '../utils/logger';
 import { ConfigManager } from '../config/config-manager';
 import { TemplateEngine } from '../core/template-engine';
@@ -76,7 +76,7 @@ export class CursorIntegration
 
   private templates: Map<string, CursorTemplate> = new Map();
 
-  private syncInterval?: NodeJS.Timeout;
+  private syncInterval?: ReturnType<typeof setTimeout>;
 
   private websocket?: WebSocket;
 
@@ -154,9 +154,11 @@ export class CursorIntegration
       // Try HTTP first for compatibility
       const response = await this.httpRequest('/api/status');
 
-      if (response.status === 'ok') {
+      // Type guard for response structure
+      const apiResponse = response as { status?: string; version?: string };
+      if (apiResponse.status === 'ok') {
         this.connection.connected = true;
-        this.connection.version = response.version;
+        this.connection.version = apiResponse.version;
         this.emit('connected');
 
         // Try to upgrade to WebSocket

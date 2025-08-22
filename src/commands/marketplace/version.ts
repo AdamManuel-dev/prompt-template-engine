@@ -14,11 +14,7 @@ import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
 import { VersionManager } from '../../marketplace/core/version.manager';
-import {
-  MarketplaceCommandOptions,
-  MarketplaceTemplateVersion,
-  TemplateDependency,
-} from '../../types';
+import { MarketplaceCommandOptions, TemplateDependency } from '../../types';
 import { logger } from '../../utils/logger';
 
 export class VersionCommand extends BaseCommand implements ICommand {
@@ -61,7 +57,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -78,9 +74,9 @@ export class VersionCommand extends BaseCommand implements ICommand {
       }
 
       // Check upgrades for template
-      if (options.checkUpgrades) {
+      if (options.checkUpdates) {
         await this.checkUpgrades(
-          options.checkUpgrades,
+          String(options.checkUpdates),
           versionManager,
           options
         );
@@ -89,7 +85,11 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
       // Analyze template versions
       if (options.analyze) {
-        await this.analyzeTemplate(options.analyze, versionManager, options);
+        await this.analyzeTemplate(
+          String(options.analyze),
+          versionManager,
+          options
+        );
         return;
       }
 
@@ -108,7 +108,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
       // Check compatibility
       if (options.compatibility) {
         await this.checkCompatibility(
-          options.compatibility,
+          String(options.compatibility),
           versionManager,
           options
         );
@@ -221,9 +221,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
     // Get marketplace template info
     const template = await marketplace.getTemplate(installed.id);
-    const availableVersions = template.versions.map(
-      (v: MarketplaceTemplateVersion) => v.version
-    );
+    const availableVersions = template.versions.map(v => v.version);
 
     const upgradeOptions = versionManager.getUpgradeOptions(
       installed.version,
@@ -322,9 +320,8 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
     try {
       const template = await marketplace.getTemplate(templateName);
-      const versions = template.versions.sort(
-        (a: MarketplaceTemplateVersion, b: MarketplaceTemplateVersion) =>
-          versionManager.compareVersions(b.version, a.version)
+      const versions = template.versions.sort((a, b) =>
+        versionManager.compareVersions(b.version, a.version)
       );
 
       logger.info(
@@ -335,12 +332,11 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
       // Version statistics
       const totalVersions = versions.length;
-      const stableVersions = versions.filter((v: MarketplaceTemplateVersion) =>
+      const stableVersions = versions.filter(v =>
         versionManager.isStable(v.version)
       );
-      const prereleaseVersions = versions.filter(
-        (v: MarketplaceTemplateVersion) =>
-          versionManager.isPrerelease(v.version)
+      const prereleaseVersions = versions.filter(v =>
+        versionManager.isPrerelease(v.version)
       );
 
       logger.info(`📊 Statistics:`);
@@ -351,7 +347,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
       // Major version breakdown
       const majorVersions = new Map();
-      versions.forEach((v: MarketplaceTemplateVersion) => {
+      versions.forEach(v => {
         const major = versionManager.getMajor(v.version);
         majorVersions.set(major, (majorVersions.get(major) || 0) + 1);
       });
@@ -367,33 +363,30 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
       // Recent versions
       logger.info(chalk.bold('\n📝 Recent Versions:'));
-      versions
-        .slice(0, 8)
-        .forEach((version: MarketplaceTemplateVersion, index: number) => {
-          const diffFromPrevious =
-            index < versions.length - 1
-              ? versionManager.diff(
-                  versions[index + 1].version,
-                  version.version
-                )
-              : 'initial';
+      versions.slice(0, 8).forEach((version, index: number) => {
+        const diffFromPrevious =
+          index < versions.length - 1
+            ? versionManager.diff(versions[index + 1].version, version.version)
+            : 'initial';
 
-          const icon = VersionCommand.getVersionIcon(diffFromPrevious);
-          const stability = versionManager.isStable(version.version)
-            ? ''
-            : chalk.yellow(' (pre-release)');
-          const date = new Date(version.created).toLocaleDateString();
+        const icon = VersionCommand.getVersionIcon(diffFromPrevious);
+        const stability = versionManager.isStable(version.version)
+          ? ''
+          : chalk.yellow(' (pre-release)');
+        const date = new Date(
+          version.created || new Date()
+        ).toLocaleDateString();
 
+        logger.info(
+          `   ${icon} ${chalk.cyan(version.version)}${stability} - ${chalk.gray(date)}`
+        );
+
+        if (version.description) {
           logger.info(
-            `   ${icon} ${chalk.cyan(version.version)}${stability} - ${chalk.gray(date)}`
+            `     ${chalk.gray(version.description.substring(0, 60))}${version.description.length > 60 ? '...' : ''}`
           );
-
-          if (version.description) {
-            logger.info(
-              `     ${chalk.gray(version.description.substring(0, 60))}${version.description.length > 60 ? '...' : ''}`
-            );
-          }
-        });
+        }
+      });
 
       if (options.format === 'json') {
         logger.info(
@@ -405,13 +398,11 @@ export class VersionCommand extends BaseCommand implements ICommand {
               prereleaseVersions: prereleaseVersions.length,
               currentVersion: template.currentVersion,
               majorVersions: Object.fromEntries(majorVersions),
-              recentVersions: versions
-                .slice(0, 10)
-                .map((v: MarketplaceTemplateVersion) => ({
-                  version: v.version,
-                  created: v.created,
-                  stable: versionManager.isStable(v.version),
-                })),
+              recentVersions: versions.slice(0, 10).map(v => ({
+                version: v.version,
+                created: v.created,
+                stable: versionManager.isStable(v.version),
+              })),
             },
             null,
             2
@@ -434,9 +425,8 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
     try {
       const template = await marketplace.getTemplate(templateName);
-      const versions = template.versions.sort(
-        (a: MarketplaceTemplateVersion, b: MarketplaceTemplateVersion) =>
-          versionManager.compareVersions(b.version, a.version)
+      const versions = template.versions.sort((a, b) =>
+        versionManager.compareVersions(b.version, a.version)
       );
 
       logger.info(
@@ -453,9 +443,9 @@ export class VersionCommand extends BaseCommand implements ICommand {
         );
         logger.info(chalk.gray('─'.repeat(65)));
 
-        versions.forEach((version: MarketplaceTemplateVersion) => {
+        versions.forEach(version => {
           const versionStr = version.version.padEnd(11);
-          const date = new Date(version.created)
+          const date = new Date(version.created || new Date())
             .toLocaleDateString()
             .padEnd(12);
           const type = (
@@ -476,13 +466,13 @@ export class VersionCommand extends BaseCommand implements ICommand {
           logger.info(line);
         });
       } else if (options.format === 'plain') {
-        versions.forEach((version: MarketplaceTemplateVersion) => {
+        versions.forEach(version => {
           logger.info(version.version);
         });
       } else if (options.format === 'json') {
         logger.info(
           JSON.stringify(
-            versions.map((v: MarketplaceTemplateVersion) => ({
+            versions.map(v => ({
               version: v.version,
               created: v.created,
               stable: versionManager.isStable(v.version),
@@ -514,7 +504,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
     try {
       const template = await marketplace.getTemplate(templateName);
       const latestVersion = template.versions.find(
-        (v: MarketplaceTemplateVersion) => v.version === template.currentVersion
+        v => v.version === template.currentVersion
       );
 
       if (!latestVersion) {
@@ -608,9 +598,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
     try {
       const template = await marketplace.getTemplate(templateName);
-      const versionInfo = template.versions.find(
-        (v: MarketplaceTemplateVersion) => v.version === version
-      );
+      const versionInfo = template.versions.find(v => v.version === version);
 
       if (!versionInfo) {
         this.error(`Version ${version} not found for template ${templateName}`);

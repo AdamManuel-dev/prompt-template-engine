@@ -12,7 +12,8 @@ import chalk from 'chalk';
 import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { AuthorService } from '../../marketplace/core/author.service';
-import { MarketplaceCommandOptions, MarketplaceTemplate } from '../../types';
+import { MarketplaceCommandOptions } from '../../types';
+// Template model types handled by search results now
 import { logger } from '../../utils/logger';
 
 export class AuthorCommand extends BaseCommand implements ICommand {
@@ -82,7 +83,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -296,7 +297,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
     try {
       const profile = await authorService.getProfile(username);
       const templates = await authorService.getAuthorTemplates(profile.id, {
-        limit: parseInt(options.limit, 10),
+        limit: parseInt(String(options.limit || '10'), 10),
       });
 
       logger.info(
@@ -310,26 +311,37 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         return;
       }
 
-      templates.templates.forEach(
-        (template: MarketplaceTemplate, index: number) => {
-          const rating = '★'.repeat(Math.floor(template.rating.average));
-          const downloads = AuthorCommand.formatNumber(
-            template.stats.downloads
-          );
+      templates.templates.forEach((template, index: number) => {
+        const ratingValue = (() => {
+          if (typeof template.rating === 'number') {
+            return template.rating;
+          }
+          if (
+            template.rating &&
+            typeof template.rating === 'object' &&
+            'average' in template.rating
+          ) {
+            return template.rating.average;
+          }
+          return 0;
+        })();
+        const rating = '★'.repeat(Math.floor(ratingValue));
+        const downloads = AuthorCommand.formatNumber(
+          template.stats?.downloads || 0
+        );
 
-          logger.info(
-            `${index + 1}. ${chalk.cyan(template.displayName || template.name)}`
-          );
-          logger.info(`   ${template.description}`);
-          logger.info(
-            `   ${chalk.yellow(rating)} ${chalk.gray(`(${template.rating.average.toFixed(1)})`)} • ${chalk.gray(`${downloads} downloads`)} • v${template.currentVersion}`
-          );
-          logger.info(
-            `   ${chalk.magenta(template.category)} • ${chalk.gray(`Updated ${new Date(template.updated).toLocaleDateString()}`)}`
-          );
-          logger.info();
-        }
-      );
+        logger.info(
+          `${index + 1}. ${chalk.cyan(template.displayName || template.name)}`
+        );
+        logger.info(`   ${template.description}`);
+        logger.info(
+          `   ${chalk.yellow(rating)} ${chalk.gray(`(${ratingValue.toFixed(1)})`)} • ${chalk.gray(`${downloads} downloads`)} • v${template.currentVersion}`
+        );
+        logger.info(
+          `   ${chalk.magenta(template.category)} • ${chalk.gray(`Updated ${new Date(template.updated || Date.now()).toLocaleDateString()}`)}`
+        );
+        logger.info('');
+      });
 
       // Show pagination info
       if (templates.hasMore) {
@@ -396,7 +408,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
     try {
       const profile = await authorService.getProfile(username);
       const activities = await authorService.getAuthorActivity(profile.id, {
-        limit: parseInt(options.limit, 10),
+        limit: parseInt(String(options.limit || '10'), 10),
       });
 
       logger.info(
@@ -417,7 +429,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
           logger.info(`   ${chalk.gray(activity.description)}`);
         }
         logger.info(`   ${chalk.gray(date)}`);
-        logger.info();
+        logger.info('');
       });
 
       if (options.format === 'json') {
@@ -438,8 +450,8 @@ export class AuthorCommand extends BaseCommand implements ICommand {
     try {
       const result = await authorService.searchAuthors({
         query,
-        limit: parseInt(options.limit, 10),
-        verified: options.verified,
+        limit: parseInt(String(options.limit || '10'), 10),
+        verified: Boolean(options.verified),
       });
 
       logger.info(
@@ -473,7 +485,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         if (author.location) {
           logger.info(`   📍 ${chalk.gray(author.location)}`);
         }
-        logger.info();
+        logger.info('');
       });
 
       logger.info(
@@ -496,7 +508,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
   ): Promise<void> {
     try {
       const authors = await authorService.getFeaturedAuthors(
-        parseInt(options.limit, 10)
+        parseInt(String(options.limit || '10'), 10)
       );
 
       logger.info(chalk.bold(`\n⭐ Featured Authors (${authors.length})\n`));
@@ -519,7 +531,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         logger.info(
           `   📦 ${author.stats.totalTemplates} templates • 📊 ${AuthorCommand.formatNumber(author.stats.totalDownloads)} downloads`
         );
-        logger.info();
+        logger.info('');
       });
 
       if (options.format === 'json') {
@@ -539,7 +551,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
     try {
       const authors = await authorService.getTrendingAuthors(
         'week',
-        parseInt(options.limit, 10)
+        parseInt(String(options.limit || '10'), 10)
       );
 
       logger.info(
@@ -561,7 +573,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         logger.info(
           `   📊 ${AuthorCommand.formatNumber(author.stats.monthlyDownloads)} downloads this month`
         );
-        logger.info();
+        logger.info('');
       });
 
       if (options.format === 'json') {
@@ -683,7 +695,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         if (badge.criteria) {
           logger.info(`   ${chalk.gray(`Criteria: ${badge.criteria}`)}`);
         }
-        logger.info();
+        logger.info('');
       });
 
       if (options.format === 'json') {
@@ -706,7 +718,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       const result = await authorService.getFollowers(
         profile.id,
         1,
-        parseInt(options.limit, 10)
+        parseInt(String(options.limit || '10'), 10)
       );
 
       logger.info(
@@ -728,7 +740,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         logger.info(
           `   📦 ${follower.stats.totalTemplates} templates • ⭐ ${follower.stats.reputation} reputation`
         );
-        logger.info();
+        logger.info('');
       });
 
       if (options.format === 'json') {
@@ -751,7 +763,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       const result = await authorService.getFollowing(
         profile.id,
         1,
-        parseInt(options.limit, 10)
+        parseInt(String(options.limit || '10'), 10)
       );
 
       logger.info(
@@ -775,7 +787,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
         logger.info(
           `   📦 ${following.stats.totalTemplates} templates • ⭐ ${following.stats.reputation} reputation`
         );
-        logger.info();
+        logger.info('');
       });
 
       if (options.format === 'json') {

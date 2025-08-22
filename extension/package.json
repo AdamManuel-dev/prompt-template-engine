@@ -1,0 +1,82 @@
+{
+  "name": "cursor-prompt-template-engine",
+  "displayName": "Cursor Prompt Template Engine",
+  "description": "Automated prompt template management for Cursor IDE",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:cursorPrompt.generateTemplate",
+    "onCommand:cursorPrompt.applyTemplate",
+    "onCommand:cursorPrompt.syncTemplates",
+    "onCommand:cursorPrompt.showTemplates"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cursorPrompt.generateTemplate",
+        "title": "Generate Template",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.applyTemplate",
+        "title": "Apply Template",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.syncTemplates",
+        "title": "Sync Templates",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.showTemplates",
+        "title": "Show Templates",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.configureSettings",
+        "title": "Configure Settings",
+        "category": "Cursor Prompt"
+      }
+    ],
+    "configuration": {
+      "title": "Cursor Prompt Template Engine",
+      "properties": {
+        "cursorPrompt.templatesPath": {
+          "type": "string",
+          "default": "./templates",
+          "description": "Path to templates directory"
+        },
+        "cursorPrompt.autoSync": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically sync templates with Cursor"
+        },
+        "cursorPrompt.syncInterval": {
+          "type": "number",
+          "default": 30,
+          "description": "Sync interval in seconds"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "cursorPrompt.generateTemplate",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "cursorPrompt.applyTemplate",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a",
+        "when": "editorTextFocus"
+      }
+    ]
+  }
+}

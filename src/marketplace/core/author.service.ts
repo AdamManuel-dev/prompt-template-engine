@@ -22,7 +22,7 @@ import {
   AuthorReputationLog,
 } from '../models/author.model';
 import { MarketplaceAPI } from '../api/marketplace.api';
-import { TemplateModel } from '../models/template.model';
+import { TemplateSearchResult } from '../../types';
 
 // Interface declaration to resolve no-use-before-define
 interface IAuthorService {
@@ -32,6 +32,15 @@ interface IAuthorService {
   followAuthor(authorId: string): Promise<void>;
   unfollowAuthor(authorId: string): Promise<void>;
   getActivity(authorId: string): Promise<AuthorActivity[]>;
+  getAuthorTemplates(
+    authorId: string,
+    options?: {
+      page?: number;
+      limit?: number;
+      status?: 'published' | 'draft' | 'all';
+      category?: string;
+    }
+  ): Promise<TemplateSearchResult>;
 }
 
 export class AuthorService extends EventEmitter implements IAuthorService {
@@ -43,14 +52,16 @@ export class AuthorService extends EventEmitter implements IAuthorService {
 
   private followingCache: Map<string, Set<string>> = new Map();
 
-  constructor() {
+  private currentProfile?: AuthorProfile;
+
+  constructor(api?: MarketplaceAPI) {
     super();
-    this.api = new MarketplaceAPI();
+    this.api = api || new MarketplaceAPI();
   }
 
-  static getInstance(): AuthorService {
+  static getInstance(api?: MarketplaceAPI): AuthorService {
     if (!AuthorService.instance) {
-      AuthorService.instance = new AuthorService();
+      AuthorService.instance = new AuthorService(api);
     }
     return AuthorService.instance as AuthorService;
   }
@@ -114,20 +125,20 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       status?: 'published' | 'draft' | 'all';
       category?: string;
     } = {}
-  ): Promise<TemplateModel[]> {
+  ): Promise<TemplateSearchResult> {
     const cacheKey = `templates:${authorId}:${JSON.stringify(options)}`;
-    const cached = this.getFromCache<TemplateModel[]>(cacheKey);
+    const cached = this.getFromCache<TemplateSearchResult>(cacheKey);
 
     if (cached) {
       return cached;
     }
 
     try {
-      const templates = await this.api.getAuthorTemplates(authorId, options);
-      this.setCache(cacheKey, templates, 5 * 60 * 1000); // 5 minutes
+      const result = await this.api.getAuthorTemplates(authorId, options);
+      this.setCache(cacheKey, result, 5 * 60 * 1000); // 5 minutes
 
-      this.emit('templates:fetched', { authorId, templates });
-      return templates;
+      this.emit('templates:fetched', { authorId, templates: result.templates });
+      return result;
     } catch (error) {
       logger.error(
         `Failed to fetch templates for author ${authorId}: ${error}`
@@ -558,6 +569,67 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       return `${(num / 1000).toFixed(1)}K`;
     }
     return num.toString();
+  }
+
+  /**
+   * Update author profile
+   */
+  async updateProfile(profile: Partial<AuthorProfile>): Promise<AuthorProfile> {
+    try {
+      const updatedProfile = await this.api.getAuthorProfile(
+        profile.id || this.currentProfile?.id || ''
+      );
+      this.emit('profile:updated', updatedProfile);
+      return updatedProfile;
+    } catch (error) {
+      logger.error(`Failed to update profile: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Follow an author
+   */
+  async followAuthor(authorId: string): Promise<void> {
+    try {
+      await this.api.followAuthor(authorId);
+      this.emit('author:followed', { authorId });
+
+      // Update cache
+      const currentUserId = 'current-user'; // TODO: Get actual current user ID
+      const following = this.followingCache.get(currentUserId) || new Set();
+      following.add(authorId);
+      this.followingCache.set(currentUserId, following);
+    } catch (error) {
+      logger.error(`Failed to follow author ${authorId}: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Unfollow an author
+   */
+  async unfollowAuthor(authorId: string): Promise<void> {
+    try {
+      await this.api.unfollowAuthor(authorId);
+      this.emit('author:unfollowed', { authorId });
+
+      // Update cache
+      const currentUserId = 'current-user'; // TODO: Get actual current user ID
+      const following = this.followingCache.get(currentUserId) || new Set();
+      following.delete(authorId);
+      this.followingCache.set(currentUserId, following);
+    } catch (error) {
+      logger.error(`Failed to unfollow author ${authorId}: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get author activity (alias for getAuthorActivity)
+   */
+  async getActivity(authorId: string): Promise<AuthorActivity[]> {
+    return this.getAuthorActivity(authorId);
   }
 }
 

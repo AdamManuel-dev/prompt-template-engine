@@ -20,10 +20,10 @@ export const sampleProjects = {
       start: 'node dist/index.js',
     },
     dependencies: {
-      'typescript': '^5.0.0',
+      typescript: '^5.0.0',
     },
     devDependencies: {
-      'jest': '^29.0.0',
+      jest: '^29.0.0',
       '@types/node': '^20.0.0',
     },
   },
@@ -47,18 +47,18 @@ export const sampleProjects = {
       dev: 'ts-node src/index.ts',
     },
     dependencies: {
-      'commander': '^11.0.0',
-      'chalk': '^5.0.0',
+      commander: '^11.0.0',
+      chalk: '^5.0.0',
       'fs-extra': '^11.0.0',
-      'glob': '^10.0.0',
+      glob: '^10.0.0',
     },
     devDependencies: {
-      'typescript': '^5.0.0',
-      'jest': '^29.0.0',
+      typescript: '^5.0.0',
+      jest: '^29.0.0',
       '@types/jest': '^29.0.0',
       '@types/node': '^20.0.0',
       '@types/fs-extra': '^11.0.0',
-      'eslint': '^8.0.0',
+      eslint: '^8.0.0',
       '@typescript-eslint/parser': '^6.0.0',
       '@typescript-eslint/eslint-plugin': '^6.0.0',
       'ts-node': '^10.0.0',
@@ -85,8 +85,8 @@ export const sampleProjects = {
       publish: 'lerna publish',
     },
     devDependencies: {
-      'lerna': '^7.0.0',
-      'typescript': '^5.0.0',
+      lerna: '^7.0.0',
+      typescript: '^5.0.0',
     },
   },
 };
@@ -297,12 +297,12 @@ export const sampleContexts = {
       dev: 'ts-node src/index.ts',
     },
     dependencies: {
-      'commander': '^11.0.0',
-      'chalk': '^5.0.0',
+      commander: '^11.0.0',
+      chalk: '^5.0.0',
     },
     devDependencies: {
-      'typescript': '^5.0.0',
-      'jest': '^29.0.0',
+      typescript: '^5.0.0',
+      jest: '^29.0.0',
       '@types/node': '^20.0.0',
     },
     author: {
@@ -437,7 +437,9 @@ export class TestDataFactory {
     return { ...sampleProjects.basic, ...overrides };
   }
 
-  static createTemplate(overrides: Partial<typeof sampleTemplates.simple> = {}) {
+  static createTemplate(
+    overrides: Partial<typeof sampleTemplates.simple> = {}
+  ) {
     return { ...sampleTemplates.simple, ...overrides };
   }
 
@@ -445,7 +447,9 @@ export class TestDataFactory {
     return { ...sampleContexts.basic, ...overrides };
   }
 
-  static createGitContext(overrides: Partial<typeof sampleGitContext.clean> = {}) {
+  static createGitContext(
+    overrides: Partial<typeof sampleGitContext.clean> = {}
+  ) {
     return { ...sampleGitContext.clean, ...overrides };
   }
 

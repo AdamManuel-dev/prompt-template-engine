@@ -203,16 +203,16 @@ export interface MarketplaceCommandOptions {
   preview?: boolean;
   interactive?: boolean;
   version?: string;
-  rating?: number;
+  rating?: string;
   comment?: string;
   anonymous?: boolean;
   detailed?: boolean;
-  stats?: boolean;
+  stats?: string;
   category?: string;
   tag?: string;
   author?: string;
   sort?: string;
-  limit?: number;
+  limit?: string;
   popular?: boolean;
   trending?: boolean;
   recent?: boolean;
@@ -231,6 +231,43 @@ export interface MarketplaceCommandOptions {
   dryRun?: boolean;
   maxConcurrent?: number;
   file?: string;
+  continueOnError?: boolean;
+  // Info command specific options
+  dependencies?: boolean;
+  examples?: boolean;
+  versions?: boolean;
+  // Install wizard specific options
+  quickMode?: boolean;
+  // Install command specific options
+  skipDeps?: boolean;
+  autoUpdate?: boolean;
+  // List command specific options
+  checkUpdates?: boolean;
+  outdated?: boolean;
+  // Quick install specific options
+  showProgress?: boolean;
+  noConfirm?: boolean;
+  useLatest?: boolean;
+  autoDeps?: boolean;
+  enableUpdates?: boolean;
+  // Rate command specific options
+  showReviews?: boolean;
+  delete?: boolean;
+  title?: string;
+  // Search command specific options
+  page?: string;
+  order?: 'asc' | 'desc';
+  query?: string;
+  // Update command specific options
+  checkOnly?: boolean;
+  major?: boolean;
+  includePrerelease?: boolean;
+  // Version command specific options
+  compare?: string;
+  analyze?: boolean;
+  list?: string;
+  latest?: string;
+  compatibility?: boolean;
 }
 
 /**
@@ -239,9 +276,11 @@ export interface MarketplaceCommandOptions {
 export interface TemplateDependency {
   name: string;
   version: string;
-  optional?: boolean;
+  type: 'plugin' | 'template' | 'engine';
+  optional: boolean;
   description?: string;
-  type?: string;
+  templateId?: string;
+  required?: boolean;
 }
 
 /**
@@ -249,6 +288,7 @@ export interface TemplateDependency {
  */
 export interface MarketplaceTemplateVersion {
   version: string;
+  description?: string;
   deprecated?: boolean;
   releaseDate?: string;
   changelog?: string;
@@ -286,7 +326,19 @@ export interface MarketplaceTemplate {
   currentVersion: string;
   versions: MarketplaceTemplateVersion[];
   downloads: number;
-  rating: number;
+  rating:
+    | number
+    | {
+        average: number;
+        total: number;
+        distribution?: {
+          1: number;
+          2: number;
+          3: number;
+          4: number;
+          5: number;
+        };
+      };
   reviewCount: number;
   createdAt: string;
   updatedAt: string;
@@ -296,6 +348,7 @@ export interface MarketplaceTemplate {
   keywords?: string[];
   featured?: boolean;
   verified?: boolean;
+  deprecated?: boolean;
   displayName?: string;
   stats?: {
     downloads?: number;
@@ -304,6 +357,30 @@ export interface MarketplaceTemplate {
     stars?: number;
   };
   updated?: string; // Legacy alias for updatedAt
+  registered?: string; // Installation date
+  path?: string; // Installation path
+  versionInfo?: {
+    dependencies: TemplateDependency[];
+    size?: number;
+    checksum?: string;
+  };
+  metadata?: {
+    readme?: string;
+    license?: string;
+    keywords?: string[];
+    framework?: string;
+    language?: string;
+    minEngineVersion?: string;
+    maxEngineVersion?: string;
+    platform?: string[];
+    screenshots?: string[];
+    documentation?: string;
+    repository?: {
+      url?: string;
+      type?: string;
+      branch?: string;
+    };
+  };
 }
 
 /**
@@ -314,7 +391,7 @@ export interface TemplateSearchQuery {
   category?: string;
   tags?: string[];
   author?: string;
-  sort?: 'relevance' | 'downloads' | 'rating' | 'recent' | 'name';
+  sort?: 'relevance' | 'downloads' | 'rating' | 'recent' | 'name' | 'updated' | 'popularity' | 'trending';
   limit?: number;
   offset?: number;
 }
@@ -358,6 +435,9 @@ export interface SearchFacets {
 export interface TemplateSearchResult {
   templates: MarketplaceTemplate[];
   total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
   facets?: SearchFacets;
   suggestions?: string[];
 }
@@ -373,6 +453,7 @@ export interface InstallationResult {
   duration: number;
   warnings?: string[];
   errors?: string[];
+  autoUpdate?: boolean;
 }
 
 /**
@@ -458,4 +539,150 @@ export interface GitContext {
   remotes?: RemoteInfo[];
   stats?: RepoStats;
   diff?: DiffInfo;
+}
+
+/**
+ * Template processing context
+ */
+export interface TemplateContext {
+  variables: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  environment?: Record<string, unknown>;
+  options?: ProcessingOptions;
+  // Loop context properties
+  _index?: number;
+  _total?: number;
+  _key?: string | number;
+  _first?: boolean;
+  _last?: boolean;
+  _odd?: boolean;
+  _even?: boolean;
+  // Current item in loop
+  item?: unknown;
+}
+
+/**
+ * Update check result
+ */
+export interface UpdateCheckResult {
+  hasUpdates: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  templateId?: string;
+  hasUpdate?: boolean; // Alias for hasUpdates for backward compatibility
+  updates: Array<{
+    templateId: string;
+    currentVersion: string;
+    latestVersion: string;
+    template: MarketplaceTemplate;
+  }>;
+}
+
+/**
+ * Update result
+ */
+export interface UpdateResult {
+  success: boolean;
+  templateId?: string;
+  updated: Array<{
+    templateId: string;
+    oldVersion: string;
+    newVersion: string;
+  }>;
+  failed: Array<{
+    templateId: string;
+    error: string;
+  }>;
+}
+
+/**
+ * Rating result
+ */
+export interface RatingResult {
+  success: boolean;
+  rating: number;
+  comment?: string;
+  templateId: string;
+  userId: string;
+}
+
+/**
+ * User preferences for marketplace
+ */
+export interface UserPreferences {
+  autoUpdate: boolean;
+  checkInterval: number;
+  includePrerelease: boolean;
+  trustedAuthors: string[];
+  blockedAuthors: string[];
+  preferredCategories: string[];
+  installPath?: string;
+  notifications: {
+    newVersions: boolean;
+    newFromAuthors: boolean;
+    featuredTemplates: boolean;
+    securityUpdates: boolean;
+    weeklyDigest: boolean;
+  };
+}
+
+/**
+ * Installation manifest
+ */
+export interface InstallationManifest {
+  templates: Array<{
+    templateId: string;
+    version: string;
+    installPath: string;
+    installed: Date;
+    lastUsed?: Date;
+    autoUpdate: boolean;
+    customizations?: Record<string, unknown>;
+  }>;
+  lastSync: Date;
+  marketplaceUrl: string;
+  preferences: UserPreferences;
+}
+
+/**
+ * Marketplace install command options
+ */
+export interface MarketplaceInstallOptions extends MarketplaceCommandOptions {
+  skipDeps?: boolean;
+  autoUpdate?: boolean;
+}
+
+/**
+ * Marketplace list command options
+ */
+export interface MarketplaceListOptions extends MarketplaceCommandOptions {
+  checkUpdates?: boolean;
+  outdated?: boolean;
+}
+
+/**
+ * Marketplace update command options
+ */
+export interface MarketplaceUpdateOptions extends MarketplaceCommandOptions {
+  checkOnly?: boolean;
+  major?: boolean;
+  includePrerelease?: boolean;
+}
+
+/**
+ * Marketplace info command options
+ */
+export interface MarketplaceInfoOptions extends MarketplaceCommandOptions {
+  dependencies?: boolean;
+  examples?: boolean;
+  versions?: boolean;
+}
+
+/**
+ * Marketplace rate command options
+ */
+export interface MarketplaceRateOptions extends MarketplaceCommandOptions {
+  showReviews?: boolean;
+  delete?: boolean;
+  title?: string;
 }

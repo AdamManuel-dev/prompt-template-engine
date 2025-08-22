@@ -12,7 +12,11 @@ import chalk from 'chalk';
 import { BaseCommand } from '../../cli/base-command';
 import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
-import { MarketplaceCommandOptions, MarketplaceTemplate } from '../../types';
+import { MarketplaceCommandOptions } from '../../types';
+import {
+  TemplateModel,
+  TemplateInstallation,
+} from '../../marketplace/models/template.model';
 import { logger } from '../../utils/logger';
 
 export class BatchInstallCommand extends BaseCommand implements ICommand {
@@ -55,7 +59,7 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
   ];
 
   async action(args: unknown, options: unknown): Promise<void> {
-    await this.execute(args as string, options);
+    await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
   async execute(
@@ -191,7 +195,7 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
     options: MarketplaceCommandOptions
   ): Promise<void> {
     const marketplace = MarketplaceService.getInstance();
-    const maxConcurrent = parseInt(options.maxConcurrent, 10);
+    const maxConcurrent = parseInt(String(options.maxConcurrent || '3'), 10);
     const startTime = Date.now();
 
     logger.info(chalk.bold('\n⚡ Starting batch installation...\n'));
@@ -209,8 +213,8 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
     results: Array<{
       templateQuery: string;
       success: boolean;
-      template?: MarketplaceTemplate;
-      installation?: Record<string, unknown>;
+      template?: TemplateModel;
+      installation?: TemplateInstallation;
       error?: Error;
     }>,
     duration: number

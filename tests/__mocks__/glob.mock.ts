@@ -8,6 +8,12 @@
  * Patterns: Jest mocking with configurable file matching
  */
 
+import {
+  IGlobService,
+  IIgnoreService,
+  IIgnoreMatcher,
+} from '../../src/interfaces/file-system.interface';
+
 class MockGlob {
   private mockFiles: string[] = [];
 
@@ -27,7 +33,7 @@ class MockGlob {
   private matchesPattern(pattern: string, filePath: string): boolean {
     // Convert glob pattern to regex (simplified)
     let regexPattern = pattern
-      .replace(/\./g, '\\.')  // Escape dots
+      .replace(/\./g, '\\.') // Escape dots
       .replace(/\*\*/g, '.*') // ** matches any path segments
       .replace(/\*/g, '[^/]*') // * matches within path segment
       .replace(/\?/g, '[^/]'); // ? matches single character
@@ -36,14 +42,16 @@ class MockGlob {
     return regex.test(filePath);
   }
 
-  glob = jest.fn((pattern: string | string[], _options?: any): Promise<string[]> => {
-    const patterns = Array.isArray(pattern) ? pattern : [pattern];
-    const matchedFiles = this.mockFiles.filter(file =>
-      patterns.some(p => this.matchesPattern(p, file))
-    );
+  glob = jest.fn(
+    (pattern: string | string[], _options?: any): Promise<string[]> => {
+      const patterns = Array.isArray(pattern) ? pattern : [pattern];
+      const matchedFiles = this.mockFiles.filter(file =>
+        patterns.some(p => this.matchesPattern(p, file))
+      );
 
-    return Promise.resolve(matchedFiles);
-  });
+      return Promise.resolve(matchedFiles);
+    }
+  );
 
   globSync = jest.fn((pattern: string | string[], _options?: any): string[] => {
     const patterns = Array.isArray(pattern) ? pattern : [pattern];

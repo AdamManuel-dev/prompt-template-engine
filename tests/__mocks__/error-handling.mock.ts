@@ -43,7 +43,9 @@ export class ErrorMockFactory {
       [ErrorType.INVALID_ARGUMENT]: `EINVAL: invalid argument, ${syscall} '${path}'`,
     };
 
-    const error = new Error(messages[type] || `Unknown error: ${type}`) as MockError;
+    const error = new Error(
+      messages[type] || `Unknown error: ${type}`
+    ) as MockError;
     error.code = type;
     error.errno = this.getErrno(type);
     error.syscall = syscall;
@@ -61,7 +63,9 @@ export class ErrorMockFactory {
       [ErrorType.NETWORK_ERROR]: `ENOTFOUND: getaddrinfo ENOTFOUND ${hostname}`,
     };
 
-    const error = new Error(messages[type] || `Network error: ${type}`) as MockError;
+    const error = new Error(
+      messages[type] || `Network error: ${type}`
+    ) as MockError;
     error.code = type;
     error.errno = this.getErrno(type);
 
@@ -189,7 +193,7 @@ export class ErrorTestUtils {
     expectedMessage?: string
   ): void {
     let error: MockError | undefined;
-    
+
     try {
       fn();
     } catch (e) {
@@ -198,7 +202,7 @@ export class ErrorTestUtils {
 
     expect(error).toBeDefined();
     expect(error?.code).toBe(expectedType);
-    
+
     if (expectedMessage) {
       expect(error?.message).toContain(expectedMessage);
     }
@@ -213,7 +217,7 @@ export class ErrorTestUtils {
     expectedMessage?: string
   ): Promise<void> {
     let error: MockError | undefined;
-    
+
     try {
       await fn();
     } catch (e) {
@@ -222,7 +226,7 @@ export class ErrorTestUtils {
 
     expect(error).toBeDefined();
     expect(error?.code).toBe(expectedType);
-    
+
     if (expectedMessage) {
       expect(error?.message).toContain(expectedMessage);
     }
@@ -242,7 +246,7 @@ export class ErrorTestUtils {
       name,
       test: async () => {
         setup();
-        
+
         if (operation.constructor.name === 'AsyncFunction') {
           await ErrorTestUtils.expectAsyncError(
             operation as () => Promise<any>,
@@ -286,14 +290,14 @@ export class ErrorTestUtils {
     continueOnError: boolean = false
   ): Promise<T[]> {
     const results: T[] = [];
-    
+
     for (let i = 0; i < operations.length; i++) {
       try {
         const result = await operations[i]();
         results.push(result);
       } catch (error) {
         const mockError = error as MockError;
-        
+
         if (errorHandlers[i]) {
           const recovered = await errorHandlers[i](mockError);
           results.push(recovered);
@@ -302,7 +306,7 @@ export class ErrorTestUtils {
         }
       }
     }
-    
+
     return results;
   }
 }
@@ -312,40 +316,48 @@ export class ErrorTestUtils {
  */
 export const CommonErrorScenarios = {
   fileSystem: {
-    notFound: (path: string) => 
+    notFound: (path: string) =>
       ErrorMockFactory.createFileSystemError(ErrorType.FILE_NOT_FOUND, path),
-    permissionDenied: (path: string) => 
+    permissionDenied: (path: string) =>
       ErrorMockFactory.createFileSystemError(ErrorType.PERMISSION_DENIED, path),
-    invalidArgument: (path: string) => 
+    invalidArgument: (path: string) =>
       ErrorMockFactory.createFileSystemError(ErrorType.INVALID_ARGUMENT, path),
   },
-  
+
   network: {
     timeout: () => ErrorMockFactory.createNetworkError(ErrorType.TIMEOUT),
-    notFound: (hostname: string) => 
+    notFound: (hostname: string) =>
       ErrorMockFactory.createNetworkError(ErrorType.NETWORK_ERROR, hostname),
   },
-  
+
   template: {
-    syntaxError: (message: string, line?: number) => 
+    syntaxError: (message: string, line?: number) =>
       ErrorMockFactory.createTemplateError(message, undefined, line),
-    missingVariable: (variable: string) => 
+    missingVariable: (variable: string) =>
       ErrorMockFactory.createTemplateError(`Variable '${variable}' not found`),
-    circularInclude: (template: string) => 
-      ErrorMockFactory.createTemplateError('Circular dependency detected', template),
+    circularInclude: (template: string) =>
+      ErrorMockFactory.createTemplateError(
+        'Circular dependency detected',
+        template
+      ),
   },
-  
+
   git: {
-    notARepository: () => 
+    notARepository: () =>
       ErrorMockFactory.createGitError('Not a git repository'),
-    commandFailed: (command: string) => 
-      ErrorMockFactory.createGitError(`Git command failed: ${command}`, command),
+    commandFailed: (command: string) =>
+      ErrorMockFactory.createGitError(
+        `Git command failed: ${command}`,
+        command
+      ),
   },
-  
+
   validation: {
-    requiredField: (field: string) => 
-      ErrorMockFactory.createValidationError(`Field '${field}' is required`, { field }),
-    invalidType: (field: string, expected: string, actual: string) => 
+    requiredField: (field: string) =>
+      ErrorMockFactory.createValidationError(`Field '${field}' is required`, {
+        field,
+      }),
+    invalidType: (field: string, expected: string, actual: string) =>
       ErrorMockFactory.createValidationError(
         `Field '${field}' expected ${expected}, got ${actual}`,
         { field, expected, actual }

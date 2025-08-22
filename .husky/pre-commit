@@ -3,7 +3,7 @@
 
 echo "🚀 Running pre-commit hooks..."
 
-# Run linting
+# 1. Run linting
 echo "🔍 Linting..."
 yarn lint
 if [ $? -ne 0 ]; then
@@ -11,12 +11,43 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Run formatting check
+# 2. Run formatting check
 echo "✨ Checking formatting..."
 yarn format:check
 if [ $? -ne 0 ]; then
   echo "❌ Code formatting issues found. Run 'yarn format' to fix."
   exit 1
+fi
+
+# 3. TypeScript type check
+echo "📘 Checking TypeScript types..."
+npm run type-check --silent 2>/dev/null
+if [ $? -ne 0 ]; then
+  echo "⚠️  TypeScript errors found but allowing commit."
+  echo "   Please fix TypeScript errors: npm run type-check"
+fi
+
+# 4. Check for large files
+echo "📏 Checking file sizes..."
+for file in $(git diff --cached --name-only --diff-filter=AM | grep -E '\.(ts|tsx)$'); do
+  if [ -f "$file" ]; then
+    lines=$(wc -l < "$file")
+    if [ "$lines" -gt 500 ]; then
+      echo "⚠️  Warning: $file has $lines lines (recommended max: 500)"
+    fi
+  fi
+done
+
+# 5. Check for console.log statements
+CONSOLE_COUNT=$(git diff --cached --name-only --diff-filter=AM | xargs grep -l "console\.\(log\|error\|warn\|info\)" 2>/dev/null | wc -l)
+if [ "$CONSOLE_COUNT" -gt 0 ]; then
+  echo "⚠️  Warning: Found console statements. Consider using logger utility."
+fi
+
+# 6. Check for potential secrets
+SECRETS=$(git diff --cached --name-only --diff-filter=AM | xargs grep -E "api_key|apiKey|password|secret|token" 2>/dev/null | grep -v "process.env\|interface\|type" | wc -l)
+if [ "$SECRETS" -gt 0 ]; then
+  echo "⚠️  Warning: Potential secrets detected. Use environment variables."
 fi
 
 echo "✅ All pre-commit checks passed!"

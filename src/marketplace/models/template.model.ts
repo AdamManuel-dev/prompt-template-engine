@@ -8,6 +8,26 @@
  * Patterns: Model definitions, data validation, versioning
  */
 
+import { TemplateDependency } from '../../types';
+
+// Re-export for convenience
+export { TemplateDependency };
+
+export interface TemplateSearchResult {
+  templates: TemplateModel[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  facets?: {
+    categories: Array<{ category: TemplateCategory; count: number }>;
+    tags: Array<{ tag: string; count: number }>;
+    authors: Array<{ author: string; count: number }>;
+    ratings: Array<{ rating: number; count: number }>;
+  };
+  suggestions?: string[];
+}
+
 // Basic types and enums first
 export type TemplateCategory =
   | 'development'
@@ -59,13 +79,7 @@ export interface RepositoryInfo {
   directory?: string;
 }
 
-export interface TemplateDependency {
-  name: string;
-  version: string;
-  type: 'plugin' | 'template' | 'engine';
-  optional: boolean;
-  description?: string;
-}
+// TemplateDependency is imported from types/index.ts
 
 export interface VariableValidation {
   pattern?: string;
@@ -159,6 +173,8 @@ export interface TemplateMetadata {
   screenshots?: string[];
   documentation?: string;
   repository?: RepositoryInfo;
+  author?: AuthorInfo | string;
+  tags?: string[];
 }
 
 export interface TemplateVersion {
@@ -198,7 +214,7 @@ export interface TemplateModel {
   author: AuthorInfo;
   versions: TemplateVersion[];
   currentVersion: string;
-  rating: TemplateRating;
+  rating: TemplateRating | number;
   stats: TemplateStats;
   metadata: TemplateMetadata;
   created: Date;
@@ -206,6 +222,10 @@ export interface TemplateModel {
   featured: boolean;
   verified: boolean;
   deprecated: boolean;
+  downloads?: number;
+  repository?: string | RepositoryInfo;
+  dependencies?: TemplateDependency[];
+  changelog?: string;
 }
 
 // Search and filter interfaces
@@ -224,14 +244,7 @@ export interface TemplateSearchQuery {
   trending?: boolean;
 }
 
-export interface TemplateSearchResult {
-  templates: TemplateModel[];
-  total: number;
-  page: number;
-  limit: number;
-  hasMore: boolean;
-  facets: SearchFacets;
-}
+// TemplateSearchResult moved to types/index.ts
 
 // Installation and management interfaces
 export interface TemplateInstallation {
@@ -250,3 +263,13 @@ export interface TemplateManifest {
   marketplaceUrl: string;
   preferences: MarketplacePreferences;
 }
+
+// Re-export types from main types file for convenience
+export type {
+  InstallationResult,
+  UpdateResult,
+  UpdateCheckResult,
+  RatingResult,
+  UserPreferences,
+  InstallationManifest,
+} from '../../types';

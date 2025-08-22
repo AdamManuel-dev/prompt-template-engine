@@ -17,7 +17,7 @@ jest.setTimeout(30000);
 export class TestEnvironment {
   private static instance: TestEnvironment;
   private mocks: { [key: string]: any } = {};
-  
+
   static getInstance(): TestEnvironment {
     if (!TestEnvironment.instance) {
       TestEnvironment.instance = new TestEnvironment();
@@ -28,13 +28,15 @@ export class TestEnvironment {
   /**
    * Setup test environment with common mocks
    */
-  setup(options: {
-    mockFileSystem?: boolean;
-    mockGit?: boolean;
-    mockLogger?: boolean;
-    fileSystemFiles?: Record<string, string>;
-    gitState?: any;
-  } = {}): void {
+  setup(
+    options: {
+      mockFileSystem?: boolean;
+      mockGit?: boolean;
+      mockLogger?: boolean;
+      fileSystemFiles?: Record<string, string>;
+      gitState?: any;
+    } = {}
+  ): void {
     // Setup file system mock
     if (options.mockFileSystem !== false) {
       this.mocks.fileSystem = MockFactory.createFileSystemMock({
@@ -44,7 +46,9 @@ export class TestEnvironment {
 
     // Setup git service mock
     if (options.mockGit) {
-      this.mocks.gitService = MockFactory.createGitServiceMock(options.gitState);
+      this.mocks.gitService = MockFactory.createGitServiceMock(
+        options.gitState
+      );
     }
 
     // Setup logger mock
@@ -150,7 +154,11 @@ This is a test template for: {{project.name}}`;
   /**
    * Create a mock error with specific properties
    */
-  static createMockError(message: string, code?: string, statusCode?: number): Error {
+  static createMockError(
+    message: string,
+    code?: string,
+    statusCode?: number
+  ): Error {
     const error = new Error(message) as any;
     if (code) error.code = code;
     if (statusCode) error.statusCode = statusCode;
@@ -184,7 +192,9 @@ This is a test template for: {{project.name}}`;
   /**
    * Measure execution time of a function
    */
-  static async measureTime<T>(fn: () => Promise<T>): Promise<{ result: T; duration: number }> {
+  static async measureTime<T>(
+    fn: () => Promise<T>
+  ): Promise<{ result: T; duration: number }> {
     const start = Date.now();
     const result = await fn();
     const duration = Date.now() - start;
