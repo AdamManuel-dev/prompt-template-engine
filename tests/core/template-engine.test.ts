@@ -933,6 +933,79 @@ Items:
       });
     });
 
+    describe('#else blocks', () => {
+      it('should render else content when #if condition is false', async () => {
+        const template = '{{#if showMessage}}Hello!{{else}}Goodbye!{{/if}}';
+        const context: TemplateContext = { showMessage: false };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Goodbye!');
+      });
+
+      it('should render if content when #if condition is true', async () => {
+        const template = '{{#if showMessage}}Hello!{{else}}Goodbye!{{/if}}';
+        const context: TemplateContext = { showMessage: true };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Hello!');
+      });
+
+      it('should render else content when #unless condition is true', async () => {
+        const template = '{{#unless hideMessage}}Visible{{else}}Hidden{{/unless}}';
+        const context: TemplateContext = { hideMessage: true };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Hidden');
+      });
+
+      it('should render unless content when #unless condition is false', async () => {
+        const template = '{{#unless hideMessage}}Visible{{else}}Hidden{{/unless}}';
+        const context: TemplateContext = { hideMessage: false };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Visible');
+      });
+
+      it('should handle nested else blocks', async () => {
+        const template = '{{#if outer}}{{#if inner}}Inner true{{else}}Inner false{{/if}}{{else}}Outer false{{/if}}';
+        const context: TemplateContext = { outer: true, inner: false };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Inner false');
+      });
+
+      it('should work with variables in else blocks', async () => {
+        const template = '{{#if hasName}}Hello {{name}}!{{else}}Hello stranger!{{/if}}';
+        const context: TemplateContext = { hasName: false };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Hello stranger!');
+      });
+
+      it('should work with complex templates', async () => {
+        const template = `{{#if user}}Welcome {{user.name}}!
+{{#if user.isAdmin}}You have admin access.{{else}}You have regular access.{{/if}}{{else}}Please log in.{{/if}}`;
+        const context: TemplateContext = { 
+          user: { 
+            name: 'John',
+            isAdmin: false 
+          } 
+        };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('Welcome John!\nYou have regular access.');
+      });
+
+      it('should work with #each inside else blocks', async () => {
+        const template = `{{#if hasItems}}{{#each items}}- {{this}}
+{{/each}}{{else}}No items to display.{{/if}}`;
+        const context: TemplateContext = { hasItems: false, items: [] };
+        
+        const result = await engine.render(template, context);
+        expect(result).toBe('No items to display.');
+      });
+    });
+
     describe('conditional truthiness', () => {
       it('should treat empty strings as falsy', async () => {
         const template = '{{#if message}}Has message{{/if}}{{#unless message}}No message{{/unless}}';

@@ -275,7 +275,12 @@ export class TemplateEngine {
    */
   // eslint-disable-next-line class-methods-use-this
   private processSingleIfBlock(
-    block: { fullMatch: string; condition: string; innerTemplate: string },
+    block: {
+      fullMatch: string;
+      condition: string;
+      innerTemplate: string;
+      elseTemplate?: string;
+    },
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
@@ -303,6 +308,23 @@ export class TemplateEngine {
       return { replacement: processedInner, hasChanges: true };
     }
 
+    // Process else block if it exists
+    if (block.elseTemplate) {
+      let processedElse = this.processEachBlocks(
+        block.elseTemplate,
+        context,
+        depth + 1
+      );
+
+      processedElse = this.processConditionalBlocks(
+        processedElse,
+        context,
+        depth + 1
+      );
+
+      return { replacement: processedElse, hasChanges: true };
+    }
+
     return { replacement: '', hasChanges: true };
   }
 
@@ -311,7 +333,12 @@ export class TemplateEngine {
    */
   // eslint-disable-next-line class-methods-use-this
   private processSingleUnlessBlock(
-    block: { fullMatch: string; condition: string; innerTemplate: string },
+    block: {
+      fullMatch: string;
+      condition: string;
+      innerTemplate: string;
+      elseTemplate?: string;
+    },
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
@@ -339,6 +366,23 @@ export class TemplateEngine {
       return { replacement: processedInner, hasChanges: true };
     }
 
+    // Process else block if it exists
+    if (block.elseTemplate) {
+      let processedElse = this.processEachBlocks(
+        block.elseTemplate,
+        context,
+        depth + 1
+      );
+
+      processedElse = this.processConditionalBlocks(
+        processedElse,
+        context,
+        depth + 1
+      );
+
+      return { replacement: processedElse, hasChanges: true };
+    }
+
     return { replacement: '', hasChanges: true };
   }
 
@@ -346,9 +390,12 @@ export class TemplateEngine {
    * Find only the outermost #if blocks (we'll handle nesting recursively)
    */
   // eslint-disable-next-line class-methods-use-this
-  public findOutermostIfBlocks(
-    template: string
-  ): Array<{ fullMatch: string; condition: string; innerTemplate: string }> {
+  public findOutermostIfBlocks(template: string): Array<{
+    fullMatch: string;
+    condition: string;
+    innerTemplate: string;
+    elseTemplate?: string;
+  }> {
     return this.findOutermostConditionalBlocks(template, 'if');
   }
 
@@ -356,9 +403,12 @@ export class TemplateEngine {
    * Find only the outermost #unless blocks (we'll handle nesting recursively)
    */
   // eslint-disable-next-line class-methods-use-this
-  private findOutermostUnlessBlocks(
-    template: string
-  ): Array<{ fullMatch: string; condition: string; innerTemplate: string }> {
+  private findOutermostUnlessBlocks(template: string): Array<{
+    fullMatch: string;
+    condition: string;
+    innerTemplate: string;
+    elseTemplate?: string;
+  }> {
     return this.findOutermostConditionalBlocks(template, 'unless');
   }
 
@@ -369,17 +419,24 @@ export class TemplateEngine {
   public findOutermostConditionalBlocks(
     template: string,
     blockType: 'if' | 'unless'
-  ): Array<{ fullMatch: string; condition: string; innerTemplate: string }> {
+  ): Array<{
+    fullMatch: string;
+    condition: string;
+    innerTemplate: string;
+    elseTemplate?: string;
+  }> {
     const blocks: Array<{
       fullMatch: string;
       condition: string;
       innerTemplate: string;
+      elseTemplate?: string;
     }> = [];
     const openPattern =
       blockType === 'if'
         ? /\{\{#if\s+([\w.@]+)\s*\}\}/g
         : /\{\{#unless\s+([\w.@]+)\s*\}\}/g;
     const closeTag = `{{/${blockType}}}`;
+    const elseTag = '{{else}}';
 
     // Reset regex lastIndex
     openPattern.lastIndex = 0;
@@ -390,15 +447,26 @@ export class TemplateEngine {
       const condition = match[1];
       let depth = 1;
       let pos = openPattern.lastIndex;
+      let elsePos = -1;
 
-      // Find the matching closing tag
+      // Find the matching closing tag and else tag
       while (depth > 0 && pos < template.length) {
         const nextOpen = template.indexOf(`{{#${blockType}`, pos);
         const nextClose = template.indexOf(closeTag, pos);
+        const nextElse = template.indexOf(elseTag, pos);
 
         if (nextClose === -1) break; // No more closing tags
 
-        if (nextOpen !== -1 && nextOpen < nextClose) {
+        // Check if we found an else tag at the top level
+        if (
+          depth === 1 &&
+          nextElse !== -1 &&
+          nextElse < nextClose &&
+          (nextOpen === -1 || nextElse < nextOpen)
+        ) {
+          elsePos = nextElse;
+          pos = nextElse + elseTag.length;
+        } else if (nextOpen !== -1 && nextOpen < nextClose) {
           depth += 1;
           pos = nextOpen + blockType.length + 3; // Move past '{{#if' or '{{#unless'
         } else {
@@ -411,13 +479,27 @@ export class TemplateEngine {
         const endPos = pos;
         const fullMatch = template.substring(startPos, endPos);
         const innerStart = template.indexOf('}}', startPos) + 2;
-        const innerEnd = template.lastIndexOf(closeTag, endPos);
-        const innerTemplate = template.substring(innerStart, innerEnd);
+
+        let innerTemplate: string;
+        let elseTemplate: string | undefined;
+
+        if (elsePos !== -1) {
+          // We have an else clause
+          innerTemplate = template.substring(innerStart, elsePos);
+          const elseStart = elsePos + elseTag.length;
+          const innerEnd = template.lastIndexOf(closeTag, endPos);
+          elseTemplate = template.substring(elseStart, innerEnd);
+        } else {
+          // No else clause
+          const innerEnd = template.lastIndexOf(closeTag, endPos);
+          innerTemplate = template.substring(innerStart, innerEnd);
+        }
 
         blocks.push({
           fullMatch,
           condition,
           innerTemplate,
+          elseTemplate,
         });
 
         // Skip past this block to avoid nested blocks
