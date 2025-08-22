@@ -9,6 +9,7 @@
  */
 
 import * as fs from 'fs';
+import * as path from 'path';
 
 export interface TemplateContext {
   [key: string]: unknown;
@@ -24,12 +25,24 @@ export class TemplateEngine {
   private unlessPattern =
     /\{\{#unless\s+([\w.@]+)\s*\}\}(.*?)\{\{\/unless\}\}/gs;
 
+  private includePattern = /\{\{#include\s+["']([^"']+)["']\s*\}\}/g;
+
+  private includedFiles = new Set<string>();
+
+  private maxIncludeDepth = 10;
+
   /**
    * Render a template string with variables
    */
   async render(template: string, context: TemplateContext): Promise<string> {
-    // First process conditional blocks (which handle nested #each blocks internally)
-    let processed = this.processConditionalBlocks(template, context);
+    // Reset included files tracking for new render
+    this.includedFiles.clear();
+
+    // First process includes
+    let processed = await this.processIncludes(template, context);
+
+    // Then process conditional blocks (which handle nested #each blocks internally)
+    processed = this.processConditionalBlocks(processed, context);
 
     // Then process any standalone #each blocks not inside conditionals
     processed = this.processEachBlocks(processed, context);
@@ -40,6 +53,97 @@ export class TemplateEngine {
       const value = this.resolveVariable(key, context);
       return value !== undefined ? String(value) : match;
     });
+  }
+
+  /**
+   * Process {{#include}} directives to include external templates
+   */
+  private async processIncludes(
+    template: string,
+    context: TemplateContext,
+    depth = 0
+  ): Promise<string> {
+    // Prevent infinite recursion
+    if (depth > this.maxIncludeDepth) {
+      throw new Error(
+        `Maximum include depth (${this.maxIncludeDepth}) exceeded. Check for circular includes.`
+      );
+    }
+
+    let result = template;
+    let match;
+
+    // Reset pattern index
+    this.includePattern.lastIndex = 0;
+
+    // Find all include directives
+    const includes: Array<{ match: string; path: string }> = [];
+    // eslint-disable-next-line no-cond-assign
+    while ((match = this.includePattern.exec(template)) !== null) {
+      includes.push({ match: match[0], path: match[1] });
+    }
+
+    // Process each include
+    // eslint-disable-next-line no-await-in-loop
+    for (let i = 0; i < includes.length; i += 1) {
+      const include = includes[i];
+      const absolutePath = this.resolveIncludePath(include.path);
+
+      // Check for circular dependencies
+      if (this.includedFiles.has(absolutePath)) {
+        throw new Error(
+          `Circular dependency detected: ${absolutePath} is already being processed`
+        );
+      }
+
+      try {
+        // Track this file to prevent circular includes
+        this.includedFiles.add(absolutePath);
+
+        // Read the included template
+        // eslint-disable-next-line no-await-in-loop
+        const includedContent = await fs.promises.readFile(
+          absolutePath,
+          'utf-8'
+        );
+
+        // Process includes recursively in the included content
+        // eslint-disable-next-line no-await-in-loop
+        const processedContent = await this.processIncludes(
+          includedContent,
+          context,
+          depth + 1
+        );
+
+        // Replace the include directive with the processed content
+        result = result.replace(include.match, processedContent);
+      } catch (error) {
+        const err = error as { code?: string };
+        if (err.code === 'ENOENT') {
+          throw new Error(`Include file not found: ${include.path}`);
+        }
+        throw error;
+      } finally {
+        // Remove from tracking after processing
+        this.includedFiles.delete(absolutePath);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Resolve include path relative to current working directory or absolute
+   */
+  // eslint-disable-next-line class-methods-use-this
+  private resolveIncludePath(includePath: string): string {
+    // If absolute path, use as-is
+    if (path.isAbsolute(includePath)) {
+      return includePath;
+    }
+
+    // Otherwise resolve relative to current working directory
+    return path.resolve(process.cwd(), includePath);
   }
 
   /**
@@ -529,7 +633,8 @@ export class TemplateEngine {
       this.variablePattern.test(template) ||
       this.eachPattern.test(template) ||
       this.ifPattern.test(template) ||
-      this.unlessPattern.test(template)
+      this.unlessPattern.test(template) ||
+      this.includePattern.test(template)
     );
   }
 
@@ -539,6 +644,26 @@ export class TemplateEngine {
   extractVariables(template: string): string[] {
     const variables = new Set<string>();
     let match;
+
+    // Extract variables from included templates
+    this.includePattern.lastIndex = 0;
+    // eslint-disable-next-line no-cond-assign
+    while ((match = this.includePattern.exec(template)) !== null) {
+      const includePath = match[1];
+      try {
+        const absolutePath = this.resolveIncludePath(includePath);
+        // Check if file exists and is readable
+        if (fs.existsSync(absolutePath)) {
+          const includedContent = fs.readFileSync(absolutePath, 'utf-8');
+          // Recursively extract variables from included template
+          const includedVars = this.extractVariables(includedContent);
+          includedVars.forEach(v => variables.add(v));
+        }
+      } catch {
+        // Silently ignore include errors during variable extraction
+        // The actual error will be reported during rendering
+      }
+    }
 
     // Extract variables from #each blocks
     this.eachPattern.lastIndex = 0;

@@ -11,9 +11,12 @@
 import * as fs from 'fs';
 import { TemplateEngine, TemplateContext } from '../../src/core/template-engine';
 
-// Mock fs.promises.readFile
+// Mock fs.promises.readFile - we need to preserve the original for includes
+const originalFs = jest.requireActual('fs');
 jest.mock('fs', () => ({
+  ...originalFs,
   promises: {
+    ...originalFs.promises,
     readFile: jest.fn(),
   },
 }));
@@ -1043,6 +1046,190 @@ Projects:
 `;
         expect(result).toBe(expected);
       });
+    });
+  });
+
+  describe('template includes (#include)', () => {
+    const tmpDir = '/tmp/test-templates';
+    
+    beforeEach(() => {
+      // Use real fs.promises.readFile for include tests
+      (fs.promises.readFile as jest.Mock).mockImplementation(originalFs.promises.readFile);
+      
+      // Create temp directory for test templates
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+    });
+
+    afterEach(() => {
+      // Clean up temp files
+      if (fs.existsSync(tmpDir)) {
+        fs.readdirSync(tmpDir).forEach(file => {
+          fs.unlinkSync(`${tmpDir}/${file}`);
+        });
+      }
+    });
+
+    it('should include external template files', async () => {
+      // Create an included template
+      const headerTemplate = '<header>Welcome {{username}}!</header>';
+      fs.writeFileSync(`${tmpDir}/header.html`, headerTemplate);
+
+      const mainTemplate = `
+        {{#include "${tmpDir}/header.html"}}
+        <main>Content goes here</main>
+      `;
+
+      const context = { username: 'Alice' };
+      const result = await engine.render(mainTemplate, context);
+      
+      expect(result).toContain('<header>Welcome Alice!</header>');
+      expect(result).toContain('<main>Content goes here</main>');
+    });
+
+    it('should handle nested includes', async () => {
+      // Create nested templates
+      const navTemplate = '<nav>{{#each navItems}}<a>{{this}}</a>{{/each}}</nav>';
+      const headerTemplate = `
+        <header>
+          <h1>{{title}}</h1>
+          {{#include "${tmpDir}/nav.html"}}
+        </header>
+      `;
+      
+      fs.writeFileSync(`${tmpDir}/nav.html`, navTemplate);
+      fs.writeFileSync(`${tmpDir}/header.html`, headerTemplate);
+
+      const mainTemplate = `
+        {{#include "${tmpDir}/header.html"}}
+        <main>{{content}}</main>
+      `;
+
+      const context = {
+        title: 'My Site',
+        navItems: ['Home', 'About', 'Contact'],
+        content: 'Welcome to our site!'
+      };
+
+      const result = await engine.render(mainTemplate, context);
+      
+      expect(result).toContain('<h1>My Site</h1>');
+      expect(result).toContain('<a>Home</a>');
+      expect(result).toContain('<a>About</a>');
+      expect(result).toContain('<a>Contact</a>');
+      expect(result).toContain('Welcome to our site!');
+    });
+
+    it('should detect circular dependencies', async () => {
+      // Create templates with circular dependency
+      const templateA = `A: {{#include "${tmpDir}/templateB.html"}}`;
+      const templateB = `B: {{#include "${tmpDir}/templateA.html"}}`;
+      
+      fs.writeFileSync(`${tmpDir}/templateA.html`, templateA);
+      fs.writeFileSync(`${tmpDir}/templateB.html`, templateB);
+
+      await expect(
+        engine.render(templateA, {})
+      ).rejects.toThrow('Circular dependency detected');
+    });
+
+    it('should throw error for missing include files', async () => {
+      const template = `{{#include "${tmpDir}/nonexistent.html"}}`;
+      
+      await expect(
+        engine.render(template, {})
+      ).rejects.toThrow('Include file not found');
+    });
+
+    it('should respect maximum include depth', async () => {
+      // Create deeply nested includes
+      for (let i = 0; i < 15; i++) {
+        const content = i < 14 
+          ? `Level ${i}: {{#include "${tmpDir}/template${i + 1}.html"}}` 
+          : `Level ${i}: End`;
+        fs.writeFileSync(`${tmpDir}/template${i}.html`, content);
+      }
+
+      const template = `{{#include "${tmpDir}/template0.html"}}`;
+      
+      await expect(
+        engine.render(template, {})
+      ).rejects.toThrow('Maximum include depth');
+    });
+
+    it('should process variables in included templates', async () => {
+      const partialTemplate = `
+        {{#if showDetails}}
+          <details>
+            <p>Name: {{user.name}}</p>
+            <p>Email: {{user.email}}</p>
+          </details>
+        {{/if}}
+      `;
+      
+      fs.writeFileSync(`${tmpDir}/user-details.html`, partialTemplate);
+
+      const mainTemplate = `
+        <div class="user-card">
+          {{#include "${tmpDir}/user-details.html"}}
+        </div>
+      `;
+
+      const context = {
+        showDetails: true,
+        user: {
+          name: 'Bob Smith',
+          email: 'bob@example.com'
+        }
+      };
+
+      const result = await engine.render(mainTemplate, context);
+      
+      expect(result).toContain('Name: Bob Smith');
+      expect(result).toContain('Email: bob@example.com');
+    });
+
+    it('should extract variables from included templates', () => {
+      // Create an included template with variables
+      const includedTemplate = 'User: {{user.name}}, Role: {{user.role}}';
+      fs.writeFileSync(`${tmpDir}/user-info.html`, includedTemplate);
+
+      const mainTemplate = `
+        {{#include "${tmpDir}/user-info.html"}}
+        Status: {{status}}
+      `;
+
+      const variables = engine.extractVariables(mainTemplate);
+      
+      expect(variables).toContain('user.name');
+      expect(variables).toContain('user.role');
+      expect(variables).toContain('status');
+    });
+
+    it('should handle multiple includes in same template', async () => {
+      const headerTemplate = '<header>{{siteName}}</header>';
+      const footerTemplate = '<footer>© {{year}} {{company}}</footer>';
+      
+      fs.writeFileSync(`${tmpDir}/header.html`, headerTemplate);
+      fs.writeFileSync(`${tmpDir}/footer.html`, footerTemplate);
+
+      const mainTemplate = `
+        {{#include "${tmpDir}/header.html"}}
+        <main>Content</main>
+        {{#include "${tmpDir}/footer.html"}}
+      `;
+
+      const context = {
+        siteName: 'My Website',
+        year: 2025,
+        company: 'ACME Corp'
+      };
+
+      const result = await engine.render(mainTemplate, context);
+      
+      expect(result).toContain('<header>My Website</header>');
+      expect(result).toContain('<footer>© 2025 ACME Corp</footer>');
     });
   });
 });
