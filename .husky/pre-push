@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push hooks..."
+
+# Run full test suite with coverage
+echo "🧪 Running full test suite with coverage..."
+yarn test
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Fix them before pushing."
+  exit 1
+fi
+
+# Build production version
+echo "🏗️  Building production version..."
+yarn build
+if [ $? -ne 0 ]; then
+  echo "❌ Production build failed. Fix errors before pushing."
+  exit 1
+fi
+
+echo "✅ All pre-push checks passed! Safe to push."
