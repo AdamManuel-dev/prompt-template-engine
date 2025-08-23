@@ -55,7 +55,7 @@ describe('TemplateInstallerService', () => {
       repository: '',
       homepage: '',
       readme: '',
-      versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] }] as any,
+      versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [] } as any] as any,
       dependencies: [],
       stats: {
         downloads: 0,
@@ -106,7 +106,7 @@ describe('TemplateInstallerService', () => {
         version: mockTemplate.currentVersion,
         path: installPath,
         metadata: mockTemplate,
-        versionInfo: { version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] } as any,
+        versionInfo: { version: '1.0.0', description: '', content: '', dependencies: [], variables: [] } as any,
         registered: new Date(),
         active: true,
       });
@@ -127,7 +127,7 @@ describe('TemplateInstallerService', () => {
         version: mockTemplate.currentVersion,
         path: installPath,
         metadata: mockTemplate,
-        versionInfo: { version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] } as any,
+        versionInfo: { version: '1.0.0', description: '', content: '', dependencies: [], variables: [] } as any,
         registered: new Date(),
         active: true,
       });
@@ -239,7 +239,7 @@ describe('TemplateInstallerService', () => {
             id,
             name: `Template ${id}`,
             currentVersion: '1.0.0',
-            versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] }],
+            versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [] } as any],
           }) as TemplateModel
       );
       mockApi.downloadTemplate = jest.fn().mockResolvedValue('content');

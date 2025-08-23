@@ -214,7 +214,7 @@ describe('Marketplace Commands Integration', () => {
       mockService.getTemplate = jest.fn().mockResolvedValue(createMockTemplate({
         id: 'test-template',
         name: 'Test Template',
-        versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] }] as any,
+        versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [] } as any] as any,
       }));
       
       mockService.install.mockResolvedValue({
@@ -244,8 +244,8 @@ describe('Marketplace Commands Integration', () => {
         name: 'Test Template',
         currentVersion: '2.0.0',
         versions: [
-          { version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] },
-          { version: '2.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] }
+          { version: '1.0.0', description: '', content: '', dependencies: [], variables: [] } as any,
+          { version: '2.0.0', description: '', content: '', dependencies: [], variables: [] } as any
         ],
       }));
       
