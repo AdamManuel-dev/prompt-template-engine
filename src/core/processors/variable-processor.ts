@@ -11,7 +11,7 @@
 import { TemplateContext } from '../../types';
 
 export class VariableProcessor {
-  private variablePattern = /\{\{(\s*[@\w.]+\s*)\}\}/g;
+  private variablePattern = /\{\{(\s*[@\w.[\]0-9]+\s*)\}\}/g;
 
   /**
    * Process variables in template
@@ -35,7 +35,7 @@ export class VariableProcessor {
 
     // Handle nested path resolution
     const path = key.split('.');
-    let current: any = context;
+    let current: any = context.variables;
 
     for (const segment of path) {
       if (current === null || current === undefined) {

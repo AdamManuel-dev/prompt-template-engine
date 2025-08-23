@@ -206,7 +206,7 @@ describe('FileContextService', () => {
         '/test/project/debug.log',
       ]);
 
-      const serviceWithIgnore = new FileContextService({}, mockCwd);
+      const serviceWithIgnore = new FileContextService(mockFileSystem as any, undefined, undefined, {}, mockCwd);
 
       const files = await serviceWithIgnore.findFiles(['**/*']);
 
@@ -320,9 +320,7 @@ describe('FileContextService', () => {
       const mockError = Object.assign(new Error('Permission denied'), {
         code: 'EACCES',
       });
-      mockFileSystem.stat = jest.fn((_path, callback) =>
-        callback(mockError, null)
-      );
+      mockFileSystem.stat = jest.fn().mockRejectedValue(mockError);
 
       const info = await service.getFileInfo('/protected/file');
 
@@ -341,7 +339,7 @@ describe('FileContextService', () => {
       mockFileSystem.addFile('/test/project/.gitignore', 'invalid[[[pattern');
 
       expect(() => {
-        new FileContextService(mockFileSystem as any, mockCwd);
+        new FileContextService(mockFileSystem as any, undefined, undefined, {}, mockCwd);
       }).not.toThrow();
     });
   });

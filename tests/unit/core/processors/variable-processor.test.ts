@@ -4,7 +4,7 @@
  */
 
 import { VariableProcessor } from '../../../../src/core/processors/variable-processor';
-import { TemplateContext } from '../../../../src/core/template-engine';
+import { TemplateContext } from '../../../../src/types';
 
 describe('VariableProcessor', () => {
   let processor: VariableProcessor;
@@ -17,8 +17,10 @@ describe('VariableProcessor', () => {
     it('should replace simple variables', () => {
       const template = 'Hello {{name}}, welcome to {{place}}!';
       const context: TemplateContext = {
-        name: 'John',
-        place: 'TypeScript',
+        variables: {
+          name: 'John',
+          place: 'TypeScript',
+        },
       };
 
       const result = processor.processVariables(template, context);
@@ -29,9 +31,11 @@ describe('VariableProcessor', () => {
     it('should handle nested object paths', () => {
       const template = 'User: {{user.name}}, Email: {{user.email}}';
       const context: TemplateContext = {
-        user: {
-          name: 'Jane',
-          email: 'jane@example.com',
+        variables: {
+          user: {
+            name: 'Jane',
+            email: 'jane@example.com',
+          },
         },
       };
 
@@ -43,7 +47,9 @@ describe('VariableProcessor', () => {
     it('should handle array index notation', () => {
       const template = 'First: {{items[0]}}, Second: {{items[1]}}';
       const context: TemplateContext = {
-        items: ['apple', 'banana', 'cherry'],
+        variables: {
+          items: ['apple', 'banana', 'cherry'],
+        },
       };
 
       const result = processor.processVariables(template, context);
@@ -54,7 +60,9 @@ describe('VariableProcessor', () => {
     it('should leave unmatched variables as-is', () => {
       const template = 'Hello {{name}}, {{unknown}} variable';
       const context: TemplateContext = {
-        name: 'World',
+        variables: {
+          name: 'World',
+        },
       };
 
       const result = processor.processVariables(template, context);
@@ -65,6 +73,7 @@ describe('VariableProcessor', () => {
     it('should handle special @ variables', () => {
       const template = 'Index: {{@index}}, First: {{@first}}, Last: {{@last}}';
       const context: TemplateContext = {
+        variables: {},
         _index: 2,
         _total: 5,
       };
@@ -78,8 +87,10 @@ describe('VariableProcessor', () => {
   describe('resolveVariable', () => {
     it('should resolve simple variables', () => {
       const context: TemplateContext = {
-        name: 'Test',
-        value: 42,
+        variables: {
+          name: 'Test',
+          value: 42,
+        },
       };
 
       expect(processor.resolveVariable('name', context)).toBe('Test');
@@ -88,10 +99,12 @@ describe('VariableProcessor', () => {
 
     it('should resolve nested paths', () => {
       const context: TemplateContext = {
-        user: {
-          profile: {
-            name: 'Deep',
-            age: 30,
+        variables: {
+          user: {
+            profile: {
+              name: 'Deep',
+              age: 30,
+            },
           },
         },
       };
@@ -104,7 +117,9 @@ describe('VariableProcessor', () => {
 
     it('should handle undefined paths gracefully', () => {
       const context: TemplateContext = {
-        user: null,
+        variables: {
+          user: null,
+        },
       };
 
       expect(processor.resolveVariable('user.name', context)).toBeUndefined();
@@ -115,6 +130,7 @@ describe('VariableProcessor', () => {
 
     it('should resolve special variables', () => {
       const context: TemplateContext = {
+        variables: {},
         _index: 0,
         _total: 3,
       };
@@ -128,11 +144,13 @@ describe('VariableProcessor', () => {
 
     it('should handle array access with bracket notation', () => {
       const context: TemplateContext = {
-        users: [{ name: 'Alice' }, { name: 'Bob' }],
-        matrix: [
-          [1, 2, 3],
-          [4, 5, 6],
-        ],
+        variables: {
+          users: [{ name: 'Alice' }, { name: 'Bob' }],
+          matrix: [
+            [1, 2, 3],
+            [4, 5, 6],
+          ],
+        },
       };
 
       expect(processor.resolveVariable('users[0]', context)).toEqual({

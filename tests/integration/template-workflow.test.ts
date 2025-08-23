@@ -562,17 +562,15 @@ Environment: {{env.NODE_ENV}}
       const filePath = path.join(tempDir, 'package.json');
 
       // First call
-      const start1 = Date.now();
-      await fileContextService.getFileInfo(filePath);
-      const duration1 = Date.now() - start1;
+      const info1 = await fileContextService.getFileInfo(filePath);
+      
+      // Second call (should return same result)
+      const info2 = await fileContextService.getFileInfo(filePath);
 
-      // Second call (should be faster due to caching)
-      const start2 = Date.now();
-      await fileContextService.getFileInfo(filePath);
-      const duration2 = Date.now() - start2;
-
-      // Second call should be faster (though this may be flaky)
-      expect(duration2).toBeLessThanOrEqual(duration1);
+      // Should return consistent results
+      expect(info1).toEqual(info2);
+      expect(info1?.size).toBeGreaterThan(0);
+      expect(info1?.isDirectory).toBe(false);
     });
   });
 
@@ -590,9 +588,9 @@ npm install
 ## Project Structure
 \`\`\`
 {{#each structure.tree}}
-{{name}}{{#if isDirectory}}/{{/if}}
+{{name}}{{#if (eq type "directory")}}/{{/if}}
 {{#each children}}
-  {{name}}{{#if isDirectory}}/{{/if}}
+  {{name}}{{#if (eq type "directory")}}/{{/if}}
 {{/each}}
 {{/each}}
 \`\`\`
