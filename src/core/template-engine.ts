@@ -918,8 +918,8 @@ export class TemplateEngine {
                     parenArgs,
                     context
                   );
-                  // Convert the processed string result back to appropriate type
-                  argList = [this.resolveHelperArg(processedArgs, context)];
+                  // Use the processed result directly, but parse arrays if needed
+                  argList = [this.parseNestedHelperResult(processedArgs)];
                 } else {
                   // This contains multiple arguments, some may be nested helpers
                   processedArgs = this.processEnhancedNestedHelpers(
@@ -1161,7 +1161,12 @@ export class TemplateEngine {
               args = [processedArgs];
             } else {
               // This contains multiple arguments, parse them
-              args = this.parseHelperArgs(processedArgs, context);
+              // Use the enhanced parsing that handles nested results
+              args = this.parseProcessedHelperArgs(
+                processedArgs,
+                match.args || '',
+                context
+              );
             }
           } else {
             args = [];
@@ -1296,7 +1301,7 @@ export class TemplateEngine {
         } else {
           current += char;
         }
-      } else if ((char === ' ' || char === ',') && !inQuotes) {
+      } else if (char === ' ' && !inQuotes) {
         if (current.trim()) {
           // For processed helper results, treat as literal values unless they match original variable patterns
           const trimmedCurrent = current.trim();
@@ -1306,7 +1311,7 @@ export class TemplateEngine {
               originalArgsString
             )
           ) {
-            args.push(trimmedCurrent);
+            args.push(this.parseNestedHelperResult(trimmedCurrent));
           } else {
             args.push(this.resolveHelperArg(trimmedCurrent, context));
           }
@@ -1324,7 +1329,7 @@ export class TemplateEngine {
       if (
         this.looksLikeProcessedHelperResult(trimmedCurrent, originalArgsString)
       ) {
-        args.push(trimmedCurrent);
+        args.push(this.parseNestedHelperResult(trimmedCurrent));
       } else {
         args.push(this.resolveHelperArg(trimmedCurrent, context));
       }
@@ -1452,6 +1457,30 @@ export class TemplateEngine {
 
     // Try to resolve from context
     return this.resolveVariable(arg, context);
+  }
+
+  /**
+   * Parse a nested helper result, converting string arrays back to arrays if needed
+   */
+  private parseNestedHelperResult(result: string): unknown {
+    // Check if this looks like a comma-separated array from split()
+    if (/^[^,]+(?:,[^,]+)+$/.test(result) && !result.includes(' ')) {
+      // This looks like "j,o,h,n" - convert back to array
+      return result.split(',');
+    }
+    // Check if it's a number
+    if (/^-?\d+(\.\d+)?$/.test(result)) {
+      return Number(result);
+    }
+
+    // Check if it's a boolean
+    if (result === 'true') return true;
+    if (result === 'false') return false;
+    if (result === 'null') return null;
+    if (result === 'undefined') return undefined;
+
+    // Otherwise return as string
+    return result;
   }
 
   /**

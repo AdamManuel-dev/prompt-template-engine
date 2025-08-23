@@ -4,9 +4,9 @@
  */
 
 import { Command } from 'commander';
-import MarketplaceSearchCommand from '../../../src/commands/marketplace/search';
-import MarketplaceInstallCommand from '../../../src/commands/marketplace/install';
-import MarketplaceListCommand from '../../../src/commands/marketplace/list';
+import { SearchCommand as MarketplaceSearchCommand } from '../../../src/commands/marketplace/search';
+import { InstallCommand as MarketplaceInstallCommand } from '../../../src/commands/marketplace/install';
+import { ListCommand as MarketplaceListCommand } from '../../../src/commands/marketplace/list';
 import { MarketplaceAPI } from '../../../src/marketplace/api/marketplace.api';
 import { MarketplaceService } from '../../../src/marketplace/core/marketplace.service';
 import {
@@ -359,14 +359,18 @@ describe('Marketplace Commands Integration', () => {
       await installCommand.execute('workflow-template', {});
 
       // Step 3: List installed templates
-      mockService.getInstalled = jest
+      mockService.getInstalledTemplates = jest
         .fn()
-        .mockResolvedValue([searchResult.templates[0]]);
+        .mockReturnValue([searchResult.templates[0]]);
 
-      const installed = await mockService.getInstalled();
+      const installed = mockService.getInstalledTemplates();
 
       expect(installed).toHaveLength(1);
       expect(installed[0].id).toBe('workflow-template');
+
+      // Step 4: List command integration test
+      await listCommand.execute({});
+      expect(mockService.getInstalledTemplates).toHaveBeenCalled();
     });
   });
 });

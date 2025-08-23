@@ -1049,7 +1049,7 @@ describe('TemplateValidator', () => {
     });
 
     it('should validate very large templates efficiently', async () => {
-      const largeTemplate: unknown = {
+      const largeTemplate: any = {
         name: 'large-template',
         description: 'A template with many fields',
         version: '1.0.0',

@@ -9,8 +9,6 @@ import { TemplateRegistry } from '../../../../src/marketplace/registry/template-
 import { TemplateInstallerService } from '../../../../src/marketplace/services/template-installer.service';
 import {
   TemplateModel,
-  UpdateResult,
-  UpdateCheckResult,
 } from '../../../../src/marketplace/models/template.model';
 import * as fs from 'fs';
 
@@ -36,9 +34,7 @@ describe('TemplateUpdaterService', () => {
 
   beforeEach(() => {
     mockApi = new MarketplaceAPI() as jest.Mocked<MarketplaceAPI>;
-    mockRegistry = new TemplateRegistry(
-      '/test/path'
-    ) as jest.Mocked<TemplateRegistry>;
+    mockRegistry = new TemplateRegistry() as jest.Mocked<TemplateRegistry>;
     mockInstaller = new TemplateInstallerService(
       mockApi,
       mockRegistry,
