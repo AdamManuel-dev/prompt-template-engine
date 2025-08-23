@@ -5,7 +5,7 @@
 
 import { TemplateUpdaterService } from '../../../../src/marketplace/services/template-updater.service';
 import { MarketplaceAPI } from '../../../../src/marketplace/api/marketplace.api';
-import { TemplateRegistry } from '../../../../src/marketplace/registry/template-registry';
+import { TemplateRegistry } from '../../../../src/marketplace/core/template.registry';
 import { TemplateInstallerService } from '../../../../src/marketplace/services/template-installer.service';
 import {
   TemplateModel,
@@ -18,7 +18,7 @@ import {
 import * as fs from 'fs';
 
 jest.mock('../../../../src/marketplace/api/marketplace.api');
-jest.mock('../../../../src/marketplace/registry/template-registry');
+jest.mock('../../../../src/marketplace/core/template.registry');
 jest.mock('../../../../src/marketplace/services/template-installer.service');
 jest.mock('fs', () => ({
   existsSync: jest.fn(),
@@ -87,6 +87,12 @@ describe('TemplateUpdaterService', () => {
   beforeEach(() => {
     mockApi = new MarketplaceAPI() as jest.Mocked<MarketplaceAPI>;
     mockRegistry = new TemplateRegistry() as jest.Mocked<TemplateRegistry>;
+    
+    // Mock the methods we use
+    mockRegistry.getTemplate = jest.fn();
+    mockRegistry.listTemplates = jest.fn();
+    (mockApi as any).getTemplate = jest.fn();
+    
     mockInstaller = new TemplateInstallerService(
       mockApi,
       mockRegistry,
@@ -117,8 +123,17 @@ describe('TemplateUpdaterService', () => {
     });
 
     it('should update template when new version available', async () => {
-      mockRegistry.get.mockResolvedValue(installedTemplate);
-      mockApi.get.mockResolvedValue(latestTemplate);
+      (mockRegistry.getTemplate as jest.Mock).mockResolvedValue({
+        id: installedTemplate.id,
+        name: installedTemplate.name,
+        version: '1.0.0',
+        path: '/test/path',
+        metadata: installedTemplate,
+        versionInfo: { version: '1.0.0' } as any,
+        registered: new Date(),
+        active: true,
+      });
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(latestTemplate);
       mockInstaller.install.mockResolvedValue({
         success: true,
         template: latestTemplate as any,
@@ -131,9 +146,11 @@ describe('TemplateUpdaterService', () => {
       const result = await service.update('test-template');
 
       expect(result.success).toBe(true);
-      expect(result.fromVersion).toBe('1.0.0');
-      expect(result.toVersion).toBe('2.0.0');
-      expect(result.message).toBe('Update successful');
+      expect(result.updated).toEqual([{
+        templateId: 'test-template',
+        oldVersion: '1.0.0',
+        newVersion: '2.0.0'
+      }]);
       expect(mockInstaller.install).toHaveBeenCalledWith('test-template', {
         force: true,
         version: '2.0.0',
@@ -141,19 +158,37 @@ describe('TemplateUpdaterService', () => {
     });
 
     it('should skip update when already up to date', async () => {
-      mockRegistry.get.mockResolvedValue(latestTemplate);
-      mockApi.get.mockResolvedValue(latestTemplate);
+      (mockRegistry.getTemplate as jest.Mock).mockResolvedValue({
+        id: latestTemplate.id,
+        name: latestTemplate.name,
+        version: '2.0.0',
+        path: '/test/path',
+        metadata: latestTemplate,
+        versionInfo: { version: '2.0.0' } as any,
+        registered: new Date(),
+        active: true,
+      });
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(latestTemplate);
 
       const result = await service.update('test-template');
 
       expect(result.success).toBe(false);
-      expect(result.message).toBe('Template is already up to date');
+      expect(result.updated).toEqual([]);
       expect(mockInstaller.install).not.toHaveBeenCalled();
     });
 
     it('should force update when force option is true', async () => {
-      mockRegistry.get.mockResolvedValue(latestTemplate);
-      mockApi.get.mockResolvedValue(latestTemplate);
+      (mockRegistry.getTemplate as jest.Mock).mockResolvedValue({
+        id: latestTemplate.id,
+        name: latestTemplate.name,
+        version: '2.0.0',
+        path: '/test/path',
+        metadata: latestTemplate,
+        versionInfo: { version: '2.0.0' } as any,
+        registered: new Date(),
+        active: true,
+      });
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(latestTemplate);
       mockInstaller.install.mockResolvedValue({
         success: true,
         template: latestTemplate as any,
@@ -170,19 +205,42 @@ describe('TemplateUpdaterService', () => {
     });
 
     it('should only check for updates when checkOnly is true', async () => {
-      mockRegistry.get.mockResolvedValue(installedTemplate);
-      mockApi.get.mockResolvedValue(latestTemplate);
+      (mockRegistry.getTemplate as jest.Mock).mockResolvedValue({
+        id: installedTemplate.id,
+        name: installedTemplate.name,
+        version: '1.0.0',
+        path: '/test/path',
+        metadata: installedTemplate,
+        versionInfo: { version: '1.0.0' } as any,
+        registered: new Date(),
+        active: true,
+      });
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(latestTemplate);
 
       const result = await service.update('test-template', { checkOnly: true });
 
       expect(result.success).toBe(true);
-      expect(result.updated).toHaveLength(0); // checkOnly doesn't perform update
+      expect(result.updated).toHaveLength(1); // checkOnly returns what would be updated
+      expect(result.updated[0]).toEqual({
+        templateId: 'test-template',
+        oldVersion: '1.0.0',
+        newVersion: '2.0.0'
+      });
       expect(mockInstaller.install).not.toHaveBeenCalled();
     });
 
     it('should backup template when backup option is true', async () => {
-      mockRegistry.get.mockResolvedValue(installedTemplate);
-      mockApi.get.mockResolvedValue(latestTemplate);
+      (mockRegistry.getTemplate as jest.Mock).mockResolvedValue({
+        id: installedTemplate.id,
+        name: installedTemplate.name,
+        version: '1.0.0',
+        path: '/test/path',
+        metadata: installedTemplate,
+        versionInfo: { version: '1.0.0' } as any,
+        registered: new Date(),
+        active: true,
+      });
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(latestTemplate);
       (mockRegistry as any).getTemplatesPath = jest.fn().mockReturnValue('/templates');
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       (fs.promises.readdir as jest.Mock).mockResolvedValue([]);
@@ -202,7 +260,7 @@ describe('TemplateUpdaterService', () => {
     });
 
     it('should handle update errors', async () => {
-      mockRegistry.get.mockResolvedValue(null);
+      (mockRegistry.getTemplate as jest.Mock).mockResolvedValue(undefined);
 
       await expect(service.update('test-template')).rejects.toThrow(
         'Template test-template is not installed'
@@ -212,29 +270,49 @@ describe('TemplateUpdaterService', () => {
 
   describe('checkUpdates', () => {
     it('should check updates for all installed templates', async () => {
-      const installed: TemplateModel[] = [
-        createMockTemplate({ id: 'template-1', currentVersion: '1.0.0' }),
-        createMockTemplate({ id: 'template-2', currentVersion: '1.5.0' }),
+      const installed = [
+        {
+          id: 'template-1',
+          name: 'Template 1',
+          version: '1.0.0',
+          currentVersion: '1.0.0',
+          path: '/test/path/template-1',
+          metadata: createMockTemplate({ id: 'template-1', currentVersion: '1.0.0' }),
+          versionInfo: { version: '1.0.0' } as any,
+          registered: new Date(),
+          active: true,
+        },
+        {
+          id: 'template-2',
+          name: 'Template 2',
+          version: '1.5.0',
+          currentVersion: '1.5.0',
+          path: '/test/path/template-2',
+          metadata: createMockTemplate({ id: 'template-2', currentVersion: '1.5.0' }),
+          versionInfo: { version: '1.5.0' } as any,
+          registered: new Date(),
+          active: true,
+        },
       ];
 
-      mockRegistry.listTemplates.mockResolvedValue(installed);
-      mockApi.get
-        .mockResolvedValueOnce({
+      (mockRegistry.listTemplates as jest.Mock).mockResolvedValue(installed);
+      (mockApi as any).getTemplate = jest.fn()
+        .mockResolvedValueOnce(createMockTemplate({
           id: 'template-1',
-          version: '2.0.0',
-        } as TemplateModel)
-        .mockResolvedValueOnce({
+          currentVersion: '2.0.0',
+        }))
+        .mockResolvedValueOnce(createMockTemplate({
           id: 'template-2',
-          version: '1.5.0',
-        } as TemplateModel);
+          currentVersion: '1.5.0',
+        }));
 
       const results = await service.checkUpdates();
 
       expect(results).toHaveLength(2);
-      expect(results[0].hasUpdate).toBe(true);
+      expect(results[0].hasUpdates).toBe(true);
       expect(results[0].currentVersion).toBe('1.0.0');
       expect(results[0].latestVersion).toBe('2.0.0');
-      expect(results[1].hasUpdate).toBe(false);
+      expect(results[1].hasUpdates).toBe(false);
     });
 
     it('should handle errors gracefully', async () => {
@@ -243,13 +321,13 @@ describe('TemplateUpdaterService', () => {
         createMockTemplate({ id: 'template-2', currentVersion: '1.5.0' }),
       ];
 
-      mockRegistry.listTemplates.mockResolvedValue(installed);
-      mockApi.get
+      (mockRegistry.listTemplates as jest.Mock).mockResolvedValue(installed);
+      (mockApi as any).getTemplate = jest.fn()
         .mockRejectedValueOnce(new Error('API error'))
-        .mockResolvedValueOnce({
+        .mockResolvedValueOnce(createMockTemplate({
           id: 'template-2',
-          version: '2.0.0',
-        } as TemplateModel);
+          currentVersion: '2.0.0',
+        }));
 
       const results = await service.checkUpdates();
 
@@ -265,24 +343,42 @@ describe('TemplateUpdaterService', () => {
         createMockTemplate({ id: 'template-2', currentVersion: '1.5.0' }),
       ];
 
-      mockRegistry.listTemplates.mockResolvedValue(installed);
-      mockRegistry.get
-        .mockResolvedValueOnce(installed[0])
-        .mockResolvedValueOnce(installed[1]);
-
-      mockApi.get
+      (mockRegistry.listTemplates as jest.Mock).mockResolvedValue(installed);
+      (mockRegistry.getTemplate as jest.Mock)
         .mockResolvedValueOnce({
-          id: 'template-1',
-          version: '2.0.0',
-        } as TemplateModel)
+          id: installed[0].id,
+          name: installed[0].name,
+          version: '1.0.0',
+          path: '/test/path',
+          metadata: installed[0],
+          versionInfo: { version: '1.0.0' } as any,
+          registered: new Date(),
+          active: true,
+        })
         .mockResolvedValueOnce({
-          id: 'template-2',
+          id: installed[1].id,
+          name: installed[1].name,
           version: '1.5.0',
-        } as TemplateModel)
-        .mockResolvedValueOnce({
+          path: '/test/path',
+          metadata: installed[1],
+          versionInfo: { version: '1.5.0' } as any,
+          registered: new Date(),
+          active: true,
+        });
+
+      (mockApi as any).getTemplate = jest.fn()
+        .mockResolvedValueOnce(createMockTemplate({
           id: 'template-1',
-          version: '2.0.0',
-        } as TemplateModel);
+          currentVersion: '2.0.0',
+        }))
+        .mockResolvedValueOnce(createMockTemplate({
+          id: 'template-2',
+          currentVersion: '1.5.0',
+        }))
+        .mockResolvedValueOnce(createMockTemplate({
+          id: 'template-1',
+          currentVersion: '2.0.0',
+        }));
 
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -305,12 +401,21 @@ describe('TemplateUpdaterService', () => {
         createMockTemplate({ id: 'template-1', currentVersion: '1.0.0' }),
       ];
 
-      mockRegistry.listTemplates.mockResolvedValue(installed);
-      mockRegistry.get.mockResolvedValue(installed[0]);
-      mockApi.get.mockResolvedValue({
+      (mockRegistry.listTemplates as jest.Mock).mockResolvedValue(installed);
+      (mockRegistry.getTemplate as jest.Mock).mockResolvedValue({
+        id: installed[0].id,
+        name: installed[0].name,
+        version: '1.0.0',
+        path: '/test/path',
+        metadata: installed[0],
+        versionInfo: { version: '1.0.0' } as any,
+        registered: new Date(),
+        active: true,
+      });
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(createMockTemplate({
         id: 'template-1',
-        version: '2.0.0',
-      } as TemplateModel);
+        currentVersion: '2.0.0',
+      }));
 
       mockInstaller.install.mockRejectedValue(new Error('Install failed'));
 
@@ -318,7 +423,7 @@ describe('TemplateUpdaterService', () => {
 
       expect(results).toHaveLength(1);
       expect(results[0].success).toBe(false);
-      expect(results[0].message).toContain('Update failed');
+      expect(results[0].failed).toHaveLength(1);
     });
   });
 
@@ -334,22 +439,28 @@ describe('TemplateUpdaterService', () => {
       ];
 
       for (const testCase of testCases) {
-        mockRegistry.get.mockResolvedValue({
+        (mockRegistry.getTemplate as jest.Mock).mockResolvedValue({
           id: 'test',
+          name: 'test',
           version: testCase.v1,
-        } as TemplateModel);
+          path: '/test/path',
+          metadata: createMockTemplate({ id: 'test', currentVersion: testCase.v1 }),
+          versionInfo: { version: testCase.v1 } as any,
+          registered: new Date(),
+          active: true,
+        });
 
-        mockApi.get.mockResolvedValue({
+        (mockApi as any).getTemplate = jest.fn().mockResolvedValue(createMockTemplate({
           id: 'test',
-          version: testCase.v2,
-        } as TemplateModel);
+          currentVersion: testCase.v2,
+        }));
 
         const result = await service.update('test', { checkOnly: true });
 
         if (testCase.expected) {
-          expect(result.message).toBe('Update available');
+          expect(result.success).toBe(true);
         } else {
-          expect(result.message).toBe('Template is already up to date');
+          expect(result.updated).toEqual([]);
         }
       }
     });

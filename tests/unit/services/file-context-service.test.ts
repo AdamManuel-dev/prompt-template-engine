@@ -8,16 +8,16 @@
  * Patterns: Jest testing with sophisticated mocking patterns
  */
 
-import { FileContextService } from '../../../src/services/file-context-service';
 import { MockFactory } from '../../__mocks__/mock-factory';
-import { mockFileSystem } from '../../__mocks__/fs.mock';
 import { mockGlob } from '../../__mocks__/glob.mock';
-import pathMock from '../../__mocks__/path.mock';
 
-// Mock the external dependencies
-jest.mock('fs', () => mockFileSystem);
+// Mock the external dependencies before importing the service
+jest.mock('fs', () => require('../../__mocks__/fs.mock').default);
 jest.mock('glob', () => ({ glob: mockGlob.glob }));
-jest.mock('path', () => pathMock);
+jest.mock('path', () => require('../../__mocks__/path.mock').default);
+
+// Import the service after mocks are set up
+import { FileContextService } from '../../../src/services/file-context-service';
 
 describe('FileContextService', () => {
   let service: FileContextService;

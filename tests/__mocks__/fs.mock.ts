@@ -170,6 +170,42 @@ class MockFileSystem implements IFileSystem {
   closeSync = jest.fn((_fd: number): void => {
     // No-op for mock
   });
+  
+  statSync = jest.fn((path: string): any => {
+    return this.state.stats.get(path) || {
+      size: 0,
+      mtime: new Date(),
+      isDirectory: () => this.state.directories.has(path),
+      isFile: () => this.state.files.has(path),
+    };
+  });
+  
+  readdirSync = jest.fn((path: string, _options?: any): string[] => {
+    const entries: string[] = [];
+    const pathWithSlash = path.endsWith('/') ? path : `${path}/`;
+    
+    // Add directories
+    for (const dir of this.state.directories) {
+      if (dir.startsWith(pathWithSlash) && dir !== path) {
+        const relativePath = dir.slice(pathWithSlash.length);
+        if (!relativePath.includes('/')) {
+          entries.push(relativePath);
+        }
+      }
+    }
+    
+    // Add files
+    for (const file of this.state.files.keys()) {
+      if (file.startsWith(pathWithSlash)) {
+        const relativePath = file.slice(pathWithSlash.length);
+        if (!relativePath.includes('/')) {
+          entries.push(relativePath);
+        }
+      }
+    }
+    
+    return entries;
+  });
 
   mkdirSync = jest.fn((path: string): void => {
     this.addDirectory(path);
@@ -254,4 +290,48 @@ export const mockFileSystem = new MockFileSystem();
 // Export the mock implementation
 export const fsMock = mockFileSystem;
 
-export default mockFileSystem;
+// Create fs-compatible mock with callback-based functions for promisify
+const fsCompatible = {
+  readFile: jest.fn((path: string, encoding: string | Function, callback?: Function) => {
+    if (typeof encoding === 'function') {
+      callback = encoding;
+      encoding = 'utf8';
+    }
+    try {
+      const content = mockFileSystem.readFileSync(path, encoding as string);
+      if (callback) callback(null, content);
+    } catch (error) {
+      if (callback) callback(error);
+    }
+  }),
+  stat: jest.fn((path: string, callback: Function) => {
+    try {
+      const stats = mockFileSystem.statSync ? mockFileSystem.statSync(path) : { isFile: () => true };
+      callback(null, stats);
+    } catch (error) {
+      callback(error);
+    }
+  }),
+  readdir: jest.fn((path: string, options: any, callback?: Function) => {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    try {
+      const result = mockFileSystem.readdirSync ? mockFileSystem.readdirSync(path, options) : [];
+      if (callback) callback(null, result);
+    } catch (error) {
+      if (callback) callback(error);
+    }
+  }),
+  existsSync: mockFileSystem.existsSync.bind(mockFileSystem),
+  readFileSync: mockFileSystem.readFileSync.bind(mockFileSystem),
+  writeFileSync: mockFileSystem.writeFileSync.bind(mockFileSystem),
+  mkdirSync: mockFileSystem.mkdirSync.bind(mockFileSystem),
+  readdirSync: mockFileSystem.readdirSync ? mockFileSystem.readdirSync.bind(mockFileSystem) : jest.fn(),
+  statSync: mockFileSystem.statSync ? mockFileSystem.statSync.bind(mockFileSystem) : jest.fn(),
+  promises: mockFileSystem.promises,
+};
+
+export { fsCompatible };
+export default fsCompatible;

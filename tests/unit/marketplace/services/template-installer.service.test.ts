@@ -5,17 +5,14 @@
 
 import { TemplateInstallerService } from '../../../../src/marketplace/services/template-installer.service';
 import { MarketplaceAPI } from '../../../../src/marketplace/api/marketplace.api';
-import { TemplateRegistry } from '../../../../src/marketplace/registry/template-registry';
+import { TemplateRegistry } from '../../../../src/marketplace/core/template.registry';
 import {
   TemplateModel,
-  InstallationResult,
-  TemplateDependency,
 } from '../../../../src/marketplace/models/template.model';
 import * as fs from 'fs';
-import * as path from 'path';
 
 jest.mock('../../../../src/marketplace/api/marketplace.api');
-jest.mock('../../../../src/marketplace/registry/template-registry');
+jest.mock('../../../../src/marketplace/core/template.registry');
 jest.mock('fs', () => ({
   promises: {
     mkdir: jest.fn(),
@@ -31,9 +28,13 @@ describe('TemplateInstallerService', () => {
 
   beforeEach(() => {
     mockApi = new MarketplaceAPI() as jest.Mocked<MarketplaceAPI>;
-    mockRegistry = new TemplateRegistry(
-      installPath
-    ) as jest.Mocked<TemplateRegistry>;
+    mockRegistry = new TemplateRegistry() as jest.Mocked<TemplateRegistry>;
+    
+    // Mock the methods we use
+    mockRegistry.getTemplate = jest.fn();
+    mockRegistry.registerTemplate = jest.fn();
+    mockRegistry.listTemplates = jest.fn();
+    
     service = new TemplateInstallerService(mockApi, mockRegistry, installPath);
     jest.clearAllMocks();
   });
@@ -42,18 +43,51 @@ describe('TemplateInstallerService', () => {
     const mockTemplate: TemplateModel = {
       id: 'test-template',
       name: 'Test Template',
+      displayName: 'Test Template',
       description: 'Test description',
-      version: '1.0.0',
+      category: 'test' as any,
+      tags: [],
+      author: { name: 'Test Author', email: 'test@test.com' } as any,
       currentVersion: '1.0.0',
+      downloadCount: 0,
+      rating: 0,
+      license: 'MIT',
+      repository: '',
+      homepage: '',
+      readme: '',
+      versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] }] as any,
+      dependencies: [],
+      stats: {
+        downloads: 0,
+        weeklyDownloads: 0,
+        monthlyDownloads: 0,
+        forks: 0,
+        favorites: 0,
+        issues: 0,
+        lastDownload: new Date(),
+        trending: false,
+        popularityScore: 0,
+      } as any,
+      metadata: {
+        license: 'MIT',
+        keywords: [],
+        minEngineVersion: '1.0.0',
+        platform: [],
+      } as any,
+      created: new Date(),
+      updated: new Date(),
+      featured: false,
+      verified: false,
+      deprecated: false,
     } as TemplateModel;
 
     it('should install a new template', async () => {
-      mockRegistry.getTemplate.mockResolvedValue(null);
-      mockApi.getTemplate.mockResolvedValue(mockTemplate);
+      (mockRegistry.getTemplate as jest.Mock).mockReturnValue(null);
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(mockTemplate);
       mockApi.downloadTemplate = jest
         .fn()
         .mockResolvedValue('template content');
-      mockRegistry.registerTemplate.mockResolvedValue(undefined);
+      (mockRegistry.registerTemplate as jest.Mock).mockResolvedValue(undefined);
 
       const result = await service.install('test-template');
 
@@ -66,7 +100,16 @@ describe('TemplateInstallerService', () => {
     });
 
     it('should skip installation if already installed without force', async () => {
-      mockRegistry.getTemplate.mockResolvedValue(mockTemplate);
+      (mockRegistry.getTemplate as jest.Mock).mockReturnValue({
+        id: mockTemplate.id,
+        name: mockTemplate.name,
+        version: mockTemplate.currentVersion,
+        path: installPath,
+        metadata: mockTemplate,
+        versionInfo: { version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] } as any,
+        registered: new Date(),
+        active: true,
+      });
 
       const result = await service.install('test-template');
 
@@ -78,8 +121,17 @@ describe('TemplateInstallerService', () => {
     });
 
     it('should force reinstall with force option', async () => {
-      mockRegistry.getTemplate.mockResolvedValue(mockTemplate);
-      mockApi.getTemplate.mockResolvedValue(mockTemplate);
+      (mockRegistry.getTemplate as jest.Mock).mockReturnValue({
+        id: mockTemplate.id,
+        name: mockTemplate.name,
+        version: mockTemplate.currentVersion,
+        path: installPath,
+        metadata: mockTemplate,
+        versionInfo: { version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] } as any,
+        registered: new Date(),
+        active: true,
+      });
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(mockTemplate);
       mockApi.downloadTemplate = jest
         .fn()
         .mockResolvedValue('template content');
@@ -94,13 +146,27 @@ describe('TemplateInstallerService', () => {
       const templateWithDeps: TemplateModel = {
         ...mockTemplate,
         dependencies: [
-          { templateId: 'dep-1', version: '1.0.0', required: true },
-          { templateId: 'dep-2', version: '2.0.0', required: false },
+          { 
+            templateId: 'dep-1', 
+            name: 'Dependency 1',
+            type: 'template' as const,
+            version: '1.0.0', 
+            required: true, 
+            optional: false 
+          },
+          { 
+            templateId: 'dep-2', 
+            name: 'Dependency 2',
+            type: 'template' as const,
+            version: '2.0.0', 
+            required: false, 
+            optional: true 
+          },
         ],
       };
 
-      mockRegistry.getTemplate.mockResolvedValue(null);
-      mockApi.getTemplate.mockResolvedValue(templateWithDeps);
+      (mockRegistry.getTemplate as jest.Mock).mockReturnValue(null);
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(templateWithDeps);
       mockApi.downloadTemplate = jest
         .fn()
         .mockResolvedValue('template content');
@@ -128,8 +194,8 @@ describe('TemplateInstallerService', () => {
     });
 
     it('should handle installation errors', async () => {
-      mockRegistry.getTemplate.mockResolvedValue(null);
-      mockApi.getTemplate.mockRejectedValue(new Error('API error'));
+      (mockRegistry.getTemplate as jest.Mock).mockReturnValue(null);
+      (mockApi as any).getTemplate = jest.fn().mockRejectedValue(new Error('API error'));
 
       await expect(service.install('test-template')).rejects.toThrow(
         'API error'
@@ -142,11 +208,14 @@ describe('TemplateInstallerService', () => {
       const mockTemplate: TemplateModel = {
         id: 'quick-template',
         name: 'Quick Template',
+        currentVersion: '1.0.0',
+        versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] }],
       } as TemplateModel;
 
-      mockRegistry.getTemplate.mockResolvedValue(null);
-      mockApi.getTemplate.mockResolvedValue(mockTemplate);
+      (mockRegistry.getTemplate as jest.Mock).mockReturnValue(null);
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(mockTemplate);
       mockApi.downloadTemplate = jest.fn().mockResolvedValue('content');
+      (mockRegistry.registerTemplate as jest.Mock).mockResolvedValue(undefined);
 
       const installSpy = jest.spyOn(service, 'install');
 
@@ -163,12 +232,14 @@ describe('TemplateInstallerService', () => {
     it('should install multiple templates', async () => {
       const templates = ['template-1', 'template-2', 'template-3'];
 
-      mockRegistry.getTemplate.mockResolvedValue(null);
-      mockApi.getTemplate.mockImplementation(
+      (mockRegistry.getTemplate as jest.Mock).mockReturnValue(null);
+      (mockApi as any).getTemplate = jest.fn().mockImplementation(
         async id =>
           ({
             id,
             name: `Template ${id}`,
+            currentVersion: '1.0.0',
+            versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] }],
           }) as TemplateModel
       );
       mockApi.downloadTemplate = jest.fn().mockResolvedValue('content');
@@ -182,12 +253,17 @@ describe('TemplateInstallerService', () => {
     it('should continue on error when specified', async () => {
       const templates = ['good-1', 'bad-template', 'good-2'];
 
-      mockRegistry.getTemplate.mockResolvedValue(null);
-      mockApi.getTemplate.mockImplementation(async id => {
+      (mockRegistry.getTemplate as jest.Mock).mockReturnValue(null);
+      (mockApi as any).getTemplate = jest.fn().mockImplementation(async id => {
         if (id === 'bad-template') {
           throw new Error('Template not found');
         }
-        return { id, name: `Template ${id}` } as TemplateModel;
+        return { 
+          id, 
+          name: `Template ${id}`,
+          currentVersion: '1.0.0',
+          versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] }],
+        } as TemplateModel;
       });
       mockApi.downloadTemplate = jest.fn().mockResolvedValue('content');
 
@@ -198,19 +274,24 @@ describe('TemplateInstallerService', () => {
       expect(results).toHaveLength(3);
       expect(results[0].success).toBe(true);
       expect(results[1].success).toBe(false);
-      expect(results[1].warnings[0]).toContain('Failed');
+      expect(results[1].warnings?.[0]).toContain('Failed');
       expect(results[2].success).toBe(true);
     });
 
     it('should stop on error by default', async () => {
       const templates = ['good-1', 'bad-template', 'good-2'];
 
-      mockRegistry.getTemplate.mockResolvedValue(null);
-      mockApi.getTemplate.mockImplementation(async id => {
+      (mockRegistry.getTemplate as jest.Mock).mockReturnValue(null);
+      (mockApi as any).getTemplate = jest.fn().mockImplementation(async id => {
         if (id === 'bad-template') {
           throw new Error('Template not found');
         }
-        return { id, name: `Template ${id}` } as TemplateModel;
+        return { 
+          id, 
+          name: `Template ${id}`,
+          currentVersion: '1.0.0',
+          versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] }],
+        } as TemplateModel;
       });
 
       await expect(service.batchInstall(templates)).rejects.toThrow(
@@ -224,13 +305,22 @@ describe('TemplateInstallerService', () => {
       const templateWithDeps: TemplateModel = {
         id: 'main-template',
         name: 'Main Template',
+        currentVersion: '1.0.0',
+        versions: [{ version: '1.0.0', description: '', content: '', dependencies: [], variables: [], hooks: [] }],
         dependencies: [
-          { templateId: 'dep-1', version: '1.0.0', required: true },
+          { 
+            templateId: 'dep-1', 
+            name: 'Dependency 1',
+            type: 'template' as const,
+            version: '1.0.0', 
+            required: true, 
+            optional: false 
+          },
         ],
       } as TemplateModel;
 
-      mockRegistry.getTemplate.mockResolvedValue(null);
-      mockApi.getTemplate.mockResolvedValue(templateWithDeps);
+      (mockRegistry.getTemplate as jest.Mock).mockReturnValue(null);
+      (mockApi as any).getTemplate = jest.fn().mockResolvedValue(templateWithDeps);
       mockApi.downloadTemplate = jest.fn().mockResolvedValue('content');
 
       const installSpy = jest.spyOn(service, 'install');
