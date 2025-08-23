@@ -4,9 +4,9 @@
  */
 
 import { Command } from 'commander';
-import { MarketplaceSearchCommand } from '../../../src/commands/marketplace/search';
-import { MarketplaceInstallCommand } from '../../../src/commands/marketplace/install';
-import { MarketplaceListCommand } from '../../../src/commands/marketplace/list';
+import MarketplaceSearchCommand from '../../../src/commands/marketplace/search';
+import MarketplaceInstallCommand from '../../../src/commands/marketplace/install';
+import MarketplaceListCommand from '../../../src/commands/marketplace/list';
 import { MarketplaceAPI } from '../../../src/marketplace/api/marketplace.api';
 import { MarketplaceService } from '../../../src/marketplace/core/marketplace.service';
 import {

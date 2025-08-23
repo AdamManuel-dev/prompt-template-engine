@@ -74,13 +74,20 @@ export class MarketplaceRefactoredService {
     this.installerService = new TemplateInstallerService(
       this.api,
       this.registry,
-      config?.installPath || this.preferences.installPath || path.join(os.homedir(), '.cursor-prompt', 'marketplace')
+      config?.installPath ||
+        this.preferences.installPath ||
+        path.join(os.homedir(), '.cursor-prompt', 'marketplace')
     );
     this.updaterService = new TemplateUpdaterService(
       this.api,
       this.registry,
       this.installerService,
-      path.join(config?.installPath || this.preferences.installPath || path.join(os.homedir(), '.cursor-prompt', 'marketplace'), 'backups')
+      path.join(
+        config?.installPath ||
+          this.preferences.installPath ||
+          path.join(os.homedir(), '.cursor-prompt', 'marketplace'),
+        'backups'
+      )
     );
     this.authorService = AuthorService.getInstance(this.api);
 
@@ -187,12 +194,10 @@ export class MarketplaceRefactoredService {
       await this.registry.unregisterTemplate(templateId);
 
       // Remove files
-      const installPath = this.preferences.installPath || path.join(os.homedir(), '.cursor-prompt', 'marketplace');
-      const templatePath = path.join(
-        installPath,
-        'templates',
-        templateId
-      );
+      const installPath =
+        this.preferences.installPath ||
+        path.join(os.homedir(), '.cursor-prompt', 'marketplace');
+      const templatePath = path.join(installPath, 'templates', templateId);
       const fs = await import('fs');
       await fs.promises.rm(templatePath, { recursive: true, force: true });
 
@@ -214,7 +219,8 @@ export class MarketplaceRefactoredService {
     review?: string | Partial<TemplateReview>
   ): Promise<RatingResult> {
     try {
-      const reviewData = typeof review === 'string' ? { comment: review } : review;
+      const reviewData =
+        typeof review === 'string' ? { comment: review } : review;
       await this.api.rateTemplate(templateId, rating, reviewData);
       logger.info(`Rated template ${templateId}: ${rating} stars`);
       return {
@@ -274,11 +280,10 @@ export class MarketplaceRefactoredService {
     };
 
     // Save preferences
-    const installPath = this.preferences.installPath || path.join(os.homedir(), '.cursor-prompt', 'marketplace');
-    const prefsPath = path.join(
-      installPath,
-      'preferences.json'
-    );
+    const installPath =
+      this.preferences.installPath ||
+      path.join(os.homedir(), '.cursor-prompt', 'marketplace');
+    const prefsPath = path.join(installPath, 'preferences.json');
     const fs = await import('fs');
     await fs.promises.writeFile(
       prefsPath,
@@ -291,21 +296,21 @@ export class MarketplaceRefactoredService {
   /**
    * Get author information
    */
-  async getAuthor(authorId: string) {
+  async getAuthor(authorId: string): Promise<unknown> {
     return this.authorService.getProfile(authorId);
   }
 
   /**
    * Follow an author
    */
-  async followAuthor(authorId: string) {
+  async followAuthor(authorId: string): Promise<unknown> {
     return this.authorService.followAuthor(authorId);
   }
 
   /**
    * Unfollow an author
    */
-  async unfollowAuthor(authorId: string) {
+  async unfollowAuthor(authorId: string): Promise<unknown> {
     return this.authorService.unfollowAuthor(authorId);
   }
 }

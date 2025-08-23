@@ -391,7 +391,15 @@ export interface TemplateSearchQuery {
   category?: string;
   tags?: string[];
   author?: string;
-  sort?: 'relevance' | 'downloads' | 'rating' | 'recent' | 'name' | 'updated' | 'popularity' | 'trending';
+  sort?:
+    | 'relevance'
+    | 'downloads'
+    | 'rating'
+    | 'recent'
+    | 'name'
+    | 'updated'
+    | 'popularity'
+    | 'trending';
   limit?: number;
   offset?: number;
 }

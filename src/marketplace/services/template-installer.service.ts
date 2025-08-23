@@ -70,7 +70,9 @@ export class TemplateInstallerService {
       await this.downloadTemplate(template, targetPath, options.version);
 
       // Register template
-      const version = template.versions.find(v => v.version === (options.version || template.currentVersion));
+      const version = template.versions.find(
+        v => v.version === (options.version || template.currentVersion)
+      );
       if (version) {
         await this.registry.registerTemplate(template, version, targetPath);
       }
@@ -170,14 +172,14 @@ export class TemplateInstallerService {
   ): Promise<void> {
     for (const dep of dependencies) {
       try {
-        if (!dep.templateId) {
+        if (dep.templateId) {
+          await this.install(dep.templateId, {
+            version: dep.version,
+            skipConfirmation: true,
+          });
+        } else {
           logger.warn(`Dependency missing templateId: ${dep.name}`);
-          continue;
         }
-        await this.install(dep.templateId, {
-          version: dep.version,
-          skipConfirmation: true,
-        });
       } catch (_error) {
         if (dep.required) {
           throw new Error(

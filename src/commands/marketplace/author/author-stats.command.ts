@@ -105,13 +105,13 @@ export class AuthorStatsCommand extends BaseCommand {
       logger.info(
         `  ${chalk.bold('Response Time:')}       ${stats.responseTime || 0} hours`
       );
-      
+
       if (stats.lastPublished) {
         logger.info(
           `  ${chalk.bold('Last Published:')}      ${this.formatDate(stats.lastPublished.toISOString())}`
         );
       }
-      
+
       logger.info('');
 
       // Top Categories
@@ -144,7 +144,6 @@ export class AuthorStatsCommand extends BaseCommand {
     return `${stars}${emptyStars} ${rating.toFixed(1)}`;
   }
 
-
   private formatDate(date?: string): string {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -153,5 +152,4 @@ export class AuthorStatsCommand extends BaseCommand {
       day: 'numeric',
     });
   }
-
 }

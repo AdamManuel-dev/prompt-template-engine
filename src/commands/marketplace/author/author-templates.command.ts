@@ -93,12 +93,18 @@ export class AuthorTemplatesCommand extends BaseCommand {
       });
 
       result.templates.forEach(template => {
-        const ratingValue = typeof template.rating === 'number' ? template.rating : 
-                           (template.rating && typeof template.rating === 'object' && 'average' in template.rating) ? 
-                           template.rating.average : 0;
-        const rating = ratingValue > 0
-          ? `${this.formatRating(ratingValue)} (${ratingValue.toFixed(1)})`
-          : 'N/A';
+        const ratingValue =
+          typeof template.rating === 'number'
+            ? template.rating
+            : template.rating &&
+                typeof template.rating === 'object' &&
+                'average' in template.rating
+              ? template.rating.average
+              : 0;
+        const rating =
+          ratingValue > 0
+            ? `${this.formatRating(ratingValue)} (${ratingValue.toFixed(1)})`
+            : 'N/A';
 
         const updated = template.updated
           ? new Date(template.updated).toLocaleDateString()

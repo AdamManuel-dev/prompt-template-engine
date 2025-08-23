@@ -49,6 +49,7 @@ export class CursorExtensionBridge
   extends EventEmitter
   implements ICursorExtensionBridge
 {
+  // eslint-disable-next-line no-use-before-define
   private static instance: CursorExtensionBridge;
 
   private commands: Map<string, ExtensionCommand> = new Map();
@@ -248,14 +249,16 @@ export class CursorExtensionBridge
   /**
    * Register commands with Cursor
    */
-  public async registerCommands(commands?: Record<string, ExtensionCommand>): Promise<void> {
+  public async registerCommands(
+    commands?: Record<string, ExtensionCommand>
+  ): Promise<void> {
     // If commands provided, add them first
     if (commands) {
       Object.entries(commands).forEach(([id, command]) => {
         this.commands.set(id, command);
       });
     }
-    
+
     // Then register all commands
     await this.registerAllCommands();
   }

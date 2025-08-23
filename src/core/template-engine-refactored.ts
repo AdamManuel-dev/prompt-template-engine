@@ -123,7 +123,11 @@ export class TemplateEngineRefactored {
    * Process partials in template
    */
   private processPartials(template: string, context: TemplateContext): string {
-    return this.partials.process(template, { ...context.variables, ...context.metadata, ...context.environment });
+    return this.partials.process(template, {
+      ...context.variables,
+      ...context.metadata,
+      ...context.environment,
+    });
   }
 
   /**
@@ -193,7 +197,7 @@ export class TemplateEngineRefactored {
         args.push(trimmed.slice(1, -1));
       }
       // Handle number literals
-      else if (!isNaN(Number(trimmed))) {
+      else if (!Number.isNaN(Number(trimmed))) {
         args.push(Number(trimmed));
       }
       // Handle boolean literals

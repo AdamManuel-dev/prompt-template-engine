@@ -88,7 +88,7 @@ describe('TemplateValidator', () => {
             },
           ],
           commands: [
-            'npm install' as unknown,
+            { command: 'npm install' },
             {
               command: 'npm run build',
               description: 'Build the application',

@@ -4,7 +4,7 @@
  */
 
 import { VariableProcessor } from '../../../../src/core/processors/variable-processor';
-import { TemplateContext } from '../../../../src/types';
+import { TemplateContext } from '../../../../src/core/template-engine';
 
 describe('VariableProcessor', () => {
   let processor: VariableProcessor;

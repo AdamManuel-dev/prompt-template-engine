@@ -42,7 +42,7 @@ describe('FileContextService', () => {
       directories: ['src', 'dist', 'node_modules'],
     });
 
-    service = new FileContextService(mockFileSystem as any, mockCwd);
+    service = new FileContextService(mockFileSystem as any, undefined, undefined, {}, mockCwd);
   });
 
   afterEach(() => {
@@ -60,7 +60,7 @@ describe('FileContextService', () => {
         'node_modules/\n*.log'
       );
 
-      const serviceWithGitignore = new FileContextService({}, mockCwd);
+      const serviceWithGitignore = new FileContextService(mockFileSystem as any, undefined, undefined, { respectGitignore: true }, mockCwd);
 
       expect(serviceWithGitignore).toBeDefined();
       expect(mockFileSystem.existsSync).toHaveBeenCalledWith(
@@ -75,7 +75,7 @@ describe('FileContextService', () => {
         (path: string) => path !== '/test/project/.gitignore'
       );
 
-      const serviceWithoutGitignore = new FileContextService({}, mockCwd);
+      const serviceWithoutGitignore = new FileContextService(mockFileSystem as any, undefined, undefined, {}, mockCwd);
 
       expect(serviceWithoutGitignore).toBeDefined();
 

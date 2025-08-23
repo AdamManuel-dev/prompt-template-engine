@@ -385,7 +385,9 @@ export class UpdateCommand extends BaseCommand implements ICommand {
       (v: MarketplaceTemplateVersion) => v.version === targetVersion
     );
     if (versionInfo) {
-      logger.info(`   Size: ${UpdateCommand.formatBytes(versionInfo.size || 0)}`);
+      logger.info(
+        `   Size: ${UpdateCommand.formatBytes(versionInfo.size || 0)}`
+      );
 
       if (versionInfo.dependencies && versionInfo.dependencies.length > 0) {
         logger.info(`   Dependencies: ${versionInfo.dependencies.length}`);

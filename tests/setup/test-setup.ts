@@ -10,6 +10,33 @@
 
 import { MockFactory } from '../__mocks__/mock-factory';
 
+// Ensure integrations that open sockets/intervals are disabled in tests
+process.env.CURSOR_PROMPT_CURSOR_INTEGRATION = 'false';
+process.env.CURSOR_PROMPT_PLUGINS_ENABLED = 'false';
+process.env.CURSOR_PROMPT_CURSOR_AUTOSYNC = 'false';
+
+// Mock Cursor integration modules to avoid network/socket handles in tests
+jest.mock('../../src/integrations/cursor-ide', () => ({
+  CursorIntegration: {
+    getInstance: () => ({
+      connect: jest.fn().mockResolvedValue(false),
+      sync: jest.fn().mockResolvedValue(undefined),
+      inject: jest.fn(),
+      updateTemplate: jest.fn(),
+      getTemplates: jest.fn(() => []),
+      isConnected: jest.fn(() => false),
+      getConnectionStatus: jest.fn(() => ({ connected: false, endpoint: '' })),
+      disconnect: jest.fn(),
+    }),
+  },
+}));
+
+jest.mock('../../src/integrations/cursor-extension-bridge', () => ({
+  CursorExtensionBridge: {
+    getInstance: () => ({}),
+  },
+}));
+
 // Set test timeout
 jest.setTimeout(30000);
 

@@ -575,7 +575,7 @@ function configureProgram(): void {
           const command = new MarketplaceRateCommand();
           await command.execute(template, {
             ...options,
-            rating: rating,
+            rating,
           });
         } catch (error) {
           ErrorUtils.logError(error, logger);

@@ -135,7 +135,10 @@ export class AuthorProfileCommand extends BaseCommand {
       }
 
       // Badges
-      if (profile.verification?.badges && profile.verification.badges.length > 0) {
+      if (
+        profile.verification?.badges &&
+        profile.verification.badges.length > 0
+      ) {
         logger.info(chalk.bold('🏆 Badges'));
         logger.info(chalk.gray('─────────────────────'));
         profile.verification.badges.forEach(badge => {
@@ -148,7 +151,10 @@ export class AuthorProfileCommand extends BaseCommand {
       }
 
       // Featured templates
-      if (profile.stats?.featuredTemplates && profile.stats.featuredTemplates.length > 0) {
+      if (
+        profile.stats?.featuredTemplates &&
+        profile.stats.featuredTemplates.length > 0
+      ) {
         logger.info(chalk.bold('⭐ Featured Templates'));
         logger.info(chalk.gray('─────────────────────'));
         profile.stats.featuredTemplates.slice(0, 5).forEach(templateId => {
@@ -190,9 +196,7 @@ export class AuthorProfileCommand extends BaseCommand {
         )
       );
       logger.info(
-        chalk.gray(
-          `  • Follow author:   marketplace:author follow ${authorId}`
-        )
+        chalk.gray(`  • Follow author:   marketplace:author follow ${authorId}`)
       );
     } catch (error) {
       throw error;

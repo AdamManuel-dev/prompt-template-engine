@@ -66,10 +66,12 @@ export class TemplateUpdaterService {
           success: false,
           templateId,
           updated: [],
-          failed: [{
-            templateId,
-            error: 'Template is already up to date'
-          }]
+          failed: [
+            {
+              templateId,
+              error: 'Template is already up to date',
+            },
+          ],
         };
       }
 
@@ -77,12 +79,16 @@ export class TemplateUpdaterService {
         return {
           success: hasUpdate,
           templateId,
-          updated: hasUpdate ? [{
-            templateId,
-            oldVersion: installed.version || '0.0.0',
-            newVersion: latest.currentVersion || '0.0.0'
-          }] : [],
-          failed: []
+          updated: hasUpdate
+            ? [
+                {
+                  templateId,
+                  oldVersion: installed.version || '0.0.0',
+                  newVersion: latest.currentVersion || '0.0.0',
+                },
+              ]
+            : [],
+          failed: [],
         };
       }
 
@@ -100,15 +106,23 @@ export class TemplateUpdaterService {
       return {
         success: result.success,
         templateId,
-        updated: result.success ? [{
-          templateId,
-          oldVersion: installed.version || '0.0.0',
-          newVersion: latest.currentVersion || '0.0.0'
-        }] : [],
-        failed: result.success ? [] : [{
-          templateId,
-          error: 'Update failed'
-        }]
+        updated: result.success
+          ? [
+              {
+                templateId,
+                oldVersion: installed.version || '0.0.0',
+                newVersion: latest.currentVersion || '0.0.0',
+              },
+            ]
+          : [],
+        failed: result.success
+          ? []
+          : [
+              {
+                templateId,
+                error: 'Update failed',
+              },
+            ],
       };
     } catch (error) {
       logger.error(
@@ -128,7 +142,9 @@ export class TemplateUpdaterService {
     for (const template of installed) {
       try {
         const latest = await this.api.getTemplate(template.id);
-        if (!latest) continue;
+        if (!latest) {
+          continue;
+        }
 
         const hasUpdate =
           this.compareVersions(
@@ -141,15 +157,21 @@ export class TemplateUpdaterService {
           currentVersion: template.currentVersion || '0.0.0',
           latestVersion: latest.currentVersion || '0.0.0',
           templateId: template.id,
-          updates: hasUpdate ? [{
-            templateId: template.id,
-            currentVersion: template.currentVersion || '0.0.0',
-            latestVersion: latest.currentVersion || '0.0.0',
-            template: latest as unknown as MarketplaceTemplate
-          }] : []
+          updates: hasUpdate
+            ? [
+                {
+                  templateId: template.id,
+                  currentVersion: template.currentVersion || '0.0.0',
+                  latestVersion: latest.currentVersion || '0.0.0',
+                  template: latest as unknown as MarketplaceTemplate,
+                },
+              ]
+            : [],
         });
       } catch (error) {
-        logger.warn(`Failed to check updates for ${template.id}: ${error instanceof Error ? error.message : String(error)}`);
+        logger.warn(
+          `Failed to check updates for ${template.id}: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
 
@@ -166,21 +188,23 @@ export class TemplateUpdaterService {
     for (const check of updateChecks) {
       if (check.hasUpdates || options.force) {
         try {
-          if (!check.templateId) {
+          if (check.templateId) {
+            const result = await this.update(check.templateId, options);
+            results.push(result);
+          } else {
             logger.warn('Update check missing templateId');
-            continue;
           }
-          const result = await this.update(check.templateId, options);
-          results.push(result);
         } catch (error) {
           results.push({
             success: false,
             templateId: check.templateId,
             updated: [],
-            failed: [{
-              templateId: check.templateId || '',
-              error: error instanceof Error ? error.message : String(error)
-            }]
+            failed: [
+              {
+                templateId: check.templateId || '',
+                error: error instanceof Error ? error.message : String(error),
+              },
+            ],
           });
         }
       }

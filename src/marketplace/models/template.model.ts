@@ -13,21 +13,6 @@ import { TemplateDependency } from '../../types';
 // Re-export for convenience
 export { TemplateDependency };
 
-export interface TemplateSearchResult {
-  templates: TemplateModel[];
-  total: number;
-  page: number;
-  limit: number;
-  hasMore: boolean;
-  facets?: {
-    categories: Array<{ category: TemplateCategory; count: number }>;
-    tags: Array<{ tag: string; count: number }>;
-    authors: Array<{ author: string; count: number }>;
-    ratings: Array<{ rating: number; count: number }>;
-  };
-  suggestions?: string[];
-}
-
 // Basic types and enums first
 export type TemplateCategory =
   | 'development'
@@ -226,6 +211,22 @@ export interface TemplateModel {
   repository?: string | RepositoryInfo;
   dependencies?: TemplateDependency[];
   changelog?: string;
+}
+
+// Search result interface (after TemplateModel definition)
+export interface TemplateSearchResult {
+  templates: TemplateModel[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  facets?: {
+    categories: Array<{ category: TemplateCategory; count: number }>;
+    tags: Array<{ tag: string; count: number }>;
+    authors: Array<{ author: string; count: number }>;
+    ratings: Array<{ rating: number; count: number }>;
+  };
+  suggestions?: string[];
 }
 
 // Search and filter interfaces

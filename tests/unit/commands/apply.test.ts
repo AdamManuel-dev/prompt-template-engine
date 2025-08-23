@@ -50,9 +50,9 @@ const createMockStats = (isDirectory: boolean): Stats =>
 // Mock all dependencies
 jest.mock('fs');
 jest.mock('path');
-jest.mock('../../src/core/template-engine');
-jest.mock('../../src/core/template-validator');
-jest.mock('../../src/utils/config');
+jest.mock('../../../src/core/template-engine');
+jest.mock('../../../src/core/template-validator');
+jest.mock('../../../src/utils/config');
 jest.mock('chalk', () => ({
   __esModule: true,
   default: {
@@ -97,10 +97,10 @@ describe('Apply Command', () => {
     // Setup default mocks
     mockTemplateEngine = {
       render: jest.fn(),
-    } as unknown;
+    } as unknown as jest.Mocked<TemplateEngine>;
     mockTemplateValidator = {
       validate: jest.fn(),
-    } as unknown;
+    } as unknown as jest.Mocked<TemplateValidator>;
 
     MockTemplateEngine.mockImplementation(() => mockTemplateEngine);
     MockTemplateValidator.mockImplementation(() => mockTemplateValidator);

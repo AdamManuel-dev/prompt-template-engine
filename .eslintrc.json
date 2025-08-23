@@ -50,10 +50,38 @@
         ]
       }
     ],
+    "import/prefer-default-export": "off",
+    "max-classes-per-file": ["error", 3],
+    "class-methods-use-this": "off",
+    "no-useless-catch": "off",
+    "no-nested-ternary": "off",
+    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
+    "no-await-in-loop": "off",
+    "no-underscore-dangle": "off",
+    "no-restricted-syntax": "off",
+    "no-use-before-define": ["error", { "classes": false }],
+    "@typescript-eslint/no-use-before-define": ["error", { 
+      "classes": false, 
+      "typedefs": false,
+      "functions": false,
+      "variables": false
+    }],
+    "no-useless-constructor": "off",
+    "no-empty-function": "off",
+    "no-continue": "off",
+    "prefer-destructuring": ["error", {
+      "array": false,
+      "object": true
+    }, {
+      "enforceForRenamedProperties": false
+    }],
     "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
     "@typescript-eslint/explicit-function-return-type": ["warn", { "allowExpressions": true }],
     "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-require-imports": "off",
+    "global-require": "off",
+    "func-names": "off",
     "no-shadow": "off",
     "@typescript-eslint/no-shadow": "error"
   },

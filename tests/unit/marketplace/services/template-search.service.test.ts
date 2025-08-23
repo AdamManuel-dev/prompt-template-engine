@@ -140,8 +140,8 @@ describe('TemplateSearchService', () => {
       expect(mockApi.searchTemplates).toHaveBeenCalledWith({
         featured: true,
         limit: 10,
-        sort: 'downloads',
-        order: 'desc',
+        sortBy: 'downloads',
+        sortOrder: 'desc',
       });
       expect(result).toEqual(mockResult.templates);
     });
@@ -164,8 +164,8 @@ describe('TemplateSearchService', () => {
       expect(mockApi.searchTemplates).toHaveBeenCalledWith({
         trending: true,
         limit: 10,
-        sort: 'popularity',
-        order: 'desc',
+        sortBy: 'popularity',
+        sortOrder: 'desc',
       });
       expect(result).toEqual(mockResult.templates);
     });
@@ -192,8 +192,8 @@ describe('TemplateSearchService', () => {
         category: 'development',
         page: 1,
         limit: 20,
-        sort: 'relevance',
-        order: 'desc',
+        sortBy: 'relevance',
+        sortOrder: 'desc',
       });
       expect(result).toEqual(mockResult);
     });

@@ -49,7 +49,7 @@ jest.mock('chalk', () => {
 });
 
 // Mock logger
-jest.mock('../../src/utils/logger', () => ({
+jest.mock('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),

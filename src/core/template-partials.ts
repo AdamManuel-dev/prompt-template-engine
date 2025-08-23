@@ -123,7 +123,7 @@ export class TemplatePartials {
    */
   process(template: string, context: PartialContext): string {
     // Simple render callback that just returns the template
-    const renderCallback = (tmpl: string) => tmpl;
+    const renderCallback = (tmpl: string): string => tmpl;
     return this.processPartials(template, context, renderCallback);
   }
 

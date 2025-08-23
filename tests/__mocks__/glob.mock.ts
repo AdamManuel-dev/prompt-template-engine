@@ -8,12 +8,6 @@
  * Patterns: Jest mocking with configurable file matching
  */
 
-import {
-  IGlobService,
-  IIgnoreService,
-  IIgnoreMatcher,
-} from '../../src/interfaces/file-system.interface';
-
 class MockGlob {
   private mockFiles: string[] = [];
 

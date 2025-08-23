@@ -582,13 +582,36 @@ export class TemplateEngine {
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
-    const arrayValue = this.resolveVariable(block.arrayPath.trim(), context);
+    const value = this.resolveVariable(block.arrayPath.trim(), context);
 
-    // Handle non-array or undefined values
-    if (!Array.isArray(arrayValue)) {
-      return { replacement: '', hasChanges: true };
+    // Handle arrays
+    if (Array.isArray(value)) {
+      return this.processArrayIteration(value, block, context, depth);
     }
 
+    // Handle objects (for @key iteration)
+    if (value && typeof value === 'object' && value.constructor === Object) {
+      return this.processObjectIteration(
+        value as Record<string, unknown>,
+        block,
+        context,
+        depth
+      );
+    }
+
+    // Handle non-iterable values
+    return { replacement: '', hasChanges: true };
+  }
+
+  /**
+   * Process array iteration in #each blocks
+   */
+  private processArrayIteration(
+    arrayValue: unknown[],
+    block: { fullMatch: string; arrayPath: string; innerTemplate: string },
+    context: TemplateContext,
+    depth: number
+  ): { replacement: string; hasChanges: boolean } {
     // Process each item in the array
     const processedItems = arrayValue.map((item, index) => {
       // Create context for this iteration
@@ -650,6 +673,91 @@ export class TemplateEngine {
           // For regular variables, resolve from item context
           const value = this.resolveVariable(key, itemContext);
           return value !== undefined ? String(value) : _innerMatch;
+        }
+      );
+    });
+
+    return { replacement: processedItems.join(''), hasChanges: true };
+  }
+
+  /**
+   * Process object iteration in #each blocks (for @key support)
+   */
+  private processObjectIteration(
+    objectValue: Record<string, unknown>,
+    block: { fullMatch: string; arrayPath: string; innerTemplate: string },
+    context: TemplateContext,
+    depth: number
+  ): { replacement: string; hasChanges: boolean } {
+    const entries = Object.entries(objectValue);
+    if (entries.length === 0) {
+      return { replacement: '', hasChanges: true };
+    }
+
+    // Process each key-value pair in the object
+    const processedItems = entries.map(([key, val], index) => {
+      // Create context for this iteration with @key support
+      const itemContext: TemplateContext = {
+        ...context,
+        this: val,
+        '@key': key,
+        '@index': index,
+        '@first': index === 0,
+        '@last': index === entries.length - 1,
+      };
+
+      // Add item properties to context for easier access
+      if (typeof val === 'object' && val !== null) {
+        Object.assign(itemContext, val);
+      }
+
+      // First recursively process any nested #each blocks in this context
+      let itemTemplate = this.processEachBlocks(
+        block.innerTemplate,
+        itemContext,
+        depth + 1
+      );
+
+      // Then process conditional blocks in this iteration context
+      itemTemplate = this.processConditionalBlocks(
+        itemTemplate,
+        itemContext,
+        depth + 1
+      );
+
+      // Process partials in this iteration context
+      itemTemplate = this.processPartials(itemTemplate, itemContext);
+
+      // Process helpers in this iteration context
+      itemTemplate = this.processHelpers(itemTemplate, itemContext);
+
+      // Process transforms in this iteration context
+      itemTemplate = this.processTransforms(itemTemplate, itemContext);
+
+      // Then process regular variables in this iteration
+      return itemTemplate.replace(
+        this.variablePattern,
+        (_innerMatch, innerVariable: string) => {
+          const itemKey = innerVariable.trim();
+
+          // Handle special context variables
+          if (itemKey === 'this') {
+            return val !== undefined ? String(val) : '';
+          }
+
+          if (itemKey.startsWith('@')) {
+            // Handle special iteration variables (@key, @index, @first, @last)
+            const specialValue = itemContext[itemKey];
+            return specialValue !== undefined
+              ? String(specialValue)
+              : _innerMatch;
+          }
+
+          // For regular variables, resolve from item context
+          const resolvedValue = this.resolveVariable(itemKey, itemContext);
+          return resolvedValue !== undefined
+            ? String(resolvedValue)
+            : _innerMatch;
         }
       );
     });
@@ -810,7 +918,8 @@ export class TemplateEngine {
                     parenArgs,
                     context
                   );
-                  argList = [processedArgs];
+                  // Convert the processed string result back to appropriate type
+                  argList = [this.resolveHelperArg(processedArgs, context)];
                 } else {
                   // This contains multiple arguments, some may be nested helpers
                   processedArgs = this.processEnhancedNestedHelpers(
@@ -837,14 +946,14 @@ export class TemplateEngine {
 
                   // Check if this is a single nested helper call like "(capitalize name)"
                   const trimmedSpaceArgs = spaceArgs.trim();
-                  if (
-                    trimmedSpaceArgs.startsWith('(') &&
-                    trimmedSpaceArgs.endsWith(')')
-                  ) {
+                  const isSingle =
+                    this.isSingleParenthesizedExpression(trimmedSpaceArgs);
+                  if (isSingle) {
                     // This is a single nested expression in parentheses, treat result as single argument
                     argList = [processedArgs];
                   } else {
                     // Multiple arguments with some nested expressions
+                    // The processed args should now have resolved values, parse them normally
                     argList = this.parseHelperArgs(
                       processedArgs.trim(),
                       context
@@ -862,13 +971,13 @@ export class TemplateEngine {
 
               const helperResult = this.helpers.execute(helperName, ...argList);
               hasChanges = true;
-              return helperResult !== undefined ? String(helperResult) : match;
+              return String(helperResult);
             }
 
             // No arguments case
             const helperResult = this.helpers.execute(helperName);
             hasChanges = true;
-            return helperResult !== undefined ? String(helperResult) : match;
+            return String(helperResult);
           } catch (error) {
             // If helper fails, return original match
             logger.error(`Helper error: ${error}`);
@@ -1151,8 +1260,14 @@ export class TemplateEngine {
       this.helpers.getHelperNames()
     );
 
-    // If no function calls were found, use regular parsing
-    if (helperMatches.length === 0) {
+    // Also check for traditional parenthesized helper expressions
+    const traditionalPattern = /\(([a-zA-Z]+)(?:\s+([^)]+))?\)/g;
+    const traditionalMatches = [
+      ...originalArgsString.matchAll(traditionalPattern),
+    ];
+
+    // If no helper expressions were found, use regular parsing
+    if (helperMatches.length === 0 && traditionalMatches.length === 0) {
       return this.parseHelperArgs(processedArgsString, context);
     }
 
@@ -1219,6 +1334,32 @@ export class TemplateEngine {
   }
 
   /**
+   * Check if a string represents a single parenthesized expression
+   */
+  // eslint-disable-next-line class-methods-use-this
+  private isSingleParenthesizedExpression(str: string): boolean {
+    if (!str.startsWith('(') || !str.endsWith(')')) {
+      return false;
+    }
+
+    // Count parentheses to see if this is a single balanced expression
+    let depth = 0;
+    for (let i = 0; i < str.length; i += 1) {
+      if (str[i] === '(') {
+        depth += 1;
+      } else if (str[i] === ')') {
+        depth -= 1;
+        // If we close all parentheses before the end, it means there are multiple expressions
+        if (depth === 0 && i < str.length - 1) {
+          return false;
+        }
+      }
+    }
+
+    return depth === 0;
+  }
+
+  /**
    * Check if a value looks like it came from processing a helper function
    */
   // eslint-disable-next-line class-methods-use-this
@@ -1231,6 +1372,12 @@ export class TemplateEngine {
     if (/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(value)) {
       // This looks like a variable name - check if it appears in the original args as a variable
       return !originalArgs.includes(value);
+    }
+
+    // Check if this is a numeric result from a processed helper
+    if (/^-?\d+(\.\d+)?$/.test(value)) {
+      // This is a number - it's likely a processed helper result
+      return true;
     }
 
     // If it's not a simple variable name pattern, treat it as a literal value

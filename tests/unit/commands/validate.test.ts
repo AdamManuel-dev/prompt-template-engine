@@ -21,8 +21,8 @@ import { loadConfig } from '../../../src/utils/config';
 
 // Mock all external dependencies
 jest.mock('fs/promises');
-jest.mock('../../src/utils/logger');
-jest.mock('../../src/utils/config');
+jest.mock('../../../src/utils/logger');
+jest.mock('../../../src/utils/config');
 jest.mock('chalk', () => ({
   __esModule: true,
   default: {

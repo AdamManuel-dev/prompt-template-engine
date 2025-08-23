@@ -159,10 +159,10 @@ export class LoopProcessor {
         if (nextClose === -1) break;
 
         if (nextOpen !== -1 && nextOpen < nextClose) {
-          depth++;
+          depth += 1;
           searchPos = nextOpen + openTag.length;
         } else {
-          depth--;
+          depth -= 1;
           if (depth === 0) {
             closeIndex = nextClose;
           }

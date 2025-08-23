@@ -80,7 +80,9 @@ export class AuthorRefactoredCommand extends BaseCommand {
       const command = this.subCommands.get(subAction)!;
       await command.execute(authorId, options);
     } catch (error) {
-      logger.error(`Author command failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `Author command failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       throw error;
     }
   }
