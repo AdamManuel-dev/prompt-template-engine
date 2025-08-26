@@ -1,7 +1,7 @@
 /**
  * @fileoverview Secure plugin manager with sandboxing
  * @lastmodified 2025-08-23T05:30:00Z
- * 
+ *
  * Features: Secure plugin loading, execution, and lifecycle management
  * Main APIs: SecurePluginManager class for safe plugin operations
  * Constraints: All plugins run in sandboxed workers, resource limits enforced
@@ -11,7 +11,11 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { IPlugin } from '../types';
-import { PluginSandbox, SandboxConfig, PluginExecutionResult } from './sandbox/plugin-sandbox';
+import {
+  PluginSandbox,
+  SandboxConfig,
+  PluginExecutionResult,
+} from './sandbox/plugin-sandbox';
 import { logger } from '../utils/logger';
 
 /**
@@ -22,12 +26,12 @@ export interface PluginSecurityPolicy {
   requireSignature: boolean;
   allowedAuthors: string[];
   blacklistedPlugins: string[];
-  
+
   // Code analysis
   disallowEval: boolean;
   disallowDynamicImports: boolean;
   maxCodeSize: number;
-  
+
   // Runtime restrictions
   sandbox: SandboxConfig;
 }
@@ -64,8 +68,8 @@ export const DEFAULT_SECURITY_POLICY: PluginSecurityPolicy = {
     allowedReadPaths: ['./plugins'],
     allowedWritePaths: ['./plugins/data'],
     allowNetworkAccess: false,
-    allowedAPIs: ['log', 'storage', 'fs']
-  }
+    allowedAPIs: ['log', 'storage', 'fs'],
+  },
 };
 
 /**
@@ -73,8 +77,11 @@ export const DEFAULT_SECURITY_POLICY: PluginSecurityPolicy = {
  */
 export class SecurePluginManager {
   private plugins = new Map<string, IPlugin>();
+
   private metadata = new Map<string, SecurePluginMetadata>();
+
   private sandbox: PluginSandbox;
+
   private activePlugins = new Set<string>();
 
   constructor(
@@ -101,10 +108,10 @@ export class SecurePluginManager {
 
       // Parse plugin
       const plugin = await this.parsePlugin(pluginCode, pluginPath);
-      
+
       // Security checks
       await this.performSecurityChecks(plugin, pluginCode);
-      
+
       // Load plugin
       this.plugins.set(plugin.name, plugin);
       this.metadata.set(plugin.name, {
@@ -114,11 +121,10 @@ export class SecurePluginManager {
         hash: await this.calculateHash(pluginCode),
         loadedAt: new Date(),
         executionCount: 0,
-        errors: []
+        errors: [],
       });
 
       logger.info(`Plugin loaded securely: ${plugin.name}`);
-
     } catch (error: any) {
       logger.error(`Failed to load plugin ${pluginPath}: ${error.message}`);
       throw error;
@@ -131,8 +137,8 @@ export class SecurePluginManager {
   async loadPluginsFromDirectory(): Promise<void> {
     try {
       const files = await fs.readdir(this.pluginsDir);
-      const pluginFiles = files.filter(file => 
-        file.endsWith('.js') || file.endsWith('.ts')
+      const pluginFiles = files.filter(
+        file => file.endsWith('.js') || file.endsWith('.ts')
       );
 
       for (const file of pluginFiles) {
@@ -143,7 +149,9 @@ export class SecurePluginManager {
         }
       }
 
-      logger.info(`Loaded ${this.plugins.size} plugins from ${this.pluginsDir}`);
+      logger.info(
+        `Loaded ${this.plugins.size} plugins from ${this.pluginsDir}`
+      );
     } catch (error: any) {
       logger.error(`Failed to load plugins directory: ${error.message}`);
     }
@@ -162,12 +170,12 @@ export class SecurePluginManager {
       return {
         success: false,
         error: `Plugin not found: ${pluginName}`,
-        stats: { executionTime: 0, memoryUsed: 0, cpuUsage: 0 }
+        stats: { executionTime: 0, memoryUsed: 0, cpuUsage: 0 },
       };
     }
 
     const metadata = this.metadata.get(pluginName)!;
-    
+
     try {
       // Update execution stats
       metadata.executionCount++;
@@ -175,7 +183,7 @@ export class SecurePluginManager {
 
       // Execute in sandbox
       const result = await this.sandbox.executePlugin(plugin, method, args);
-      
+
       if (!result.success && result.error) {
         metadata.errors.push(`${new Date().toISOString()}: ${result.error}`);
         // Keep only last 10 errors
@@ -184,17 +192,18 @@ export class SecurePluginManager {
         }
       }
 
-      logger.info(`Plugin executed: ${pluginName}.${method} (${result.success ? 'success' : 'failed'})`);
+      logger.info(
+        `Plugin executed: ${pluginName}.${method} (${result.success ? 'success' : 'failed'})`
+      );
       return result;
-
     } catch (error: any) {
       const errorMsg = error.message;
       metadata.errors.push(`${new Date().toISOString()}: ${errorMsg}`);
-      
+
       return {
         success: false,
         error: errorMsg,
-        stats: { executionTime: 0, memoryUsed: 0, cpuUsage: 0 }
+        stats: { executionTime: 0, memoryUsed: 0, cpuUsage: 0 },
       };
     }
   }
@@ -204,7 +213,7 @@ export class SecurePluginManager {
    */
   async initializePlugins(): Promise<void> {
     const initResults = [];
-    
+
     for (const [name] of this.plugins.entries()) {
       try {
         const result = await this.executePlugin(name, 'init');
@@ -212,16 +221,24 @@ export class SecurePluginManager {
           this.activePlugins.add(name);
           logger.info(`Plugin initialized: ${name}`);
         } else {
-          logger.error(`Plugin initialization failed: ${name} - ${result.error}`);
+          logger.error(
+            `Plugin initialization failed: ${name} - ${result.error}`
+          );
         }
-        initResults.push({ name, success: result.success, error: result.error });
+        initResults.push({
+          name,
+          success: result.success,
+          error: result.error,
+        });
       } catch (error: any) {
         logger.error(`Plugin initialization error: ${name} - ${error.message}`);
         initResults.push({ name, success: false, error: error.message });
       }
     }
 
-    logger.info(`Initialized ${this.activePlugins.size}/${this.plugins.size} plugins`);
+    logger.info(
+      `Initialized ${this.activePlugins.size}/${this.plugins.size} plugins`
+    );
   }
 
   /**
@@ -238,10 +255,9 @@ export class SecurePluginManager {
       this.activePlugins.add(pluginName);
       logger.info(`Plugin activated: ${pluginName}`);
       return true;
-    } else {
-      logger.error(`Plugin activation failed: ${pluginName} - ${result.error}`);
-      return false;
     }
+    logger.error(`Plugin activation failed: ${pluginName} - ${result.error}`);
+    return false;
   }
 
   /**
@@ -257,10 +273,9 @@ export class SecurePluginManager {
       this.activePlugins.delete(pluginName);
       logger.info(`Plugin deactivated: ${pluginName}`);
       return true;
-    } else {
-      logger.error(`Plugin deactivation failed: ${pluginName} - ${result.error}`);
-      return false;
     }
+    logger.error(`Plugin deactivation failed: ${pluginName} - ${result.error}`);
+    return false;
   }
 
   /**
@@ -270,11 +285,11 @@ export class SecurePluginManager {
     try {
       await this.deactivatePlugin(pluginName);
       await this.executePlugin(pluginName, 'dispose');
-      
+
       this.plugins.delete(pluginName);
       this.metadata.delete(pluginName);
       this.activePlugins.delete(pluginName);
-      
+
       logger.info(`Plugin unloaded: ${pluginName}`);
       return true;
     } catch (error: any) {
@@ -315,14 +330,17 @@ export class SecurePluginManager {
 
     // Cleanup sandbox
     await this.sandbox.cleanup();
-    
+
     logger.info('Plugin manager cleanup completed');
   }
 
   /**
    * Validate plugin code for security issues
    */
-  private async validatePluginCode(code: string, _filePath: string): Promise<void> {
+  private async validatePluginCode(
+    code: string,
+    _filePath: string
+  ): Promise<void> {
     // Check code size
     if (code.length > this.securityPolicy.maxCodeSize) {
       throw new Error(`Plugin code too large: ${code.length} bytes`);
@@ -347,7 +365,7 @@ export class SecurePluginManager {
       /process\.abort/,
       /child_process/,
       /cluster/,
-      /worker_threads/
+      /worker_threads/,
     ];
 
     for (const pattern of dangerousPatterns) {
@@ -364,10 +382,10 @@ export class SecurePluginManager {
     try {
       // For now, we'll use a simple module evaluation
       // In production, this would be more sophisticated
-      
+
       // This is a simplified evaluation - in production, use proper module loading
       // Real plugin loading would happen here
-      
+
       // For now, we'll expect plugins to export a default plugin object
       // This would need to be more robust in production
       const pluginData = {
@@ -380,11 +398,10 @@ export class SecurePluginManager {
         priority: 0,
         defaultConfig: {},
         init: () => true,
-        execute: () => 'Plugin executed successfully'
+        execute: () => 'Plugin executed successfully',
       };
 
       return pluginData as IPlugin;
-      
     } catch (error: any) {
       throw new Error(`Failed to parse plugin: ${error.message}`);
     }
@@ -393,10 +410,16 @@ export class SecurePluginManager {
   /**
    * Perform security checks on plugin
    */
-  private async performSecurityChecks(plugin: IPlugin, _code: string): Promise<void> {
+  private async performSecurityChecks(
+    plugin: IPlugin,
+    _code: string
+  ): Promise<void> {
     // Check author whitelist
     if (this.securityPolicy.allowedAuthors.length > 0) {
-      if (!plugin.author || !this.securityPolicy.allowedAuthors.includes(plugin.author)) {
+      if (
+        !plugin.author ||
+        !this.securityPolicy.allowedAuthors.includes(plugin.author)
+      ) {
         throw new Error(`Plugin author not in allowed list: ${plugin.author}`);
       }
     }

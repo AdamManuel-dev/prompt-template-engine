@@ -10,6 +10,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as yaml from 'js-yaml';
+import matter from 'gray-matter';
 import { TemplateEngine, TemplateContext } from '../core/template-engine';
 import {
   FileNotFoundError,
@@ -58,6 +60,8 @@ export interface Template {
     tags?: string[];
     created?: string;
     updated?: string;
+    category?: string;
+    [key: string]: any;
   };
 }
 
@@ -77,7 +81,7 @@ export class TemplateService {
   constructor(options: TemplateServiceOptions = {}) {
     this.engine = new TemplateEngine();
     this.options = {
-      templatePaths: options.templatePaths || ['./templates'],
+      templatePaths: options.templatePaths || ['./templates', '.cursor/templates'],
       cacheEnabled: options.cacheEnabled ?? true,
       validationStrict: options.validationStrict ?? false,
     };
@@ -131,14 +135,66 @@ export class TemplateService {
   }
 
   /**
-   * Load template from a JSON file
+   * Load template from a file (JSON, YAML, or Markdown with frontmatter)
    */
   private static async loadTemplateFromFile(
     filePath: string
   ): Promise<Template> {
     try {
       const content = await fs.promises.readFile(filePath, 'utf8');
-      const template = JSON.parse(content) as Template;
+      const ext = path.extname(filePath).toLowerCase();
+      let template: Template;
+
+      if (ext === '.md') {
+        // Parse markdown with frontmatter
+        const parsed = matter(content);
+        const frontmatter = parsed.data;
+        
+        template = {
+          name: frontmatter.name || path.basename(filePath, ext),
+          version: frontmatter.version || '1.0.0',
+          description: frontmatter.description,
+          files: [
+            {
+              path: `${frontmatter.name || path.basename(filePath, ext)}.md`,
+              content: parsed.content,
+              name: frontmatter.name || path.basename(filePath, ext)
+            }
+          ],
+          variables: TemplateService.parseVariables(frontmatter.variables || {}),
+          commands: frontmatter.commands || [],
+          metadata: {
+            author: frontmatter.author,
+            tags: frontmatter.tags || [],
+            category: frontmatter.category
+          }
+        };
+      } else if (ext === '.yaml' || ext === '.yml') {
+        // Parse YAML file
+        const parsed = yaml.load(content) as any;
+        template = {
+          name: parsed.name,
+          version: parsed.version || '1.0.0',
+          description: parsed.description,
+          files: [
+            {
+              path: `${parsed.name}.md`,
+              content: parsed.content || '',
+              name: parsed.name
+            }
+          ],
+          variables: TemplateService.parseVariables(parsed.variables || {}),
+          commands: parsed.commands || [],
+          metadata: {
+            author: parsed.author,
+            tags: parsed.tags || []
+          }
+        };
+      } else {
+        // Parse JSON file (existing behavior)
+        template = JSON.parse(content) as Template;
+      }
+      
       template.basePath = path.dirname(filePath);
       return template;
     } catch (error) {
@@ -290,10 +346,14 @@ export class TemplateService {
    */
   async findTemplate(templateName: string): Promise<string | null> {
     const searchPaths = this.options.templatePaths!;
+    const extensions = ['.yaml', '.yml', '.json', '.md'];
 
     const allCandidates = searchPaths.flatMap(searchPath => [
+      // Direct name match
       path.join(searchPath, templateName),
-      path.join(searchPath, `${templateName}.json`),
+      // With extensions
+      ...extensions.map(ext => path.join(searchPath, `${templateName}${ext}`)),
+      // Directory with template.json
       path.join(searchPath, templateName, 'template.json'),
     ]);
 
@@ -318,12 +378,16 @@ export class TemplateService {
       name: string;
       path: string;
       description?: string;
+      version?: string;
+      tags?: string[];
     }>
   > {
     const templates: Array<{
       name: string;
       path: string;
       description?: string;
+      version?: string;
+      tags?: string[];
     }> = [];
 
     // Filter search paths asynchronously
@@ -357,6 +421,8 @@ export class TemplateService {
                     name: template.name,
                     path: fullPath,
                     description: template.description,
+                    version: template.version,
+                    tags: template.metadata?.tags,
                   };
                 } catch {
                   return null;
@@ -365,13 +431,20 @@ export class TemplateService {
                 // Config file doesn't exist, skip
                 return null;
               }
-            } else if (entry.name.endsWith('.json')) {
+            } else if (
+              entry.name.endsWith('.json') ||
+              entry.name.endsWith('.yaml') ||
+              entry.name.endsWith('.yml') ||
+              entry.name.endsWith('.md')
+            ) {
               try {
                 const template = await this.loadTemplate(fullPath);
                 return {
                   name: template.name,
                   path: fullPath,
                   description: template.description,
+                  version: template.version,
+                  tags: template.metadata?.tags,
                 };
               } catch {
                 return null;
@@ -390,6 +463,8 @@ export class TemplateService {
         name: string;
         path: string;
         description?: string;
+        version?: string;
+        tags?: string[];
       }>)
     );
 
@@ -514,5 +589,66 @@ export class TemplateService {
    */
   getCacheStats() {
     return this.templateCache.getStats();
+  }
+
+  /**
+   * Parse variables from various formats
+   */
+  private static parseVariables(variables: any): Record<string, VariableConfig> {
+    if (Array.isArray(variables)) {
+      // Handle array format from markdown frontmatter
+      const result: Record<string, VariableConfig> = {};
+      variables.forEach(variable => {
+        if (typeof variable === 'string') {
+          result[variable] = {
+            type: 'string',
+            required: false
+          };
+        } else if (typeof variable === 'object') {
+          Object.entries(variable).forEach(([key, value]) => {
+            result[key] = {
+              type: 'string',
+              description: value as string,
+              required: false
+            };
+          });
+        }
+      });
+      return result;
+    } else if (typeof variables === 'object' && variables !== null) {
+      // Handle object format from YAML/JSON
+      return variables as Record<string, VariableConfig>;
+    }
+    return {};
+  }
+
+  /**
+   * Resolve template path with extension auto-appending
+   */
+  async resolveTemplatePath(templatePath: string): Promise<string | null> {
+    // If path is absolute, try as-is first
+    if (path.isAbsolute(templatePath)) {
+      try {
+        await fs.promises.access(templatePath);
+        return templatePath;
+      } catch {
+        // If absolute path has no extension, try with extensions
+        if (!path.extname(templatePath)) {
+          const extensions = ['.yaml', '.yml', '.json', '.md'];
+          for (const ext of extensions) {
+            const fullPath = templatePath + ext;
+            try {
+              await fs.promises.access(fullPath);
+              return fullPath;
+            } catch {
+              continue;
+            }
+          }
+        }
+      }
+    }
+
+    // If relative path or template name, use findTemplate method
+    return this.findTemplate(templatePath);
   }
 }

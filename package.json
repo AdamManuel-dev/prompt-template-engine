@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "cursor-prompt": "./dist/cli.js",
-    "cprompt": "./dist/cli.js"
+    "cprompt": "./dist/cli.js",
+    "cursor-prompt": "./dist/cli.js"
   },
   "files": [
     "dist/",

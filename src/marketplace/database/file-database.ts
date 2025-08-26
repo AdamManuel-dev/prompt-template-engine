@@ -1,7 +1,7 @@
 /**
  * @fileoverview File-based database implementation for marketplace
  * @lastmodified 2025-08-23T05:30:00Z
- * 
+ *
  * Features: JSON file-based storage with indexing and search
  * Main APIs: File-based implementation of IMarketplaceDatabase
  * Constraints: File system permissions, concurrent access handling
@@ -11,15 +11,15 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { createHash } from 'crypto';
-import { 
-  IMarketplaceDatabase, 
-  ITemplateRepository, 
-  IAuthorRepository, 
+import {
+  IMarketplaceDatabase,
+  ITemplateRepository,
+  IAuthorRepository,
   IReviewRepository,
   IInstallationRepository,
   DatabaseConfig,
   QueryFilter,
-  QueryOptions 
+  QueryOptions,
 } from './database.interface';
 import { TemplateModel, TemplateManifest } from '../models/template.model';
 import { logger } from '../../utils/logger';
@@ -29,8 +29,9 @@ import { logger } from '../../utils/logger';
  */
 class FileTemplateRepository implements ITemplateRepository {
   private templates = new Map<string, TemplateModel>();
+
   private searchIndex = new Map<string, Set<string>>();
-  
+
   constructor(private dataDir: string) {}
 
   async init(): Promise<void> {
@@ -68,11 +69,15 @@ class FileTemplateRepository implements ITemplateRepository {
         template.name,
         template.description || '',
         template.category || '',
-        ...(template.tags || [])
-      ].join(' ').toLowerCase().split(/\s+/);
-      
+        ...(template.tags || []),
+      ]
+        .join(' ')
+        .toLowerCase()
+        .split(/\s+/);
+
       terms.forEach(term => {
-        if (term.length > 2) { // Only index meaningful terms
+        if (term.length > 2) {
+          // Only index meaningful terms
           if (!this.searchIndex.has(term)) {
             this.searchIndex.set(term, new Set());
           }
@@ -86,9 +91,10 @@ class FileTemplateRepository implements ITemplateRepository {
     if (!template.id) {
       template.id = createHash('sha256')
         .update(`${template.name}-${Date.now()}`)
-        .digest('hex').substring(0, 16);
+        .digest('hex')
+        .substring(0, 16);
     }
-    
+
     this.templates.set(template.id, template);
     await this.saveTemplates();
     this.buildSearchIndex();
@@ -101,17 +107,17 @@ class FileTemplateRepository implements ITemplateRepository {
 
   async findMany(options?: QueryOptions): Promise<TemplateModel[]> {
     let results = Array.from(this.templates.values());
-    
+
     // Apply filters
     if (options?.filters) {
       results = this.applyFilters(results, options.filters);
     }
-    
+
     // Apply sorting
     if (options?.sort) {
       results = this.applySorting(results, options.sort);
     }
-    
+
     // Apply pagination
     if (options?.offset) {
       results = results.slice(options.offset);
@@ -119,16 +125,19 @@ class FileTemplateRepository implements ITemplateRepository {
     if (options?.limit) {
       results = results.slice(0, options.limit);
     }
-    
+
     return results;
   }
 
-  async update(id: string, template: Partial<TemplateModel>): Promise<TemplateModel> {
+  async update(
+    id: string,
+    template: Partial<TemplateModel>
+  ): Promise<TemplateModel> {
     const existing = this.templates.get(id);
     if (!existing) {
       throw new Error(`Template not found: ${id}`);
     }
-    
+
     const updated = { ...existing, ...template, id };
     this.templates.set(id, updated);
     await this.saveTemplates();
@@ -142,10 +151,13 @@ class FileTemplateRepository implements ITemplateRepository {
     this.buildSearchIndex();
   }
 
-  async search(query: string, options?: QueryOptions): Promise<TemplateModel[]> {
+  async search(
+    query: string,
+    options?: QueryOptions
+  ): Promise<TemplateModel[]> {
     const terms = query.toLowerCase().split(/\s+/);
     const matchingIds = new Set<string>();
-    
+
     // Find templates matching any search term
     terms.forEach(term => {
       for (const [indexTerm, templateIds] of this.searchIndex.entries()) {
@@ -154,18 +166,25 @@ class FileTemplateRepository implements ITemplateRepository {
         }
       }
     });
-    
+
     const results = Array.from(matchingIds)
       .map(id => this.templates.get(id))
       .filter(Boolean) as TemplateModel[];
-    
-    return this.applySorting(results, options?.sort || [{ field: 'downloads', direction: 'desc' }]);
+
+    return this.applySorting(
+      results,
+      options?.sort || [{ field: 'downloads', direction: 'desc' }]
+    );
   }
 
-  async findByAuthor(authorId: string, options?: QueryOptions): Promise<TemplateModel[]> {
-    const results = Array.from(this.templates.values())
-      .filter(t => t.author?.id === authorId);
-    
+  async findByAuthor(
+    authorId: string,
+    options?: QueryOptions
+  ): Promise<TemplateModel[]> {
+    const results = Array.from(this.templates.values()).filter(
+      t => t.author?.id === authorId
+    );
+
     // Apply sorting and pagination if provided
     if (options?.sort) {
       return this.applySorting(results, options.sort);
@@ -173,22 +192,30 @@ class FileTemplateRepository implements ITemplateRepository {
     return results;
   }
 
-  async findByCategory(category: string, _options?: QueryOptions): Promise<TemplateModel[]> {
-    const results = Array.from(this.templates.values())
-      .filter(t => t.category === category);
+  async findByCategory(
+    category: string,
+    _options?: QueryOptions
+  ): Promise<TemplateModel[]> {
+    const results = Array.from(this.templates.values()).filter(
+      t => t.category === category
+    );
     return results;
   }
 
-  async findByTags(tags: string[], _options?: QueryOptions): Promise<TemplateModel[]> {
-    const results = Array.from(this.templates.values())
-      .filter(t => t.tags?.some(tag => tags.includes(tag)));
+  async findByTags(
+    tags: string[],
+    _options?: QueryOptions
+  ): Promise<TemplateModel[]> {
+    const results = Array.from(this.templates.values()).filter(t =>
+      t.tags?.some(tag => tags.includes(tag))
+    );
     return results;
   }
 
   async getPopular(limit = 10): Promise<TemplateModel[]> {
     return this.findMany({
       sort: [{ field: 'downloads', direction: 'desc' }],
-      limit
+      limit,
     });
   }
 
@@ -197,16 +224,16 @@ class FileTemplateRepository implements ITemplateRepository {
     return this.findMany({
       sort: [
         { field: 'updatedAt', direction: 'desc' },
-        { field: 'downloads', direction: 'desc' }
+        { field: 'downloads', direction: 'desc' },
       ],
-      limit
+      limit,
     });
   }
 
   async getRecent(limit = 10): Promise<TemplateModel[]> {
     return this.findMany({
       sort: [{ field: 'createdAt', direction: 'desc' }],
-      limit
+      limit,
     });
   }
 
@@ -230,25 +257,31 @@ class FileTemplateRepository implements ITemplateRepository {
     return versions.length > 0 ? versions[versions.length - 1] : null;
   }
 
-  private applyFilters(results: TemplateModel[], filters: QueryFilter[]): TemplateModel[] {
-    return results.filter(item => {
-      return filters.every(filter => {
+  private applyFilters(
+    results: TemplateModel[],
+    filters: QueryFilter[]
+  ): TemplateModel[] {
+    return results.filter(item =>
+      filters.every(filter => {
         const value = this.getNestedValue(item, filter.field);
         return this.matchesFilter(value, filter.operator, filter.value);
-      });
-    });
+      })
+    );
   }
 
-  private applySorting(results: TemplateModel[], sort: Array<{ field: string; direction: 'asc' | 'desc' }>): TemplateModel[] {
+  private applySorting(
+    results: TemplateModel[],
+    sort: Array<{ field: string; direction: 'asc' | 'desc' }>
+  ): TemplateModel[] {
     return results.sort((a, b) => {
       for (const sortRule of sort) {
         const aVal = this.getNestedValue(a, sortRule.field);
         const bVal = this.getNestedValue(b, sortRule.field);
-        
+
         let comparison = 0;
         if (aVal < bVal) comparison = -1;
         else if (aVal > bVal) comparison = 1;
-        
+
         if (sortRule.direction === 'desc') comparison *= -1;
         if (comparison !== 0) return comparison;
       }
@@ -260,18 +293,34 @@ class FileTemplateRepository implements ITemplateRepository {
     return path.split('.').reduce((curr, key) => curr?.[key], obj);
   }
 
-  private matchesFilter(value: any, operator: string, filterValue: any): boolean {
+  private matchesFilter(
+    value: any,
+    operator: string,
+    filterValue: any
+  ): boolean {
     switch (operator) {
-      case 'eq': return value === filterValue;
-      case 'ne': return value !== filterValue;
-      case 'gt': return value > filterValue;
-      case 'gte': return value >= filterValue;
-      case 'lt': return value < filterValue;
-      case 'lte': return value <= filterValue;
-      case 'like': return String(value).toLowerCase().includes(String(filterValue).toLowerCase());
-      case 'in': return Array.isArray(filterValue) && filterValue.includes(value);
-      case 'nin': return Array.isArray(filterValue) && !filterValue.includes(value);
-      default: return false;
+      case 'eq':
+        return value === filterValue;
+      case 'ne':
+        return value !== filterValue;
+      case 'gt':
+        return value > filterValue;
+      case 'gte':
+        return value >= filterValue;
+      case 'lt':
+        return value < filterValue;
+      case 'lte':
+        return value <= filterValue;
+      case 'like':
+        return String(value)
+          .toLowerCase()
+          .includes(String(filterValue).toLowerCase());
+      case 'in':
+        return Array.isArray(filterValue) && filterValue.includes(value);
+      case 'nin':
+        return Array.isArray(filterValue) && !filterValue.includes(value);
+      default:
+        return false;
     }
   }
 }
@@ -281,23 +330,33 @@ class FileTemplateRepository implements ITemplateRepository {
  */
 export class FileMarketplaceDatabase implements IMarketplaceDatabase {
   public templates: FileTemplateRepository;
+
   public authors: IAuthorRepository;
-  public reviews: IReviewRepository; 
+
+  public reviews: IReviewRepository;
+
   public installations: IInstallationRepository;
 
   private isConnectedFlag = false;
+
   private manifestPath: string;
 
   constructor(config: DatabaseConfig) {
     const dataDir = config.dataDir || './data/marketplace';
     this.manifestPath = path.join(dataDir, 'manifest.json');
-    
+
     this.templates = new FileTemplateRepository(dataDir);
-    
+
     // Simplified implementations for now - can be expanded
-    this.authors = new FileRepository(path.join(dataDir, 'authors.json')) as any;
-    this.reviews = new FileRepository(path.join(dataDir, 'reviews.json')) as any;
-    this.installations = new FileRepository(path.join(dataDir, 'installations.json')) as any;
+    this.authors = new FileRepository(
+      path.join(dataDir, 'authors.json')
+    ) as any;
+    this.reviews = new FileRepository(
+      path.join(dataDir, 'reviews.json')
+    ) as any;
+    this.installations = new FileRepository(
+      path.join(dataDir, 'installations.json')
+    ) as any;
   }
 
   async connect(): Promise<void> {
@@ -321,7 +380,9 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
     return this.isConnectedFlag;
   }
 
-  async transaction<T>(fn: (db: IMarketplaceDatabase) => Promise<T>): Promise<T> {
+  async transaction<T>(
+    fn: (db: IMarketplaceDatabase) => Promise<T>
+  ): Promise<T> {
     // File-based implementation doesn't support real transactions
     // In a real implementation, we'd use file locking or atomic writes
     return fn(this);
@@ -356,13 +417,13 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
     const backupDir = path.join(path.dirname(this.manifestPath), 'backups');
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = path.join(backupDir, `backup-${timestamp}`);
-    
+
     await fs.mkdir(backupPath, { recursive: true });
-    
+
     // Copy all data files
     const dataDir = path.dirname(this.manifestPath);
     const files = await fs.readdir(dataDir);
-    
+
     for (const file of files) {
       if (file.endsWith('.json')) {
         await fs.copyFile(
@@ -371,7 +432,7 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
         );
       }
     }
-    
+
     logger.info(`Database backup created: ${backupPath}`);
     return backupPath;
   }
@@ -379,7 +440,7 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
   async restore(backupPath: string): Promise<void> {
     const dataDir = path.dirname(this.manifestPath);
     const files = await fs.readdir(backupPath);
-    
+
     for (const file of files) {
       if (file.endsWith('.json')) {
         await fs.copyFile(
@@ -388,7 +449,7 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
         );
       }
     }
-    
+
     // Reload data
     await this.clearCache();
     logger.info(`Database restored from: ${backupPath}`);
@@ -401,12 +462,12 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
     installationCount: number;
   }> {
     const templates = await this.templates.findMany();
-    
+
     return {
       templateCount: templates.length,
       authorCount: 0, // Would implement for full repository
       reviewCount: 0,
-      installationCount: 0
+      installationCount: 0,
     };
   }
 }
@@ -455,7 +516,7 @@ class FileRepository<T extends { id: string }> {
     if (!existing) {
       throw new Error(`Item not found: ${id}`);
     }
-    
+
     const updated = { ...existing, ...updates, id };
     this.items.set(id, updated);
     await this.save();

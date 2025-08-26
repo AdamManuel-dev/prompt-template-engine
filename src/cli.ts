@@ -204,7 +204,7 @@ program
           shouldCreateConfig = true;
         }
       }
-      
+
       if (shouldCreateConfig) {
         const defaultConfig = {
           version: '1.0.0',
@@ -231,7 +231,7 @@ program
       } catch {
         shouldCreateExample = true;
       }
-      
+
       if (shouldCreateExample) {
         const exampleTemplate = `name: example
 description: Example template for Cursor Prompt
@@ -302,18 +302,37 @@ program
   .action(async templatePath => {
     try {
       const service = new TemplateService();
-      const template = await service.loadTemplate(templatePath);
+      
+      // Resolve template path if needed
+      const resolvedPath = await service.resolveTemplatePath(templatePath);
+      if (!resolvedPath) {
+        throw new Error(`Template file not found: ${templatePath}`);
+      }
+      
+      const template = await service.loadTemplate(resolvedPath);
       const validationResult = await TemplateService.validateTemplate(template);
 
       if (validationResult.valid) {
-        console.log(chalk.green(`✅ Template is valid: ${templatePath}`));
+        console.log(chalk.green(`✅ Template is valid: ${resolvedPath}`));
+        if (validationResult.warnings.length > 0) {
+          console.log(chalk.yellow('\nWarnings:'));
+          validationResult.warnings.forEach((warning: string) => {
+            console.log(chalk.yellow(`   ⚠ ${warning}`));
+          });
+        }
       } else {
         console.log(
-          chalk.red(`❌ Template validation failed: ${templatePath}`)
+          chalk.red(`❌ Template validation failed: ${resolvedPath}`)
         );
         validationResult.errors.forEach((error: string) => {
           console.log(chalk.red(`   • ${error}`));
         });
+        if (validationResult.warnings.length > 0) {
+          console.log(chalk.yellow('\nWarnings:'));
+          validationResult.warnings.forEach((warning: string) => {
+            console.log(chalk.yellow(`   ⚠ ${warning}`));
+          });
+        }
         process.exit(1);
       }
     } catch (error) {

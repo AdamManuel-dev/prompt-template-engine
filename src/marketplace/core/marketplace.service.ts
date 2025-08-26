@@ -67,12 +67,16 @@ export class MarketplaceService
   private static instance: IMarketplaceService;
 
   private api: MarketplaceAPI;
+
   private registry: TemplateRegistry;
+
   private database: IMarketplaceDatabase | null = null;
+
   // private _versionManager: VersionManager; // Reserved for future use
   private cache: Map<string, { data: unknown; expires: number }> = new Map();
 
   private manifestPath: string;
+
   private manifest: TemplateManifest | null = null;
 
   private constructor() {
@@ -109,7 +113,7 @@ export class MarketplaceService
     try {
       this.database = await getDatabase();
       logger.info('Marketplace database initialized');
-      
+
       // Initialize manifest from database or create default
       await this.initializeManifest();
     } catch (error) {
@@ -182,34 +186,48 @@ export class MarketplaceService
 
     try {
       let result: TemplateSearchResult;
-      
+
       // Use database for local search if available, otherwise API
       if (this.database) {
         const offset = ((query.page || 1) - 1) * (query.limit || 20);
-        const templates = query.query 
+        const templates = query.query
           ? await this.database.templates.search(query.query, {
               limit: query.limit,
-              offset: offset,
-              sort: query.sortBy ? [{ field: query.sortBy, direction: query.sortOrder || 'desc' }] : undefined
+              offset,
+              sort: query.sortBy
+                ? [
+                    {
+                      field: query.sortBy,
+                      direction: query.sortOrder || 'desc',
+                    },
+                  ]
+                : undefined,
             })
           : await this.database.templates.findMany({
               limit: query.limit,
-              offset: offset,
-              sort: query.sortBy ? [{ field: query.sortBy, direction: query.sortOrder || 'desc' }] : undefined
+              offset,
+              sort: query.sortBy
+                ? [
+                    {
+                      field: query.sortBy,
+                      direction: query.sortOrder || 'desc',
+                    },
+                  ]
+                : undefined,
             });
-        
+
         result = {
           templates: templates as any[], // Convert TemplateModel to MarketplaceTemplate
           total: templates.length,
           page: query.page || 1,
           limit: query.limit || 20,
-          hasMore: templates.length === (query.limit || 20)
+          hasMore: templates.length === (query.limit || 20),
         };
       } else {
         // Fallback to API
         result = await this.api.searchTemplates(query);
       }
-      
+
       this.setCache(cacheKey, result, 5 * 60 * 1000); // 5 minutes cache
       this.emit('search:completed', { query, result });
       return result;
@@ -233,7 +251,7 @@ export class MarketplaceService
 
     try {
       let template: TemplateModel;
-      
+
       // Try database first, then API
       if (this.database) {
         const dbTemplate = await this.database.templates.findById(templateId);
@@ -247,7 +265,7 @@ export class MarketplaceService
       } else {
         template = await this.api.getTemplate(templateId);
       }
-      
+
       this.setCache(cacheKey, template, 10 * 60 * 1000); // 10 minutes cache
 
       this.emit('template:fetched', { templateId, template });
