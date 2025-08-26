@@ -209,7 +209,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
     versionManager: VersionManager,
     options: MarketplaceCommandOptions
   ): Promise<void> {
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
     const registry = new TemplateRegistry();
 
     // Get installed template
@@ -316,7 +316,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
     versionManager: VersionManager,
     options: MarketplaceCommandOptions
   ): Promise<void> {
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
 
     try {
       const template = await marketplace.getTemplate(templateName);
@@ -421,7 +421,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
     versionManager: VersionManager,
     options: MarketplaceCommandOptions
   ): Promise<void> {
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
 
     try {
       const template = await marketplace.getTemplate(templateName);
@@ -499,7 +499,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
     versionManager: VersionManager,
     options: MarketplaceCommandOptions
   ): Promise<void> {
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
 
     try {
       const template = await marketplace.getTemplate(templateName);
@@ -594,7 +594,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
       return;
     }
 
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
 
     try {
       const template = await marketplace.getTemplate(templateName);

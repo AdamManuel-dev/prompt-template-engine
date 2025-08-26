@@ -75,7 +75,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
     options: MarketplaceCommandOptions
   ): Promise<void> {
     try {
-      const marketplace = MarketplaceService.getInstance();
+      const marketplace = await MarketplaceService.getInstance();
       const registry = new TemplateRegistry();
       const versionManager = new VersionManager();
 
@@ -237,7 +237,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
   }
 
   private async updateAll(options: MarketplaceCommandOptions): Promise<void> {
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
 
     this.info('Checking for updates on all installed templates...');
 
@@ -312,7 +312,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
   }
 
   private async checkAllUpdates(): Promise<void> {
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
 
     this.info('Checking for updates...');
 

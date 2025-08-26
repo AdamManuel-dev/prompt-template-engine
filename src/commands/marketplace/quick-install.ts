@@ -109,7 +109,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
         logger.info(chalk.blue('🚀 Starting one-click installation...'));
       }
 
-      const marketplace = MarketplaceService.getInstance();
+      const marketplace = await MarketplaceService.getInstance();
       const registry = new TemplateRegistry();
 
       // Step 1: Auto-resolve template

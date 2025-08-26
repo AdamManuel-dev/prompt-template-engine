@@ -97,7 +97,7 @@ export class PublishCommand extends BaseCommand implements ICommand {
       );
 
       // Get marketplace service
-      const marketplaceService = MarketplaceService.getInstance();
+      const marketplaceService = await MarketplaceService.getInstance();
 
       // Publish template
       const result = await marketplaceService.publishTemplate(

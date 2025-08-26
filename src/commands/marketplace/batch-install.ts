@@ -140,7 +140,7 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
   private static async showDryRun(templates: string[]): Promise<void> {
     logger.info(chalk.bold('\n📋 Dry Run - Templates to Install:'));
 
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
     let validTemplates = 0;
     let invalidTemplates = 0;
 
@@ -194,7 +194,7 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
     templates: string[],
     options: MarketplaceCommandOptions
   ): Promise<void> {
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
     const maxConcurrent = parseInt(String(options.maxConcurrent || '3'), 10);
     const startTime = Date.now();
 

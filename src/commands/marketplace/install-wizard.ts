@@ -67,7 +67,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
   }
 
   private async runWizard(options: MarketplaceCommandOptions): Promise<void> {
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
     const registry = new TemplateRegistry();
 
     // Step 1: Project analysis

@@ -73,7 +73,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
     }
 
     try {
-      const marketplace = MarketplaceService.getInstance();
+      const marketplace = await MarketplaceService.getInstance();
       const registry = new TemplateRegistry();
 
       // Try to find template locally first
@@ -321,7 +321,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
     logger.info(chalk.bold('\n💬 Recent Reviews:'));
 
     try {
-      const marketplace = MarketplaceService.getInstance();
+      const marketplace = await MarketplaceService.getInstance();
       const reviews = await marketplace.apiClient.getTemplateRatings(
         template.id,
         1,

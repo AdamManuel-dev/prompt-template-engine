@@ -1,20 +1,20 @@
 {
   "version": "1.0.0",
-  "updated": "2025-08-26T05:31:20.408Z",
+  "updated": "2025-08-26T05:51:21.108Z",
   "templates": [
     {
-      "id": "cache-item-0",
-      "name": "Cache Item 0",
+      "id": "my-new-template",
+      "name": "My New Template",
       "version": "1.0.0",
-      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Cache Item 0",
+      "path": "",
       "metadata": {
-        "id": "cache-item-0",
-        "name": "Cache Item 0",
-        "displayName": "Cache Item 0",
-        "description": "Template for cache item 0",
+        "id": "my-new-template",
+        "name": "My New Template",
+        "displayName": "My New Template",
+        "description": "A template for testing",
         "author": {
-          "id": "test_author",
-          "name": "Test Author",
+          "id": "test_user",
+          "name": "Test User",
           "verified": false,
           "reputation": 0,
           "totalTemplates": 1,
@@ -24,7 +24,132 @@
         "versions": [
           {
             "version": "1.0.0",
-            "description": "Cache item 0",
+            "description": "Template for testing",
+            "content": "# Template content",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 100,
+            "created": "2025-08-26T05:51:20.951Z",
+            "downloads": 0,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "test",
+          "example"
+        ],
+        "rating": {
+          "average": 0,
+          "total": 0,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 0,
+          "weeklyDownloads": 0,
+          "monthlyDownloads": 0,
+          "forks": 0,
+          "favorites": 0,
+          "issues": 0,
+          "lastDownload": "2025-08-26T05:51:20.951Z",
+          "trending": false,
+          "popularityScore": 0
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "test"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "web"
+          ]
+        },
+        "category": "other",
+        "created": "2025-08-26T05:51:20.951Z",
+        "updated": "2025-08-26T05:51:20.951Z",
+        "featured": false,
+        "verified": false,
+        "deprecated": false
+      },
+      "versionInfo": {
+        "version": "1.0.0",
+        "description": "Template for testing",
+        "content": "# Template content",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 100,
+        "created": "2025-08-26T05:51:20.951Z",
+        "downloads": 0,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:20.952Z",
+      "active": true
+    },
+    {
+      "version": "1.0.0",
+      "path": "",
+      "metadata": {
+        "description": "Invalid template"
+      },
+      "versionInfo": {
+        "version": "1.0.0",
+        "description": "Invalid template",
+        "content": "{\"description\":\"Invalid template\"}",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial release",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 34,
+        "created": "2025-08-26T05:51:20.959Z",
+        "downloads": 0,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:20.959Z",
+      "active": true
+    },
+    {
+      "id": "versioned-template",
+      "name": "Versioned Template",
+      "version": "1.0.0",
+      "path": "",
+      "metadata": {
+        "id": "versioned-template",
+        "name": "Versioned Template",
+        "displayName": "Versioned Template",
+        "description": "Template with versions",
+        "author": {
+          "id": "author",
+          "name": "Author",
+          "verified": false,
+          "reputation": 0,
+          "totalTemplates": 1,
+          "totalDownloads": 0
+        },
+        "currentVersion": "2.0.0",
+        "versions": [
+          {
+            "version": "1.0.0",
+            "description": "Template with versions",
             "content": "Template content",
             "dependencies": [],
             "variables": [],
@@ -34,7 +159,23 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:31:20.397Z",
+            "created": "2025-08-26T05:51:20.965Z",
+            "downloads": 0,
+            "deprecated": false
+          },
+          {
+            "version": "2.0.0",
+            "description": "Major update with new features",
+            "content": "Updated template content",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Major update with new features",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 120,
+            "created": "2025-08-26T05:51:20.967Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -61,7 +202,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:31:20.397Z",
+          "lastDownload": "2025-08-26T05:51:20.965Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -76,15 +217,15 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:31:20.397Z",
-        "updated": "2025-08-26T05:31:20.397Z",
+        "created": "2025-08-26T05:51:20.965Z",
+        "updated": "2025-08-26T05:51:20.965Z",
         "featured": false,
         "verified": false,
         "deprecated": false
       },
       "versionInfo": {
         "version": "1.0.0",
-        "description": "Cache item 0",
+        "description": "Template with versions",
         "content": "Template content",
         "dependencies": [],
         "variables": [],
@@ -94,36 +235,36 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:31:20.397Z",
+        "created": "2025-08-26T05:51:20.965Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:31:20.399Z",
+      "registered": "2025-08-26T05:51:20.967Z",
       "active": true
     },
     {
-      "id": "cache-test",
-      "name": "Cache Test",
+      "id": "protected-template",
+      "name": "Protected Template",
       "version": "1.0.0",
-      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Cache Test",
+      "path": "",
       "metadata": {
-        "id": "cache-test",
-        "name": "Cache Test",
-        "displayName": "Cache Test",
-        "description": "Template for cache invalidation tests",
+        "id": "protected-template",
+        "name": "Protected Template",
+        "displayName": "Protected Template",
+        "description": "Template with author protection",
         "author": {
-          "id": "test_author",
-          "name": "Test Author",
+          "id": "different_author",
+          "name": "Different Author",
           "verified": false,
           "reputation": 0,
           "totalTemplates": 1,
           "totalDownloads": 0
         },
-        "currentVersion": "1.0.0",
+        "currentVersion": "1.1.0",
         "versions": [
           {
             "version": "1.0.0",
-            "description": "Template for cache testing",
+            "description": "Protected template",
             "content": "Template content",
             "dependencies": [],
             "variables": [],
@@ -133,7 +274,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:31:20.388Z",
+            "created": "2025-08-26T05:51:20.972Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -160,7 +301,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:31:20.388Z",
+          "lastDownload": "2025-08-26T05:51:20.972Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -175,15 +316,15 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:31:20.389Z",
-        "updated": "2025-08-26T05:31:20.389Z",
+        "created": "2025-08-26T05:51:20.972Z",
+        "updated": "2025-08-26T05:51:20.972Z",
         "featured": false,
         "verified": false,
         "deprecated": false
       },
       "versionInfo": {
         "version": "1.0.0",
-        "description": "Template for cache testing",
+        "description": "Protected template",
         "content": "Template content",
         "dependencies": [],
         "variables": [],
@@ -193,23 +334,23 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:31:20.388Z",
+        "created": "2025-08-26T05:51:20.972Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:31:20.393Z",
+      "registered": "2025-08-26T05:51:20.973Z",
       "active": true
     },
     {
-      "id": "cached-template",
-      "name": "Cached Template",
+      "id": "template-1",
+      "name": "Template 1",
       "version": "1.0.0",
-      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Cached Template",
+      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Template 1",
       "metadata": {
-        "id": "cached-template",
-        "name": "Cached Template",
-        "displayName": "Cached Template",
-        "description": "Template for caching tests",
+        "id": "template-1",
+        "name": "Template 1",
+        "displayName": "Template 1",
+        "description": "Template 1 description",
         "author": {
           "id": "test_author",
           "name": "Test Author",
@@ -222,8 +363,8 @@
         "versions": [
           {
             "version": "1.0.0",
-            "description": "Template for caching",
-            "content": "Large content here...",
+            "description": "Template 1",
+            "content": "Template content",
             "dependencies": [],
             "variables": [],
             "examples": [],
@@ -232,7 +373,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:31:20.382Z",
+            "created": "2025-08-26T05:51:21.012Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -259,7 +400,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:31:20.382Z",
+          "lastDownload": "2025-08-26T05:51:21.012Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -274,16 +415,18 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:31:20.382Z",
-        "updated": "2025-08-26T05:31:20.382Z",
+        "created": "2025-08-26T05:51:21.012Z",
+        "updated": "2025-08-26T05:51:21.013Z",
         "featured": false,
         "verified": false,
-        "deprecated": false
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
       },
       "versionInfo": {
         "version": "1.0.0",
-        "description": "Template for caching",
-        "content": "Large content here...",
+        "description": "Template 1",
+        "content": "Template content",
         "dependencies": [],
         "variables": [],
         "examples": [],
@@ -292,11 +435,112 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:31:20.382Z",
+        "created": "2025-08-26T05:51:21.012Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:31:20.385Z",
+      "registered": "2025-08-26T05:51:21.014Z",
+      "active": true
+    },
+    {
+      "id": "template-2",
+      "name": "Template 2",
+      "version": "2.0.0",
+      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Template 2",
+      "metadata": {
+        "id": "template-2",
+        "name": "Template 2",
+        "displayName": "Template 2",
+        "description": "Template 2 description",
+        "author": {
+          "id": "test_author",
+          "name": "Test Author",
+          "verified": false,
+          "reputation": 0,
+          "totalTemplates": 1,
+          "totalDownloads": 0
+        },
+        "currentVersion": "2.0.0",
+        "versions": [
+          {
+            "version": "2.0.0",
+            "description": "Template 2",
+            "content": "Template content",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 100,
+            "created": "2025-08-26T05:51:21.016Z",
+            "downloads": 0,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "test"
+        ],
+        "rating": {
+          "average": 0,
+          "total": 0,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 0,
+          "weeklyDownloads": 0,
+          "monthlyDownloads": 0,
+          "forks": 0,
+          "favorites": 0,
+          "issues": 0,
+          "lastDownload": "2025-08-26T05:51:21.016Z",
+          "trending": false,
+          "popularityScore": 0
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "test"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "web"
+          ]
+        },
+        "category": "other",
+        "created": "2025-08-26T05:51:21.016Z",
+        "updated": "2025-08-26T05:51:21.016Z",
+        "featured": false,
+        "verified": false,
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
+      },
+      "versionInfo": {
+        "version": "2.0.0",
+        "description": "Template 2",
+        "content": "Template content",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 100,
+        "created": "2025-08-26T05:51:21.016Z",
+        "downloads": 0,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:21.017Z",
       "active": true
     },
     {
@@ -331,7 +575,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:31:20.363Z",
+            "created": "2025-08-26T05:51:21.041Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -358,7 +602,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:31:20.363Z",
+          "lastDownload": "2025-08-26T05:51:21.041Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -373,8 +617,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:31:20.363Z",
-        "updated": "2025-08-26T05:31:20.363Z",
+        "created": "2025-08-26T05:51:21.041Z",
+        "updated": "2025-08-26T05:51:21.041Z",
         "featured": false,
         "verified": false,
         "deprecated": false
@@ -391,11 +635,314 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:31:20.363Z",
+        "created": "2025-08-26T05:51:21.041Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:31:20.363Z",
+      "registered": "2025-08-26T05:51:21.042Z",
+      "active": true
+    },
+    {
+      "id": "cached-template",
+      "name": "Cached Template",
+      "version": "1.0.0",
+      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Cached Template",
+      "metadata": {
+        "id": "cached-template",
+        "name": "Cached Template",
+        "displayName": "Cached Template",
+        "description": "Template for caching tests",
+        "author": {
+          "id": "test_author",
+          "name": "Test Author",
+          "verified": false,
+          "reputation": 0,
+          "totalTemplates": 1,
+          "totalDownloads": 0
+        },
+        "currentVersion": "1.0.0",
+        "versions": [
+          {
+            "version": "1.0.0",
+            "description": "Template for caching",
+            "content": "Large content here...",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 100,
+            "created": "2025-08-26T05:51:21.069Z",
+            "downloads": 0,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "test"
+        ],
+        "rating": {
+          "average": 0,
+          "total": 0,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 0,
+          "weeklyDownloads": 0,
+          "monthlyDownloads": 0,
+          "forks": 0,
+          "favorites": 0,
+          "issues": 0,
+          "lastDownload": "2025-08-26T05:51:21.069Z",
+          "trending": false,
+          "popularityScore": 0
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "test"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "web"
+          ]
+        },
+        "category": "other",
+        "created": "2025-08-26T05:51:21.069Z",
+        "updated": "2025-08-26T05:51:21.070Z",
+        "featured": false,
+        "verified": false,
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
+      },
+      "versionInfo": {
+        "version": "1.0.0",
+        "description": "Template for caching",
+        "content": "Large content here...",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 100,
+        "created": "2025-08-26T05:51:21.069Z",
+        "downloads": 0,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:21.075Z",
+      "active": true
+    },
+    {
+      "id": "cache-test",
+      "name": "Cache Test",
+      "version": "1.0.0",
+      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Cache Test",
+      "metadata": {
+        "id": "cache-test",
+        "name": "Cache Test",
+        "displayName": "Cache Test",
+        "description": "Template for cache invalidation tests",
+        "author": {
+          "id": "test_author",
+          "name": "Test Author",
+          "verified": false,
+          "reputation": 0,
+          "totalTemplates": 1,
+          "totalDownloads": 0
+        },
+        "currentVersion": "1.0.0",
+        "versions": [
+          {
+            "version": "1.0.0",
+            "description": "Template for cache testing",
+            "content": "Template content",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 100,
+            "created": "2025-08-26T05:51:21.080Z",
+            "downloads": 0,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "test"
+        ],
+        "rating": {
+          "average": 0,
+          "total": 0,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 0,
+          "weeklyDownloads": 0,
+          "monthlyDownloads": 0,
+          "forks": 0,
+          "favorites": 0,
+          "issues": 0,
+          "lastDownload": "2025-08-26T05:51:21.080Z",
+          "trending": false,
+          "popularityScore": 0
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "test"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "web"
+          ]
+        },
+        "category": "other",
+        "created": "2025-08-26T05:51:21.080Z",
+        "updated": "2025-08-26T05:51:21.081Z",
+        "featured": false,
+        "verified": false,
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
+      },
+      "versionInfo": {
+        "version": "1.0.0",
+        "description": "Template for cache testing",
+        "content": "Template content",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 100,
+        "created": "2025-08-26T05:51:21.080Z",
+        "downloads": 0,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:21.086Z",
+      "active": true
+    },
+    {
+      "id": "cache-item-0",
+      "name": "Cache Item 0",
+      "version": "1.0.0",
+      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Cache Item 0",
+      "metadata": {
+        "id": "cache-item-0",
+        "name": "Cache Item 0",
+        "displayName": "Cache Item 0",
+        "description": "Template for cache item 0",
+        "author": {
+          "id": "test_author",
+          "name": "Test Author",
+          "verified": false,
+          "reputation": 0,
+          "totalTemplates": 1,
+          "totalDownloads": 0
+        },
+        "currentVersion": "1.0.0",
+        "versions": [
+          {
+            "version": "1.0.0",
+            "description": "Cache item 0",
+            "content": "Template content",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 100,
+            "created": "2025-08-26T05:51:21.091Z",
+            "downloads": 0,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "test"
+        ],
+        "rating": {
+          "average": 0,
+          "total": 0,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 0,
+          "weeklyDownloads": 0,
+          "monthlyDownloads": 0,
+          "forks": 0,
+          "favorites": 0,
+          "issues": 0,
+          "lastDownload": "2025-08-26T05:51:21.091Z",
+          "trending": false,
+          "popularityScore": 0
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "test"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "web"
+          ]
+        },
+        "category": "other",
+        "created": "2025-08-26T05:51:21.091Z",
+        "updated": "2025-08-26T05:51:21.091Z",
+        "featured": false,
+        "verified": false,
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
+      },
+      "versionInfo": {
+        "version": "1.0.0",
+        "description": "Cache item 0",
+        "content": "Template content",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 100,
+        "created": "2025-08-26T05:51:21.091Z",
+        "downloads": 0,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:21.093Z",
       "active": true
     },
     {
@@ -430,7 +977,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:31:20.399Z",
+            "created": "2025-08-26T05:51:21.094Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -457,7 +1004,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:31:20.399Z",
+          "lastDownload": "2025-08-26T05:51:21.094Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -472,11 +1019,13 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:31:20.400Z",
-        "updated": "2025-08-26T05:31:20.400Z",
+        "created": "2025-08-26T05:51:21.094Z",
+        "updated": "2025-08-26T05:51:21.095Z",
         "featured": false,
         "verified": false,
-        "deprecated": false
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
       },
       "versionInfo": {
         "version": "1.0.0",
@@ -490,11 +1039,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:31:20.399Z",
+        "created": "2025-08-26T05:51:21.094Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:31:20.402Z",
+      "registered": "2025-08-26T05:51:21.097Z",
       "active": true
     },
     {
@@ -529,7 +1078,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:31:20.402Z",
+            "created": "2025-08-26T05:51:21.098Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -556,7 +1105,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:31:20.402Z",
+          "lastDownload": "2025-08-26T05:51:21.098Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -571,11 +1120,13 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:31:20.403Z",
-        "updated": "2025-08-26T05:31:20.403Z",
+        "created": "2025-08-26T05:51:21.098Z",
+        "updated": "2025-08-26T05:51:21.099Z",
         "featured": false,
         "verified": false,
-        "deprecated": false
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
       },
       "versionInfo": {
         "version": "1.0.0",
@@ -589,11 +1140,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:31:20.402Z",
+        "created": "2025-08-26T05:51:21.098Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:31:20.404Z",
+      "registered": "2025-08-26T05:51:21.101Z",
       "active": true
     },
     {
@@ -628,7 +1179,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:31:20.404Z",
+            "created": "2025-08-26T05:51:21.102Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -655,7 +1206,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:31:20.404Z",
+          "lastDownload": "2025-08-26T05:51:21.102Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -670,11 +1221,13 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:31:20.405Z",
-        "updated": "2025-08-26T05:31:20.405Z",
+        "created": "2025-08-26T05:51:21.102Z",
+        "updated": "2025-08-26T05:51:21.103Z",
         "featured": false,
         "verified": false,
-        "deprecated": false
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
       },
       "versionInfo": {
         "version": "1.0.0",
@@ -688,11 +1241,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:31:20.404Z",
+        "created": "2025-08-26T05:51:21.102Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:31:20.406Z",
+      "registered": "2025-08-26T05:51:21.105Z",
       "active": true
     },
     {
@@ -727,7 +1280,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:31:20.407Z",
+            "created": "2025-08-26T05:51:21.106Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -754,7 +1307,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:31:20.407Z",
+          "lastDownload": "2025-08-26T05:51:21.106Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -769,11 +1322,13 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:31:20.407Z",
-        "updated": "2025-08-26T05:31:20.407Z",
+        "created": "2025-08-26T05:51:21.106Z",
+        "updated": "2025-08-26T05:51:21.106Z",
         "featured": false,
         "verified": false,
-        "deprecated": false
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
       },
       "versionInfo": {
         "version": "1.0.0",
@@ -787,11 +1342,745 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:31:20.407Z",
+        "created": "2025-08-26T05:51:21.106Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:31:20.408Z",
+      "registered": "2025-08-26T05:51:21.108Z",
+      "active": true
+    },
+    {
+      "id": "auth-template",
+      "name": "Authentication Template",
+      "version": "2.1.0",
+      "path": "",
+      "metadata": {
+        "id": "auth-template",
+        "name": "Authentication Template",
+        "displayName": "Authentication Template",
+        "description": "Complete authentication flow template",
+        "author": {
+          "id": "john_doe",
+          "name": "John Doe",
+          "verified": true,
+          "reputation": 100,
+          "totalTemplates": 5,
+          "totalDownloads": 1500
+        },
+        "currentVersion": "2.1.0",
+        "versions": [
+          {
+            "version": "2.1.0",
+            "description": "Authentication template",
+            "content": "Template content",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 1000,
+            "created": "2025-08-26T05:51:20.627Z",
+            "downloads": 1500,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "auth",
+          "security",
+          "user-management"
+        ],
+        "rating": {
+          "average": 4.5,
+          "total": 10,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 1,
+            "4": 4,
+            "5": 5
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 1500,
+          "weeklyDownloads": 50,
+          "monthlyDownloads": 200,
+          "forks": 5,
+          "favorites": 20,
+          "issues": 2,
+          "lastDownload": "2025-08-26T05:51:20.627Z",
+          "trending": false,
+          "popularityScore": 85
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "auth",
+            "security"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "web"
+          ]
+        },
+        "category": "development",
+        "created": "2025-08-26T05:51:20.627Z",
+        "updated": "2025-08-26T05:51:20.627Z",
+        "featured": false,
+        "verified": true,
+        "deprecated": false
+      },
+      "versionInfo": {
+        "version": "2.1.0",
+        "description": "Authentication template",
+        "content": "Template content",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 1000,
+        "created": "2025-08-26T05:51:20.627Z",
+        "downloads": 1500,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:20.629Z",
+      "active": true
+    },
+    {
+      "id": "react-component",
+      "name": "React Component Generator",
+      "version": "3.0.0",
+      "path": "",
+      "metadata": {
+        "id": "react-component",
+        "name": "React Component Generator",
+        "displayName": "React Component Generator",
+        "description": "Generate React components with tests",
+        "author": {
+          "id": "jane_smith",
+          "name": "Jane Smith",
+          "verified": true,
+          "reputation": 120,
+          "totalTemplates": 8,
+          "totalDownloads": 3200
+        },
+        "currentVersion": "3.0.0",
+        "versions": [
+          {
+            "version": "3.0.0",
+            "description": "React component generator",
+            "content": "Template content",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 1500,
+            "created": "2025-08-26T05:51:20.627Z",
+            "downloads": 3200,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "react",
+          "frontend",
+          "component"
+        ],
+        "rating": {
+          "average": 4.8,
+          "total": 15,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 3,
+            "5": 12
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 3200,
+          "weeklyDownloads": 80,
+          "monthlyDownloads": 320,
+          "forks": 12,
+          "favorites": 45,
+          "issues": 1,
+          "lastDownload": "2025-08-26T05:51:20.627Z",
+          "trending": true,
+          "popularityScore": 92
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "react",
+            "frontend"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "web"
+          ]
+        },
+        "category": "development",
+        "created": "2025-08-26T05:51:20.627Z",
+        "updated": "2025-08-26T05:51:20.627Z",
+        "featured": true,
+        "verified": true,
+        "deprecated": false
+      },
+      "versionInfo": {
+        "version": "3.0.0",
+        "description": "React component generator",
+        "content": "Template content",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 1500,
+        "created": "2025-08-26T05:51:20.627Z",
+        "downloads": 3200,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:20.630Z",
+      "active": true
+    },
+    {
+      "id": "api-crud",
+      "name": "REST API CRUD Template",
+      "version": "1.5.2",
+      "path": "",
+      "metadata": {
+        "id": "api-crud",
+        "name": "REST API CRUD Template",
+        "displayName": "REST API CRUD Template",
+        "description": "Generate CRUD operations for REST APIs",
+        "author": {
+          "id": "api_master",
+          "name": "API Master",
+          "verified": true,
+          "reputation": 90,
+          "totalTemplates": 3,
+          "totalDownloads": 2100
+        },
+        "currentVersion": "1.5.2",
+        "versions": [
+          {
+            "version": "1.5.2",
+            "description": "API CRUD template",
+            "content": "Template content",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 1200,
+            "created": "2025-08-26T05:51:20.627Z",
+            "downloads": 2100,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "api",
+          "rest",
+          "crud",
+          "backend"
+        ],
+        "rating": {
+          "average": 4.3,
+          "total": 8,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 2,
+            "4": 4,
+            "5": 2
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 2100,
+          "weeklyDownloads": 60,
+          "monthlyDownloads": 240,
+          "forks": 8,
+          "favorites": 25,
+          "issues": 3,
+          "lastDownload": "2025-08-26T05:51:20.627Z",
+          "trending": false,
+          "popularityScore": 78
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "api",
+            "rest"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "server"
+          ]
+        },
+        "category": "development",
+        "created": "2025-08-26T05:51:20.627Z",
+        "updated": "2025-08-26T05:51:20.627Z",
+        "featured": false,
+        "verified": true,
+        "deprecated": false
+      },
+      "versionInfo": {
+        "version": "1.5.2",
+        "description": "API CRUD template",
+        "content": "Template content",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 1200,
+        "created": "2025-08-26T05:51:20.627Z",
+        "downloads": 2100,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:20.632Z",
+      "active": true
+    },
+    {
+      "id": "docker-compose",
+      "name": "Docker Compose Setup",
+      "version": "1.0.0",
+      "path": "",
+      "metadata": {
+        "id": "docker-compose",
+        "name": "Docker Compose Setup",
+        "displayName": "Docker Compose Setup",
+        "description": "Multi-container Docker setup",
+        "author": {
+          "id": "devops_pro",
+          "name": "DevOps Pro",
+          "verified": true,
+          "reputation": 75,
+          "totalTemplates": 4,
+          "totalDownloads": 890
+        },
+        "currentVersion": "1.0.0",
+        "versions": [
+          {
+            "version": "1.0.0",
+            "description": "Docker compose template",
+            "content": "Template content",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 800,
+            "created": "2025-08-26T05:51:20.627Z",
+            "downloads": 890,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "docker",
+          "devops",
+          "containers"
+        ],
+        "rating": {
+          "average": 4.6,
+          "total": 5,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 2,
+            "5": 3
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 890,
+          "weeklyDownloads": 30,
+          "monthlyDownloads": 120,
+          "forks": 3,
+          "favorites": 15,
+          "issues": 0,
+          "lastDownload": "2025-08-26T05:51:20.627Z",
+          "trending": false,
+          "popularityScore": 70
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "docker",
+            "devops"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "docker"
+          ]
+        },
+        "category": "deployment",
+        "created": "2025-08-26T05:51:20.627Z",
+        "updated": "2025-08-26T05:51:20.627Z",
+        "featured": false,
+        "verified": true,
+        "deprecated": false
+      },
+      "versionInfo": {
+        "version": "1.0.0",
+        "description": "Docker compose template",
+        "content": "Template content",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 800,
+        "created": "2025-08-26T05:51:20.627Z",
+        "downloads": 890,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:20.635Z",
+      "active": true
+    },
+    {
+      "id": "test-template",
+      "name": "Test Template",
+      "version": "1.0.0",
+      "path": "",
+      "metadata": {
+        "id": "test-template",
+        "name": "Test Template",
+        "displayName": "Test Template",
+        "description": "Test template for testing",
+        "author": {
+          "id": "test_author",
+          "name": "Test Author",
+          "verified": false,
+          "reputation": 0,
+          "totalTemplates": 1,
+          "totalDownloads": 0
+        },
+        "currentVersion": "1.0.0",
+        "versions": [
+          {
+            "version": "1.0.0",
+            "description": "Test template",
+            "content": "---\nname: test\ndescription: Test template\n---\n# {{title}}\nContent here",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 100,
+            "created": "2025-08-26T05:51:20.922Z",
+            "downloads": 0,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "test"
+        ],
+        "rating": {
+          "average": 0,
+          "total": 0,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 0,
+          "weeklyDownloads": 0,
+          "monthlyDownloads": 0,
+          "forks": 0,
+          "favorites": 0,
+          "issues": 0,
+          "lastDownload": "2025-08-26T05:51:20.922Z",
+          "trending": false,
+          "popularityScore": 0
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "test"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "web"
+          ]
+        },
+        "category": "other",
+        "created": "2025-08-26T05:51:20.922Z",
+        "updated": "2025-08-26T05:51:20.922Z",
+        "featured": false,
+        "verified": false,
+        "deprecated": false
+      },
+      "versionInfo": {
+        "version": "1.0.0",
+        "description": "Test template",
+        "content": "---\nname: test\ndescription: Test template\n---\n# {{title}}\nContent here",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 100,
+        "created": "2025-08-26T05:51:20.922Z",
+        "downloads": 0,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:20.922Z",
+      "active": true
+    },
+    {
+      "id": "deps-template",
+      "name": "Template with Dependencies",
+      "version": "1.0.0",
+      "path": "",
+      "metadata": {
+        "id": "deps-template",
+        "name": "Template with Dependencies",
+        "displayName": "Template with Dependencies",
+        "description": "Template with dependencies",
+        "author": {
+          "id": "test_author",
+          "name": "Test Author",
+          "verified": false,
+          "reputation": 0,
+          "totalTemplates": 1,
+          "totalDownloads": 0
+        },
+        "currentVersion": "1.0.0",
+        "versions": [
+          {
+            "version": "1.0.0",
+            "description": "Template with dependencies",
+            "content": "Template content",
+            "dependencies": [
+              {
+                "name": "base-template",
+                "version": "^1.0.0",
+                "type": "template",
+                "optional": false
+              },
+              {
+                "name": "utils-template",
+                "version": "~2.0.0",
+                "type": "template",
+                "optional": false
+              }
+            ],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 100,
+            "created": "2025-08-26T05:51:20.891Z",
+            "downloads": 0,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "test"
+        ],
+        "rating": {
+          "average": 0,
+          "total": 0,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 0,
+          "weeklyDownloads": 0,
+          "monthlyDownloads": 0,
+          "forks": 0,
+          "favorites": 0,
+          "issues": 0,
+          "lastDownload": "2025-08-26T05:51:20.891Z",
+          "trending": false,
+          "popularityScore": 0
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "test"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "web"
+          ]
+        },
+        "category": "other",
+        "created": "2025-08-26T05:51:20.891Z",
+        "updated": "2025-08-26T05:51:20.891Z",
+        "featured": false,
+        "verified": false,
+        "deprecated": false
+      },
+      "versionInfo": {
+        "version": "1.0.0",
+        "description": "Template with dependencies",
+        "content": "Template content",
+        "dependencies": [
+          {
+            "name": "base-template",
+            "version": "^1.0.0",
+            "type": "template",
+            "optional": false
+          },
+          {
+            "name": "utils-template",
+            "version": "~2.0.0",
+            "type": "template",
+            "optional": false
+          }
+        ],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 100,
+        "created": "2025-08-26T05:51:20.891Z",
+        "downloads": 0,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:20.891Z",
+      "active": true
+    },
+    {
+      "id": "template-3",
+      "name": "Template 3",
+      "version": "1.0.0",
+      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Template 3",
+      "metadata": {
+        "id": "template-3",
+        "name": "Template 3",
+        "displayName": "Template 3",
+        "description": "Template 3 description",
+        "author": {
+          "id": "test_author",
+          "name": "Test Author",
+          "verified": false,
+          "reputation": 0,
+          "totalTemplates": 1,
+          "totalDownloads": 0
+        },
+        "currentVersion": "1.0.0",
+        "versions": [
+          {
+            "version": "1.0.0",
+            "description": "Template 3",
+            "content": "Template content",
+            "dependencies": [],
+            "variables": [],
+            "examples": [],
+            "changelog": "Initial version",
+            "compatibility": [
+              "1.0.0"
+            ],
+            "size": 100,
+            "created": "2025-08-26T05:51:20.927Z",
+            "downloads": 0,
+            "deprecated": false
+          }
+        ],
+        "tags": [
+          "test"
+        ],
+        "rating": {
+          "average": 0,
+          "total": 0,
+          "distribution": {
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          },
+          "reviews": []
+        },
+        "stats": {
+          "downloads": 0,
+          "weeklyDownloads": 0,
+          "monthlyDownloads": 0,
+          "forks": 0,
+          "favorites": 0,
+          "issues": 0,
+          "lastDownload": "2025-08-26T05:51:20.927Z",
+          "trending": false,
+          "popularityScore": 0
+        },
+        "metadata": {
+          "license": "MIT",
+          "keywords": [
+            "test"
+          ],
+          "minEngineVersion": "1.0.0",
+          "platform": [
+            "web"
+          ]
+        },
+        "category": "other",
+        "created": "2025-08-26T05:51:20.927Z",
+        "updated": "2025-08-26T05:51:20.927Z",
+        "featured": false,
+        "verified": false,
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
+      },
+      "versionInfo": {
+        "version": "1.0.0",
+        "description": "Template 3",
+        "content": "Template content",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 100,
+        "created": "2025-08-26T05:51:20.927Z",
+        "downloads": 0,
+        "deprecated": false
+      },
+      "registered": "2025-08-26T05:51:20.934Z",
       "active": true
     }
   ]

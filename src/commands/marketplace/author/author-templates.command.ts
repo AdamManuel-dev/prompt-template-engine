@@ -24,12 +24,18 @@ export class AuthorTemplatesCommand extends BaseCommand {
 
   private authorService: AuthorService;
 
-  private marketplaceService: MarketplaceService;
+  private marketplaceService: MarketplaceService | null = null;
 
   constructor() {
     super();
     this.authorService = AuthorService.getInstance();
-    this.marketplaceService = MarketplaceService.getInstance();
+  }
+
+  private async getMarketplaceService(): Promise<MarketplaceService> {
+    if (!this.marketplaceService) {
+      this.marketplaceService = await MarketplaceService.getInstance();
+    }
+    return this.marketplaceService;
   }
 
   async execute(
@@ -56,7 +62,8 @@ export class AuthorTemplatesCommand extends BaseCommand {
       const page = parseInt(String(options.page || 1), 10);
       const limit = parseInt(String(options.limit || 10), 10);
 
-      const result = await this.marketplaceService.search({
+      const marketplaceService = await this.getMarketplaceService();
+      const result = await marketplaceService.search({
         author: authorId,
         page,
         limit,

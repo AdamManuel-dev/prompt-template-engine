@@ -108,7 +108,7 @@ export class RateCommand extends BaseCommand implements ICommand {
     }
 
     try {
-      const marketplace = MarketplaceService.getInstance();
+      const marketplace = await MarketplaceService.getInstance();
       const registry = new TemplateRegistry();
 
       // Find installed template
@@ -213,7 +213,7 @@ export class RateCommand extends BaseCommand implements ICommand {
     rating: number,
     review: { title?: string; comment?: string; version?: string }
   ): Promise<void> {
-    const marketplace = MarketplaceService.getInstance();
+    const marketplace = await MarketplaceService.getInstance();
 
     try {
       const reviewData: Partial<TemplateReview> = {
@@ -276,7 +276,7 @@ export class RateCommand extends BaseCommand implements ICommand {
 
     // Get and display reviews
     try {
-      const marketplace = MarketplaceService.getInstance();
+      const marketplace = await MarketplaceService.getInstance();
       const reviews = await marketplace.apiClient.getTemplateRatings(
         template.id,
         1,

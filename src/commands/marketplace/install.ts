@@ -70,7 +70,7 @@ export class InstallCommand extends BaseCommand implements ICommand {
     }
 
     try {
-      const marketplace = MarketplaceService.getInstance();
+      const marketplace = await MarketplaceService.getInstance();
       const registry = new TemplateRegistry();
 
       // Check if already installed

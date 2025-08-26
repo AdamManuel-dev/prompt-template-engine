@@ -179,12 +179,13 @@ export class MarketplaceService
       '.cursor-prompt',
       'marketplace.json'
     );
-    this.initializeDatabase();
+    // Database will be initialized via async init method
   }
 
-  static getInstance(): MarketplaceService {
+  static async getInstance(): Promise<MarketplaceService> {
     if (!MarketplaceService.instance) {
       MarketplaceService.instance = new MarketplaceService();
+      await (MarketplaceService.instance as MarketplaceService).init();
     }
     return MarketplaceService.instance as MarketplaceService;
   }
@@ -192,8 +193,17 @@ export class MarketplaceService
   /**
    * Static factory method to create a new instance
    */
-  static create(): MarketplaceService {
-    return new MarketplaceService();
+  static async create(): Promise<MarketplaceService> {
+    const service = new MarketplaceService();
+    await service.init();
+    return service;
+  }
+
+  /**
+   * Initialize the service (must be called after constructor)
+   */
+  async init(): Promise<void> {
+    await this.initializeDatabase();
   }
 
   /**

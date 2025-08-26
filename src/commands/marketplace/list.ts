@@ -67,7 +67,7 @@ export class ListCommand extends BaseCommand implements ICommand {
   ): Promise<void> {
     try {
       const registry = new TemplateRegistry();
-      const marketplace = MarketplaceService.getInstance();
+      const marketplace = await MarketplaceService.getInstance();
 
       let templates = registry.listTemplates();
 
@@ -137,11 +137,14 @@ export class ListCommand extends BaseCommand implements ICommand {
         chalk.bold(`\n📦 Installed Templates (${templates.length}):\n`)
       );
 
-      templates.forEach((template, index) => {
+      // Process templates sequentially to handle async operations properly
+      // eslint-disable-next-line no-restricted-syntax
+      for (const [index, template] of templates.entries()) {
         // Convert RegisteredTemplate to MarketplaceTemplate format for display
         const marketplaceTemplate = this.convertToMarketplaceTemplate(template);
         if (options.detailed) {
-          this.displayDetailedTemplate(
+          // eslint-disable-next-line no-await-in-loop
+          await this.displayDetailedTemplate(
             marketplaceTemplate,
             index + 1,
             updateInfo
@@ -153,7 +156,7 @@ export class ListCommand extends BaseCommand implements ICommand {
             updateInfo
           );
         }
-      });
+      }
 
       // Show update summary
       if (updateInfo.size > 0) {
@@ -247,11 +250,11 @@ export class ListCommand extends BaseCommand implements ICommand {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  private displayDetailedTemplate(
+  private async displayDetailedTemplate(
     template: MarketplaceTemplate,
     position: number,
     updateInfo: Map<string, string>
-  ): void {
+  ): Promise<void> {
     const hasUpdate = updateInfo.has(template.id);
     const updateText = hasUpdate
       ? chalk.yellow(` (update available: ${updateInfo.get(template.id)})`)
@@ -307,7 +310,8 @@ export class ListCommand extends BaseCommand implements ICommand {
     }
 
     // Show auto-update status
-    const installation = MarketplaceService.getInstance().getInstallation(
+    const marketplace = await MarketplaceService.getInstance();
+    const installation = marketplace.getInstallation(
       template.id
     );
     if (installation) {

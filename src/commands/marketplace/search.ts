@@ -107,7 +107,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
     try {
       this.info('Searching marketplace...');
 
-      const marketplace = MarketplaceService.getInstance();
+      const marketplace = await MarketplaceService.getInstance();
       const query = SearchCommand.buildSearchQuery(args, options);
 
       const result = await marketplace.search(query);

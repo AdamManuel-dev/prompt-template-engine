@@ -26,7 +26,7 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:31:20.346Z",
+        "created": "2025-08-26T05:51:21.016Z",
         "downloads": 0,
         "deprecated": false
       }
@@ -53,7 +53,7 @@
       "forks": 0,
       "favorites": 0,
       "issues": 0,
-      "lastDownload": "2025-08-26T05:31:20.346Z",
+      "lastDownload": "2025-08-26T05:51:21.016Z",
       "trending": false,
       "popularityScore": 0
     },
@@ -68,11 +68,13 @@
       ]
     },
     "category": "other",
-    "created": "2025-08-26T05:31:20.346Z",
-    "updated": "2025-08-26T05:31:20.346Z",
+    "created": "2025-08-26T05:51:21.016Z",
+    "updated": "2025-08-26T05:51:21.016Z",
     "featured": false,
     "verified": false,
-    "deprecated": false
+    "deprecated": false,
+    "isDraft": false,
+    "isPrivate": false
   },
   "version": {
     "version": "2.0.0",
@@ -86,9 +88,9 @@
       "1.0.0"
     ],
     "size": 100,
-    "created": "2025-08-26T05:31:20.346Z",
+    "created": "2025-08-26T05:51:21.016Z",
     "downloads": 0,
     "deprecated": false
   },
-  "installed": "2025-08-26T05:31:20.347Z"
+  "installed": "2025-08-26T05:51:21.017Z"
 }

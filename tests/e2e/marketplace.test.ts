@@ -36,7 +36,7 @@ describe('E2E: Marketplace', () => {
     await database.connect();
 
     // Initialize services (constructors expect no arguments)
-    marketplaceService = new MarketplaceService();
+    marketplaceService = await MarketplaceService.create();
     // Connect the database to the service
     (marketplaceService as any).database = database;
     versionManager = new VersionManager();
