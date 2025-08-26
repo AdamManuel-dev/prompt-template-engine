@@ -35,10 +35,11 @@ export interface TemplateCommand {
 }
 
 export interface VariableConfig {
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'choice';
   default?: unknown;
   required?: boolean;
   description?: string;
+  choices?: unknown[];
   validation?: {
     pattern?: string;
     min?: number;
@@ -530,7 +531,15 @@ export class TemplateService {
 
       // Type validation
       const actualType = Array.isArray(value) ? 'array' : typeof value;
-      if (actualType !== config.type && config.type !== 'array') {
+      if (config.type === 'choice') {
+        // For choice type, validate against choices array
+        const validChoices = config.choices || config.validation?.enum || [];
+        if (validChoices.length > 0 && !validChoices.includes(value)) {
+          errors.push(
+            `Variable "${key}" must be one of: ${validChoices.join(', ')}`
+          );
+        }
+      } else if (actualType !== config.type && config.type !== 'array') {
         errors.push(
           `Variable "${key}" should be ${config.type} but got ${actualType}`
         );
@@ -674,6 +683,29 @@ export class TemplateService {
           const extensions = ['.yaml', '.yml', '.json', '.md'];
           for (const ext of extensions) {
             const fullPath = templatePath + ext;
+            try {
+              await fs.promises.access(fullPath);
+              return fullPath;
+            } catch {
+              continue;
+            }
+          }
+        }
+      }
+    }
+
+    // If relative path but starts with template path pattern, try to resolve relative to cwd
+    if (templatePath.startsWith('templates/')) {
+      const relativePath = path.resolve(templatePath);
+      try {
+        await fs.promises.access(relativePath);
+        return relativePath;
+      } catch {
+        // Try with extensions
+        if (!path.extname(relativePath)) {
+          const extensions = ['.yaml', '.yml', '.json', '.md'];
+          for (const ext of extensions) {
+            const fullPath = relativePath + ext;
             try {
               await fs.promises.access(fullPath);
               return fullPath;

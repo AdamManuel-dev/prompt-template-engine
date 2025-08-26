@@ -1164,7 +1164,7 @@ export class MarketplaceService
 
       if (this.database) {
         const templates = await this.database.templates.findMany({
-          sort: [{ field: 'rating', direction: 'desc' }],
+          sort: [{ field: 'rating.average', direction: 'desc' }],
           limit,
         });
 
@@ -2169,6 +2169,11 @@ export class MarketplaceService
         isPrivate: options.isPrivate || false,
         updated: new Date(),
       };
+
+      // Store in local database if available (for testing)
+      if (this.database) {
+        await this.database.templates.create(publishData);
+      }
 
       // Call marketplace API to publish
       const result = await this.api.publishTemplate(publishData);

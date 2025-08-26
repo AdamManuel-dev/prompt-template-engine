@@ -254,7 +254,18 @@ export class SecurePluginManager {
    * @returns Promise resolving to the final result after all hook processing
    * @throws Error if critical hook execution fails
    */
-  async executeHook(name: string, ...args: unknown[]): Promise<unknown> {
+  async executeHook<T = unknown>(name: string, ...args: unknown[]): Promise<T> {
+    return this.executeHookWithType<T>(name, ...args);
+  }
+
+  /**
+   * Execute hook with specific type for template context hooks
+   * @param name - Hook name to execute
+   * @param args - Arguments to pass to hook handlers
+   * @returns Promise resolving to the final result after all hook processing
+   * @throws Error if critical hook execution fails
+   */
+  private async executeHookWithType<T>(name: string, ...args: unknown[]): Promise<T> {
     const hookHandlers = this.hooks.get(name) || [];
 
     // Sort by priority (higher priority first)
@@ -295,7 +306,7 @@ export class SecurePluginManager {
       }
     }
 
-    return result;
+    return result as T;
   }
 
   /**

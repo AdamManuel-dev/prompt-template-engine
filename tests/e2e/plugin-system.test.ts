@@ -13,6 +13,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { SecurePluginManager } from '../../src/plugins/secure-plugin-manager';
 import { PluginSandbox } from '../../src/plugins/sandbox/plugin-sandbox';
+import { TemplateContext } from '../../src/types';
 
 describe('E2E: Plugin System', () => {
   let testDir: string;
@@ -207,13 +208,13 @@ module.exports = {
     });
 
     it('should execute beforeRender hook', async () => {
-      const context = {
+      const context: TemplateContext = {
         variables: {
           test: 'value'
         }
       };
 
-      const result = await pluginManager.executeHook('beforeRender', context);
+      const result = await pluginManager.executeHook<TemplateContext>('beforeRender', context);
 
       expect(result.variables.beforeRenderCalled).toBe(true);
       expect(result.variables.timestamp).toBeDefined();
@@ -224,7 +225,7 @@ module.exports = {
       const content = 'Original content';
       const context = { variables: { timestamp: 123456 } };
 
-      const result = await pluginManager.executeHook('afterRender', content, context);
+      const result = await pluginManager.executeHook<string>('afterRender', content, context);
 
       expect(result).toContain('Original content');
       expect(result).toContain('<!-- Rendered at 123456 -->');
@@ -265,8 +266,8 @@ module.exports = {
 
       await pluginManager.loadPlugins();
 
-      const context = { variables: {} };
-      const result = await pluginManager.executeHook('beforeRender', context);
+      const context: TemplateContext = { variables: {} };
+      const result = await pluginManager.executeHook<TemplateContext>('beforeRender', context);
 
       expect(result.variables.order).toEqual(['plugin-1', 'plugin-2']);
     });
@@ -290,10 +291,10 @@ module.exports = {
 
       await pluginManager.loadPlugins();
 
-      const context = { variables: {} };
+      const context: TemplateContext = { variables: {} };
       
       // Should handle error without crashing
-      const result = await pluginManager.executeHook('beforeRender', context);
+      const result = await pluginManager.executeHook<TemplateContext>('beforeRender', context);
       expect(result).toBeDefined();
     });
   });
@@ -384,8 +385,8 @@ module.exports = {
       await pluginManager.loadPlugins();
 
       // Safe API should be provided
-      const context = { variables: {} };
-      const result = await pluginManager.executeHook('beforeRender', context);
+      const context: TemplateContext = { variables: {} };
+      const result = await pluginManager.executeHook<TemplateContext>('beforeRender', context);
       expect(result).toBeDefined();
     });
   });
@@ -510,12 +511,12 @@ module.exports = {
 
       await pluginManager.loadPlugins();
 
-      const context = { variables: {} };
-      const result = await pluginManager.executeHook('beforeRender', context);
+      const context: TemplateContext = { variables: {} };
+      const result = await pluginManager.executeHook<TemplateContext>('beforeRender', context);
 
-      expect(result.variables.pluginConfig.apiKey).toBe('test-key-123');
-      expect(result.variables.pluginConfig.endpoint).toBe('https://api.example.com');
-      expect(result.variables.pluginConfig.features.cache).toBe(true);
+      expect((result.variables.pluginConfig as any).apiKey).toBe('test-key-123');
+      expect((result.variables.pluginConfig as any).endpoint).toBe('https://api.example.com');
+      expect((result.variables.pluginConfig as any).features.cache).toBe(true);
 
       // Clean up env
       delete process.env.PLUGIN_API_KEY;
@@ -597,8 +598,8 @@ module.exports = {
       await pluginManager.loadPlugins();
       await pluginManager.initializePlugins();
 
-      const context = { variables: {} };
-      const result = await pluginManager.executeHook('beforeRender', context);
+      const context: TemplateContext = { variables: {} };
+      const result = await pluginManager.executeHook<TemplateContext>('beforeRender', context);
 
       expect(result.variables.initialized).toBe(true);
     });
@@ -668,8 +669,8 @@ module.exports = {
       await pluginManager.loadPlugins();
 
       // Test enabled state
-      let context = { variables: {} };
-      let result = await pluginManager.executeHook('beforeRender', context);
+      let context: TemplateContext = { variables: {} };
+      let result = await pluginManager.executeHook<TemplateContext>('beforeRender', context);
       expect(result.variables.pluginActive).toBe(true);
 
       // Disable plugin
@@ -677,14 +678,14 @@ module.exports = {
 
       // Test disabled state
       context = { variables: {} };
-      result = await pluginManager.executeHook('beforeRender', context);
+      result = await pluginManager.executeHook<TemplateContext>('beforeRender', context);
       expect(result.variables.pluginActive).toBeUndefined();
 
       // Re-enable
       await pluginManager.enablePlugin('toggle-plugin');
 
       context = { variables: {} };
-      result = await pluginManager.executeHook('beforeRender', context);
+      result = await pluginManager.executeHook<TemplateContext>('beforeRender', context);
       expect(result.variables.pluginActive).toBe(true);
     });
   });
@@ -724,8 +725,8 @@ module.exports = {
 
       await pluginManager.loadPlugins();
 
-      const context = { variables: {} };
-      const result = await pluginManager.executeHook('beforeRender', context);
+      const context: TemplateContext = { variables: {} };
+      const result = await pluginManager.executeHook<TemplateContext>('beforeRender', context);
 
       expect(result.variables.permissionError).toContain('permission');
     });

@@ -133,14 +133,25 @@ export class CursorIntegration {
     logger.info('Syncing templates to Cursor rules...');
 
     try {
-      const templateDir = '.cursor/templates';
-      const rules = await this.converter.convertDirectory(templateDir);
+      // Try multiple template directories as fallbacks
+      const templateDirs = ['.cursor/templates', './templates'];
+      let allRules: any[] = [];
 
-      for (const rule of rules) {
+      for (const templateDir of templateDirs) {
+        try {
+          const rules = await this.converter.convertDirectory(templateDir);
+          allRules = allRules.concat(rules);
+        } catch (error) {
+          logger.warn(`Skipped template directory ${templateDir}: ${error}`);
+        }
+      }
+
+      // Write all collected rules
+      for (const rule of allRules) {
         await this.converter.writeRule(rule);
       }
 
-      logger.info(`Synced ${rules.length} templates to rules`);
+      logger.info(`Synced ${allRules.length} templates to rules`);
     } catch (error) {
       logger.error('Failed to sync templates');
       throw error;
@@ -253,9 +264,8 @@ export class CursorIntegration {
     maxLength = 8000
   ): Promise<string> {
     // Handle both string and object inputs
-    const content: string = typeof template === 'string' 
-      ? template 
-      : template.content;
+    const content: string =
+      typeof template === 'string' ? template : template.content;
 
     let optimized = content;
 
@@ -278,7 +288,7 @@ export class CursorIntegration {
 
   /**
    * Start watching files for changes with automatic template sync
-   * @param watchPath - Optional path to watch (defaults to .cursor/templates)
+   * @param watchPath - Optional path to watch (defaults to multiple fallback paths)
    */
   startWatching(watchPath?: string): void {
     if (this.fileWatcher) {
@@ -286,14 +296,26 @@ export class CursorIntegration {
       return;
     }
 
-    const templatePath = watchPath || '.cursor/templates';
+    // Use provided path or fallback to common template directories
+    const watchPaths = watchPath 
+      ? [watchPath] 
+      : ['./templates', '.cursor/templates'];
 
-    if (!fs.existsSync(templatePath)) {
-      logger.warn(`Watch path does not exist: ${templatePath}`);
+    // Find the first existing path to watch
+    let validWatchPath: string | null = null;
+    for (const templatePath of watchPaths) {
+      if (fs.existsSync(templatePath)) {
+        validWatchPath = templatePath;
+        break;
+      }
+    }
+
+    if (!validWatchPath) {
+      logger.warn(`No valid watch paths found from: ${watchPaths.join(', ')}`);
       return;
     }
 
-    this.fileWatcher = chokidar.watch(templatePath, {
+    this.fileWatcher = chokidar.watch(validWatchPath, {
       ignored: /node_modules|\.git/,
       persistent: true,
       ignoreInitial: true,
@@ -326,7 +348,7 @@ export class CursorIntegration {
       );
     });
 
-    logger.info(`Started watching for changes in: ${templatePath}`);
+    logger.info(`Started watching for changes in: ${validWatchPath}`);
   }
 
   /**

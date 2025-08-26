@@ -22,7 +22,7 @@
     "type-check": "tsc --noEmit",
     "type-check:strict": "tsc --noEmit --strict --noUnusedLocals --noUnusedParameters --exactOptionalPropertyTypes --noUncheckedIndexedAccess --noImplicitOverride --noPropertyAccessFromIndexSignature",
     "type-check:tests": "tsc --project tsconfig.test.json --noEmit",
-    "test": "jest --runInBand --detectOpenHandles",
+    "test": "NODE_OPTIONS=\"--max-old-space-size=4096\" jest --detectOpenHandles",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint . --ext .ts,.tsx",

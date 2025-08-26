@@ -182,7 +182,7 @@ class FileTemplateRepository implements ITemplateRepository {
     options?: QueryOptions
   ): Promise<TemplateModel[]> {
     const results = Array.from(this.templates.values()).filter(
-      t => t.author?.id === authorId
+      t => t.author?.id === authorId || t.author?.name === authorId
     );
 
     // Apply sorting and pagination if provided
@@ -214,7 +214,7 @@ class FileTemplateRepository implements ITemplateRepository {
 
   async getPopular(limit = 10): Promise<TemplateModel[]> {
     return this.findMany({
-      sort: [{ field: 'downloads', direction: 'desc' }],
+      sort: [{ field: 'stats.downloads', direction: 'desc' }],
       limit,
     });
   }
@@ -277,6 +277,11 @@ class FileTemplateRepository implements ITemplateRepository {
       for (const sortRule of sort) {
         const aVal = this.getNestedValue(a, sortRule.field);
         const bVal = this.getNestedValue(b, sortRule.field);
+
+        // Handle undefined values
+        if (aVal === undefined && bVal === undefined) continue;
+        if (aVal === undefined) return sortRule.direction === 'desc' ? 1 : -1;
+        if (bVal === undefined) return sortRule.direction === 'desc' ? -1 : 1;
 
         let comparison = 0;
         if (aVal < bVal) comparison = -1;

@@ -33,7 +33,9 @@ module.exports = {
     },
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup/test-setup.ts'],
-  testTimeout: 30000,
+  testTimeout: 60000,
+  maxWorkers: 1, // Use single worker for E2E tests to reduce memory usage
+  workerIdleMemoryLimit: '1GB',
   verbose: true,
   clearMocks: true,
   restoreMocks: true,

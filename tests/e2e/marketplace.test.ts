@@ -37,6 +37,8 @@ describe('E2E: Marketplace', () => {
 
     // Initialize services (constructors expect no arguments)
     marketplaceService = new MarketplaceService();
+    // Connect the database to the service
+    (marketplaceService as any).database = database;
     versionManager = new VersionManager();
 
     // Create necessary directories

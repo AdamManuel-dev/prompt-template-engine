@@ -1,0 +1,682 @@
+
+> cursor-prompt@0.1.0 test
+> jest --runInBand --detectOpenHandles tests/e2e/ --no-coverage
+
+FAIL tests/e2e/template-system.test.ts
+  E2E: Template System
+    Variable Processing
+      ✓ should handle simple variable substitution (14 ms)
+      ✓ should handle nested object variables (3 ms)
+      ✓ should handle array access (2 ms)
+      ✓ should handle missing variables gracefully (4 ms)
+      ✓ should escape special characters when needed (2 ms)
+    Conditional Logic
+      ✓ should handle if conditions (3 ms)
+      ✓ should handle nested if conditions (2 ms)
+      ✓ should handle unless conditions (2 ms)
+      ✓ should handle complex conditional expressions (7 ms)
+    Loop Constructs
+      ✓ should iterate over arrays with each (2 ms)
+      ✓ should provide loop index and metadata (2 ms)
+      ✓ should handle nested loops (2 ms)
+      ✓ should handle empty arrays (3 ms)
+    Template Partials and Includes
+      ✓ should include partial templates (9 ms)
+      ✕ should handle recursive partials with depth limit (10 ms)
+    Template Helpers
+      ✓ should use built-in string helpers (2 ms)
+      ✓ should use date/time helpers (2 ms)
+      ✓ should use math helpers (2 ms)
+      ✓ should use comparison helpers (1 ms)
+    YAML Template Support
+      ✓ should parse and render YAML templates (6 ms)
+      ✓ should validate YAML template structure (3 ms)
+    Context Inheritance and Merging
+      ✓ should merge multiple context sources (2 ms)
+      ✓ should handle deep context merging (2 ms)
+    Error Handling and Recovery
+      ✓ should provide helpful error messages for syntax errors (1 ms)
+      ✓ should handle circular references in context (2 ms)
+      ✓ should handle undefined helper functions gracefully (1 ms)
+    Performance and Large Templates
+      ✓ should handle large templates efficiently (8 ms)
+      ✓ should handle deeply nested structures (2 ms)
+
+  ● E2E: Template System › Template Partials and Includes › should handle recursive partials with depth limit
+
+    Maximum include depth (10) exceeded. Check for circular includes.
+
+      117 |     // Prevent infinite recursion
+      118 |     if (depth > this.maxIncludeDepth) {
+    > 119 |       throw new Error(
+          |             ^
+      120 |         `Maximum include depth (${this.maxIncludeDepth}) exceeded. Check for circular includes.`
+      121 |       );
+      122 |     }
+
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:119:13)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:45)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:34)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:34)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:34)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:34)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:34)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:34)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:34)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:34)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:34)
+      at TemplateEngine.processIncludes (src/core/template-engine.ts:157:34)
+      at TemplateEngine.render (src/core/template-engine.ts:65:21)
+      at Object.<anonymous> (tests/e2e/template-system.test.ts:312:22)
+
+FAIL tests/e2e/plugin-system.test.ts
+  ● Test suite failed to run
+
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m218[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m218[0m       expect(result.variables.beforeRenderCalled).toBe(true);
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m219[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m219[0m       expect(result.variables.timestamp).toBeDefined();
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m220[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m220[0m       expect(result.variables.test).toBe('value'); // Original preserved
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m271[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m271[0m       expect(result.variables.order).toEqual(['plugin-1', 'plugin-2']);
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m516[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m516[0m       expect(result.variables.pluginConfig.apiKey).toBe('test-key-123');
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m517[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m517[0m       expect(result.variables.pluginConfig.endpoint).toBe('https://api.example.com');
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m518[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m518[0m       expect(result.variables.pluginConfig.features.cache).toBe(true);
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m603[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m603[0m       expect(result.variables.initialized).toBe(true);
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m673[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m673[0m       expect(result.variables.pluginActive).toBe(true);
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m681[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m681[0m       expect(result.variables.pluginActive).toBeUndefined();
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m688[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m688[0m       expect(result.variables.pluginActive).toBe(true);
+    [7m   [0m [91m             ~~~~~~[0m
+    [96mtests/e2e/plugin-system.test.ts[0m:[93m730[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'result' is of type 'unknown'.
+
+    [7m730[0m       expect(result.variables.permissionError).toContain('permission');
+    [7m   [0m [91m             ~~~~~~[0m
+
+FAIL tests/e2e/cli-commands.test.ts (12.95 s)
+  E2E: CLI Commands
+    init command
+      ✓ should initialize project with default configuration (79 ms)
+      ✓ should handle force flag to overwrite existing config (130 ms)
+    generate command
+      ✓ should generate prompt from template with variables (131 ms)
+      ✓ should save output to file with -o flag (131 ms)
+      ✕ should handle variables from file (133 ms)
+      ✓ should handle template not found error (127 ms)
+    list command
+      ✓ should list all available templates (152 ms)
+      ✓ should show detailed template information with -d flag (136 ms)
+      ✓ should filter templates by tags (131 ms)
+      ✓ should handle empty template directory (129 ms)
+    validate command
+      ✕ should validate a correct template (128 ms)
+      ✕ should detect invalid template syntax (128 ms)
+      ✕ should validate template with complex structure (142 ms)
+    sync command
+      ✕ should sync templates to Cursor rules (158 ms)
+      ✕ should generate legacy .cursorrules with --legacy flag (129 ms)
+      ✕ should use custom output directory (127 ms)
+    watch command
+      ✕ should start watch mode and respond to changes (10069 ms)
+    command aliases
+      ✓ should support g alias for generate (131 ms)
+      ✓ should support ls alias for list (128 ms)
+    help and version commands
+      ✕ should display help when no command provided (62 ms)
+      ✓ should display version with --version (62 ms)
+      ✓ should display command-specific help (62 ms)
+    error handling
+      ✓ should handle invalid JSON in variables (128 ms)
+      ✓ should handle missing variable file (127 ms)
+      ✓ should handle permission errors gracefully (64 ms)
+
+  ● E2E: CLI Commands › generate command › should handle variables from file
+
+    Command failed: node /Users/adammanuel/Projects/cursor-prompt-template-engine/dist/cli.js generate example -f /var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/cursor-prompt-e2e-uKZH7N/vars.json
+    [cursor-prompt] [2025-08-26T04:25:21.573Z] [ERROR] Failed to generate prompt
+    ❌ Error: ValidationError: Invalid template variables: Variable "language" should be choice but got string
+
+
+
+  ● E2E: CLI Commands › validate command › should validate a correct template
+
+    Command failed: node /Users/adammanuel/Projects/cursor-prompt-template-engine/dist/cli.js validate templates/example.yaml
+    [cursor-prompt] [2025-08-26T04:25:22.376Z] [ERROR] Failed to validate template
+    ❌ Error: Error: Template file not found: templates/example.yaml
+
+
+
+  ● E2E: CLI Commands › validate command › should detect invalid template syntax
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "Template validation failed"
+    Received string:    "[cursor-prompt] [2025-08-26T04:25:22.503Z] [ERROR] Failed to validate template
+    ❌ Error: Error: Template file not found: templates/invalid.yaml
+    "
+
+      250 |         fail('Should have failed validation');
+      251 |       } catch (error: any) {
+    > 252 |         expect(error.stderr).toContain('Template validation failed');
+          |                              ^
+      253 |         expect(error.code).toBe(1);
+      254 |       }
+      255 |     });
+
+      at Object.<anonymous> (tests/e2e/cli-commands.test.ts:252:30)
+
+  ● E2E: CLI Commands › validate command › should validate template with complex structure
+
+    Command failed: node /Users/adammanuel/Projects/cursor-prompt-template-engine/dist/cli.js validate templates/complex.yaml
+    [cursor-prompt] [2025-08-26T04:25:22.651Z] [ERROR] Failed to validate template
+    ❌ Error: Error: Template file not found: templates/complex.yaml
+
+
+
+  ● E2E: CLI Commands › sync command › should sync templates to Cursor rules
+
+    Command failed: node /Users/adammanuel/Projects/cursor-prompt-template-engine/dist/cli.js sync
+    [cursor-prompt] [2025-08-26T04:25:22.810Z] [ERROR] Failed to convert directory: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+    [cursor-prompt] [2025-08-26T04:25:22.810Z] [ERROR] Failed to sync templates
+    [cursor-prompt] [2025-08-26T04:25:22.810Z] [ERROR] Failed to initialize Cursor integration
+    [cursor-prompt] [2025-08-26T04:25:22.810Z] [ERROR] Failed to sync templates
+    ❌ Error: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+
+
+
+  ● E2E: CLI Commands › sync command › should generate legacy .cursorrules with --legacy flag
+
+    Command failed: node /Users/adammanuel/Projects/cursor-prompt-template-engine/dist/cli.js sync --legacy
+    [cursor-prompt] [2025-08-26T04:25:22.939Z] [ERROR] Failed to convert directory: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+    [cursor-prompt] [2025-08-26T04:25:22.939Z] [ERROR] Failed to sync templates
+    [cursor-prompt] [2025-08-26T04:25:22.939Z] [ERROR] Failed to initialize Cursor integration
+    [cursor-prompt] [2025-08-26T04:25:22.939Z] [ERROR] Failed to sync templates
+    ❌ Error: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+
+
+
+  ● E2E: CLI Commands › sync command › should use custom output directory
+
+    Command failed: node /Users/adammanuel/Projects/cursor-prompt-template-engine/dist/cli.js sync -d /var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/cursor-prompt-e2e-NaaRmL/custom-rules
+    [cursor-prompt] [2025-08-26T04:25:23.066Z] [ERROR] Failed to convert directory: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+    [cursor-prompt] [2025-08-26T04:25:23.066Z] [ERROR] Failed to sync templates
+    [cursor-prompt] [2025-08-26T04:25:23.066Z] [ERROR] Failed to initialize Cursor integration
+    [cursor-prompt] [2025-08-26T04:25:23.066Z] [ERROR] Failed to sync templates
+    ❌ Error: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+
+
+
+  ● E2E: CLI Commands › watch command › should start watch mode and respond to changes
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "Initial sync completed"
+    Received string:    "👀 Watching templates in: templates
+    Press Ctrl+C to stop watching
+    [cursor-prompt] [2025-08-26T04:25:23.194Z] [INFO] Initializing Cursor IDE integration...
+    [cursor-prompt] [2025-08-26T04:25:23.195Z] [INFO] Syncing templates to Cursor rules...
+    "
+
+      377 |       watchProcess.on('exit', () => {
+      378 |         expect(output).toContain('Watching templates in: templates');
+    > 379 |         expect(output).toContain('Initial sync completed');
+          |                        ^
+      380 |         done();
+      381 |       });
+      382 |     }, 10000);
+
+      at ChildProcess.<anonymous> (tests/e2e/cli-commands.test.ts:379:24)
+
+  ● E2E: CLI Commands › watch command › should start watch mode and respond to changes
+
+    thrown: "Exceeded timeout of 10000 ms for a test while waiting for `done()` to be called.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      349 |     });
+      350 |
+    > 351 |     it('should start watch mode and respond to changes', (done) => {
+          |     ^
+      352 |       const watchProcess = exec(`node ${cliPath} watch -d templates`);
+      353 |
+      354 |       let output = '';
+
+      at tests/e2e/cli-commands.test.ts:351:5
+      at tests/e2e/cli-commands.test.ts:346:3
+      at Object.<anonymous> (tests/e2e/cli-commands.test.ts:19:1)
+
+  ● E2E: CLI Commands › help and version commands › should display help when no command provided
+
+    Command failed: node /Users/adammanuel/Projects/cursor-prompt-template-engine/dist/cli.js
+    Usage: cursor-prompt [options] [command]
+
+    CLI tool for intelligent template-based prompt generation in Cursor IDE
+
+    Options:
+      -V, --version                    output the version number
+      -h, --help                       display help for command
+
+    Commands:
+      generate|g [options] <template>  Generate a prompt from a template
+      list|ls [options]                List available templates
+      sync [options]                   Sync templates to Cursor rules
+      init [options]                   Initialize Cursor Prompt in current project
+      validate <template>              Validate a template file
+      watch [options]                  Watch templates and auto-sync to Cursor rules
+      help [command]                   display help for command
+
+
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.296Z] [INFO] Initializing Cursor IDE integration...
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.299Z] [INFO] Syncing templates to Cursor rules...
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.300Z] [ERROR] Failed to convert directory: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at TemplateToRulesConverter.convertDirectory (src/integrations/cursor/template-to-rules-converter.ts:286:14)
+      at CursorIntegration.syncTemplates (src/integrations/cursor/index.ts:137:21)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:112:7)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.301Z] [ERROR] Failed to sync templates
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at CursorIntegration.syncTemplates (src/integrations/cursor/index.ts:145:14)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:112:7)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.302Z] [ERROR] Failed to initialize Cursor integration
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:122:14)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.302Z] [INFO] Cursor integration disposed
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.303Z] [INFO] Initializing Cursor IDE integration...
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.303Z] [INFO] Syncing templates to Cursor rules...
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.304Z] [ERROR] Failed to convert directory: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at TemplateToRulesConverter.convertDirectory (src/integrations/cursor/template-to-rules-converter.ts:286:14)
+      at CursorIntegration.syncTemplates (src/integrations/cursor/index.ts:137:21)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:112:7)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.304Z] [ERROR] Failed to sync templates
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at CursorIntegration.syncTemplates (src/integrations/cursor/index.ts:145:14)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:112:7)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.305Z] [ERROR] Failed to initialize Cursor integration
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:122:14)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.305Z] [INFO] Cursor integration disposed
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.306Z] [INFO] Initializing Cursor IDE integration...
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.306Z] [INFO] Syncing templates to Cursor rules...
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.307Z] [ERROR] Failed to convert directory: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at TemplateToRulesConverter.convertDirectory (src/integrations/cursor/template-to-rules-converter.ts:286:14)
+      at CursorIntegration.syncTemplates (src/integrations/cursor/index.ts:137:21)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:112:7)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.307Z] [ERROR] Failed to sync templates
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at CursorIntegration.syncTemplates (src/integrations/cursor/index.ts:145:14)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:112:7)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.307Z] [ERROR] Failed to initialize Cursor integration
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:122:14)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.308Z] [INFO] Cursor integration disposed
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.310Z] [INFO] Initializing Cursor IDE integration...
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.310Z] [INFO] Syncing templates to Cursor rules...
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.310Z] [ERROR] Failed to convert directory: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at TemplateToRulesConverter.convertDirectory (src/integrations/cursor/template-to-rules-converter.ts:286:14)
+      at CursorIntegration.syncTemplates (src/integrations/cursor/index.ts:137:21)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:112:7)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.311Z] [ERROR] Failed to sync templates
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at CursorIntegration.syncTemplates (src/integrations/cursor/index.ts:145:14)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:112:7)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.311Z] [ERROR] Failed to initialize Cursor integration
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:122:14)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.311Z] [INFO] Cursor integration disposed
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.312Z] [INFO] Initializing Cursor IDE integration...
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.313Z] [INFO] Syncing templates to Cursor rules...
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.313Z] [ERROR] Failed to convert directory: Error: ENOENT: no such file or directory, scandir '.cursor/templates'
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at TemplateToRulesConverter.convertDirectory (src/integrations/cursor/template-to-rules-converter.ts:286:14)
+      at CursorIntegration.syncTemplates (src/integrations/cursor/index.ts:137:21)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:112:7)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.314Z] [ERROR] Failed to sync templates
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at CursorIntegration.syncTemplates (src/integrations/cursor/index.ts:145:14)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:112:7)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.error
+    [cursor-prompt] [2025-08-26T04:25:34.314Z] [ERROR] Failed to initialize Cursor integration
+
+      91 |     if (level >= LogLevel.ERROR) {
+      92 |       // eslint-disable-next-line no-console
+    > 93 |       console.error(output);
+         |               ^
+      94 |     } else {
+      95 |       // eslint-disable-next-line no-console
+      96 |       console.log(output);
+
+      at Logger.log (src/utils/logger.ts:93:15)
+      at Logger.error (src/utils/logger.ts:125:10)
+      at CursorIntegration.initialize (src/integrations/cursor/index.ts:122:14)
+      at Object.<anonymous> (tests/e2e/security-and-integration.test.ts:232:7)
+
+  console.log
+    [cursor-prompt] [2025-08-26T04:25:34.314Z] [INFO] Cursor integration disposed
+
+      at Logger.log (src/utils/logger.ts:96:15)
+
+
+<--- Last few GCs --->
+, [99970:0x138008000]    56347 ms: Mark-Compact (reduce) 4088.2 (4114.1) -> 4088.2 (4114.1) MB, pooled: 0 MB, 1025.71 / 0.00 ms  (+ 15.0 ms in 0 steps since start of marking, biggest step 0.0 ms, walltime since start of marking 1048 ms) (average mu = 0.136,[99970:0x138008000]    58016 ms: Mark-Compact (reduce) 4092.1 (4118.1) -> 4092.1 (4118.1) MB, pooled: 0 MB, 1569.88 / 0.00 ms  (+ 6.2 ms in 0 steps since start of marking, biggest step 0.0 ms, walltime since start of marking 1582 ms) (average mu = 0.092, 
+
+<--- JS stacktrace --->
+
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 0x1045ee25c node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+ 2: 0x1047c44fc v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+ 3: 0x1049d3c24 v8::internal::Heap::stack() [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+ 4: 0x1049ea09c v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags)::$_1::operator()() const [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+ 5: 0x1049e9930 void heap::base::Stack::SetMarkerAndCallbackImpl<v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags)::$_1>(heap::base::Stack*, void*, void const*) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+ 6: 0x1051a3adc PushAllRegistersAndIterateStack [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+ 7: 0x1049d1de4 v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+ 8: 0x1049c65ac v8::internal::HeapAllocator::AllocateRawWithLightRetrySlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+ 9: 0x1049c6de4 v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+10: 0x10499af90 v8::internal::FactoryBase<v8::internal::Factory>::NewRawOneByteString(int, v8::internal::AllocationType) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+11: 0x10499adcc v8::internal::FactoryBase<v8::internal::Factory>::NewStringFromOneByte(v8::base::Vector<unsigned char const>, v8::internal::AllocationType) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+12: 0x10499bb18 v8::internal::FactoryBase<v8::internal::Factory>::SmiToString(v8::internal::Tagged<v8::internal::Smi>, v8::internal::NumberCacheMode) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+13: 0x104815dac v8::internal::Builtin_ArrayPrototypeFill(int, unsigned long*, v8::internal::Isolate*) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+14: 0x105289a14 Builtins_CEntry_Return1_ArgvOnStack_BuiltinExit [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+15: 0x10b56e548 
+16: 0x1051f1dc8 construct_stub_create_deopt_addr [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+17: 0x10b5715f8 
+18: 0x1051f5b3c Builtins_InterpreterPushArgsThenFastConstructFunction [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+19: 0x10536b4d0 Builtins_ConstructHandler [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+20: 0x1051f4ef0 Builtins_InterpreterEntryTrampoline [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+21: 0x10b5588f0 
+22: 0x1052fa3a0 Builtins_PromiseConstructor [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+23: 0x1051f1fbc Builtins_JSBuiltinsConstructStub [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+24: 0x10b559360 
+25: 0x10b55d0b0 
+26: 0x105231290 Builtins_AsyncFunctionAwaitResolveClosure [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+27: 0x1052fc4d8 Builtins_PromiseFulfillReactionJob [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+28: 0x105221594 Builtins_RunMicrotasks [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+29: 0x1051f2af4 Builtins_JSRunMicrotasksEntry [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+30: 0x10492bae0 v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+31: 0x10492c388 v8::internal::(anonymous namespace)::InvokeWithTryCatch(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+32: 0x10492c4c0 v8::internal::Execution::TryRunMicrotasks(v8::internal::Isolate*, v8::internal::MicrotaskQueue*) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+33: 0x1049596e4 v8::internal::MicrotaskQueue::RunMicrotasks(v8::internal::Isolate*) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+34: 0x104959e68 v8::internal::MicrotaskQueue::PerformCheckpoint(v8::Isolate*) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+35: 0x1044ed9a8 node::InternalCallbackScope::Close() [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+36: 0x1044ed474 node::InternalCallbackScope::~InternalCallbackScope() [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+37: 0x1045e5b8c node::fs::FSReqPromise<node::AliasedBufferBase<double, v8::Float64Array>>::Resolve(v8::Local<v8::Value>) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+38: 0x1045f50b4 node::fs::AfterStringPath(uv_fs_s*) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+39: 0x1045e61c0 node::MakeLibuvRequestCallback<uv_fs_s, void (*)(uv_fs_s*)>::Wrapper(uv_fs_s*) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+40: 0x1051cb7c0 uv__work_done [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+41: 0x1051cf4f0 uv__async_io [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+42: 0x1051e3888 uv__io_poll [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+43: 0x1051cfa58 uv_run [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+44: 0x1044ee4f4 node::SpinEventLoopInternal(node::Environment*) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+45: 0x1046390b0 node::NodeMainInstance::Run() [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+46: 0x1045a9920 node::Start(int, char**) [/Users/adammanuel/.nvm/versions/node/v22.18.0/bin/node]
+47: 0x18d6d2b98 start [/usr/lib/dyld]

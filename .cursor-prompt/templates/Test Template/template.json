@@ -1,0 +1,94 @@
+{
+  "template": {
+    "id": "test-template",
+    "name": "Test Template",
+    "displayName": "Test Template",
+    "description": "Test template for testing",
+    "author": {
+      "id": "test_author",
+      "name": "Test Author",
+      "verified": false,
+      "reputation": 0,
+      "totalTemplates": 1,
+      "totalDownloads": 0
+    },
+    "currentVersion": "1.0.0",
+    "versions": [
+      {
+        "version": "1.0.0",
+        "description": "Test template",
+        "content": "---\nname: test\ndescription: Test template\n---\n# {{title}}\nContent here",
+        "dependencies": [],
+        "variables": [],
+        "examples": [],
+        "changelog": "Initial version",
+        "compatibility": [
+          "1.0.0"
+        ],
+        "size": 100,
+        "created": "2025-08-26T05:31:20.285Z",
+        "downloads": 0,
+        "deprecated": false
+      }
+    ],
+    "tags": [
+      "test"
+    ],
+    "rating": {
+      "average": 0,
+      "total": 0,
+      "distribution": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 0
+      },
+      "reviews": []
+    },
+    "stats": {
+      "downloads": 0,
+      "weeklyDownloads": 0,
+      "monthlyDownloads": 0,
+      "forks": 0,
+      "favorites": 0,
+      "issues": 0,
+      "lastDownload": "2025-08-26T05:31:20.285Z",
+      "trending": false,
+      "popularityScore": 0
+    },
+    "metadata": {
+      "license": "MIT",
+      "keywords": [
+        "test"
+      ],
+      "minEngineVersion": "1.0.0",
+      "platform": [
+        "web"
+      ]
+    },
+    "category": "other",
+    "created": "2025-08-26T05:31:20.285Z",
+    "updated": "2025-08-26T05:31:20.285Z",
+    "featured": false,
+    "verified": false,
+    "deprecated": false
+  },
+  "version": {
+    "version": "1.0.0",
+    "description": "Test template",
+    "content": "---\nname: test\ndescription: Test template\n---\n# {{title}}\nContent here",
+    "dependencies": [],
+    "variables": [],
+    "examples": [],
+    "changelog": "Initial version",
+    "compatibility": [
+      "1.0.0"
+    ],
+    "size": 100,
+    "created": "2025-08-26T05:31:20.285Z",
+    "downloads": 0,
+    "deprecated": false
+  },
+  "installed": "2025-08-26T05:31:20.287Z"
+}

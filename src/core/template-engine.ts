@@ -61,11 +61,11 @@ export class TemplateEngine {
     // Reset included files tracking for new render
     this.includedFiles.clear();
 
-    // First process includes
-    let processed = await this.processIncludes(template, context, 0, []);
+    // First process unconditional includes (not wrapped in conditionals)
+    let processed = await this.processUnconditionalIncludes(template, context, 0, []);
 
-    // Then process conditional blocks (which handle nested #each blocks internally)
-    processed = this.processConditionalBlocks(processed, context);
+    // Then process conditional blocks (which will handle conditional includes internally)
+    processed = await this.processConditionalBlocksWithIncludes(processed, context);
 
     // Then process any standalone #each blocks not inside conditionals
     processed = this.processEachBlocks(processed, context);
@@ -99,7 +99,89 @@ export class TemplateEngine {
   }
 
   /**
+   * Process {{#include}} directives that are NOT wrapped in conditionals
+   * @param template - Template string that may contain include directives
+   * @param context - Context object for variable resolution
+   * @param depth - Current include depth to prevent infinite recursion
+   * @param includeStack - Stack of included files for circular dependency detection
+   * @returns Promise resolving to template with unconditional includes processed
+   * @throws Error if include files not found or max depth exceeded
+   * @private
+   */
+  private async processUnconditionalIncludes(
+    template: string,
+    context: TemplateContext,
+    depth = 0,
+    includeStack: string[] = []
+  ): Promise<string> {
+    // Prevent infinite recursion
+    if (depth > this.maxIncludeDepth) {
+      // Return empty string instead of throwing to allow graceful degradation
+      logger.warn(
+        `Maximum include depth (${this.maxIncludeDepth}) exceeded. Stopping recursion gracefully.`
+      );
+      return '';
+    }
+
+    let result = template;
+    let match;
+
+    // Reset pattern index
+    this.includePattern.lastIndex = 0;
+
+    // Find all include directives
+    const includes: Array<{ match: string; path: string; start: number }> = [];
+    // eslint-disable-next-line no-cond-assign
+    while ((match = this.includePattern.exec(template)) !== null) {
+      includes.push({ match: match[0], path: match[1], start: match.index });
+    }
+
+    // Process only includes that are NOT wrapped in conditionals
+    // eslint-disable-next-line no-await-in-loop
+    for (let i = 0; i < includes.length; i += 1) {
+      const include = includes[i];
+      
+      // Check if this include is wrapped in a conditional
+      if (this.isIncludeWrappedInConditional(include, template)) {
+        continue; // Skip conditional includes for now
+      }
+
+      const absolutePath = this.resolveIncludePath(include.path);
+
+      try {
+        // Read the included template
+        // eslint-disable-next-line no-await-in-loop
+        const includedContent = await fs.promises.readFile(
+          absolutePath,
+          'utf-8'
+        );
+
+        // Process includes recursively in the included content
+        // eslint-disable-next-line no-await-in-loop
+        const processedContent = await this.processUnconditionalIncludes(
+          includedContent,
+          context,
+          depth + 1,
+          [...includeStack, absolutePath]
+        );
+
+        // Replace the include directive with the processed content
+        result = result.replace(include.match, processedContent);
+      } catch (error) {
+        const err = error as { code?: string };
+        if (err.code === 'ENOENT') {
+          throw new Error(`Include file not found: ${include.path}`);
+        }
+        throw error;
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Process {{#include}} directives to include external templates with recursion protection
+   * This is the legacy method, kept for backward compatibility
    * @param template - Template string that may contain include directives
    * @param context - Context object for variable resolution
    * @param depth - Current include depth to prevent infinite recursion
@@ -116,9 +198,11 @@ export class TemplateEngine {
   ): Promise<string> {
     // Prevent infinite recursion
     if (depth > this.maxIncludeDepth) {
-      throw new Error(
-        `Maximum include depth (${this.maxIncludeDepth}) exceeded. Check for circular includes.`
+      // Return empty string instead of throwing to allow graceful degradation
+      logger.warn(
+        `Maximum include depth (${this.maxIncludeDepth}) exceeded. Stopping recursion gracefully.`
       );
+      return '';
     }
 
     let result = template;
@@ -139,9 +223,6 @@ export class TemplateEngine {
     for (let i = 0; i < includes.length; i += 1) {
       const include = includes[i];
       const absolutePath = this.resolveIncludePath(include.path);
-
-      // Allow all includes and rely on depth limit to prevent infinite recursion
-      // The depth limit will handle both circular dependencies and deep recursion
 
       try {
         // Read the included template
@@ -193,6 +274,40 @@ export class TemplateEngine {
   }
 
   /**
+   * Check if an include directive is wrapped in a conditional block
+   * @param include - Include directive with position information
+   * @param template - Full template string
+   * @returns True if the include is wrapped in a conditional
+   * @private
+   */
+  // eslint-disable-next-line class-methods-use-this
+  private isIncludeWrappedInConditional(
+    include: { match: string; path: string; start: number },
+    template: string
+  ): boolean {
+    const includeStart = include.start;
+    const includeEnd = includeStart + include.match.length;
+
+    // Find all conditional blocks in the template
+    const ifBlocks = this.findOutermostIfBlocks(template);
+    const unlessBlocks = this.findOutermostUnlessBlocks(template);
+    const allConditionals = [...ifBlocks, ...unlessBlocks];
+
+    // Check if the include is inside any conditional block
+    for (let i = 0; i < allConditionals.length; i += 1) {
+      const conditional = allConditionals[i];
+      const conditionalStart = template.indexOf(conditional.fullMatch);
+      const conditionalEnd = conditionalStart + conditional.fullMatch.length;
+
+      if (includeStart >= conditionalStart && includeEnd <= conditionalEnd) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Process {{#each}} blocks for array iteration with proper nesting support and else blocks
    * Supports iteration over arrays and objects with @key access
    * @param template - Template string containing #each blocks
@@ -226,6 +341,73 @@ export class TemplateEngine {
         result = result.replace(block.fullMatch, blockResult.replacement);
         if (blockResult.hasChanges) {
           changed = true;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Process {{#if}} and {{#unless}} blocks with includes support
+   * Handles conditional includes by processing them within conditional blocks
+   * @param template - Template string containing conditional blocks
+   * @param context - Context object for condition evaluation
+   * @param depth - Recursion depth to prevent infinite loops
+   * @returns Promise resolving to template with conditional blocks processed
+   */
+  private async processConditionalBlocksWithIncludes(
+    template: string,
+    context: TemplateContext,
+    depth = 0
+  ): Promise<string> {
+    // Prevent infinite recursion
+    if (depth > 10) {
+      return template;
+    }
+
+    let result = template;
+    let changed = true;
+
+    // Keep processing until no more changes are made (to handle nested blocks)
+    while (changed) {
+      changed = false;
+
+      // Process #if blocks (only those not inside #each blocks at depth 0)
+      const ifBlocks = this.findOutermostIfBlocks(result);
+      for (let i = 0; i < ifBlocks.length; i += 1) {
+        const block = ifBlocks[i];
+        // Skip conditionals inside #each blocks during the top-level pass
+        if (depth === 0 && this.isInsideEachBlock(block, result)) {
+          // Skip this block
+        } else {
+          // eslint-disable-next-line no-await-in-loop
+          const blockResult = await this.processSingleIfBlockWithIncludes(block, context, depth);
+          result = result.replace(block.fullMatch, blockResult.replacement);
+          if (blockResult.hasChanges) {
+            changed = true;
+          }
+        }
+      }
+
+      // Process #unless blocks (only those not inside #each blocks at depth 0)
+      const unlessBlocks = this.findOutermostUnlessBlocks(result);
+      for (let i = 0; i < unlessBlocks.length; i += 1) {
+        const block = unlessBlocks[i];
+        // Skip conditionals inside #each blocks during the top-level pass
+        if (depth === 0 && this.isInsideEachBlock(block, result)) {
+          // Skip this block
+        } else {
+          // eslint-disable-next-line no-await-in-loop
+          const blockResult = await this.processSingleUnlessBlockWithIncludes(
+            block,
+            context,
+            depth
+          );
+          result = result.replace(block.fullMatch, blockResult.replacement);
+          if (blockResult.hasChanges) {
+            changed = true;
+          }
         }
       }
     }
@@ -446,6 +628,162 @@ export class TemplateEngine {
       );
 
       processedElse = this.processConditionalBlocks(
+        processedElse,
+        context,
+        depth + 1
+      );
+
+      return { replacement: processedElse, hasChanges: true };
+    }
+
+    return { replacement: '', hasChanges: true };
+  }
+
+  /**
+   * Process a single #if block with else clause support and include processing
+   * @param block - If block containing condition, inner template, and optional else template
+   * @param context - Context object for condition evaluation
+   * @param depth - Recursion depth for nested processing
+   * @returns Promise resolving to object with replacement text and change status
+   * @private
+   */
+  private async processSingleIfBlockWithIncludes(
+    block: {
+      fullMatch: string;
+      condition: string;
+      innerTemplate: string;
+      elseTemplate?: string;
+    },
+    context: TemplateContext,
+    depth: number
+  ): Promise<{ replacement: string; hasChanges: boolean }> {
+    const conditionValue = this.evaluateCondition(
+      block.condition.trim(),
+      context
+    );
+    const isTruthy = this.isTruthy(conditionValue);
+
+    if (isTruthy) {
+      // First process includes in the inner template
+      let processedInner = await this.processIncludes(
+        block.innerTemplate,
+        context,
+        depth + 1,
+        []
+      );
+
+      // Then process any #each blocks (which will handle their own conditionals)
+      processedInner = this.processEachBlocks(
+        processedInner,
+        context,
+        depth + 1
+      );
+
+      // Then recursively process remaining conditional blocks
+      processedInner = await this.processConditionalBlocksWithIncludes(
+        processedInner,
+        context,
+        depth + 1
+      );
+
+      return { replacement: processedInner, hasChanges: true };
+    }
+
+    // Process else block if it exists
+    if (block.elseTemplate) {
+      // First process includes in the else template
+      let processedElse = await this.processIncludes(
+        block.elseTemplate,
+        context,
+        depth + 1,
+        []
+      );
+
+      processedElse = this.processEachBlocks(
+        processedElse,
+        context,
+        depth + 1
+      );
+
+      processedElse = await this.processConditionalBlocksWithIncludes(
+        processedElse,
+        context,
+        depth + 1
+      );
+
+      return { replacement: processedElse, hasChanges: true };
+    }
+
+    return { replacement: '', hasChanges: true };
+  }
+
+  /**
+   * Process a single #unless block with else clause support and include processing
+   * @param block - Unless block containing condition, inner template, and optional else template
+   * @param context - Context object for condition evaluation
+   * @param depth - Recursion depth for nested processing
+   * @returns Promise resolving to object with replacement text and change status
+   * @private
+   */
+  private async processSingleUnlessBlockWithIncludes(
+    block: {
+      fullMatch: string;
+      condition: string;
+      innerTemplate: string;
+      elseTemplate?: string;
+    },
+    context: TemplateContext,
+    depth: number
+  ): Promise<{ replacement: string; hasChanges: boolean }> {
+    const conditionValue = this.evaluateCondition(
+      block.condition.trim(),
+      context
+    );
+    const isTruthy = this.isTruthy(conditionValue);
+
+    if (!isTruthy) {
+      // First process includes in the inner template
+      let processedInner = await this.processIncludes(
+        block.innerTemplate,
+        context,
+        depth + 1,
+        []
+      );
+
+      // Then process any #each blocks (which will handle their own conditionals)
+      processedInner = this.processEachBlocks(
+        processedInner,
+        context,
+        depth + 1
+      );
+
+      // Then recursively process remaining conditional blocks
+      processedInner = await this.processConditionalBlocksWithIncludes(
+        processedInner,
+        context,
+        depth + 1
+      );
+
+      return { replacement: processedInner, hasChanges: true };
+    }
+
+    // Process else block if it exists
+    if (block.elseTemplate) {
+      // First process includes in the else template
+      let processedElse = await this.processIncludes(
+        block.elseTemplate,
+        context,
+        depth + 1,
+        []
+      );
+
+      processedElse = this.processEachBlocks(
+        processedElse,
+        context,
+        depth + 1
+      );
+
+      processedElse = await this.processConditionalBlocksWithIncludes(
         processedElse,
         context,
         depth + 1

@@ -269,6 +269,14 @@ export class TemplateToRulesConverter {
     const rules: CursorRule[] = [];
 
     try {
+      // Check if directory exists
+      try {
+        await fs.access(templateDir);
+      } catch {
+        logger.warn(`Template directory does not exist: ${templateDir}`);
+        return rules; // Return empty array instead of throwing
+      }
+
       const files = await fs.readdir(templateDir);
       const templateFiles = files.filter(
         f => f.endsWith('.yaml') || f.endsWith('.yml') || f.endsWith('.json')

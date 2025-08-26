@@ -10,6 +10,50 @@
 
 import { MockFactory } from '../__mocks__/mock-factory';
 
+// Initialize marketplace mocks globally (stubbed)
+MockFactory.initializeMarketplaceMocks();
+
+// Mock the database factory to return mocked database
+jest.mock('../../src/marketplace/database/database.factory', () => {
+  const { MockMarketplaceDatabase } = require('../__mocks__/marketplace.mock');
+  
+  return {
+    DatabaseFactory: {
+      createDatabase: jest.fn().mockImplementation(async () => {
+        const mockDb = new MockMarketplaceDatabase();
+        await mockDb.connect();
+        return mockDb;
+      }),
+      createConfigFromEnv: jest.fn().mockReturnValue({
+        type: 'file',
+        dataDir: '/tmp/test',
+        enableCache: false,
+      }),
+      validateConfig: jest.fn(),
+    },
+    getDatabase: jest.fn().mockImplementation(async () => {
+      const mockDb = new MockMarketplaceDatabase();
+      await mockDb.connect();
+      return mockDb;
+    }),
+    closeDatabase: jest.fn().mockResolvedValue(undefined),
+    DEFAULT_DATABASE_CONFIG: {
+      type: 'file',
+      dataDir: '/tmp/test',
+      enableCache: false,
+    },
+  };
+});
+
+// Mock the MarketplaceAPI to prevent real network calls
+jest.mock('../../src/marketplace/api/marketplace.api', () => {
+  const { MockMarketplaceAPI } = require('../__mocks__/marketplace.mock');
+  
+  return {
+    MarketplaceAPI: MockMarketplaceAPI,
+  };
+});
+
 // Ensure integrations that open sockets/intervals are disabled in tests
 process.env.CURSOR_PROMPT_CURSOR_INTEGRATION = 'false';
 process.env.CURSOR_PROMPT_PLUGINS_ENABLED = 'false';

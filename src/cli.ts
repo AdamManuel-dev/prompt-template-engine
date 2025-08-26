@@ -159,13 +159,16 @@ program
       const integration = CursorIntegration.getInstance({
         rulesOutputDir: options.dir,
         legacySupport: options.legacy,
+        autoSync: false, // Disable auto-sync for one-time sync command
       });
 
       await integration.initialize();
-      await integration.syncTemplates();
       console.log(
         chalk.green(`✅ Successfully synced templates to Cursor rules`)
       );
+      
+      // Dispose the integration to clean up resources
+      integration.dispose();
     } catch (error) {
       logger.error('Failed to sync templates');
       console.error(chalk.red(`❌ Error: ${error}`));
@@ -359,8 +362,8 @@ program
 
       await integration.initialize();
 
-      // Initial sync
-      await integration.syncTemplates();
+      // The initialize() method already does an initial sync
+      // Print confirmation for user feedback
       console.log(chalk.green('✅ Initial sync completed'));
 
       // Keep the process running
