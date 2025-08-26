@@ -833,7 +833,9 @@ export class OptimizationWorkflowManager {
         success: true,
         originalContent: content,
         optimizedContent:
-          result.optimizedTemplate.files?.map(f => (f as any).content).join('\n') || '',
+          result.optimizedTemplate.files
+            ?.map(f => (f as any).content)
+            .join('\n') || '',
         metrics: {
           accuracyImprovement: result.metrics.accuracyImprovement,
           tokenReduction: result.metrics.tokenReduction,

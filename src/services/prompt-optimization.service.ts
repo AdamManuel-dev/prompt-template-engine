@@ -412,16 +412,18 @@ export class PromptOptimizationService extends EventEmitter {
               optimizationTime: Date.now() - startTime,
               apiCalls: cached.metrics?.apiCallsUsed || 0,
             },
-            qualityScore: (typeof cached.qualityScore === 'object' ? cached.qualityScore : {
-              overall: cached.qualityScore || 80,
-              confidence: 0.8,
-              metrics: {
-                clarity: 80,
-                taskAlignment: 80,
-                tokenEfficiency: 80,
-              },
-              suggestions: [],
-            }) as QualityScore,
+            qualityScore: (typeof cached.qualityScore === 'object'
+              ? cached.qualityScore
+              : {
+                  overall: cached.qualityScore || 80,
+                  confidence: 0.8,
+                  metrics: {
+                    clarity: 80,
+                    taskAlignment: 80,
+                    tokenEfficiency: 80,
+                  },
+                  suggestions: [],
+                }) as QualityScore,
             comparison: cached.comparison || { improvements: {} },
             timestamp: new Date(),
           };

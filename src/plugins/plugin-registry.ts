@@ -732,12 +732,11 @@ export class PluginRegistry {
    */
   private async startWatching(): Promise<void> {
     try {
-      this.changeWatcher = fs.watch(
-        this.registryPath,
-        { recursive: true }
-      );
-      
-      this.changeWatcher.on('change', async (_eventType: string, filename?: string) => {
+      this.changeWatcher = fs.watch(this.registryPath, { recursive: true });
+
+      this.changeWatcher.on(
+        'change',
+        async (_eventType: string, filename?: string) => {
           if (filename && filename.endsWith('plugin.json')) {
             // Plugin manifest changed - refresh registration
             const pluginDir = path.dirname(
@@ -745,7 +744,8 @@ export class PluginRegistry {
             );
             await this.refreshPlugin(pluginDir);
           }
-      });
+        }
+      );
     } catch (error) {
       logger.warn('Failed to start plugin watching:', error);
     }

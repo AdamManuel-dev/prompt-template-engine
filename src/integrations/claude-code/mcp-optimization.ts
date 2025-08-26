@@ -268,7 +268,9 @@ export class MCPOptimizationTools {
         success: true,
         originalPrompt: promptText,
         optimizedPrompt:
-          result.optimizedTemplate.files?.map(f => (f as any).content).join('\n') || '',
+          result.optimizedTemplate.files
+            ?.map(f => (f as any).content)
+            .join('\n') || '',
         metrics: {
           accuracyImprovement: result.metrics.accuracyImprovement,
           tokenReduction: result.metrics.tokenReduction,

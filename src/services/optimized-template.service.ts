@@ -377,7 +377,7 @@ export class OptimizedTemplateService extends EventEmitter {
           : [
               {
                 path: `${original.name}.optimized.md`,
-                source: `${original.name}.optimized.md`, 
+                source: `${original.name}.optimized.md`,
                 destination: `${original.name}.optimized.md`,
                 content: result.optimizedPrompt,
                 name: original.name,

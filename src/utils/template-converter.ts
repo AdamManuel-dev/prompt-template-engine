@@ -100,7 +100,11 @@ export function convertIndexToServiceTemplate(
       encoding: 'encoding' in file ? file.encoding : undefined,
       mode: 'mode' in file ? file.mode : undefined,
       source: file.source || ('path' in file ? file.path : '') || '',
-      destination: file.destination || file.source || ('path' in file ? file.path : '') || '',
+      destination:
+        file.destination ||
+        file.source ||
+        ('path' in file ? file.path : '') ||
+        '',
     })) || [];
 
   return {

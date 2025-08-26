@@ -529,7 +529,10 @@ export class OptimizationQueue extends EventEmitter {
         this.emit('job:completed', job);
       } else {
         // Job failed
-        const errorMessage = typeof result.error === 'string' ? result.error : 'Pipeline processing failed';
+        const errorMessage =
+          typeof result.error === 'string'
+            ? result.error
+            : 'Pipeline processing failed';
         throw new Error(errorMessage);
       }
     } catch (error) {
@@ -731,7 +734,11 @@ export class OptimizationQueue extends EventEmitter {
       if (result.success && result.optimizationResult) {
         return result.optimizationResult;
       }
-      throw new Error(typeof result.error === 'string' ? result.error : 'Pipeline processing failed');
+      throw new Error(
+        typeof result.error === 'string'
+          ? result.error
+          : 'Pipeline processing failed'
+      );
     } catch (error) {
       logger.error(`Bull job processing failed: ${error}`);
       throw error;

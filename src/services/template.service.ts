@@ -1199,9 +1199,7 @@ export class TemplateService {
     const origLen = original.files?.length || 0;
     const modLen = modified.files?.length || 0;
     if (origLen !== modLen) {
-      changes.push(
-        `File count changed from ${origLen} to ${modLen}`
-      );
+      changes.push(`File count changed from ${origLen} to ${modLen}`);
     }
 
     const originalVarCount = Object.keys(original.variables || {}).length;
