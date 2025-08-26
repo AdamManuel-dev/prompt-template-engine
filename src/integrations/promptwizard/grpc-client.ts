@@ -12,14 +12,14 @@ import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
-import { 
-  OptimizationRequest, 
-  OptimizationResponse, 
+import {
+  OptimizationRequest,
+  OptimizationResponse,
   OptimizationMetrics,
   ScoringRequest,
   ScoringResponse,
   ComparisonRequest,
-  ComparisonResponse 
+  ComparisonResponse,
 } from './types';
 
 export interface GrpcClientConfig {
@@ -43,7 +43,9 @@ export interface StreamOptimizationUpdate {
 
 export class PromptWizardGrpcClient extends EventEmitter {
   private client: any;
+
   private config: GrpcClientConfig;
+
   private isConnected: boolean = false;
 
   constructor(config: GrpcClientConfig) {
@@ -53,10 +55,10 @@ export class PromptWizardGrpcClient extends EventEmitter {
       retries: 3,
       keepAlive: true,
       maxReceiveMessageLength: 4 * 1024 * 1024, // 4MB
-      maxSendMessageLength: 4 * 1024 * 1024,    // 4MB
-      ...config
+      maxSendMessageLength: 4 * 1024 * 1024, // 4MB
+      ...config,
     };
-    
+
     this.initializeClient();
   }
 
@@ -74,12 +76,15 @@ export class PromptWizardGrpcClient extends EventEmitter {
         }
       );
 
-      const protoDescriptor = grpc.loadPackageDefinition(packageDefinition) as any;
+      const protoDescriptor = grpc.loadPackageDefinition(
+        packageDefinition
+      ) as any;
       const promptwizardProto = protoDescriptor.promptwizard;
 
       // Create client with credentials
-      const credentials = this.config.credentials || grpc.credentials.createInsecure();
-      
+      const credentials =
+        this.config.credentials || grpc.credentials.createInsecure();
+
       this.client = new promptwizardProto.PromptOptimizationService(
         this.config.serviceUrl,
         credentials,
@@ -88,7 +93,8 @@ export class PromptWizardGrpcClient extends EventEmitter {
           'grpc.keepalive_timeout_ms': 5000,
           'grpc.keepalive_permit_without_calls': true,
           'grpc.http2.max_pings_without_data': 0,
-          'grpc.max_receive_message_length': this.config.maxReceiveMessageLength,
+          'grpc.max_receive_message_length':
+            this.config.maxReceiveMessageLength,
           'grpc.max_send_message_length': this.config.maxSendMessageLength,
         }
       );
@@ -96,11 +102,10 @@ export class PromptWizardGrpcClient extends EventEmitter {
       // Test connection
       await this.healthCheck();
       this.isConnected = true;
-      
-      logger.info('gRPC client initialized successfully', {
-        serviceUrl: this.config.serviceUrl
-      });
 
+      logger.info('gRPC client initialized successfully', {
+        serviceUrl: this.config.serviceUrl,
+      });
     } catch (error) {
       logger.error('Failed to initialize gRPC client', error as Error);
       throw new Error(`gRPC client initialization failed: ${error}`);
@@ -134,7 +139,9 @@ export class PromptWizardGrpcClient extends EventEmitter {
   /**
    * Optimize prompt via gRPC
    */
-  async optimizePrompt(request: OptimizationRequest): Promise<OptimizationResponse> {
+  async optimizePrompt(
+    request: OptimizationRequest
+  ): Promise<OptimizationResponse> {
     return this.executeWithRetry('optimizePrompt', request);
   }
 
@@ -148,7 +155,9 @@ export class PromptWizardGrpcClient extends EventEmitter {
   /**
    * Compare prompts via gRPC
    */
-  async comparePrompts(request: ComparisonRequest): Promise<ComparisonResponse> {
+  async comparePrompts(
+    request: ComparisonRequest
+  ): Promise<ComparisonResponse> {
     return this.executeWithRetry('comparePrompts', request);
   }
 
@@ -175,7 +184,9 @@ export class PromptWizardGrpcClient extends EventEmitter {
           progress: update.progress_percentage,
           currentStep: update.current_step,
           status: update.status,
-          partialResult: update.partial_result ? this.convertGrpcOptimizationResponse(update.partial_result) : undefined
+          partialResult: update.partial_result
+            ? this.convertGrpcOptimizationResponse(update.partial_result)
+            : undefined,
         };
 
         streamEmitter.emit('update', typedUpdate);
@@ -199,7 +210,6 @@ export class PromptWizardGrpcClient extends EventEmitter {
       (streamEmitter as any).cancel = () => {
         stream.cancel();
       };
-
     } catch (error) {
       logger.error('Failed to start gRPC stream', error as Error);
       streamEmitter.emit('error', error);
@@ -218,14 +228,20 @@ export class PromptWizardGrpcClient extends EventEmitter {
   /**
    * Cancel job via gRPC
    */
-  async cancelJob(jobId: string): Promise<{ cancelled: boolean; message: string }> {
+  async cancelJob(
+    jobId: string
+  ): Promise<{ cancelled: boolean; message: string }> {
     return this.executeWithRetry('cancelJob', { job_id: jobId });
   }
 
   /**
    * Execute gRPC method with retry logic
    */
-  private async executeWithRetry(method: string, request: any, retryCount: number = 0): Promise<any> {
+  private async executeWithRetry(
+    method: string,
+    request: any,
+    retryCount: number = 0
+  ): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.client) {
         reject(new Error('gRPC client not initialized'));
@@ -235,33 +251,43 @@ export class PromptWizardGrpcClient extends EventEmitter {
       const deadline = new Date();
       deadline.setSeconds(deadline.getSeconds() + this.config.timeout / 1000);
 
-      this.client[method](request, { deadline }, (error: any, response: any) => {
-        if (error) {
-          const grpcError = this.parseGrpcError(error);
+      this.client[method](
+        request,
+        { deadline },
+        (error: any, response: any) => {
+          if (error) {
+            const grpcError = this.parseGrpcError(error);
 
-          // Retry on specific error conditions
-          if (retryCount < this.config.retries && this.isRetryableError(error)) {
-            logger.warn(`gRPC ${method} failed, retrying (${retryCount + 1}/${this.config.retries})`, {
-              error: grpcError.message,
-              retryCount: retryCount + 1
-            });
+            // Retry on specific error conditions
+            if (
+              retryCount < this.config.retries &&
+              this.isRetryableError(error)
+            ) {
+              logger.warn(
+                `gRPC ${method} failed, retrying (${retryCount + 1}/${this.config.retries})`,
+                {
+                  error: grpcError.message,
+                  retryCount: retryCount + 1,
+                }
+              );
 
-            // Exponential backoff
-            const backoffDelay = Math.pow(2, retryCount) * 1000;
-            setTimeout(() => {
-              this.executeWithRetry(method, request, retryCount + 1)
-                .then(resolve)
-                .catch(reject);
-            }, backoffDelay);
-            return;
+              // Exponential backoff
+              const backoffDelay = 2 ** retryCount * 1000;
+              setTimeout(() => {
+                this.executeWithRetry(method, request, retryCount + 1)
+                  .then(resolve)
+                  .catch(reject);
+              }, backoffDelay);
+              return;
+            }
+
+            logger.error(`gRPC ${method} failed`, grpcError);
+            reject(grpcError);
+          } else {
+            resolve(this.convertGrpcResponse(method, response));
           }
-
-          logger.error(`gRPC ${method} failed`, grpcError);
-          reject(grpcError);
-        } else {
-          resolve(this.convertGrpcResponse(method, response));
         }
-      });
+      );
     });
   }
 
@@ -273,7 +299,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
       grpc.status.UNAVAILABLE,
       grpc.status.DEADLINE_EXCEEDED,
       grpc.status.RESOURCE_EXHAUSTED,
-      grpc.status.INTERNAL
+      grpc.status.INTERNAL,
     ];
 
     return retryableCodes.includes(error.code);
@@ -283,9 +309,10 @@ export class PromptWizardGrpcClient extends EventEmitter {
    * Parse gRPC error into standard format
    */
   private parseGrpcError(error: any): Error {
-    const statusText = Object.keys(grpc.status).find(
-      key => (grpc.status as any)[key] === error.code
-    ) || 'UNKNOWN';
+    const statusText =
+      Object.keys(grpc.status).find(
+        key => (grpc.status as any)[key] === error.code
+      ) || 'UNKNOWN';
 
     return new Error(`gRPC ${statusText}: ${error.details || error.message}`);
   }
@@ -324,7 +351,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
         processingTime: response.metrics?.processing_time || 0,
         apiCallsUsed: response.metrics?.api_calls_used || 0,
       } as OptimizationMetrics,
-      errorMessage: response.error_message
+      errorMessage: response.error_message,
     };
   }
 
@@ -336,7 +363,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
       overallScore: response.overall_score,
       componentScores: response.component_scores || {},
       suggestions: response.suggestions || [],
-      metrics: response.metrics || {}
+      metrics: response.metrics || {},
     };
   }
 
@@ -348,7 +375,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
       improvementScore: response.improvement_score,
       improvements: response.improvements || [],
       potentialIssues: response.potential_issues || [],
-      metrics: response.metrics || {}
+      metrics: response.metrics || {},
     };
   }
 
@@ -361,8 +388,10 @@ export class PromptWizardGrpcClient extends EventEmitter {
       status: response.status,
       progressPercentage: response.progress_percentage,
       currentStep: response.current_step,
-      result: response.result ? this.convertGrpcOptimizationResponse(response.result) : null,
-      errorMessage: response.error_message
+      result: response.result
+        ? this.convertGrpcOptimizationResponse(response.result)
+        : null,
+      errorMessage: response.error_message,
     };
   }
 

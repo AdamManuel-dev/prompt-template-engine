@@ -10,10 +10,10 @@
 
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
-import { 
-  OptimizationRequest, 
+import {
+  OptimizationRequest,
   OptimizationResponse,
-  OptimizationMetrics
+  OptimizationMetrics,
 } from './types';
 
 export interface WebSocketClientConfig {
@@ -43,12 +43,19 @@ export interface OptimizationUpdate {
 
 export class PromptWizardWebSocketClient extends EventEmitter {
   private ws: WebSocket | null = null;
+
   private config: WebSocketClientConfig;
+
   private isConnected: boolean = false;
+
   private reconnectAttempts: number = 0;
+
   private messageQueue: WebSocketMessage[] = [];
+
   private heartbeatTimer: NodeJS.Timeout | null = null;
+
   private reconnectTimer: NodeJS.Timeout | null = null;
+
   private subscribedJobs: Set<string> = new Set();
 
   constructor(config: WebSocketClientConfig) {
@@ -58,7 +65,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
       maxReconnectAttempts: 10,
       heartbeatInterval: 30000,
       timeout: 60000,
-      ...config
+      ...config,
     };
   }
 
@@ -68,7 +75,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        const wsUrl = this.config.token 
+        const wsUrl = this.config.token
           ? `${this.config.url}?token=${this.config.token}`
           : this.config.url;
 
@@ -85,38 +92,37 @@ export class PromptWizardWebSocketClient extends EventEmitter {
           clearTimeout(connectTimeout);
           this.isConnected = true;
           this.reconnectAttempts = 0;
-          
+
           logger.info('WebSocket connected successfully');
           this.emit('connected');
-          
+
           // Process queued messages
           this.processMessageQueue();
-          
+
           // Start heartbeat
           this.startHeartbeat();
-          
+
           resolve();
         };
 
-        this.ws.onclose = (event) => {
+        this.ws.onclose = event => {
           clearTimeout(connectTimeout);
           this.handleDisconnection(event);
         };
 
-        this.ws.onerror = (error) => {
+        this.ws.onerror = error => {
           clearTimeout(connectTimeout);
           logger.error('WebSocket error', error);
           this.emit('error', error);
-          
+
           if (!this.isConnected) {
             reject(new Error(`WebSocket connection failed: ${error}`));
           }
         };
 
-        this.ws.onmessage = (event) => {
+        this.ws.onmessage = event => {
           this.handleMessage(event.data);
         };
-
       } catch (error) {
         reject(error);
       }
@@ -133,7 +139,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
     logger.warn('WebSocket disconnected', {
       code: event.code,
       reason: event.reason,
-      wasClean: event.wasClean
+      wasClean: event.wasClean,
     });
 
     this.emit('disconnected', event);
@@ -155,19 +161,21 @@ export class PromptWizardWebSocketClient extends EventEmitter {
     }
 
     this.reconnectAttempts++;
-    const delay = this.config.reconnectInterval * Math.pow(1.5, this.reconnectAttempts - 1);
+    const delay =
+      this.config.reconnectInterval * 1.5 ** (this.reconnectAttempts - 1);
 
-    logger.info(`Attempting WebSocket reconnection in ${delay}ms (attempt ${this.reconnectAttempts})`);
+    logger.info(
+      `Attempting WebSocket reconnection in ${delay}ms (attempt ${this.reconnectAttempts})`
+    );
 
     this.reconnectTimer = setTimeout(async () => {
       try {
         await this.connect();
-        
+
         // Re-subscribe to jobs after reconnection
         for (const jobId of this.subscribedJobs) {
           this.subscribeToJob(jobId);
         }
-        
       } catch (error) {
         logger.error('Reconnection attempt failed', error as Error);
         this.attemptReconnection();
@@ -181,7 +189,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
   private handleMessage(data: string): void {
     try {
       const message: WebSocketMessage = JSON.parse(data);
-      
+
       logger.debug('WebSocket message received', { type: message.type });
 
       switch (message.type) {
@@ -190,17 +198,23 @@ export class PromptWizardWebSocketClient extends EventEmitter {
           break;
 
         case 'progress_update':
-          this.emit('progressUpdate', this.convertToOptimizationUpdate(message.data));
+          this.emit(
+            'progressUpdate',
+            this.convertToOptimizationUpdate(message.data)
+          );
           break;
 
         case 'optimization_complete':
-          this.emit('optimizationComplete', this.convertToOptimizationUpdate(message.data));
+          this.emit(
+            'optimizationComplete',
+            this.convertToOptimizationUpdate(message.data)
+          );
           break;
 
         case 'optimization_failed':
           this.emit('optimizationFailed', {
             jobId: message.data.job_id,
-            error: message.data.error
+            error: message.data.error,
           });
           break;
 
@@ -242,8 +256,10 @@ export class PromptWizardWebSocketClient extends EventEmitter {
       progress: data.progress,
       currentStep: data.current_step,
       status: data.status,
-      result: data.result ? this.convertToOptimizationResponse(data.result) : undefined,
-      error: data.error
+      result: data.result
+        ? this.convertToOptimizationResponse(data.result)
+        : undefined,
+      error: data.error,
     };
   }
 
@@ -257,7 +273,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
       originalPrompt: data.original_prompt,
       optimizedPrompt: data.optimized_prompt,
       metrics: data.metrics as OptimizationMetrics,
-      errorMessage: data.error_message
+      errorMessage: data.error_message,
     };
   }
 
@@ -267,7 +283,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
   async optimizePrompt(request: OptimizationRequest): Promise<void> {
     const message: WebSocketMessage = {
       type: 'optimize',
-      data: request
+      data: request,
     };
 
     this.sendMessage(message);
@@ -278,10 +294,10 @@ export class PromptWizardWebSocketClient extends EventEmitter {
    */
   subscribeToJob(jobId: string): void {
     this.subscribedJobs.add(jobId);
-    
+
     const message: WebSocketMessage = {
       type: 'subscribe_job',
-      jobId
+      jobId,
     };
 
     this.sendMessage(message);
@@ -292,10 +308,10 @@ export class PromptWizardWebSocketClient extends EventEmitter {
    */
   unsubscribeFromJob(jobId: string): void {
     this.subscribedJobs.delete(jobId);
-    
+
     const message: WebSocketMessage = {
       type: 'unsubscribe_job',
-      jobId
+      jobId,
     };
 
     this.sendMessage(message);
@@ -307,7 +323,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
   cancelJob(jobId: string): void {
     const message: WebSocketMessage = {
       type: 'cancel_job',
-      jobId
+      jobId,
     };
 
     this.sendMessage(message);
@@ -385,8 +401,8 @@ export class PromptWizardWebSocketClient extends EventEmitter {
         url: this.config.url,
         reconnectInterval: this.config.reconnectInterval,
         maxReconnectAttempts: this.config.maxReconnectAttempts,
-        heartbeatInterval: this.config.heartbeatInterval
-      }
+        heartbeatInterval: this.config.heartbeatInterval,
+      },
     };
   }
 
@@ -395,7 +411,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
    */
   disconnect(): void {
     this.stopHeartbeat();
-    
+
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -409,7 +425,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
     this.isConnected = false;
     this.messageQueue = [];
     this.subscribedJobs.clear();
-    
+
     logger.info('WebSocket client disconnected');
     this.emit('disconnect');
   }

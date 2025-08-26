@@ -699,6 +699,7 @@ export interface MarketplaceRateOptions extends MarketplaceCommandOptions {
  * Template definition with all properties
  */
 export interface Template {
+  id?: string;
   name: string;
   version?: string;
   description?: string;
@@ -714,6 +715,16 @@ export interface Template {
   references?: string[];
   priority?: 'low' | 'medium' | 'high';
   alwaysApply?: boolean;
+  category?: string;
+  language?: string;
+  domain?: string;
+  useCase?: string;
+  files?: Array<{
+    source: string;
+    destination: string;
+    transform?: boolean;
+    condition?: string;
+  }>;
 }
 
 /**

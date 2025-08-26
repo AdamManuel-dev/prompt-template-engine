@@ -12,7 +12,10 @@ import * as crypto from 'crypto';
 import { logger } from '../utils/logger';
 import { CacheService } from './cache.service';
 import { getPromptWizardConfig } from '../config/promptwizard.config';
-import { OptimizationConfig, OptimizedResult } from '../integrations/promptwizard/types';
+import {
+  OptimizationConfig,
+  OptimizedResult,
+} from '../integrations/promptwizard/types';
 
 export interface CacheEntry<T> {
   key: string;
@@ -55,7 +58,7 @@ class LRUCache<T> {
 
   get(key: string): T | null {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       return null;
     }
@@ -74,13 +77,18 @@ class LRUCache<T> {
     return entry.value;
   }
 
-  set(key: string, value: T, ttl: number, metadata?: Record<string, any>): void {
+  set(
+    key: string,
+    value: T,
+    ttl: number,
+    metadata?: Record<string, any>
+  ): void {
     const entry: CacheEntry<T> = {
       key,
       value,
       timestamp: Date.now(),
       ttl,
-      metadata
+      metadata,
     };
 
     // If key exists, update and move to end
@@ -174,7 +182,7 @@ export class OptimizationCacheService {
 
   constructor(customConfig: Partial<CacheConfig> = {}) {
     const promptwizardConfig = getPromptWizardConfig();
-    
+
     this.config = {
       maxSize: promptwizardConfig.cache.maxSize,
       defaultTTL: promptwizardConfig.cache.ttl * 1000, // Convert to milliseconds
@@ -182,7 +190,7 @@ export class OptimizationCacheService {
       redisUrl: promptwizardConfig.cache.redis?.url,
       keyPrefix: promptwizardConfig.cache.redis?.keyPrefix || 'promptwizard:',
       serializationFormat: 'json',
-      ...customConfig
+      ...customConfig,
     };
 
     this.memoryCache = new LRUCache<OptimizationResult>(this.config.maxSize);
@@ -195,11 +203,11 @@ export class OptimizationCacheService {
     // Set up periodic cleanup
     this.setupPeriodicCleanup();
 
-    logger.info('Optimization cache service initialized', {
+    logger.info(`Optimization cache service initialized - ${JSON.stringify({
       maxSize: this.config.maxSize,
       defaultTTL: this.config.defaultTTL,
-      redisEnabled: this.config.enableRedis
-    });
+      redisEnabled: this.config.enableRedis,
+    })}`);
   }
 
   /**
@@ -207,15 +215,15 @@ export class OptimizationCacheService {
    */
   async get(request: OptimizationConfig): Promise<OptimizedResult | null> {
     this.stats.totalRequests += 1;
-    
+
     const cacheKey = this.generateCacheKey(request);
-    
+
     // Try memory cache first
-    let result = this.memoryCache.get(cacheKey);
-    
+    const result = this.memoryCache.get(cacheKey);
+
     if (result) {
       this.stats.cacheHits++;
-      logger.debug('Cache hit (memory)', { cacheKey });
+      logger.debug(`Cache hit (memory) - ${JSON.stringify({ cacheKey })}`);
       return result;
     }
 
@@ -226,23 +234,23 @@ export class OptimizationCacheService {
         if (redisResult) {
           // Store in memory cache for faster access
           this.memoryCache.set(
-            cacheKey, 
-            redisResult as OptimizationResult, 
+            cacheKey,
+            redisResult as OptimizationResult,
             this.config.defaultTTL,
             { source: 'redis' }
           );
-          
+
           this.stats.cacheHits++;
-          logger.debug('Cache hit (Redis)', { cacheKey });
+          logger.debug(`Cache hit (Redis) - ${JSON.stringify({ cacheKey })}`);
           return redisResult as OptimizationResult;
         }
       } catch (error) {
-        logger.warn('Redis cache read failed', { cacheKey, error });
+        logger.warn(`Redis cache read failed - ${JSON.stringify({ cacheKey, error })}`);
       }
     }
 
     this.stats.cacheMisses++;
-    logger.debug('Cache miss', { cacheKey });
+    logger.debug(`Cache miss - ${JSON.stringify({ cacheKey })}`);
     return null;
   }
 
@@ -260,7 +268,7 @@ export class OptimizationCacheService {
     // Store in memory cache
     this.memoryCache.set(cacheKey, result, effectiveTTL, {
       timestamp: Date.now(),
-      templateId: (request as any).templateId
+      templateId: (request as any).templateId,
     });
 
     // Store in Redis if enabled
@@ -271,16 +279,16 @@ export class OptimizationCacheService {
           result,
           Math.floor(effectiveTTL / 1000)
         ); // Redis TTL in seconds
-        logger.debug('Result cached in Redis', { cacheKey });
+        logger.debug(`Result cached in Redis - ${JSON.stringify({ cacheKey })}`);
       } catch (error) {
-        logger.warn('Redis cache write failed', { cacheKey, error });
+        logger.warn(`Redis cache write failed - ${JSON.stringify({ cacheKey, error })}`);
       }
     }
 
-    logger.debug('Optimization result cached', {
+    logger.debug(`Optimization result cached - ${JSON.stringify({
       cacheKey,
       ttl: effectiveTTL,
-      memorySize: this.memoryCache.size(),
+      memorySize: this.memoryCache.size()}`),
     });
   }
 
@@ -289,7 +297,7 @@ export class OptimizationCacheService {
    */
   async invalidateTemplate(templateId: string): Promise<void> {
     const keysToRemove: string[] = [];
-    
+
     // Find memory cache keys to remove
     this.memoryCache.keys().forEach(key => {
       if (key.includes(templateId)) {
@@ -310,14 +318,14 @@ export class OptimizationCacheService {
           await this.redisCache.delete(key);
         }
       } catch (error) {
-        logger.warn('Redis cache invalidation failed', { templateId, error });
+        logger.warn(`Redis cache invalidation failed - ${JSON.stringify({ templateId, error })}`);
       }
     }
 
-    logger.info('Template cache invalidated', { 
-      templateId, 
-      keysRemoved: keysToRemove.length 
-    });
+    logger.info(`Template cache invalidated - ${JSON.stringify({
+      templateId,
+      keysRemoved: keysToRemove.length,
+    })}`);
   }
 
   /**
@@ -332,7 +340,7 @@ export class OptimizationCacheService {
       mutateRefineIterations: request.mutateRefineIterations,
       fewShotCount: request.fewShotCount,
       generateReasoning: request.generateReasoning,
-      constraints: request.constraints
+      constraints: request.constraints,
     };
 
     const hash = crypto
@@ -370,13 +378,13 @@ export class OptimizationCacheService {
    */
   async clear(): Promise<void> {
     this.memoryCache.clear();
-    
+
     if (this.redisCache) {
       try {
         // In a real implementation, this would use Redis FLUSHDB or SCAN/DEL pattern
-        logger.info('Redis cache clear operation would be performed here');
+        logger.info(`Redis cache clear operation would be performed here');
       } catch (error) {
-        logger.warn('Redis cache clear failed', error);
+        logger.warn('Redis cache clear failed - ${error}`);
       }
     }
 
@@ -385,10 +393,10 @@ export class OptimizationCacheService {
       totalRequests: 0,
       cacheHits: 0,
       cacheMisses: 0,
-      expiredEntries: 0
+      expiredEntries: 0,
     };
 
-    logger.info('Optimization cache cleared');
+    logger.info(`Optimization cache cleared');
   }
 
   /**
@@ -396,23 +404,23 @@ export class OptimizationCacheService {
    */
   async maintenance(): Promise<void> {
     logger.debug('Starting cache maintenance');
-    
+
     const beforeSize = this.memoryCache.size();
-    
+
     // Clean up expired entries
     this.memoryCache.cleanup();
-    
+
     const afterSize = this.memoryCache.size();
     const cleanedEntries = beforeSize - afterSize;
-    
+
     this.stats.expiredEntries += cleanedEntries;
-    
+
     if (cleanedEntries > 0) {
-      logger.info('Cache maintenance completed', {
+      logger.info('Cache maintenance completed - ${JSON.stringify({
         entriesCleaned: cleanedEntries,
         currentSize: afterSize,
-        maxSize: this.config.maxSize
-      });
+        maxSize: this.config.maxSize,
+      })}`);
     }
   }
 
@@ -423,9 +431,12 @@ export class OptimizationCacheService {
     try {
       this.redisCache = new CacheService();
       await this.redisCache.initialize();
-      logger.info('Redis cache initialized for optimization service');
+      logger.info(`Redis cache initialized for optimization service');
     } catch (error) {
-      logger.warn('Failed to initialize Redis cache, continuing with memory cache only', error);
+      logger.warn(
+        'Failed to initialize Redis cache - ${continuing with memory cache only',
+        error
+      }`);
       this.redisCache = undefined;
     }
   }
@@ -435,9 +446,12 @@ export class OptimizationCacheService {
    */
   private setupPeriodicCleanup(): void {
     // Run maintenance every 5 minutes
-    setInterval(() => {
-      this.maintenance();
-    }, 5 * 60 * 1000);
+    setInterval(
+      () => {
+        this.maintenance();
+      },
+      5 * 60 * 1000
+    );
   }
 
   /**
@@ -453,11 +467,11 @@ export class OptimizationCacheService {
    */
   async cleanup(): Promise<void> {
     this.memoryCache.clear();
-    
+
     if (this.redisCache) {
       await this.redisCache.cleanup();
     }
-    
+
     logger.info('Optimization cache service cleaned up');
   }
 }

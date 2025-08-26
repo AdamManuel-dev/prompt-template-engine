@@ -315,3 +315,107 @@ export type OptimizationEvent =
 export interface OptimizationEventHandler {
   (event: OptimizationEvent): void;
 }
+
+// Type aliases for compatibility with new integration code
+export type OptimizationRequest = OptimizationConfig;
+export type OptimizationResult = OptimizedResult;
+
+export interface OptimizationResponse {
+  /** Response job ID */
+  jobId: string;
+
+  /** Optimization result */
+  result?: OptimizationResult;
+
+  /** Response status */
+  status: 'success' | 'error' | 'pending';
+
+  /** Error message if failed */
+  error?: string;
+
+  /** Response metadata */
+  metadata?: {
+    processingTime: number;
+    requestId: string;
+    timestamp: Date;
+  };
+}
+
+export interface OptimizationMetrics {
+  /** Accuracy improvement percentage */
+  accuracyImprovement: number;
+
+  /** Token count reduction percentage */
+  tokenReduction: number;
+
+  /** Cost reduction multiplier */
+  costReduction: number;
+
+  /** Processing time in seconds */
+  processingTime: number;
+
+  /** API calls used in optimization */
+  apiCallsUsed: number;
+
+  /** Quality score */
+  qualityScore?: number;
+}
+
+export interface OptimizationContext {
+  /** Template ID */
+  templateId: string;
+
+  /** Target model for optimization */
+  targetModel: string;
+
+  /** Task description */
+  task: string;
+
+  /** User preferences */
+  preferences?: Record<string, unknown>;
+
+  /** Context metadata */
+  metadata?: Record<string, unknown>;
+}
+
+export interface PipelineStage {
+  /** Stage name */
+  name: string;
+
+  /** Stage description */
+  description: string;
+
+  /** Stage function */
+  execute: (context: OptimizationContext, data: any) => Promise<any>;
+
+  /** Stage dependencies */
+  dependencies?: string[];
+
+  /** Stage timeout in ms */
+  timeout?: number;
+}
+
+export interface PipelineResult {
+  /** Pipeline execution success */
+  success: boolean;
+
+  /** Pipeline result data */
+  data?: OptimizationResult;
+
+  /** Pipeline error */
+  error?: {
+    stage: string;
+    message: string;
+    code: string;
+  };
+
+  /** Pipeline metrics */
+  metrics: {
+    totalTime: number;
+    stagesCompleted: number;
+    stagesFailed: number;
+  };
+
+  /** Stage results */
+  stageResults: Record<string, any>;
+}

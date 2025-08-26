@@ -21,7 +21,7 @@ import {
   OptimizationMetrics,
   OptimizationContext,
   PipelineStage,
-  PipelineResult
+  PipelineResult,
 } from '../integrations/promptwizard/types';
 
 export interface TemplateMetadata {
@@ -58,7 +58,9 @@ export interface PipelineStageResult {
 
 export class OptimizationPipeline extends EventEmitter {
   private promptOptimizationService: PromptOptimizationService;
+
   private templateService: TemplateService;
+
   private config: OptimizationPipelineConfig;
 
   constructor(
@@ -67,7 +69,7 @@ export class OptimizationPipeline extends EventEmitter {
     config: Partial<OptimizationPipelineConfig> = {}
   ) {
     super();
-    
+
     this.promptOptimizationService = promptOptimizationService;
     this.templateService = templateService;
     this.config = {
@@ -77,7 +79,7 @@ export class OptimizationPipeline extends EventEmitter {
       enableCaching: true,
       parallelProcessing: false,
       maxConcurrency: 3,
-      ...config
+      ...config,
     };
   }
 
@@ -92,14 +94,10 @@ export class OptimizationPipeline extends EventEmitter {
     const startTime = Date.now();
     const pipelineId = this.generatePipelineId();
     const results: PipelineStageResult[] = [];
-    
-    logger.info('Starting optimization pipeline', {
-      pipelineId,
-      templateId,
-      template: template.name
-    });
 
-    this.emit('pipeline:started', { pipelineId, templateId });
+    logger.info(`Starting optimization pipeline: ${pipelineId} for template ${templateId} (${template.name})`);
+
+    this.emit('pipeline:started - ${JSON.stringify({ pipelineId, templateId })}`);
 
     try {
       // Stage 1: Extract template metadata
@@ -114,11 +112,10 @@ export class OptimizationPipeline extends EventEmitter {
       }
 
       const metadata = metadataResult.data as TemplateMetadata;
-      
+
       // Stage 2: Prepare optimization context
-      const contextResult = await this.executeStage(
-        'context_preparation',
-        () => this.prepareOptimizationContext(template, metadata, optimizationRequest)
+      const contextResult = await this.executeStage('context_preparation', () =>
+        this.prepareOptimizationContext(template, metadata, optimizationRequest)
       );
       results.push(contextResult);
 
@@ -131,25 +128,25 @@ export class OptimizationPipeline extends EventEmitter {
       // Stage 3: Pre-processing (if enabled)
       let preprocessedContext = context;
       if (this.config.enablePreprocessing) {
-        const preprocessResult = await this.executeStage(
-          'preprocessing',
-          () => this.preprocessTemplate(template, context)
+        const preprocessResult = await this.executeStage('preprocessing', () =>
+          this.preprocessTemplate(template, context)
         );
         results.push(preprocessResult);
 
         if (preprocessResult.success) {
           preprocessedContext = preprocessResult.data as OptimizationContext;
         } else {
-          logger.warn('Preprocessing failed, continuing with original context', {
-            error: preprocessResult.error
-          });
+          logger.warn(`Preprocessing failed - ${continuing with original context',
+            {
+              error: preprocessResult.error,
+            }
+          }`);
         }
       }
 
       // Stage 4: Generate training examples
-      const examplesResult = await this.executeStage(
-        'example_generation',
-        () => this.generateTrainingExamples(template, metadata)
+      const examplesResult = await this.executeStage('example_generation', () =>
+        this.generateTrainingExamples(template, metadata)
       );
       results.push(examplesResult);
 
@@ -164,16 +161,15 @@ export class OptimizationPipeline extends EventEmitter {
       );
 
       // Stage 6: Execute optimization
-      const optimizationResult = await this.executeStage(
-        'optimization',
-        () => this.promptOptimizationService.optimizeTemplate({
+      const optimizationResult = await this.executeStage('optimization', () =>
+        this.promptOptimizationService.optimizeTemplate({
           templateId,
           template: template as any,
           config: optimizationRequestFinal,
           options: {
             skipCache: !this.config.enableCaching,
-            priority: 'normal'
-          }
+            priority: 'normal',
+          },
         })
       );
       results.push(optimizationResult);
@@ -182,7 +178,8 @@ export class OptimizationPipeline extends EventEmitter {
         throw new Error(`Optimization failed: ${optimizationResult.error}`);
       }
 
-      const optimizationResponse = optimizationResult.data as OptimizationResult;
+      const optimizationResponse =
+        optimizationResult.data as OptimizationResult;
 
       // Stage 7: Post-processing (if enabled)
       let finalResult = optimizationResponse;
@@ -200,23 +197,21 @@ export class OptimizationPipeline extends EventEmitter {
 
       // Stage 8: Validation (if enabled)
       if (this.config.enableValidation) {
-        const validationResult = await this.executeStage(
-          'validation',
-          () => this.validateOptimizationResult(finalResult, template)
+        const validationResult = await this.executeStage('validation', () =>
+          this.validateOptimizationResult(finalResult, template)
         );
         results.push(validationResult);
 
         if (!validationResult.success) {
-          logger.warn('Optimization validation failed', {
-            error: validationResult.error
-          });
+          logger.warn(`Optimization validation failed - ${JSON.stringify({
+            error: validationResult.error,
+          })}`);
         }
       }
 
       // Stage 9: Update template with optimization
-      const updateResult = await this.executeStage(
-        'template_update',
-        () => this.updateTemplateWithOptimization(templateId, finalResult)
+      const updateResult = await this.executeStage('template_update', () =>
+        this.updateTemplateWithOptimization(templateId, finalResult)
       );
       results.push(updateResult);
 
@@ -233,22 +228,21 @@ export class OptimizationPipeline extends EventEmitter {
           context: preprocessedContext,
           duration: totalDuration,
           stagesCompleted: results.filter(r => r.success).length,
-          totalStages: results.length
-        }
+          totalStages: results.length,
+        },
       };
 
-      logger.info('Optimization pipeline completed successfully', {
+      logger.info(`Optimization pipeline completed successfully - ${JSON.stringify({
         pipelineId,
         duration: totalDuration,
-        stagesCompleted: results.filter(r => r.success).length
+        stagesCompleted: results.filter(r => r.success)}`).length,
       });
 
       this.emit('pipeline:completed', pipelineResult);
       return pipelineResult;
-
     } catch (error) {
       const totalDuration = Date.now() - startTime;
-      
+
       const pipelineResult: PipelineResult = {
         pipelineId,
         templateId,
@@ -258,15 +252,15 @@ export class OptimizationPipeline extends EventEmitter {
         metadata: {
           duration: totalDuration,
           stagesCompleted: results.filter(r => r.success).length,
-          totalStages: results.length
-        }
+          totalStages: results.length,
+        },
       };
 
-      logger.error('Optimization pipeline failed', {
+      logger.error(`Optimization pipeline failed - ${JSON.stringify({
         pipelineId,
         error: pipelineResult.error,
-        duration: totalDuration
-      });
+        duration: totalDuration,
+      })}`);
 
       this.emit('pipeline:failed', pipelineResult);
       return pipelineResult;
@@ -281,11 +275,11 @@ export class OptimizationPipeline extends EventEmitter {
     executor: () => Promise<T>
   ): Promise<PipelineStageResult> {
     const startTime = Date.now();
-    
+
     try {
       logger.debug(`Executing pipeline stage: ${stage}`);
-      this.emit('stage:started', { stage });
-      
+      this.emit('stage:started - ${JSON.stringify({ stage })}`);
+
       if (this.config.progressCallback) {
         this.config.progressCallback(stage, 0);
       }
@@ -301,28 +295,31 @@ export class OptimizationPipeline extends EventEmitter {
         stage,
         success: true,
         data: result,
-        duration
+        duration,
       };
 
-      logger.debug(`Pipeline stage completed: ${stage}`, { duration });
+      logger.debug(`Pipeline stage completed: ${stage} - ${JSON.stringify({ duration })}`);
       this.emit('stage:completed', stageResult);
-      
-      return stageResult;
 
+      return stageResult;
     } catch (error) {
       const duration = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       const stageResult: PipelineStageResult = {
         stage,
         success: false,
         error: errorMessage,
-        duration
+        duration,
       };
 
-      logger.error(`Pipeline stage failed: ${stage}`, { error: errorMessage, duration });
+      logger.error(`Pipeline stage failed: ${stage} - ${JSON.stringify({
+        error: errorMessage,
+        duration,
+      })}`);
       this.emit('stage:failed', stageResult);
-      
+
       return stageResult;
     }
   }
@@ -330,16 +327,18 @@ export class OptimizationPipeline extends EventEmitter {
   /**
    * Extract metadata from template
    */
-  private async extractTemplateMetadata(template: Template): Promise<TemplateMetadata> {
+  private async extractTemplateMetadata(
+    template: Template
+  ): Promise<TemplateMetadata> {
     // Calculate template complexity based on various factors
     const complexity = this.calculateTemplateComplexity(template);
-    
+
     // Estimate token count
     const estimatedTokens = this.estimateTokenCount(template.content);
-    
+
     // Extract variables
     const variables = template.variables || {};
-    
+
     // Extract dependencies (templates referenced via includes)
     const dependencies = this.extractTemplateDependencies(template.content);
 
@@ -353,7 +352,7 @@ export class OptimizationPipeline extends EventEmitter {
       estimatedTokens,
       language: template.language || 'en',
       domain: template.domain,
-      useCase: template.useCase
+      useCase: template.useCase,
     };
   }
 
@@ -362,22 +361,24 @@ export class OptimizationPipeline extends EventEmitter {
    */
   private calculateTemplateComplexity(template: Template): number {
     let complexity = 0;
-    
+
     // Base complexity from content length
     complexity += Math.min(template.content.length / 1000, 5);
-    
+
     // Complexity from variables
     const variableCount = Object.keys(template.variables || {}).length;
     complexity += variableCount * 0.5;
-    
+
     // Complexity from conditional logic
-    const conditionalMatches = template.content.match(/\{\{#if|\{\{#unless|\{\{#each/g);
+    const conditionalMatches = template.content.match(
+      /\{\{#if|\{\{#unless|\{\{#each/g
+    );
     complexity += (conditionalMatches?.length || 0) * 1.0;
-    
+
     // Complexity from includes/partials
     const includeMatches = template.content.match(/\{\{>\s*\w+/g);
     complexity += (includeMatches?.length || 0) * 0.8;
-    
+
     return Math.min(complexity, 10); // Cap at 10
   }
 
@@ -395,7 +396,7 @@ export class OptimizationPipeline extends EventEmitter {
   private extractTemplateDependencies(content: string): string[] {
     const includeMatches = content.match(/\{\{>\s*(\w+)/g);
     if (!includeMatches) return [];
-    
+
     return includeMatches.map(match => {
       const partialName = match.replace(/\{\{>\s*/, '');
       return partialName;
@@ -411,25 +412,26 @@ export class OptimizationPipeline extends EventEmitter {
     request: Partial<OptimizationRequest>
   ): Promise<OptimizationContext> {
     const promptwizardConfig = getPromptWizardConfig();
-    
+
     return {
       templateId: template.id,
       originalPrompt: template.content,
-      targetModel: request.targetModel || promptwizardConfig.optimization.defaultModel,
+      targetModel:
+        request.targetModel || promptwizardConfig.optimization.defaultModel,
       task: template.description || 'General purpose prompt optimization',
       constraints: {
         maxLength: promptwizardConfig.optimization.maxPromptLength,
         preserveVariables: true,
         maintainStructure: true,
-        ...request.constraints
+        ...request.constraints,
       },
       metadata: {
         complexity: metadata.complexity,
         estimatedTokens: metadata.estimatedTokens,
         category: metadata.category,
         variables: Object.keys(metadata.variables),
-        dependencies: metadata.dependencies
-      }
+        dependencies: metadata.dependencies,
+      },
     };
   }
 
@@ -442,10 +444,10 @@ export class OptimizationPipeline extends EventEmitter {
   ): Promise<OptimizationContext> {
     // Apply preprocessing transformations
     let processedContent = context.originalPrompt;
-    
+
     // Normalize whitespace
     processedContent = processedContent.replace(/\s+/g, ' ').trim();
-    
+
     // Extract and preserve variable placeholders
     const variables = processedContent.match(/\{\{[^}]+\}\}/g) || [];
     const variableMap = new Map();
@@ -454,14 +456,14 @@ export class OptimizationPipeline extends EventEmitter {
       variableMap.set(placeholder, variable);
       processedContent = processedContent.replace(variable, placeholder);
     });
-    
+
     return {
       ...context,
       originalPrompt: processedContent,
       metadata: {
         ...context.metadata,
-        variableMap: Object.fromEntries(variableMap)
-      }
+        variableMap: Object.fromEntries(variableMap),
+      },
     };
   }
 
@@ -475,7 +477,7 @@ export class OptimizationPipeline extends EventEmitter {
     const examples: string[] = [];
     const promptwizardConfig = getPromptWizardConfig();
     const maxExamples = promptwizardConfig.optimization.fewShotCount;
-    
+
     // Generate examples based on template category and use case
     if (template.category === 'coding') {
       examples.push(
@@ -497,7 +499,7 @@ export class OptimizationPipeline extends EventEmitter {
         'Solve the problem step by step with clear reasoning.'
       );
     }
-    
+
     return examples.slice(0, maxExamples);
   }
 
@@ -511,16 +513,20 @@ export class OptimizationPipeline extends EventEmitter {
     request: Partial<OptimizationRequest>
   ): OptimizationRequest {
     const promptwizardConfig = getPromptWizardConfig();
-    
+
     return {
       task: context.task,
       prompt: context.originalPrompt,
       targetModel: context.targetModel,
-      mutateRefineIterations: request.mutateRefineIterations || promptwizardConfig.optimization.mutateRefineIterations,
+      mutateRefineIterations:
+        request.mutateRefineIterations ||
+        promptwizardConfig.optimization.mutateRefineIterations,
       fewShotCount: examples.length,
-      generateReasoning: request.generateReasoning ?? promptwizardConfig.optimization.generateReasoning,
+      generateReasoning:
+        request.generateReasoning ??
+        promptwizardConfig.optimization.generateReasoning,
       examples,
-      constraints: context.constraints || {}
+      constraints: context.constraints || {},
     };
   }
 
@@ -532,10 +538,10 @@ export class OptimizationPipeline extends EventEmitter {
     metadata: TemplateMetadata
   ): Promise<OptimizationResult> {
     let processedContent = result.optimizedTemplate.content;
-    
+
     // Restore variable placeholders if they were preserved during preprocessing
     if (result.optimizedTemplate.metadata?.variableMap) {
-      const variableMap = result.optimizedTemplate.metadata.variableMap;
+      const { variableMap } = result.optimizedTemplate.metadata;
       Object.entries(variableMap).forEach(([placeholder, originalVariable]) => {
         processedContent = processedContent.replace(
           new RegExp(placeholder, 'g'),
@@ -543,26 +549,30 @@ export class OptimizationPipeline extends EventEmitter {
         );
       });
     }
-    
+
     // Update metrics with additional information
     const enhancedMetrics: OptimizationMetrics = {
       ...result.metrics,
       originalComplexity: metadata.complexity,
       originalTokens: metadata.estimatedTokens,
       optimizedTokens: this.estimateTokenCount(processedContent),
-      complexityReduction: Math.max(0, metadata.complexity - this.calculateTemplateComplexity({
-        ...result.optimizedTemplate,
-        content: processedContent
-      } as Template))
+      complexityReduction: Math.max(
+        0,
+        metadata.complexity -
+          this.calculateTemplateComplexity({
+            ...result.optimizedTemplate,
+            content: processedContent,
+          } as Template)
+      ),
     };
-    
+
     return {
       ...result,
       optimizedTemplate: {
         ...result.optimizedTemplate,
-        content: processedContent
+        content: processedContent,
       },
-      metrics: enhancedMetrics
+      metrics: enhancedMetrics,
     };
   }
 
@@ -574,30 +584,40 @@ export class OptimizationPipeline extends EventEmitter {
     originalTemplate: Template
   ): Promise<boolean> {
     // Check if optimization actually improved the template
-    if (result.metrics.accuracyImprovement <= 0 && result.metrics.tokenReduction <= 0) {
+    if (
+      result.metrics.accuracyImprovement <= 0 &&
+      result.metrics.tokenReduction <= 0
+    ) {
       throw new Error('Optimization did not show improvements');
     }
-    
+
     // Validate that essential variables are preserved
-    const originalVariables = originalTemplate.content.match(/\{\{[^}]+\}\}/g) || [];
-    const optimizedVariables = result.optimizedTemplate.content.match(/\{\{[^}]+\}\}/g) || [];
-    
-    const missingVariables = originalVariables.filter(variable => 
-      !optimizedVariables.includes(variable)
+    const originalVariables =
+      originalTemplate.content.match(/\{\{[^}]+\}\}/g) || [];
+    const optimizedVariables =
+      result.optimizedTemplate.content.match(/\{\{[^}]+\}\}/g) || [];
+
+    const missingVariables = originalVariables.filter(
+      variable => !optimizedVariables.includes(variable)
     );
-    
+
     if (missingVariables.length > 0) {
-      logger.warn('Some variables may have been lost during optimization', {
-        missingVariables
-      });
+      logger.warn(`Some variables may have been lost during optimization - ${JSON.stringify({
+        missingVariables,
+      })}`);
     }
-    
+
     // Check minimum confidence threshold
     const promptwizardConfig = getPromptWizardConfig();
-    if (result.confidence && result.confidence < promptwizardConfig.optimization.minConfidence) {
-      throw new Error(`Optimization confidence ${result.confidence} below threshold ${promptwizardConfig.optimization.minConfidence}`);
+    if (
+      result.confidence &&
+      result.confidence < promptwizardConfig.optimization.minConfidence
+    ) {
+      throw new Error(
+        `Optimization confidence ${result.confidence} below threshold ${promptwizardConfig.optimization.minConfidence}`
+      );
     }
-    
+
     return true;
   }
 
@@ -618,26 +638,26 @@ export class OptimizationPipeline extends EventEmitter {
           ...result.optimizedTemplate.metadata,
           originalId: templateId,
           optimizationDate: new Date().toISOString(),
-          optimizationMetrics: result.metrics
-        }
+          optimizationMetrics: result.metrics,
+        },
       };
-      
+
       // Save optimized version
       await this.templateService.save(optimizedTemplate as any);
-      
-      logger.info('Template optimization results saved', {
+
+      logger.info(`Template optimization results saved - ${JSON.stringify({
         originalId: templateId,
         optimizedId: optimizedTemplate.id,
-        metrics: result.metrics
-      });
-      
+        metrics: result.metrics,
+      })}`);
+
       return true;
     } catch (error) {
-      logger.error('Failed to save optimization results', {
+      logger.error(`Failed to save optimization results - ${JSON.stringify({
         templateId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error)}`),
       });
-      
+
       throw error;
     }
   }

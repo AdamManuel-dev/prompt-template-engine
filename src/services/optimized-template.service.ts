@@ -28,11 +28,11 @@ import {
   OptimizationJob,
   OptimizationBatch,
   OptimizationReport,
-  OptimizationSettings
+  OptimizationSettings,
 } from '../types/optimized-template.types';
 import {
   OptimizationRequest,
-  OptimizationResult
+  OptimizationResult,
 } from '../integrations/promptwizard/types';
 
 export interface OptimizedTemplateServiceConfig {
@@ -47,12 +47,19 @@ export interface OptimizedTemplateServiceConfig {
 
 export class OptimizedTemplateService extends EventEmitter {
   private templateService: TemplateService;
+
   private optimizationPipeline: OptimizationPipeline;
+
   private optimizationQueue: OptimizationQueue;
+
   private optimizationCache: OptimizationCacheService;
+
   private feedbackLoop: FeedbackLoop;
+
   private optimizedTemplateCache: CacheService<OptimizedTemplate>;
+
   private config: OptimizedTemplateServiceConfig;
+
   private settings: OptimizationSettings;
 
   constructor(
@@ -79,12 +86,12 @@ export class OptimizedTemplateService extends EventEmitter {
       optimizationCacheTTL: 24 * 60 * 60 * 1000, // 24 hours
       maxOptimizationHistory: 10,
       defaultOptimizationContext: {},
-      ...config
+      ...config,
     };
 
     this.optimizedTemplateCache = new CacheService<OptimizedTemplate>({
       maxSize: 100,
-      maxAge: this.config.optimizationCacheTTL
+      maxAge: this.config.optimizationCacheTTL,
     });
 
     // Load optimization settings
@@ -93,11 +100,11 @@ export class OptimizedTemplateService extends EventEmitter {
     // Set up event listeners
     this.setupEventListeners();
 
-    logger.info('Optimized template service initialized', {
+    logger.info(`Optimized template service initialized - ${JSON.stringify({
       optimizationEnabled: this.config.enableOptimization,
       autoOptimize: this.config.autoOptimizeNewTemplates,
-      feedbackLoop: this.config.enableFeedbackLoop
-    });
+      feedbackLoop: this.config.enableFeedbackLoop,
+    })}`);
   }
 
   /**
@@ -125,8 +132,11 @@ export class OptimizedTemplateService extends EventEmitter {
     // Check if optimization is needed
     if (!options.forceReoptimization) {
       const existingOptimized = await this.getOptimizedTemplate(templateId);
-      if (existingOptimized && this.shouldUseExistingOptimization(existingOptimized)) {
-        logger.info('Using existing optimized template', { templateId });
+      if (
+        existingOptimized &&
+        this.shouldUseExistingOptimization(existingOptimized)
+      ) {
+        logger.info(`Using existing optimized template - ${JSON.stringify({ templateId })}`);
         return existingOptimized;
       }
     }
@@ -138,10 +148,10 @@ export class OptimizedTemplateService extends EventEmitter {
       constraints: {
         maxLength: 10000,
         preserveVariables: true,
-        maintainStructure: true
+        maintainStructure: true,
       },
       ...this.config.defaultOptimizationContext,
-      ...context
+      ...context,
     };
 
     // Convert to optimization request
@@ -152,7 +162,7 @@ export class OptimizedTemplateService extends EventEmitter {
       mutateRefineIterations: 3,
       fewShotCount: 5,
       generateReasoning: true,
-      constraints: optimizationContext.constraints || {}
+      constraints: optimizationContext.constraints || {},
     };
 
     if (options.async) {
@@ -163,41 +173,41 @@ export class OptimizedTemplateService extends EventEmitter {
         optimizationRequest,
         {
           priority: options.priority || 'normal',
-          metadata: { context: optimizationContext }
+          metadata: { context: optimizationContext },
         }
       );
 
-      this.emit('optimization:queued', { templateId, jobId: job.id });
+      this.emit('optimization:queued', { templateId, jobId: job.jobId });
       return job;
-    } else {
-      // Process immediately
-      const result = await this.optimizationPipeline.process(
-        templateId,
+    }
+    // Process immediately
+    const result = await this.optimizationPipeline.process(
+      templateId,
+      template,
+      optimizationRequest
+    );
+
+    if (result.success && result.optimizationResult) {
+      const optimizedTemplate = await this.createOptimizedTemplate(
         template,
-        optimizationRequest
+        result.optimizationResult,
+        optimizationContext
       );
 
-      if (result.success && result.optimizationResult) {
-        const optimizedTemplate = await this.createOptimizedTemplate(
-          template,
-          result.optimizationResult,
-          optimizationContext
-        );
+      await this.saveOptimizedTemplate(optimizedTemplate);
+      this.emit('optimization:completed', { templateId, optimizedTemplate });
 
-        await this.saveOptimizedTemplate(optimizedTemplate);
-        this.emit('optimization:completed', { templateId, optimizedTemplate });
-        
-        return optimizedTemplate;
-      } else {
-        throw new Error(`Optimization failed: ${result.error}`);
-      }
+      return optimizedTemplate;
     }
+    throw new Error(`Optimization failed: ${result.error}`);
   }
 
   /**
    * Get optimized version of a template
    */
-  async getOptimizedTemplate(templateId: string): Promise<OptimizedTemplate | null> {
+  async getOptimizedTemplate(
+    templateId: string
+  ): Promise<OptimizedTemplate | null> {
     // Try cache first
     const cached = this.optimizedTemplateCache.get(templateId);
     if (cached) {
@@ -206,13 +216,14 @@ export class OptimizedTemplateService extends EventEmitter {
 
     // Try to load from disk
     try {
-      const optimizedTemplate = await this.loadOptimizedTemplateFromDisk(templateId);
+      const optimizedTemplate =
+        await this.loadOptimizedTemplateFromDisk(templateId);
       if (optimizedTemplate) {
         this.optimizedTemplateCache.set(templateId, optimizedTemplate);
         return optimizedTemplate;
       }
     } catch (error) {
-      logger.debug('No optimized template found on disk', { templateId });
+      logger.debug(`No optimized template found on disk - ${JSON.stringify({ templateId })}`);
     }
 
     return null;
@@ -221,7 +232,9 @@ export class OptimizedTemplateService extends EventEmitter {
   /**
    * Compare original and optimized templates
    */
-  async compareTemplates(templateId: string): Promise<TemplateComparison | null> {
+  async compareTemplates(
+    templateId: string
+  ): Promise<TemplateComparison | null> {
     const original = await this.templateService.loadTemplate(templateId);
     const optimized = await this.getOptimizedTemplate(templateId);
 
@@ -254,7 +267,7 @@ export class OptimizedTemplateService extends EventEmitter {
       await this.feedbackLoop.trackPerformance({
         templateId,
         metricType: 'response_time',
-        value: metrics.responseTime
+        value: metrics.responseTime,
       });
     }
 
@@ -262,7 +275,7 @@ export class OptimizedTemplateService extends EventEmitter {
       await this.feedbackLoop.trackPerformance({
         templateId,
         metricType: 'token_usage',
-        value: metrics.tokenUsage
+        value: metrics.tokenUsage,
       });
     }
 
@@ -270,7 +283,7 @@ export class OptimizedTemplateService extends EventEmitter {
       await this.feedbackLoop.collectFeedback({
         templateId,
         rating: metrics.userRating,
-        category: 'accuracy'
+        category: 'accuracy',
       });
     }
 
@@ -278,7 +291,7 @@ export class OptimizedTemplateService extends EventEmitter {
       await this.feedbackLoop.trackPerformance({
         templateId,
         metricType: 'error_rate',
-        value: metrics.errorRate
+        value: metrics.errorRate,
       });
     }
 
@@ -286,7 +299,7 @@ export class OptimizedTemplateService extends EventEmitter {
       await this.feedbackLoop.trackPerformance({
         templateId,
         metricType: 'accuracy_score',
-        value: metrics.successRate
+        value: metrics.successRate,
       });
     }
   }
@@ -306,19 +319,19 @@ export class OptimizedTemplateService extends EventEmitter {
     const batchId = this.generateBatchId();
     const jobs: OptimizationJob[] = [];
 
-    logger.info('Starting batch optimization', {
+    logger.info(`Starting batch optimization - ${JSON.stringify({
       batchId,
       templateCount: templateIds.length,
-      concurrency: options.concurrency || this.config.enableOptimization
-    });
+      concurrency: options.concurrency || this.config.enableOptimization,
+    })}`);
 
     // Create optimization jobs
     for (const templateId of templateIds) {
       try {
-        const job = await this.optimizeTemplate(templateId, context, {
+        const job = (await this.optimizeTemplate(templateId, context, {
           priority: options.priority,
-          async: true
-        }) as OptimizationJob;
+          async: true,
+        })) as OptimizationJob;
 
         jobs.push(job);
       } catch (error) {
@@ -326,10 +339,10 @@ export class OptimizedTemplateService extends EventEmitter {
           throw error;
         }
 
-        logger.warn('Failed to create optimization job in batch', {
+        logger.warn(`Failed to create optimization job in batch - ${JSON.stringify({
           templateId,
           batchId,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error)}`),
         });
       }
     }
@@ -342,10 +355,10 @@ export class OptimizedTemplateService extends EventEmitter {
       config: {
         concurrency: options.concurrency || 3,
         failFast: options.failFast || false,
-        context: context || this.config.defaultOptimizationContext
+        context: context || this.config.defaultOptimizationContext,
       },
       createdAt: new Date(),
-      startedAt: jobs.length > 0 ? new Date() : undefined
+      startedAt: jobs.length > 0 ? new Date() : undefined,
     };
 
     this.emit('batch:started', batch);
@@ -355,9 +368,10 @@ export class OptimizedTemplateService extends EventEmitter {
   /**
    * Generate optimization report
    */
-  async generateOptimizationReport(
-    period: { start: Date; end: Date }
-  ): Promise<OptimizationReport> {
+  async generateOptimizationReport(period: {
+    start: Date;
+    end: Date;
+  }): Promise<OptimizationReport> {
     const reportId = this.generateReportId();
 
     // This would normally query a database or analytics service
@@ -372,18 +386,18 @@ export class OptimizedTemplateService extends EventEmitter {
         successfulOptimizations: 0,
         averageImprovement: 0,
         totalCostSavings: 0,
-        totalTimeSavings: 0
+        totalTimeSavings: 0,
       },
       categoryBreakdown: {},
       trends: {
         improvementOverTime: [],
-        mostOptimizedCategories: []
+        mostOptimizedCategories: [],
       },
       recommendations: [],
       highlights: {
         topPerformers: [],
-        underperformers: []
-      }
+        underperformers: [],
+      },
     };
 
     this.emit('report:generated', report);
@@ -393,10 +407,12 @@ export class OptimizedTemplateService extends EventEmitter {
   /**
    * Update optimization settings
    */
-  async updateOptimizationSettings(updates: Partial<OptimizationSettings>): Promise<void> {
+  async updateOptimizationSettings(
+    updates: Partial<OptimizationSettings>
+  ): Promise<void> {
     this.settings = {
       ...this.settings,
-      ...updates
+      ...updates,
     };
 
     await this.saveOptimizationSettings(this.settings);
@@ -440,7 +456,7 @@ export class OptimizedTemplateService extends EventEmitter {
 
     return {
       canOptimize: reasons.length === 0,
-      reasons
+      reasons,
     };
   }
 
@@ -451,9 +467,9 @@ export class OptimizedTemplateService extends EventEmitter {
     original: Template,
     result: OptimizationResult,
     context: OptimizationContext
-  ): Promise<OptimizedTemplate> {
+  }`): Promise<OptimizedTemplate> {
     const optimizationId = this.generateOptimizationId();
-    
+
     const optimizationHistory: OptimizationHistory = {
       optimizationId,
       timestamp: new Date(),
@@ -463,17 +479,19 @@ export class OptimizedTemplateService extends EventEmitter {
       originalContent: original.files[0]?.content || '',
       optimizedContent: result.optimizedTemplate.content,
       method: 'PromptWizard',
-      success: true
+      success: true,
     };
 
     const optimizedTemplate: OptimizedTemplate = {
       ...original,
       id: `${original.name}_optimized`,
       name: `${original.name} (Optimized)`,
-      files: [{
-        ...original.files[0],
-        content: result.optimizedTemplate.content
-      }],
+      files: [
+        {
+          ...original.files[0],
+          content: result.optimizedTemplate.content,
+        },
+      ],
       isOptimized: true,
       originalTemplateId: original.name,
       optimizationMetrics: result.metrics,
@@ -482,8 +500,8 @@ export class OptimizedTemplateService extends EventEmitter {
       metadata: {
         ...original.metadata,
         optimized: true,
-        optimizationDate: new Date().toISOString()
-      }
+        optimizationDate: new Date().toISOString(),
+      },
     };
 
     return optimizedTemplate;
@@ -492,9 +510,18 @@ export class OptimizedTemplateService extends EventEmitter {
   /**
    * Save optimized template to disk
    */
-  private async saveOptimizedTemplate(template: OptimizedTemplate): Promise<void> {
-    const optimizedDir = path.join(process.cwd(), '.cursor-prompt', 'optimized');
-    const templatePath = path.join(optimizedDir, `${template.originalTemplateId}.json`);
+  private async saveOptimizedTemplate(
+    template: OptimizedTemplate
+  ): Promise<void> {
+    const optimizedDir = path.join(
+      process.cwd(),
+      '.cursor-prompt',
+      'optimized'
+    );
+    const templatePath = path.join(
+      optimizedDir,
+      `${template.originalTemplateId}.json`
+    );
 
     // Ensure directory exists
     await fs.promises.mkdir(optimizedDir, { recursive: true });
@@ -509,28 +536,36 @@ export class OptimizedTemplateService extends EventEmitter {
     // Cache it
     this.optimizedTemplateCache.set(template.originalTemplateId!, template);
 
-    logger.debug('Optimized template saved', {
+    logger.debug(`Optimized template saved - ${JSON.stringify({
       templateId: template.originalTemplateId,
-      path: templatePath
-    });
+      path: templatePath,
+    })}`);
   }
 
   /**
    * Load optimized template from disk
    */
-  private async loadOptimizedTemplateFromDisk(templateId: string): Promise<OptimizedTemplate | null> {
-    const optimizedDir = path.join(process.cwd(), '.cursor-prompt', 'optimized');
+  private async loadOptimizedTemplateFromDisk(
+    templateId: string
+  ): Promise<OptimizedTemplate | null> {
+    const optimizedDir = path.join(
+      process.cwd(),
+      '.cursor-prompt',
+      'optimized'
+    );
     const templatePath = path.join(optimizedDir, `${templateId}.json`);
 
     try {
       const content = await fs.promises.readFile(templatePath, 'utf8');
       const template = JSON.parse(content) as OptimizedTemplate;
-      
+
       // Convert date strings back to Date objects
-      template.optimizationHistory = template.optimizationHistory.map(history => ({
-        ...history,
-        timestamp: new Date(history.timestamp)
-      }));
+      template.optimizationHistory = template.optimizationHistory.map(
+        history => ({
+          ...history,
+          timestamp: new Date(history.timestamp),
+        })
+      );
 
       return template;
     } catch (error) {
@@ -558,27 +593,27 @@ export class OptimizedTemplateService extends EventEmitter {
         contentDiff: {
           additions: [],
           deletions: [],
-          modifications: []
+          modifications: [],
         },
         structuralChanges: {
           variablesAdded: [],
           variablesRemoved: [],
           sectionsReorganized: false,
-          logicSimplified: false
+          logicSimplified: false,
         },
         qualityAssessment: {
           clarity: 0.1,
           conciseness: optimized.optimizationMetrics.tokenReduction,
           completeness: 0.05,
-          accuracy: optimized.optimizationMetrics.accuracyImprovement
-        }
+          accuracy: optimized.optimizationMetrics.accuracyImprovement,
+        },
       },
       recommendation: {
         useOptimized: optimized.optimizationMetrics.accuracyImprovement > 0.1,
         confidence: optimized.optimizationMetrics.confidence || 0.8,
         reasons: ['Improved accuracy', 'Reduced token usage'],
-        warnings: []
-      }
+        warnings: [],
+      },
     };
 
     return comparison;
@@ -588,7 +623,8 @@ export class OptimizedTemplateService extends EventEmitter {
    * Check if existing optimization should be used
    */
   private shouldUseExistingOptimization(optimized: OptimizedTemplate): boolean {
-    const lastOptimization = optimized.optimizationHistory[optimized.optimizationHistory.length - 1];
+    const lastOptimization =
+      optimized.optimizationHistory[optimized.optimizationHistory.length - 1];
     const age = Date.now() - lastOptimization.timestamp.getTime();
     const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -619,20 +655,22 @@ export class OptimizedTemplateService extends EventEmitter {
   /**
    * Handle completed optimization job
    */
-  private async handleOptimizationJobCompleted(job: OptimizationJob): Promise<void> {
+  private async handleOptimizationJobCompleted(
+    job: OptimizationJob
+  ): Promise<void> {
     if (job.result) {
       try {
         await this.saveOptimizedTemplate(job.result);
         this.emit('optimization:completed', {
           templateId: job.templateId,
-          optimizedTemplate: job.result
+          optimizedTemplate: job.result,
         });
       } catch (error) {
-        logger.error('Failed to save completed optimization', {
-          jobId: job.id,
+        logger.error(`Failed to save completed optimization - ${JSON.stringify({
+          jobId: job.jobId,
           templateId: job.templateId,
-          error
-        });
+          error,
+        })}`);
       }
     }
   }
@@ -643,38 +681,45 @@ export class OptimizedTemplateService extends EventEmitter {
   private handleOptimizationJobFailed(job: OptimizationJob): void {
     this.emit('optimization:failed', {
       templateId: job.templateId,
-      jobId: job.id,
-      error: job.error
+      jobId: job.jobId,
+      error: job.error,
     });
 
-    logger.error('Optimization job failed', {
-      jobId: job.id,
+    logger.error(`Optimization job failed - ${JSON.stringify({
+      jobId: job.jobId,
       templateId: job.templateId,
-      error: job.error
-    });
+      error: job.error,
+    })}`);
   }
 
   /**
    * Handle reoptimization trigger
    */
   private async handleReoptimizationTriggered(trigger: any): Promise<void> {
-    if (this.settings.global.enabled && this.settings.feedbackSettings.enableFeedbackLoop) {
+    if (
+      this.settings.global.enabled &&
+      this.settings.feedbackSettings.enableFeedbackLoop
+    ) {
       try {
-        await this.optimizeTemplate(trigger.templateId, {}, {
-          forceReoptimization: true,
-          async: true,
-          priority: trigger.severity === 'high' ? 'high' : 'normal'
-        });
+        await this.optimizeTemplate(
+          trigger.templateId,
+          {},
+          {
+            forceReoptimization: true,
+            async: true,
+            priority: trigger.severity === 'high' ? 'high' : 'normal',
+          }
+        );
 
-        logger.info('Reoptimization triggered by feedback', {
+        logger.info(`Reoptimization triggered by feedback - ${JSON.stringify({
           templateId: trigger.templateId,
-          reason: trigger.reason
-        });
+          reason: trigger.reason,
+        })}`);
       } catch (error) {
-        logger.error('Failed to trigger reoptimization', {
+        logger.error(`Failed to trigger reoptimization - ${JSON.stringify({
           templateId: trigger.templateId,
-          error
-        });
+          error,
+        })}`);
       }
     }
   }
@@ -686,7 +731,7 @@ export class OptimizedTemplateService extends EventEmitter {
     // This would normally load from a configuration file
     // For now, return default settings
     const promptwizardConfig = getPromptWizardConfig();
-    
+
     return {
       global: {
         enabled: promptwizardConfig.enabled,
@@ -697,27 +742,33 @@ export class OptimizedTemplateService extends EventEmitter {
       qualityThresholds: {
         minimumImprovement: 0.05,
         maximumDegradation: -0.1,
-        confidenceThreshold: 0.7
+        confidenceThreshold: 0.7,
       },
       feedbackSettings: {
         enableFeedbackLoop: this.config.enableFeedbackLoop,
         reoptimizationThreshold: 3.0,
-        feedbackWeight: 0.3
+        feedbackWeight: 0.3,
       },
       advanced: {
         enableABTesting: this.config.enableABTesting,
         maxOptimizationHistory: this.config.maxOptimizationHistory,
-        enableExperimentalFeatures: false
-      }
+        enableExperimentalFeatures: false,
+      },
     };
   }
 
   /**
    * Save optimization settings
    */
-  private async saveOptimizationSettings(settings: OptimizationSettings): Promise<void> {
-    const settingsPath = path.join(process.cwd(), '.cursor-prompt', 'optimization-settings.json');
-    
+  private async saveOptimizationSettings(
+    settings: OptimizationSettings
+  ): Promise<void> {
+    const settingsPath = path.join(
+      process.cwd(),
+      '.cursor-prompt',
+      'optimization-settings.json'
+    );
+
     await fs.promises.mkdir(path.dirname(settingsPath), { recursive: true });
     await fs.promises.writeFile(
       settingsPath,

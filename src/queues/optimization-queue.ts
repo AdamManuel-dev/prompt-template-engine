@@ -13,13 +13,22 @@ import { logger } from '../utils/logger';
 import { OptimizationPipeline } from '../core/optimization-pipeline';
 import { OptimizationCacheService } from '../services/optimization-cache.service';
 import { Template } from '../types/index';
-import { OptimizationRequest, OptimizationResult, PipelineResult } from '../integrations/promptwizard/types';
+import {
+  OptimizationRequest,
+  OptimizationResult,
+  PipelineResult,
+} from '../integrations/promptwizard/types';
 
-export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+export type JobStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
 export type JobPriority = 'low' | 'normal' | 'high' | 'urgent';
 
 export interface OptimizationJob {
-  id: string;
+  jobId: string;
   templateId: string;
   template: Template;
   request: OptimizationRequest;
@@ -62,13 +71,21 @@ export interface QueueConfig {
 
 export class OptimizationQueue extends EventEmitter {
   private jobs = new Map<string, OptimizationJob>();
+
   private pendingQueue: OptimizationJob[] = [];
+
   private processingJobs = new Set<string>();
+
   private workers: Map<string, Promise<void>> = new Map();
+
   private optimizationPipeline: OptimizationPipeline;
+
   private cacheService: OptimizationCacheService;
+
   private config: QueueConfig;
+
   private isProcessing = false;
+
   private cleanupTimer?: NodeJS.Timeout;
 
   constructor(
@@ -77,7 +94,7 @@ export class OptimizationQueue extends EventEmitter {
     config: Partial<QueueConfig> = {}
   ) {
     super();
-    
+
     this.optimizationPipeline = optimizationPipeline;
     this.cacheService = cacheService;
     this.config = {
@@ -88,16 +105,16 @@ export class OptimizationQueue extends EventEmitter {
       jobTimeout: 10 * 60 * 1000, // 10 minutes
       cleanupInterval: 60 * 60 * 1000, // 1 hour
       maxJobHistory: 1000,
-      ...config
+      ...config,
     };
 
     // Setup periodic cleanup
     this.setupPeriodicCleanup();
 
-    logger.info('Optimization queue initialized', {
+    logger.info(`Optimization queue initialized - ${JSON.stringify({
       maxConcurrency: this.config.maxConcurrency,
-      maxRetries: this.config.maxRetries
-    });
+      maxRetries: this.config.maxRetries,
+    })}`);
   }
 
   /**
@@ -124,21 +141,21 @@ export class OptimizationQueue extends EventEmitter {
       createdAt: new Date(),
       retryCount: 0,
       maxRetries: options.maxRetries ?? this.config.maxRetries,
-      metadata: options.metadata
+      metadata: options.metadata,
     };
 
     // Store job
-    this.jobs.set(job.id, job);
+    this.jobs.set(job.jobId, job);
 
     // Add to pending queue with priority ordering
     this.insertJobByPriority(job);
 
-    logger.info('Optimization job added to queue', {
-      jobId: job.id,
+    logger.info(`Optimization job added to queue - ${JSON.stringify({
+      jobId: job.jobId,
       templateId,
       priority: job.priority,
-      queueLength: this.pendingQueue.length
-    });
+      queueLength: this.pendingQueue.length,
+    })}`);
 
     this.emit('job:added', job);
 
@@ -164,13 +181,17 @@ export class OptimizationQueue extends EventEmitter {
       return false;
     }
 
-    if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
+    if (
+      job.status === 'completed' ||
+      job.status === 'failed' ||
+      job.status === 'cancelled'
+    ) {
       return false; // Cannot cancel completed/failed/cancelled jobs
     }
 
     if (job.status === 'pending') {
       // Remove from pending queue
-      const index = this.pendingQueue.findIndex(j => j.id === jobId);
+      const index = this.pendingQueue.findIndex(j => j.jobId === jobId);
       if (index > -1) {
         this.pendingQueue.splice(index, 1);
       }
@@ -184,7 +205,7 @@ export class OptimizationQueue extends EventEmitter {
     job.status = 'cancelled';
     job.completedAt = new Date();
 
-    logger.info('Optimization job cancelled', { jobId });
+    logger.info(`Optimization job cancelled - ${JSON.stringify({ jobId })}`);
     this.emit('job:cancelled', job);
 
     return true;
@@ -196,21 +217,25 @@ export class OptimizationQueue extends EventEmitter {
   getStats(): QueueStats {
     const totalJobs = this.jobs.size;
     const jobsByStatus = this.getJobsByStatus();
-    
+
     // Calculate average processing time
-    const completedJobs = Array.from(this.jobs.values()).filter(job => 
-      job.status === 'completed' && job.startedAt && job.completedAt
+    const completedJobs = Array.from(this.jobs.values()).filter(
+      job => job.status === 'completed' && job.startedAt && job.completedAt
     );
-    
-    const averageProcessingTime = completedJobs.length > 0
-      ? completedJobs.reduce((sum, job) => {
-          return sum + (job.completedAt!.getTime() - job.startedAt!.getTime());
-        }, 0) / completedJobs.length
-      : 0;
+
+    const averageProcessingTime =
+      completedJobs.length > 0
+        ? completedJobs.reduce(
+            (sum, job) =>
+              sum + (job.completedAt!.getTime() - job.startedAt!.getTime()),
+            0
+          ) / completedJobs.length
+        : 0;
 
     // Calculate success rate
     const finishedJobs = jobsByStatus.completed + jobsByStatus.failed;
-    const successRate = finishedJobs > 0 ? jobsByStatus.completed / finishedJobs : 1;
+    const successRate =
+      finishedJobs > 0 ? jobsByStatus.completed / finishedJobs : 1;
 
     return {
       totalJobs,
@@ -222,7 +247,7 @@ export class OptimizationQueue extends EventEmitter {
       averageProcessingTime,
       successRate,
       activeWorkers: this.workers.size,
-      queueLength: this.pendingQueue.length
+      queueLength: this.pendingQueue.length,
     };
   }
 
@@ -231,24 +256,32 @@ export class OptimizationQueue extends EventEmitter {
    */
   cleanup(): void {
     const jobsArray = Array.from(this.jobs.values());
-    
+
     // Sort by completion time (most recent first)
     const completedJobs = jobsArray
-      .filter(job => job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled')
-      .sort((a, b) => (b.completedAt?.getTime() || 0) - (a.completedAt?.getTime() || 0));
+      .filter(
+        job =>
+          job.status === 'completed' ||
+          job.status === 'failed' ||
+          job.status === 'cancelled'
+      )
+      .sort(
+        (a, b) =>
+          (b.completedAt?.getTime() || 0) - (a.completedAt?.getTime() || 0)
+      );
 
     // Keep only the most recent jobs up to maxJobHistory
     const jobsToRemove = completedJobs.slice(this.config.maxJobHistory);
-    
+
     jobsToRemove.forEach(job => {
-      this.jobs.delete(job.id);
+      this.jobs.delete(job.jobId);
     });
 
     if (jobsToRemove.length > 0) {
-      logger.info('Queue cleanup completed', {
+      logger.info(`Queue cleanup completed - ${JSON.stringify({
         jobsRemoved: jobsToRemove.length,
-        totalJobs: this.jobs.size
-      });
+        totalJobs: this.jobs.size,
+      })}`);
     }
   }
 
@@ -263,7 +296,10 @@ export class OptimizationQueue extends EventEmitter {
     this.isProcessing = true;
 
     // Start workers up to max concurrency
-    while (this.workers.size < this.config.maxConcurrency && this.pendingQueue.length > 0) {
+    while (
+      this.workers.size < this.config.maxConcurrency &&
+      this.pendingQueue.length > 0
+    ) {
       this.startWorker();
     }
 
@@ -278,19 +314,22 @@ export class OptimizationQueue extends EventEmitter {
    */
   private startWorker(): void {
     const workerId = this.generateWorkerId();
-    
+
     const workerPromise = this.runWorker(workerId);
     this.workers.set(workerId, workerPromise);
 
     workerPromise
       .catch(error => {
-        logger.error('Worker error', { workerId, error });
+        logger.error(`Worker error - ${JSON.stringify({ workerId, error })}`);
       })
       .finally(() => {
         this.workers.delete(workerId);
-        
+
         // Start new worker if there are pending jobs
-        if (this.pendingQueue.length > 0 && this.workers.size < this.config.maxConcurrency) {
+        if (
+          this.pendingQueue.length > 0 &&
+          this.workers.size < this.config.maxConcurrency
+        ) {
           this.startWorker();
         } else if (this.pendingQueue.length === 0 && this.workers.size === 0) {
           this.isProcessing = false;
@@ -302,7 +341,7 @@ export class OptimizationQueue extends EventEmitter {
    * Run worker to process jobs
    */
   private async runWorker(workerId: string): Promise<void> {
-    logger.debug('Worker started', { workerId });
+    logger.debug(`Worker started - ${JSON.stringify({ workerId })}`);
 
     while (this.pendingQueue.length > 0) {
       const job = this.pendingQueue.shift();
@@ -319,26 +358,29 @@ export class OptimizationQueue extends EventEmitter {
       await this.delay(100);
     }
 
-    logger.debug('Worker finished', { workerId });
+    logger.debug(`Worker finished - ${JSON.stringify({ workerId })}`);
   }
 
   /**
    * Process a single job
    */
-  private async processJob(job: OptimizationJob, workerId: string): Promise<void> {
+  private async processJob(
+    job: OptimizationJob,
+    workerId: string
+  ): Promise<void> {
     try {
       // Mark job as processing
       job.status = 'processing';
       job.startedAt = new Date();
       job.progress = 0;
-      this.processingJobs.add(job.id);
+      this.processingJobs.add(job.jobId);
 
-      logger.info('Processing optimization job', {
-        jobId: job.id,
+      logger.info(`Processing optimization job - ${JSON.stringify({
+        jobId: job.jobId,
         workerId,
         templateId: job.templateId,
-        priority: job.priority
-      });
+        priority: job.priority,
+      })}`);
 
       this.emit('job:started', job);
 
@@ -359,7 +401,10 @@ export class OptimizationQueue extends EventEmitter {
         job.request
       );
 
-      const result = await Promise.race([processingPromise, timeoutPromise]) as PipelineResult;
+      const result = (await Promise.race([
+        processingPromise,
+        timeoutPromise,
+      ])) as PipelineResult;
 
       // Clear timeout
       clearTimeout(timeoutPromise as any);
@@ -371,10 +416,10 @@ export class OptimizationQueue extends EventEmitter {
         job.progress = 100;
         job.completedAt = new Date();
 
-        logger.info('Optimization job completed', {
-          jobId: job.id,
+        logger.info(`Optimization job completed - ${JSON.stringify({
+          jobId: job.jobId,
           templateId: job.templateId,
-          processingTime: job.completedAt.getTime() - job.startedAt!.getTime()
+          processingTime: job.completedAt.getTime()}`) - job.startedAt!.getTime(),
         });
 
         this.emit('job:completed', job);
@@ -382,27 +427,32 @@ export class OptimizationQueue extends EventEmitter {
         // Job failed
         throw new Error(result.error || 'Pipeline processing failed');
       }
-
     } catch (error) {
-      await this.handleJobError(job, error instanceof Error ? error : new Error(String(error)));
+      await this.handleJobError(
+        job,
+        error instanceof Error ? error : new Error(String(error))
+      );
     } finally {
-      this.processingJobs.delete(job.id);
+      this.processingJobs.delete(job.jobId);
     }
   }
 
   /**
    * Handle job error with retry logic
    */
-  private async handleJobError(job: OptimizationJob, error: Error): Promise<void> {
+  private async handleJobError(
+    job: OptimizationJob,
+    error: Error
+  ): Promise<void> {
     job.error = error.message;
     job.retryCount++;
 
-    logger.warn('Optimization job failed', {
-      jobId: job.id,
+    logger.warn(`Optimization job failed - ${JSON.stringify({
+      jobId: job.jobId,
       error: error.message,
       retryCount: job.retryCount,
-      maxRetries: job.maxRetries
-    });
+      maxRetries: job.maxRetries,
+    })}`);
 
     if (job.retryCount < job.maxRetries) {
       // Retry job after delay
@@ -410,11 +460,11 @@ export class OptimizationQueue extends EventEmitter {
       job.progress = 0;
       job.currentStep = undefined;
 
-      logger.info('Retrying optimization job', {
-        jobId: job.id,
+      logger.info(`Retrying optimization job - ${JSON.stringify({
+        jobId: job.jobId,
         retryCount: job.retryCount,
-        delay: this.config.retryDelay
-      });
+        delay: this.config.retryDelay,
+      })}`);
 
       // Add back to queue after delay
       setTimeout(() => {
@@ -428,11 +478,11 @@ export class OptimizationQueue extends EventEmitter {
       job.status = 'failed';
       job.completedAt = new Date();
 
-      logger.error('Optimization job failed permanently', {
-        jobId: job.id,
+      logger.error(`Optimization job failed permanently - ${JSON.stringify({
+        jobId: job.jobId,
         error: error.message,
-        retryCount: job.retryCount
-      });
+        retryCount: job.retryCount,
+      })}`);
 
       this.emit('job:failed', job);
     }
@@ -454,14 +504,15 @@ export class OptimizationQueue extends EventEmitter {
    */
   private insertJobByPriority(job: OptimizationJob): void {
     const priorityOrder: Record<JobPriority, number> = {
-      'urgent': 0,
-      'high': 1,
-      'normal': 2,
-      'low': 3
+      urgent: 0,
+      high: 1,
+      normal: 2,
+      low: 3,
     };
 
     const insertIndex = this.pendingQueue.findIndex(
-      existingJob => priorityOrder[existingJob.priority] > priorityOrder[job.priority]
+      existingJob =>
+        priorityOrder[existingJob.priority] > priorityOrder[job.priority]
     );
 
     if (insertIndex === -1) {
@@ -480,7 +531,7 @@ export class OptimizationQueue extends EventEmitter {
       processing: 0,
       completed: 0,
       failed: 0,
-      cancelled: 0
+      cancelled: 0,
     };
 
     for (const job of this.jobs.values()) {
@@ -524,7 +575,7 @@ export class OptimizationQueue extends EventEmitter {
    * Cleanup resources
    */
   async shutdown(): Promise<void> {
-    logger.info('Shutting down optimization queue');
+    logger.info(`Shutting down optimization queue');
 
     // Clear cleanup timer
     if (this.cleanupTimer) {
@@ -538,7 +589,7 @@ export class OptimizationQueue extends EventEmitter {
     for (const job of this.pendingQueue) {
       job.status = 'cancelled';
       job.completedAt = new Date();
-      this.emit('job:cancelled', job);
+      this.emit('job:cancelled - ${job}`);
     }
 
     this.pendingQueue = [];

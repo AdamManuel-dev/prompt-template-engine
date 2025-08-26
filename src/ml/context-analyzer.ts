@@ -44,7 +44,6 @@ export interface AnalysisConfig {
 }
 
 export class ContextAnalyzer {
-
   private readonly stopWords = new Set([
     'the',
     'is',
