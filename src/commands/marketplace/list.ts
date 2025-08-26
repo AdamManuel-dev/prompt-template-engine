@@ -311,9 +311,7 @@ export class ListCommand extends BaseCommand implements ICommand {
 
     // Show auto-update status
     const marketplace = await MarketplaceService.getInstance();
-    const installation = marketplace.getInstallation(
-      template.id
-    );
+    const installation = marketplace.getInstallation(template.id);
     if (installation) {
       const autoUpdateStatus = installation.autoUpdate
         ? chalk.green('enabled')
