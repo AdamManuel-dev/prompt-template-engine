@@ -377,7 +377,7 @@ async function handleSingleOptimization(
   // Optimize template
   const result = await service.optimizeTemplate({
     templateId: template.name,
-    template,
+    template: template as any,
     config: {
       targetModel: options.model as
         | 'gpt-4'
@@ -410,7 +410,7 @@ async function handleSingleOptimization(
   if (!options.dryRun && options.output) {
     await fs.writeFile(
       options.output,
-      result.optimizedTemplate?.content ||
+      (result.optimizedTemplate as any)?.content ||
         result.optimizedTemplate?.files?.[0]?.content ||
         ''
     );

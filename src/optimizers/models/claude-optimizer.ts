@@ -444,7 +444,7 @@ export class ClaudeOptimizer {
     ];
 
     for (const [pattern, replacement] of replacements) {
-      optimized = optimized.replace(pattern as RegExp, replacement);
+      optimized = optimized.replace(pattern as RegExp, replacement as string);
     }
 
     const newTokens = this.estimateTokens(optimized);
@@ -465,7 +465,7 @@ export class ClaudeOptimizer {
    * Calculate improvement scores specific to Claude's strengths
    */
   private calculateImprovements(
-    original: string,
+    _original: string,
     optimized: string,
     context?: { reasoning?: string }
   ) {

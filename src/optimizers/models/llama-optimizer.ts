@@ -235,7 +235,7 @@ export class LlamaOptimizer {
 
     for (const [pattern, replacement] of redundancies) {
       const original = optimized;
-      optimized = optimized.replace(pattern as RegExp, replacement);
+      optimized = optimized.replace(pattern as RegExp, replacement as string);
       if (optimized !== original) applied = true;
     }
 
@@ -249,7 +249,7 @@ export class LlamaOptimizer {
 
     for (const [pattern, replacement] of simplifications) {
       const original = optimized;
-      optimized = optimized.replace(pattern as RegExp, replacement);
+      optimized = optimized.replace(pattern as RegExp, replacement as string);
       if (optimized !== original) applied = true;
     }
 

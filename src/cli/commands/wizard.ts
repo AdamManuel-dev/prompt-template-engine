@@ -497,9 +497,8 @@ export class OptimizationWizardCommand extends BaseCommand {
           template,
           {}
         );
-        this.state.originalPrompt = renderedTemplate.files
-          .map(f => f.content)
-          .join('\n');
+        this.state.originalPrompt =
+          renderedTemplate.files?.map(f => f.content).join('\n') || '';
         this.state.task = template.description || template.name;
         console.log(`${chalk.green('✓')} Template loaded successfully`);
       } else {
@@ -525,9 +524,8 @@ export class OptimizationWizardCommand extends BaseCommand {
             {}
           );
           this.state.templateId = templateName;
-          this.state.originalPrompt = renderedTemplate.files
-            .map(f => f.content)
-            .join('\n');
+          this.state.originalPrompt =
+            renderedTemplate.files?.map(f => f.content).join('\n') || '';
           this.state.task = template.description || template.name;
         } else {
           this.error('Template not found. Please enter prompt text directly.');

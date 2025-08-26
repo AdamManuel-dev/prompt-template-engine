@@ -1,9 +1,9 @@
 {
   "template": {
-    "id": "template-2",
-    "name": "Template 2",
-    "displayName": "Template 2",
-    "description": "Template 2 description",
+    "id": "template-1",
+    "name": "Template 1",
+    "displayName": "Template 1",
+    "description": "Template 1 description",
     "author": {
       "id": "test_author",
       "name": "Test Author",
@@ -12,21 +12,21 @@
       "totalTemplates": 1,
       "totalDownloads": 0
     },
-    "currentVersion": "2.0.0",
+    "currentVersion": "1.1.0",
     "versions": [
       {
-        "version": "2.0.0",
-        "description": "Template 2",
+        "version": "1.1.0",
+        "description": "Updated template 1",
         "content": "Template content",
         "dependencies": [],
         "variables": [],
         "examples": [],
-        "changelog": "Initial version",
+        "changelog": "Updated version",
         "compatibility": [
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T12:19:14.908Z",
+        "created": "2025-08-26T12:33:27.844Z",
         "downloads": 0,
         "deprecated": false
       }
@@ -53,7 +53,7 @@
       "forks": 0,
       "favorites": 0,
       "issues": 0,
-      "lastDownload": "2025-08-26T12:19:14.908Z",
+      "lastDownload": "2025-08-26T12:33:27.844Z",
       "trending": false,
       "popularityScore": 0
     },
@@ -68,8 +68,8 @@
       ]
     },
     "category": "other",
-    "created": "2025-08-26T12:19:14.908Z",
-    "updated": "2025-08-26T12:19:14.908Z",
+    "created": "2025-08-26T12:33:27.844Z",
+    "updated": "2025-08-26T12:33:27.844Z",
     "featured": false,
     "verified": false,
     "deprecated": false,
@@ -77,20 +77,20 @@
     "isPrivate": false
   },
   "version": {
-    "version": "2.0.0",
-    "description": "Template 2",
+    "version": "1.1.0",
+    "description": "Updated template 1",
     "content": "Template content",
     "dependencies": [],
     "variables": [],
     "examples": [],
-    "changelog": "Initial version",
+    "changelog": "Updated version",
     "compatibility": [
       "1.0.0"
     ],
     "size": 100,
-    "created": "2025-08-26T12:19:14.908Z",
+    "created": "2025-08-26T12:33:27.844Z",
     "downloads": 0,
     "deprecated": false
   },
-  "installed": "2025-08-26T12:19:14.911Z"
+  "installed": "2025-08-26T12:33:27.847Z"
 }

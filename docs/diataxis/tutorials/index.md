@@ -70,6 +70,20 @@ Extend the template engine with custom functionality.
 - **Time:** 90-120 minutes
 - **You'll learn:** Plugin development, API integration, advanced customization
 
+### 🧙 PromptWizard Optimization
+
+#### [Getting Started with PromptWizard](./promptwizard-getting-started.md)
+Learn to optimize your first prompt using Microsoft PromptWizard integration.
+- **Prerequisites:** Basic template knowledge, Node.js 18+
+- **Time:** 30 minutes
+- **You'll learn:** Optimization basics, quality scoring, cost reduction
+
+#### [Advanced Optimization Techniques](./advanced-optimization.md)
+Master model-specific optimization, cost reduction, and self-evolving templates.
+- **Prerequisites:** Completed PromptWizard getting started
+- **Time:** 45 minutes
+- **You'll learn:** Model-specific optimization, advanced ML techniques, automation
+
 ## 🗺️ Recommended Learning Path
 
 **New to template engines?** Start here:

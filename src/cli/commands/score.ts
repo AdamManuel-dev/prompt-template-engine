@@ -167,7 +167,8 @@ export class ScoreCommand extends BaseCommand {
           template,
           {}
         );
-        finalPromptText = renderedTemplate.files.map(f => f.content).join('\n');
+        finalPromptText =
+          renderedTemplate.files?.map(f => f.content).join('\n') || '';
         sourceName = template.name;
       }
 
@@ -265,9 +266,8 @@ export class ScoreCommand extends BaseCommand {
             template,
             {}
           );
-          const templateContent = renderedTemplate.files
-            .map(f => f.content)
-            .join('\n');
+          const templateContent =
+            renderedTemplate.files?.map(f => f.content).join('\n') || '';
 
           const score = await this.client.scorePrompt(
             templateContent,

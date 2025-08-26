@@ -20,7 +20,7 @@ import {
   ScoringResponse,
   ComparisonRequest,
   ComparisonResponse,
-} from '../../generated';
+} from './types'; // TODO: Replace with generated types when proto files are generated
 
 export interface GrpcClientConfig {
   serviceUrl: string;
@@ -51,12 +51,9 @@ export class PromptWizardGrpcClient extends EventEmitter {
   constructor(config: GrpcClientConfig) {
     super();
     this.config = {
-      timeout: 30000,
-      retries: 3,
-      keepAlive: true,
-      maxReceiveMessageLength: 4 * 1024 * 1024, // 4MB
-      maxSendMessageLength: 4 * 1024 * 1024, // 4MB
       ...config,
+      maxReceiveMessageLength: config.maxReceiveMessageLength || 4 * 1024 * 1024, // 4MB
+      maxSendMessageLength: config.maxSendMessageLength || 4 * 1024 * 1024, // 4MB
     };
 
     this.initializeClient();
@@ -351,7 +348,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
         processingTime: response.metrics?.processing_time || 0,
         apiCallsUsed: response.metrics?.api_calls_used || 0,
       } as OptimizationMetrics,
-      errorMessage: response.error_message,
+      error: response.error_message,
     };
   }
 
@@ -391,7 +388,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
       result: response.result
         ? this.convertGrpcOptimizationResponse(response.result)
         : null,
-      errorMessage: response.error_message,
+      error: response.error_message,
     };
   }
 

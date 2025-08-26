@@ -453,7 +453,7 @@ export class MarketplaceOptimizationService {
   async rateOptimization(
     templateId: string,
     userId: string,
-    ratings: {
+    _ratings: {
       qualityScore: number;
       performanceScore: number;
       costEffectivenessScore: number;

@@ -230,7 +230,7 @@ export class TokenReductionOptimizer {
     let optimized = prompt;
 
     for (const [pattern, replacement] of this.redundantPhrases) {
-      optimized = optimized.replace(pattern as RegExp, replacement);
+      optimized = optimized.replace(pattern as RegExp, replacement as string);
     }
 
     return optimized;
@@ -243,7 +243,7 @@ export class TokenReductionOptimizer {
     let optimized = prompt;
 
     for (const [pattern, replacement] of this.verboseExpressions) {
-      optimized = optimized.replace(pattern as RegExp, replacement);
+      optimized = optimized.replace(pattern as RegExp, replacement as string);
     }
 
     return optimized;
@@ -261,7 +261,7 @@ export class TokenReductionOptimizer {
 
     for (const [pattern, replacement] of this.synonymReplacements) {
       const original = optimized;
-      optimized = optimized.replace(pattern as RegExp, replacement);
+      optimized = optimized.replace(pattern as RegExp, replacement as string);
       if (optimized !== original) applied = true;
     }
 
@@ -359,7 +359,7 @@ export class TokenReductionOptimizer {
 
     for (const [pattern, replacement] of this.abbreviations) {
       const original = optimized;
-      optimized = optimized.replace(pattern as RegExp, replacement);
+      optimized = optimized.replace(pattern as RegExp, replacement as string);
       if (optimized !== original) applied = true;
     }
 

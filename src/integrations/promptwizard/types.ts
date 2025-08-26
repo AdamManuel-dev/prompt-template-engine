@@ -464,3 +464,30 @@ export interface PipelineResult {
   /** Stage results */
   stageResults: Record<string, any>;
 }
+
+// Additional types needed for gRPC client
+export interface ScoringRequest {
+  prompt: string;
+  criteria?: string[];
+  model?: string;
+}
+
+export interface ScoringResponse {
+  overallScore: number;
+  componentScores: Record<string, number>;
+  suggestions: string[];
+  metrics: Record<string, any>;
+}
+
+export interface ComparisonRequest {
+  originalPrompt: string;
+  optimizedPrompt: string;
+  criteria?: string[];
+}
+
+export interface ComparisonResponse {
+  improvementScore: number;
+  improvements: string[];
+  potentialIssues: string[];
+  metrics: Record<string, any>;
+}

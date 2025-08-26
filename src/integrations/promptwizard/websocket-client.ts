@@ -61,10 +61,6 @@ export class PromptWizardWebSocketClient extends EventEmitter {
   constructor(config: WebSocketClientConfig) {
     super();
     this.config = {
-      reconnectInterval: 5000,
-      maxReconnectAttempts: 10,
-      heartbeatInterval: 30000,
-      timeout: 60000,
       ...config,
     };
   }
@@ -273,7 +269,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
       originalPrompt: data.original_prompt,
       optimizedPrompt: data.optimized_prompt,
       metrics: data.metrics as OptimizationMetrics,
-      errorMessage: data.error_message,
+      error: data.error_message,
     };
   }
 

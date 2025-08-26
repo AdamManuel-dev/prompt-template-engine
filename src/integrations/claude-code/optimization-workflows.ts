@@ -15,7 +15,6 @@ import { PromptWizardClient, createDefaultConfig } from '../promptwizard';
 import { TemplateService } from '../../services/template.service';
 import { PromptOptimizationService } from '../../services/prompt-optimization.service';
 import { CacheService } from '../../services/cache.service';
-import { CursorOptimizer } from '../cursor/cursor-optimizer';
 import { Template } from '../../types';
 
 export interface WorkflowConfig {
@@ -150,7 +149,6 @@ export class OptimizationWorkflowManager {
 
   private optimizationService: PromptOptimizationService;
 
-  private cursorOptimizer: CursorOptimizer;
 
   private readonly defaultConfig: WorkflowConfig = {
     concurrency: 3,
@@ -206,7 +204,6 @@ export class OptimizationWorkflowManager {
       this.templateService,
       cacheService
     );
-    this.cursorOptimizer = new CursorOptimizer();
   }
 
   /**
@@ -823,7 +820,7 @@ export class OptimizationWorkflowManager {
       // Optimize using PromptWizard
       const result = await this.optimizationService.optimizeTemplate({
         templateId: template.id || 'file-optimization',
-        template,
+        template: template as any,
         config: {
           task: `Optimize content from file: ${filePath}`,
           targetModel: this.config.optimization.model as any,
@@ -836,7 +833,7 @@ export class OptimizationWorkflowManager {
       return {
         success: true,
         originalContent: content,
-        optimizedContent: result.optimizedTemplate.content || '',
+        optimizedContent: result.optimizedTemplate.files?.map(f => f.content).join('\n') || '',
         metrics: {
           accuracyImprovement: result.metrics.accuracyImprovement,
           tokenReduction: result.metrics.tokenReduction,
@@ -932,7 +929,7 @@ export class OptimizationWorkflowManager {
   }
 
   private generateNextSteps(
-    analysis: ProjectAnalysis,
+    _analysis: ProjectAnalysis,
     results: MultiFileOptimizationResult
   ): string[] {
     const nextSteps: string[] = [];

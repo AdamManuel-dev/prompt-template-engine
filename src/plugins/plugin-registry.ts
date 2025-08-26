@@ -195,7 +195,7 @@ export class PluginRegistry {
 
   private watchForChanges: boolean;
 
-  private changeWatcher?: fs.FSWatcher;
+  private changeWatcher?: any; // FSWatcher type from fs/promises not available
 
   constructor(
     pluginManager: SecurePluginManager,

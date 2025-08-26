@@ -67,7 +67,7 @@ export function convertIndexToServiceTemplate(
     ? Array.isArray(indexTemplate.commands)
       ? indexTemplate.commands
       : Object.entries(indexTemplate.commands).map(
-          ([name, command], index) => ({
+          ([name, command], _index) => ({
             command,
             description: `Command ${name}`,
             when: undefined,

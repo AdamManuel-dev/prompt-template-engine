@@ -585,10 +585,11 @@ export class MarketplaceService
   async rate(
     templateId: string,
     rating: number,
-    review?: Partial<TemplateReview>
+    review?: Partial<TemplateReview>,
+    userId?: string
   ): Promise<void> {
     try {
-      await this.api.rateTemplate(templateId, rating, review);
+      await this.api.rateTemplate(templateId, rating, review, userId);
 
       // Invalidate template cache
       this.invalidateCache(`template:${templateId}`);
@@ -1335,6 +1336,14 @@ export class MarketplaceService
       // If target path is different, move installation
       if (targetPath !== installResult.installPath) {
         await fs.mkdir(path.dirname(targetPath), { recursive: true });
+
+        // Remove target directory if it exists to avoid ENOTEMPTY error
+        try {
+          await fs.rm(targetPath, { recursive: true, force: true });
+        } catch (error) {
+          // Ignore error if directory doesn't exist
+        }
+
         await fs.rename(installResult.installPath, targetPath);
 
         // Update manifest with new path
@@ -1620,9 +1629,11 @@ export class MarketplaceService
         try {
           // eslint-disable-next-line no-await-in-loop
           const installation = this.getInstallation(templateId);
+          
           if (installation) {
             // eslint-disable-next-line no-await-in-loop
             const template = await this.getTemplate(templateId);
+            
             if (template.currentVersion !== installation.version) {
               updates.push({
                 templateId,
@@ -1896,8 +1907,8 @@ export class MarketplaceService
       this.emit('rateTemplate:started', { id, rating, userId, options });
 
       // Validate rating
-      if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
-        throw new Error('Rating must be an integer between 1 and 5');
+      if (rating < 1 || rating > 5 || typeof rating !== 'number') {
+        throw new Error('Rating must be a number between 1 and 5');
       }
 
       // Create review object
@@ -1909,7 +1920,7 @@ export class MarketplaceService
       };
 
       // Submit rating via API
-      await this.rate(id, rating, review);
+      await this.rate(id, rating, review, userId);
 
       // Store in database if available
       if (this.database && options?.comment) {
@@ -1974,6 +1985,7 @@ export class MarketplaceService
 
       const fullReview: TemplateReview = {
         id: `${id}_${review.userId}_${Date.now()}`,
+        templateId: id, // Add template ID for proper filtering
         userId: review.userId,
         userName: review.userId, // Would normally fetch user name
         rating: review.rating,
@@ -2016,7 +2028,7 @@ export class MarketplaceService
     try {
       let reviews: TemplateReview[] = [];
 
-      if (this.database) {
+      if (this.database && typeof this.database.reviews?.findByTemplate === 'function') {
         reviews = await this.database.reviews.findByTemplate(id, {
           sort: [{ field: 'created', direction: 'desc' }],
         });
@@ -2184,8 +2196,28 @@ export class MarketplaceService
       if (!template.name) {
         throw new Error('Template name is required');
       }
-      
+
       logger.info(`Publishing template: ${template.name || template.id}`);
+
+      // Check for existing template with same ID to enforce permissions
+      if (template.id && this.database) {
+        try {
+          const existing = await this.database.templates.findById(template.id);
+          if (existing && existing.author?.id && template.author?.id) {
+            if (existing.author.id !== template.author.id) {
+              throw new Error(
+                `Template '${template.id}' can only be updated by its original author`
+              );
+            }
+          }
+        } catch (error: any) {
+          // If it's a permission error, re-throw it
+          if (error.message.includes('can only be updated')) {
+            throw error;
+          }
+          // Otherwise, the template probably doesn't exist yet, which is fine for new templates
+        }
+      }
 
       // Prepare template data for publishing
       const publishData = {
@@ -2227,6 +2259,9 @@ export class MarketplaceService
           '' // Will be set during installation
         );
       }
+
+      // Invalidate cache for this template since we have a new version
+      this.invalidateCache(`template:${template.id || result.templateId}`);
 
       // Emit publish event
       this.emit('template:published', {

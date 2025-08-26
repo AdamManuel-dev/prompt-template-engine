@@ -13,7 +13,7 @@ import { logger } from './logger';
 
 export interface PerformanceMetrics {
   duration: number;
-  memoryUsage: NodeJS.MemoryUsage;
+  memoryUsage: ReturnType<typeof process.memoryUsage>;
   timestamp: Date;
   operation: string;
   success: boolean;
@@ -162,7 +162,7 @@ export class PerformanceMonitor extends EventEmitter {
    * Get system health metrics
    */
   getSystemHealth(): {
-    memoryUsage: NodeJS.MemoryUsage;
+    memoryUsage: ReturnType<typeof process.memoryUsage>;
     uptime: number;
     activeTimers: number;
     totalMetrics: number;

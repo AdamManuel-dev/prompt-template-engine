@@ -68,7 +68,6 @@ export class AutoOptimizeManager {
 
   private client: PromptWizardClient | null = null;
 
-
   private cacheService: CacheService;
 
   private options: AutoOptimizeOptions;
@@ -411,8 +410,9 @@ export class AutoOptimizeManager {
 
       // Check cache first
       const cacheKey = this.generateCacheKey(templateContent);
-      const cachedResult =
-        await this.cacheService.get(cacheKey) as OptimizationResponse;
+      const cachedResult = (await this.cacheService.get(
+        cacheKey
+      )) as OptimizationResponse;
 
       let result: OptimizationResponse;
 
@@ -424,7 +424,12 @@ export class AutoOptimizeManager {
         const request: OptimizationRequest = {
           task: 'Optimize template for clarity, effectiveness, and token efficiency',
           prompt: templateContent,
-          targetModel: this.options.targetModels[0] as 'gpt-4' | 'gpt-3.5-turbo' | 'claude-3-opus' | 'claude-3-sonnet' | 'gemini-pro',
+          targetModel: this.options.targetModels[0] as
+            | 'gpt-4'
+            | 'gpt-3.5-turbo'
+            | 'claude-3-opus'
+            | 'claude-3-sonnet'
+            | 'gemini-pro',
           mutateRefineIterations: 3,
           fewShotCount: 5,
           generateReasoning: true,
@@ -443,12 +448,16 @@ export class AutoOptimizeManager {
         result = {
           jobId: optimizedResult.jobId,
           result: optimizedResult,
-          status: optimizedResult.status === 'completed' ? 'success' : 
-                 optimizedResult.status === 'failed' ? 'error' : 'pending',
+          status:
+            optimizedResult.status === 'completed'
+              ? 'success'
+              : optimizedResult.status === 'failed'
+                ? 'error'
+                : 'pending',
           confidence: optimizedResult.qualityScore,
           originalPrompt: optimizedResult.originalPrompt,
           optimizedPrompt: optimizedResult.optimizedPrompt,
-          metrics: optimizedResult.metrics
+          metrics: optimizedResult.metrics,
         };
 
         // Cache result

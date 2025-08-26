@@ -26,6 +26,11 @@ Following the Diátaxis framework, explanation documentation is designed to:
 
 - [**Security Model**](security.md) - Security philosophy, trade-offs, and threat mitigation strategies
 
+### PromptWizard Integration
+
+- [**ML Optimization**](ml-optimization.md) - Machine learning principles and techniques powering intelligent prompt optimization
+- [**PromptWizard Architecture**](promptwizard-architecture.md) - Integration architecture, design patterns, and technical decisions
+
 ## Key Concepts
 
 The Cursor Prompt Template Engine embodies several key architectural principles:

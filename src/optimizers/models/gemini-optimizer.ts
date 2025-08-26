@@ -55,7 +55,7 @@ export class GeminiOptimizer {
 
   async optimizeForGemini(
     prompt: string,
-    task: string,
+    _task: string,
     context?: {
       hasImages?: boolean;
       codeRelated?: boolean;
@@ -149,7 +149,7 @@ export class GeminiOptimizer {
 
     for (const [pattern, replacement] of redundancies) {
       const original = optimized;
-      optimized = optimized.replace(pattern as RegExp, replacement);
+      optimized = optimized.replace(pattern as RegExp, replacement as string);
       if (optimized !== original) applied = true;
     }
 
@@ -163,7 +163,7 @@ export class GeminiOptimizer {
 
     for (const [pattern, replacement] of simplifications) {
       const original = optimized;
-      optimized = optimized.replace(pattern as RegExp, replacement);
+      optimized = optimized.replace(pattern as RegExp, replacement as string);
       if (optimized !== original) applied = true;
     }
 
@@ -247,7 +247,7 @@ export class GeminiOptimizer {
   }
 
   private calculateImprovements(
-    original: string,
+    _original: string,
     optimized: string,
     context?: any
   ) {

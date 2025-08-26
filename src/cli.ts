@@ -72,7 +72,8 @@ program
         variables
       );
       // For CLI output, combine all file contents
-      const content = renderedTemplate.files.map(f => f.content).join('\n');
+      const content =
+        renderedTemplate.files?.map(f => f.content).join('\n') || '';
 
       // Output result
       if (options.output) {

@@ -209,7 +209,8 @@ export class MCPOptimizationTools {
             template,
             {}
           );
-          promptText = renderedTemplate.files.map(f => f.content).join('\n');
+          promptText =
+            renderedTemplate.files?.map(f => f.content).join('\n') || '';
           templateName = template.name;
         } else {
           return {
@@ -240,7 +241,7 @@ export class MCPOptimizationTools {
       const startTime = Date.now();
       const result = await this.optimizationService.optimizeTemplate({
         templateId: template.id || 'mcp-prompt',
-        template,
+        template: template as any,
         config: {
           task: request.task || 'Optimize this prompt for better performance',
           targetModel: (request.model as any) || 'gpt-4',
@@ -254,7 +255,7 @@ export class MCPOptimizationTools {
       const [originalScore, optimizedScore] = await Promise.all([
         this.client.scorePrompt(promptText, request.task),
         this.client.scorePrompt(
-          result.optimizedTemplate.content || '',
+          result.optimizedTemplate.files?.map(f => f.content).join('\n') || '',
           request.task
         ),
       ]);
@@ -264,7 +265,8 @@ export class MCPOptimizationTools {
       const response: MCPOptimizePromptResponse = {
         success: true,
         originalPrompt: promptText,
-        optimizedPrompt: result.optimizedTemplate.content || '',
+        optimizedPrompt:
+          result.optimizedTemplate.files?.map(f => f.content).join('\n') || '',
         metrics: {
           accuracyImprovement: result.metrics.accuracyImprovement,
           tokenReduction: result.metrics.tokenReduction,
@@ -278,13 +280,13 @@ export class MCPOptimizationTools {
       };
 
       // Add examples if optimization generated them
-      if (result.optimizedTemplate.examples) {
-        response.examples = result.optimizedTemplate.examples;
+      if ((result.optimizedTemplate as any).examples) {
+        response.examples = (result.optimizedTemplate as any).examples;
       }
 
       // Add reasoning if generated
-      if (result.optimizedTemplate.reasoning) {
-        response.reasoning = result.optimizedTemplate.reasoning;
+      if ((result.optimizedTemplate as any).reasoning) {
+        response.reasoning = (result.optimizedTemplate as any).reasoning;
       }
 
       logger.info(
@@ -334,7 +336,7 @@ export class MCPOptimizationTools {
             template,
             {}
           );
-          promptText = renderedTemplate.files.map(f => f.content).join('\n');
+          promptText = renderedTemplate.files?.map(f => f.content).join('\n') || '';
         } else {
           return {
             success: false,

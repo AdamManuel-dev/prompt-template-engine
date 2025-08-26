@@ -228,9 +228,8 @@ export class CompareCommand extends BaseCommand {
             template,
             {}
           );
-          const templateContent = renderedTemplate.files
-            .map(f => f.content)
-            .join('\n');
+          const templateContent =
+            renderedTemplate.files?.map(f => f.content).join('\n') || '';
           if (templateContent) {
             return templateContent;
           }

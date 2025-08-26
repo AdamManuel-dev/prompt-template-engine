@@ -388,12 +388,44 @@ export class MockMarketplaceAPI {
     return MockMarketplaceDataStore.publishTemplate(template);
   }
 
-  async rateTemplate(templateId: string, rating: number): Promise<void> {
-    // Mock rating submission
+  async rateTemplate(templateId: string, rating: number, review?: any, userId?: string): Promise<void> {
+    // Mock rating submission with user tracking
     const template = MockMarketplaceDataStore.getTemplate(templateId);
     if (template && typeof template.rating === 'object') {
-      template.rating.total += 1;
-      template.rating.average = ((template.rating.average * (template.rating.total - 1)) + rating) / template.rating.total;
+      // Initialize reviews array if it doesn't exist
+      if (!template.rating.reviews) {
+        template.rating.reviews = [];
+      }
+      
+      // Find existing rating by this user
+      const existingReviewIndex = template.rating.reviews.findIndex(r => r.userId === userId);
+      
+      if (existingReviewIndex >= 0) {
+        // Update existing rating
+        const oldRating = template.rating.reviews[existingReviewIndex].rating;
+        template.rating.reviews[existingReviewIndex].rating = rating;
+        
+        // Recalculate average (remove old rating, add new rating)
+        const total = template.rating.total;
+        template.rating.average = ((template.rating.average * total) - oldRating + rating) / total;
+      } else {
+        // Add new rating
+        template.rating.reviews.push({
+          id: `${templateId}_${userId}_${Date.now()}`,
+          userId: userId || 'anonymous',
+          userName: userId || 'Anonymous',
+          rating,
+          title: review?.title,
+          comment: review?.comment,
+          version: template.currentVersion,
+          helpful: 0,
+          flagged: false,
+          created: new Date(),
+        });
+        
+        template.rating.total += 1;
+        template.rating.average = ((template.rating.average * (template.rating.total - 1)) + rating) / template.rating.total;
+      }
     }
   }
 
@@ -409,6 +441,7 @@ export class MockMarketplaceAPI {
  */
 export class MockMarketplaceDatabase implements IMarketplaceDatabase {
   private connected = false;
+  private createdReviews: any[] = [];
 
   get authors() {
     return {
@@ -501,13 +534,17 @@ export class MockMarketplaceDatabase implements IMarketplaceDatabase {
   }
 
   get reviews() {
+    const self = this;
     return {
-      create: jest.fn().mockImplementation(async (review: TemplateReview) => {
+      create: jest.fn().mockImplementation(async function(review: TemplateReview) {
+        // Store the review in a simple array for testing
+        self.createdReviews.push(review);
         return review;
       }),
 
-      findByTemplate: jest.fn().mockImplementation(async () => {
-        return [];
+      findByTemplate: jest.fn().mockImplementation(async function(templateId: string) {
+        // Return stored reviews for the template
+        return self.createdReviews.filter((r: any) => r.templateId === templateId);
       }),
 
       findById: jest.fn().mockImplementation(async () => {

@@ -353,7 +353,8 @@ class FileStorage implements AnalyticsStorage {
     end: Date;
   }): Promise<UsageMetrics> {
     const events = await this.getEvents(timeRange);
-    return new MemoryStorage()['calculateMetrics'](events);
+    const memoryStorage = new MemoryStorage();
+    return (memoryStorage as any).calculateMetrics(events);
   }
 
   async purgeOldData(retentionDays: number): Promise<void> {

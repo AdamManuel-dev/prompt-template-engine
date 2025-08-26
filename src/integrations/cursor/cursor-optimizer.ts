@@ -397,8 +397,8 @@ export class CursorOptimizer {
       {}
     );
     const originalContent = renderedTemplate.files
-      .map(f => f.content)
-      .join('\n');
+      ?.map(f => f.content)
+      .join('\n') || '';
 
     // Create optimized template object
     const originalTemplate: Template = {
@@ -433,7 +433,7 @@ export class CursorOptimizer {
     // Run optimization with Cursor context
     const optimizationResult = await this.optimizationService.optimizeTemplate({
       templateId: template.name,
-      template: originalTemplate,
+      template: originalTemplate as any,
       config: {
         task: optimizationTask,
         targetModel: this.config.preferredModel,
@@ -450,14 +450,14 @@ export class CursorOptimizer {
 
     // Apply additional Cursor-specific optimizations
     const cursorOptimizedContent = await this.applyCursorSpecificOptimizations(
-      optimizationResult.optimizedTemplate.content || '',
+      optimizationResult.optimizedTemplate.files?.map(f => f.content).join('\n') || '',
       cursorContext
     );
 
-    const optimizedTemplate: Template = {
+    const optimizedTemplate = {
       ...optimizationResult.optimizedTemplate,
       content: cursorOptimizedContent,
-    };
+    } as Template;
 
     // Analyze improvements
     const cursorSpecificImprovements = this.analyzeCursorImprovements(

@@ -11,7 +11,11 @@
 import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
 import { UIComponents } from '../../plugins/promptwizard/ui/components';
-import { OptimizationFeatures, OptimizationTier, QUALITY_TIERS, PERFORMANCE_THRESHOLDS } from '../marketplace/optimization-features';
+import {
+  OptimizationTier,
+  QUALITY_TIERS,
+  PERFORMANCE_THRESHOLDS,
+} from '../marketplace/optimization-features';
 
 /**
  * Dashboard configuration options
@@ -19,16 +23,16 @@ import { OptimizationFeatures, OptimizationTier, QUALITY_TIERS, PERFORMANCE_THRE
 export interface DashboardConfig {
   /** Update interval in milliseconds */
   updateInterval: number;
-  
+
   /** Auto-refresh enabled */
   autoRefresh: boolean;
-  
+
   /** Maximum data points to display */
   maxDataPoints: number;
-  
+
   /** Dashboard theme */
   theme: 'dark' | 'light' | 'auto';
-  
+
   /** Display options */
   display: {
     showRealTimeMetrics: boolean;
@@ -37,7 +41,7 @@ export interface DashboardConfig {
     showPerformanceMetrics: boolean;
     showRecommendations: boolean;
   };
-  
+
   /** Chart configuration */
   charts: {
     height: number;
@@ -63,10 +67,10 @@ export interface DashboardMetrics {
     averageQualityScore: number;
     optimizationRate: number;
   };
-  
+
   /** Quality score distribution */
   qualityDistribution: Record<OptimizationTier, number>;
-  
+
   /** Performance metrics */
   performance: {
     averageResponseTime: number;
@@ -75,7 +79,7 @@ export interface DashboardMetrics {
     cacheHitRate: number;
     successRate: number;
   };
-  
+
   /** Time-series data */
   timeSeries: {
     timestamps: string[];
@@ -84,7 +88,7 @@ export interface DashboardMetrics {
     tokenUsage: number[];
     optimizationCount: number[];
   };
-  
+
   /** Top performers */
   topPerformers: Array<{
     templateId: string;
@@ -93,7 +97,7 @@ export interface DashboardMetrics {
     performanceScore: number;
     optimizationLevel: string;
   }>;
-  
+
   /** Recent activity */
   recentActivity: Array<{
     timestamp: string;
@@ -102,7 +106,7 @@ export interface DashboardMetrics {
     details: string;
     status: 'success' | 'warning' | 'error';
   }>;
-  
+
   /** Recommendations */
   recommendations: Array<{
     type: 'quality' | 'performance' | 'optimization';
@@ -132,14 +136,18 @@ export interface ChartData {
  */
 export class OptimizationDashboard extends EventEmitter {
   private config: DashboardConfig;
+
   private uiComponents: UIComponents;
+
   private metricsData: DashboardMetrics | null = null;
-  private updateTimer: NodeJS.Timeout | null = null;
+
+  private updateTimer: ReturnType<typeof setTimeout> | null = null;
+
   private isRunning: boolean = false;
 
   constructor(config: Partial<DashboardConfig> = {}) {
     super();
-    
+
     this.config = {
       updateInterval: 5000, // 5 seconds
       autoRefresh: true,
@@ -150,7 +158,7 @@ export class OptimizationDashboard extends EventEmitter {
         showHistoricalCharts: true,
         showQualityDistribution: true,
         showPerformanceMetrics: true,
-        showRecommendations: true
+        showRecommendations: true,
       },
       charts: {
         height: 20,
@@ -160,12 +168,12 @@ export class OptimizationDashboard extends EventEmitter {
           secondary: '#6b7280',
           success: '#10b981',
           warning: '#f59e0b',
-          error: '#ef4444'
-        }
+          error: '#ef4444',
+        },
       },
-      ...config
+      ...config,
     };
-    
+
     this.uiComponents = new UIComponents(this.config);
   }
 
@@ -176,10 +184,10 @@ export class OptimizationDashboard extends EventEmitter {
   async initialize(): Promise<void> {
     try {
       await this.uiComponents.initialize();
-      
+
       // Load initial data
       await this.refreshMetrics();
-      
+
       logger.info('Optimization dashboard initialized');
       this.emit('initialized');
     } catch (error) {
@@ -198,15 +206,15 @@ export class OptimizationDashboard extends EventEmitter {
     }
 
     this.isRunning = true;
-    
+
     // Start auto-refresh if enabled
     if (this.config.autoRefresh) {
       this.startAutoRefresh();
     }
-    
+
     // Render initial dashboard
     await this.render();
-    
+
     logger.info('Optimization dashboard started');
     this.emit('started');
   }
@@ -218,7 +226,7 @@ export class OptimizationDashboard extends EventEmitter {
   async stop(): Promise<void> {
     this.isRunning = false;
     this.stopAutoRefresh();
-    
+
     logger.info('Optimization dashboard stopped');
     this.emit('stopped');
   }
@@ -234,13 +242,13 @@ export class OptimizationDashboard extends EventEmitter {
       // - Optimization cache
       // - Performance tracker
       // - Analytics system
-      
+
       this.metricsData = await this.fetchMetricsData();
-      
+
       if (this.isRunning) {
         await this.render();
       }
-      
+
       this.emit('metricsUpdated', this.metricsData);
     } catch (error) {
       logger.error('Failed to refresh metrics:', error);
@@ -262,29 +270,28 @@ export class OptimizationDashboard extends EventEmitter {
       // Clear screen and move cursor to top
       console.log(this.uiComponents.clearScreen());
       console.log(this.uiComponents.moveCursor(1, 1));
-      
+
       // Render dashboard components
       await this.renderHeader();
       await this.renderSummaryCards();
-      
+
       if (this.config.display.showQualityDistribution) {
         await this.renderQualityDistribution();
       }
-      
+
       if (this.config.display.showPerformanceMetrics) {
         await this.renderPerformanceMetrics();
       }
-      
+
       if (this.config.display.showHistoricalCharts) {
         await this.renderHistoricalCharts();
       }
-      
+
       if (this.config.display.showRecommendations) {
         await this.renderRecommendations();
       }
-      
+
       await this.renderFooter();
-      
     } catch (error) {
       logger.error('Failed to render dashboard:', error);
     }
@@ -296,7 +303,10 @@ export class OptimizationDashboard extends EventEmitter {
    * @param filePath - Optional file path
    * @returns Promise resolving to export file path
    */
-  async exportData(format: 'json' | 'csv' | 'html' = 'json', filePath?: string): Promise<string> {
+  async exportData(
+    format: 'json' | 'csv' | 'html' = 'json',
+    filePath?: string
+  ): Promise<string> {
     if (!this.metricsData) {
       throw new Error('No metrics data to export');
     }
@@ -308,7 +318,7 @@ export class OptimizationDashboard extends EventEmitter {
     try {
       const fs = await import('fs');
       const path = await import('path');
-      
+
       // Ensure export directory exists
       await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
 
@@ -316,9 +326,12 @@ export class OptimizationDashboard extends EventEmitter {
         const exportData = {
           exportedAt: new Date().toISOString(),
           config: this.config,
-          metrics: this.metricsData
+          metrics: this.metricsData,
         };
-        await fs.promises.writeFile(outputPath, JSON.stringify(exportData, null, 2));
+        await fs.promises.writeFile(
+          outputPath,
+          JSON.stringify(exportData, null, 2)
+        );
       } else if (format === 'html') {
         const htmlContent = await this.generateHTMLReport();
         await fs.promises.writeFile(outputPath, htmlContent);
@@ -374,28 +387,28 @@ export class OptimizationDashboard extends EventEmitter {
         totalTemplates: 150,
         optimizedTemplates: 95,
         averageQualityScore: 78.5,
-        optimizationRate: 63.3
+        optimizationRate: 63.3,
       },
       qualityDistribution: {
         [OptimizationTier.PREMIUM]: 8,
         [OptimizationTier.ADVANCED]: 22,
         [OptimizationTier.STANDARD]: 35,
         [OptimizationTier.BASIC]: 25,
-        [OptimizationTier.UNOPTIMIZED]: 60
+        [OptimizationTier.UNOPTIMIZED]: 60,
       },
       performance: {
         averageResponseTime: 1250,
         averageTokenEfficiency: 82.3,
         averageCostPerRequest: 0.035,
         cacheHitRate: 67.8,
-        successRate: 94.2
+        successRate: 94.2,
       },
       timeSeries: {
         timestamps: this.generateTimeStamps(24),
         qualityScores: this.generateMockData(24, 70, 85),
         responseTime: this.generateMockData(24, 1000, 2000),
         tokenUsage: this.generateMockData(24, 200, 800),
-        optimizationCount: this.generateMockData(24, 5, 25)
+        optimizationCount: this.generateMockData(24, 5, 25),
       },
       topPerformers: [
         {
@@ -403,22 +416,22 @@ export class OptimizationDashboard extends EventEmitter {
           name: 'Code Review Assistant',
           qualityScore: 92.5,
           performanceScore: 88.3,
-          optimizationLevel: 'advanced'
+          optimizationLevel: 'advanced',
         },
         {
           templateId: 'template-002',
           name: 'Bug Report Generator',
           qualityScore: 89.2,
           performanceScore: 85.7,
-          optimizationLevel: 'standard'
+          optimizationLevel: 'standard',
         },
         {
           templateId: 'template-003',
           name: 'API Documentation',
           qualityScore: 87.8,
           performanceScore: 82.1,
-          optimizationLevel: 'advanced'
-        }
+          optimizationLevel: 'advanced',
+        },
       ],
       recentActivity: [
         {
@@ -426,43 +439,43 @@ export class OptimizationDashboard extends EventEmitter {
           action: 'Template Optimized',
           templateId: 'template-045',
           details: 'Quality score improved from 65.2 to 78.9',
-          status: 'success'
+          status: 'success',
         },
         {
           timestamp: new Date(Date.now() - 600000).toISOString(),
           action: 'Performance Alert',
           templateId: 'template-032',
           details: 'Response time exceeded threshold (3.2s)',
-          status: 'warning'
+          status: 'warning',
         },
         {
           timestamp: new Date(Date.now() - 900000).toISOString(),
           action: 'Optimization Failed',
           templateId: 'template-018',
           details: 'Network timeout during optimization',
-          status: 'error'
-        }
+          status: 'error',
+        },
       ],
       recommendations: [
         {
           type: 'performance',
           priority: 'high',
           message: '5 templates have response times >3s',
-          action: 'Optimize slow templates'
+          action: 'Optimize slow templates',
         },
         {
           type: 'quality',
           priority: 'medium',
           message: '12 templates below quality threshold',
-          action: 'Review and improve template quality'
+          action: 'Review and improve template quality',
         },
         {
           type: 'optimization',
           priority: 'low',
           message: 'Cache hit rate could be improved',
-          action: 'Adjust caching strategy'
-        }
-      ]
+          action: 'Adjust caching strategy',
+        },
+      ],
     };
   }
 
@@ -473,16 +486,16 @@ export class OptimizationDashboard extends EventEmitter {
   private async renderHeader(): Promise<void> {
     const header = this.uiComponents.renderHeader('Optimization Dashboard');
     console.log(header);
-    
+
     // Show last update time
     const updateTime = new Date().toLocaleString();
     console.log(`\nLast Updated: ${updateTime}`);
-    
+
     if (this.config.autoRefresh) {
       console.log(`Auto-refresh: ${this.config.updateInterval / 1000}s`);
     }
-    
-    console.log('\n' + '═'.repeat(80) + '\n');
+
+    console.log(`\n${'═'.repeat(80)}\n`);
   }
 
   /**
@@ -493,75 +506,75 @@ export class OptimizationDashboard extends EventEmitter {
     if (!this.metricsData) return;
 
     const { summary } = this.metricsData;
-    
+
     console.log('📊 Summary Metrics\n');
-    
+
     // Create summary cards layout
     const cards = [
       {
         title: 'Total Templates',
         value: summary.totalTemplates.toString(),
-        color: this.config.charts.colors.primary
+        color: this.config.charts.colors.primary,
       },
       {
         title: 'Optimized',
         value: summary.optimizedTemplates.toString(),
-        color: this.config.charts.colors.success
+        color: this.config.charts.colors.success,
       },
       {
         title: 'Avg Quality',
         value: `${summary.averageQualityScore.toFixed(1)}`,
-        color: this.getQualityColor(summary.averageQualityScore)
+        color: this.getQualityColor(summary.averageQualityScore),
       },
       {
         title: 'Optimization Rate',
         value: `${summary.optimizationRate.toFixed(1)}%`,
-        color: this.config.charts.colors.secondary
-      }
+        color: this.config.charts.colors.secondary,
+      },
     ];
 
     // Render cards in a row
     const cardWidth = 18;
     const spacing = 2;
-    
+
     // Card headers
     let headerLine = '';
     let valueLine = '';
     let borderLine = '';
-    
+
     cards.forEach((card, index) => {
       const padding = cardWidth - card.title.length;
       const leftPad = Math.floor(padding / 2);
       const rightPad = padding - leftPad;
-      
-      headerLine += '┌' + '─'.repeat(cardWidth - 2) + '┐';
+
+      headerLine += `┌${'─'.repeat(cardWidth - 2)}┐`;
       valueLine += `│${' '.repeat(leftPad)}${card.title}${' '.repeat(rightPad)}│`;
-      borderLine += '└' + '─'.repeat(cardWidth - 2) + '┘';
-      
+      borderLine += `└${'─'.repeat(cardWidth - 2)}┘`;
+
       if (index < cards.length - 1) {
         headerLine += ' '.repeat(spacing);
         valueLine += ' '.repeat(spacing);
         borderLine += ' '.repeat(spacing);
       }
     });
-    
+
     console.log(headerLine);
     console.log(valueLine);
-    
+
     // Value line
     let valueDisplayLine = '';
     cards.forEach((card, index) => {
       const padding = cardWidth - card.value.length;
       const leftPad = Math.floor(padding / 2);
       const rightPad = padding - leftPad;
-      
+
       valueDisplayLine += `│${' '.repeat(leftPad)}${card.value}${' '.repeat(rightPad)}│`;
-      
+
       if (index < cards.length - 1) {
         valueDisplayLine += ' '.repeat(spacing);
       }
     });
-    
+
     console.log(valueDisplayLine);
     console.log(borderLine);
     console.log();
@@ -575,23 +588,26 @@ export class OptimizationDashboard extends EventEmitter {
     if (!this.metricsData) return;
 
     console.log('🎯 Quality Score Distribution\n');
-    
+
     const { qualityDistribution } = this.metricsData;
-    const total = Object.values(qualityDistribution).reduce((sum, count) => sum + count, 0);
-    
+    const total = Object.values(qualityDistribution).reduce(
+      (sum, count) => sum + count,
+      0
+    );
+
     // Create horizontal bar chart
     Object.entries(qualityDistribution).forEach(([tier, count]) => {
       const tierConfig = QUALITY_TIERS[tier as OptimizationTier];
       const percentage = total > 0 ? (count / total) * 100 : 0;
       const barLength = Math.round(percentage / 2); // Scale to fit console
-      
+
       const bar = '█'.repeat(Math.max(1, barLength));
       const label = `${tierConfig.icon} ${tierConfig.label}`.padEnd(20);
       const stats = `${count.toString().padStart(3)} (${percentage.toFixed(1)}%)`;
-      
+
       console.log(`${label} ${bar} ${stats}`);
     });
-    
+
     console.log();
   }
 
@@ -603,41 +619,62 @@ export class OptimizationDashboard extends EventEmitter {
     if (!this.metricsData) return;
 
     console.log('⚡ Performance Metrics\n');
-    
+
     const { performance } = this.metricsData;
-    
+
     const metrics = [
       {
         label: 'Response Time',
         value: `${performance.averageResponseTime}ms`,
-        indicator: this.getPerformanceIndicator(performance.averageResponseTime, 'responseTime')
+        indicator: this.getPerformanceIndicator(
+          performance.averageResponseTime,
+          'responseTime'
+        ),
       },
       {
         label: 'Token Efficiency',
         value: `${performance.averageTokenEfficiency.toFixed(1)}%`,
-        indicator: this.getPerformanceIndicator(performance.averageTokenEfficiency, 'tokenEfficiency')
+        indicator: this.getPerformanceIndicator(
+          performance.averageTokenEfficiency,
+          'tokenEfficiency'
+        ),
       },
       {
         label: 'Cost per Request',
         value: `$${performance.averageCostPerRequest.toFixed(4)}`,
-        indicator: this.getPerformanceIndicator(performance.averageCostPerRequest, 'cost')
+        indicator: this.getPerformanceIndicator(
+          performance.averageCostPerRequest,
+          'cost'
+        ),
       },
       {
         label: 'Cache Hit Rate',
         value: `${performance.cacheHitRate.toFixed(1)}%`,
-        indicator: performance.cacheHitRate >= 60 ? '🟢' : performance.cacheHitRate >= 30 ? '🟡' : '🔴'
+        indicator:
+          performance.cacheHitRate >= 60
+            ? '🟢'
+            : performance.cacheHitRate >= 30
+              ? '🟡'
+              : '🔴',
       },
       {
         label: 'Success Rate',
         value: `${performance.successRate.toFixed(1)}%`,
-        indicator: performance.successRate >= 95 ? '🟢' : performance.successRate >= 85 ? '🟡' : '🔴'
-      }
+        indicator:
+          performance.successRate >= 95
+            ? '🟢'
+            : performance.successRate >= 85
+              ? '🟡'
+              : '🔴',
+      },
     ];
 
     metrics.forEach(metric => {
-      console.log(`${metric.indicator} ${metric.label.padEnd(20)} ${metric.value}`);
+      console.log(
+        `${metric.indicator} ${metric.label.padEnd(20)} ${metric.value}`
+      );
     });
-    
+
     console.log();
   }
 
@@ -649,17 +686,17 @@ export class OptimizationDashboard extends EventEmitter {
     if (!this.metricsData) return;
 
     console.log('📈 Historical Trends\n');
-    
+
     const { timeSeries } = this.metricsData;
-    
+
     // Render quality score trend
     console.log('Quality Scores (24h):');
     console.log(this.uiComponents.renderMiniChart(timeSeries.qualityScores));
-    
+
     // Render response time trend
     console.log('Response Times (24h):');
     console.log(this.uiComponents.renderMiniChart(timeSeries.responseTime));
-    
+
     console.log();
   }
 
@@ -671,15 +708,23 @@ export class OptimizationDashboard extends EventEmitter {
     if (!this.metricsData) return;
 
     console.log('💡 Recommendations\n');
-    
+
     const { recommendations } = this.metricsData;
-    
+
     recommendations.forEach(rec => {
-      const priorityIcon = rec.priority === 'high' ? '🔴' : 
-                          rec.priority === 'medium' ? '🟡' : '🟢';
-      const typeIcon = rec.type === 'performance' ? '⚡' : 
-                      rec.type === 'quality' ? '🎯' : '🔧';
-      
+      const priorityIcon =
+        rec.priority === 'high'
+          ? '🔴'
+          : rec.priority === 'medium'
+            ? '🟡'
+            : '🟢';
+      const typeIcon =
+        rec.type === 'performance'
+          ? '⚡'
+          : rec.type === 'quality'
+            ? '🎯'
+            : '🔧';
+
       console.log(`${priorityIcon} ${typeIcon} ${rec.message}`);
       console.log(`   → ${rec.action}\n`);
     });
@@ -750,25 +795,33 @@ export class OptimizationDashboard extends EventEmitter {
                 <th>Performance Score</th>
                 <th>Level</th>
             </tr>
-            ${this.metricsData.topPerformers.map(template => `
+            ${this.metricsData.topPerformers
+              .map(
+                template => `
             <tr>
                 <td>${template.name}</td>
                 <td>${template.qualityScore.toFixed(1)}</td>
                 <td>${template.performanceScore.toFixed(1)}</td>
                 <td>${template.optimizationLevel}</td>
             </tr>
-            `).join('')}
+            `
+              )
+              .join('')}
         </table>
     </div>
 
     <div class="card">
         <h2>Recommendations</h2>
-        ${this.metricsData.recommendations.map(rec => `
+        ${this.metricsData.recommendations
+          .map(
+            rec => `
         <div class="metric">
             <strong>${rec.type.toUpperCase()}</strong> (${rec.priority}): ${rec.message}
             <br><em>→ ${rec.action}</em>
         </div>
-        `).join('')}
+        `
+          )
+          .join('')}
     </div>
 </body>
 </html>
@@ -791,9 +844,10 @@ export class OptimizationDashboard extends EventEmitter {
       '',
       'Top Performers',
       'Template,Quality Score,Performance Score,Level',
-      ...this.metricsData.topPerformers.map(t => 
-        `${t.name},${t.qualityScore},${t.performanceScore},${t.optimizationLevel}`
-      )
+      ...this.metricsData.topPerformers.map(
+        t =>
+          `${t.name},${t.qualityScore},${t.performanceScore},${t.optimizationLevel}`
+      ),
     ];
 
     return lines.join('\n');
@@ -813,10 +867,13 @@ export class OptimizationDashboard extends EventEmitter {
    * Get performance indicator
    * @private
    */
-  private getPerformanceIndicator(value: number, type: 'responseTime' | 'tokenEfficiency' | 'cost'): string {
+  private getPerformanceIndicator(
+    value: number,
+    type: 'responseTime' | 'tokenEfficiency' | 'cost'
+  ): string {
     const thresholds = PERFORMANCE_THRESHOLDS;
     let level = 'poor';
-    
+
     switch (type) {
       case 'responseTime':
         if (value < thresholds.responseTime.excellent) level = 'excellent';
@@ -839,7 +896,7 @@ export class OptimizationDashboard extends EventEmitter {
       excellent: '🟢',
       good: '🟡',
       fair: '🟠',
-      poor: '🔴'
+      poor: '🔴',
     };
 
     return indicators[level as keyof typeof indicators];
@@ -853,12 +910,12 @@ export class OptimizationDashboard extends EventEmitter {
     const timestamps = [];
     const now = Date.now();
     const interval = 60 * 60 * 1000; // 1 hour
-    
+
     for (let i = count - 1; i >= 0; i--) {
-      const time = new Date(now - (i * interval));
+      const time = new Date(now - i * interval);
       timestamps.push(time.toISOString());
     }
-    
+
     return timestamps;
   }
 

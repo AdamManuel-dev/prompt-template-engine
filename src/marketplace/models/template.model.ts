@@ -93,6 +93,7 @@ export interface TemplateExample {
 
 export interface TemplateReview {
   id: string;
+  templateId?: string; // Added for proper filtering in database operations
   userId: string;
   userName: string;
   rating: number;

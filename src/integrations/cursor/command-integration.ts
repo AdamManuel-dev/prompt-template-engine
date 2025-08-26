@@ -200,7 +200,7 @@ export class CursorCommandIntegration {
         ...variables,
       }
     );
-    const prompt = renderedTemplate.files.map(f => f.content).join('\n');
+    const prompt = renderedTemplate.files?.map(f => f.content).join('\n') || '';
 
     // Show preview if enabled
     if (this.options.showPreview) {

@@ -323,7 +323,7 @@ export class GPT4Optimizer {
    */
   private applyGPT4Patterns(
     prompt: string,
-    context?: { expectedFormat?: string; domain?: string }
+    _context?: { expectedFormat?: string; domain?: string }
   ): string {
     let patterned = prompt;
 
@@ -379,7 +379,7 @@ export class GPT4Optimizer {
     ];
 
     for (const [pattern, replacement] of replacements) {
-      optimized = optimized.replace(pattern as RegExp, replacement);
+      optimized = optimized.replace(pattern as RegExp, replacement as string);
     }
 
     const newTokens = this.estimateTokens(optimized);
