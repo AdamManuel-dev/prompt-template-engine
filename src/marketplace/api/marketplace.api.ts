@@ -619,4 +619,23 @@ export class MarketplaceAPI {
     }>('GET', `/authors/${authorId}/following`, { page, limit });
     return response.data;
   }
+
+  /**
+   * Publish a template to the marketplace
+   */
+  async publishTemplate(template: TemplateModel): Promise<{
+    templateId: string;
+    version: string;
+    url?: string;
+  }> {
+    logger.info(`Publishing template via API: ${template.name || template.id}`);
+
+    const response = await this.request<{
+      templateId: string;
+      version: string;
+      url?: string;
+    }>('POST', '/templates/publish', template);
+
+    return response.data;
+  }
 }

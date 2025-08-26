@@ -1,105 +1,172 @@
 # Documentation Index
 
-Welcome to the Cursor Prompt Template Engine documentation. This index provides quick access to all documentation resources.
+Welcome to the Cursor Prompt Template Engine documentation. This index provides quick access to all available documentation.
 
-## 📚 Getting Started
+## 📚 Documentation Overview
 
+### Getting Started
 - [README](../README.md) - Project overview and quick start
 - [Getting Started Guide](./guides/GETTING_STARTED.md) - Detailed setup instructions
-- [Architecture Overview](./ARCHITECTURE.md) - System design and components
+- [Template Creation Guide](./guides/TEMPLATE_CREATION.md) - Creating powerful templates
+- [Architecture Overview](./ARCHITECTURE.md) - System design and structure
 
-## 🔧 API Reference
+### Core Documentation
+- [API Reference](./API.md) - Complete API documentation
+- [Plugin API Reference](./api/PLUGIN_API.md) - Plugin development API
+- [Configuration Guide](./CONFIGURATION.md) - Configuration options
+- [Template Syntax](./api/TEMPLATE_SYNTAX.md) - Template language reference
 
-- [Complete API](./API.md) - Full API documentation
-- [CLI Commands](./api/CLI.md) - Command-line interface reference
-- [Template Syntax](./api/TEMPLATE_SYNTAX.md) - Template language guide
+### Integration Guides
+- [Cursor IDE Integration](./CURSOR_INTEGRATION.md) - Working with Cursor IDE
+- [Plugin Development](./PLUGIN_DEVELOPMENT.md) - Creating custom plugins
 
-## 📦 Modules
-
-### Core Modules
-- [Template Engine](./modules/template-engine.md) - Template processing core
-- [Template Validator](./modules/template-validator.md) - Validation system
-
-### Service Modules
-- [Context Aggregator](./modules/context-aggregator.md) - Context gathering
-- [Git Service](./modules/git-service.md) - Git integration
-- [File Context Service](./modules/file-context.md) - File system operations
-- [Terminal Capture](./modules/terminal-capture.md) - Terminal output capture
-- [Config Service](./modules/config-service.md) - Configuration management
+### Module Documentation
+- [Template Engine](./modules/template-engine.md) - Core template processing
+- [Template Validator](./modules/template-validator.md) - Template validation system
 - [Template Service](./modules/template-service.md) - Template management
+- [Context Aggregator](./modules/context-aggregator.md) - Context collection
+- [Marketplace Service](./modules/marketplace-service.md) - Community marketplace
+- [Plugin System](./modules/plugin-system.md) - Plugin architecture
 
-### Command Modules
-- [Init Command](./modules/commands/init.md) - Project initialization
-- [Generate Command](./modules/commands/generate.md) - Prompt generation
-- [Apply Command](./modules/commands/apply.md) - Template application
-- [Validate Command](./modules/commands/validate.md) - Template validation
-- [List Command](./modules/commands/list.md) - Template listing
-- [Config Command](./modules/commands/config.md) - Configuration management
+### Help & Support
+- [Troubleshooting Guide](./TROUBLESHOOTING.md) - Common issues and solutions
+- [Contributing Guide](../CONTRIBUTING.md) - How to contribute
 
-## 🛠️ Development
-
-- [Contributing](../CONTRIBUTING.md) - How to contribute
-- [Testing Guide](./guides/TESTING.md) - Running and writing tests
-- [Development Setup](./guides/DEVELOPMENT.md) - Local development environment
-- [Deployment Guide](./guides/DEPLOYMENT.md) - Publishing and distribution
-
-## 📖 Guides
-
-- [Template Creation](./guides/TEMPLATE_CREATION.md) - Creating custom templates
-- [Context Sources](./guides/CONTEXT_SOURCES.md) - Understanding context gathering
-- [Configuration](./guides/CONFIGURATION.md) - Configuration options
-- [Best Practices](./guides/BEST_PRACTICES.md) - Tips and recommendations
-
-## 🔍 Reference
-
-- [Troubleshooting](./TROUBLESHOOTING.md) - Common issues and solutions
-- [FAQ](./FAQ.md) - Frequently asked questions
-- [Changelog](../CHANGELOG.md) - Version history
-- [License](../LICENSE) - MIT License
-
-## 📊 Examples
-
-- [Basic Templates](./examples/BASIC_TEMPLATES.md) - Simple template examples
-- [Advanced Templates](./examples/ADVANCED_TEMPLATES.md) - Complex template patterns
-- [Integration Examples](./examples/INTEGRATIONS.md) - Integration scenarios
-- [Workflow Examples](./examples/WORKFLOWS.md) - Common workflows
-
-## 🏗️ Architecture
-
-- [System Architecture](./ARCHITECTURE.md) - Overall system design
-- [Data Flow](./architecture/DATA_FLOW.md) - How data moves through the system
-- [Design Patterns](./architecture/DESIGN_PATTERNS.md) - Patterns used
-- [Performance](./architecture/PERFORMANCE.md) - Performance considerations
-
-## 📝 Templates
-
-- [Default Templates](./templates/DEFAULT.md) - Built-in templates
-- [Template Variables](./templates/VARIABLES.md) - Available variables
-- [Template Functions](./templates/FUNCTIONS.md) - Helper functions
-- [Template Best Practices](./templates/BEST_PRACTICES.md) - Template guidelines
-
----
-
-## Quick Links
+## 🎯 Quick Links
 
 ### For Users
-- [Installation](../README.md#installation)
-- [Quick Start](../README.md#quick-start)
-- [Configuration](./guides/CONFIGURATION.md)
-- [Troubleshooting](./TROUBLESHOOTING.md)
+1. [Installation](../README.md#installation)
+2. [Basic Usage](./guides/GETTING_STARTED.md#basic-usage)
+3. [Creating Templates](./guides/TEMPLATE_CREATION.md)
+4. [Template Examples](./api/TEMPLATE_SYNTAX.md#examples)
+5. [Configuration](./CONFIGURATION.md)
+6. [Marketplace](./modules/marketplace-service.md)
 
 ### For Developers
-- [Development Setup](./guides/DEVELOPMENT.md)
-- [API Reference](./API.md)
-- [Contributing](../CONTRIBUTING.md)
-- [Testing](./guides/TESTING.md)
+1. [Plugin Development](./PLUGIN_DEVELOPMENT.md)
+2. [Plugin API Reference](./api/PLUGIN_API.md)
+3. [API Reference](./API.md)
+4. [Architecture](./ARCHITECTURE.md)
+5. [Module Documentation](./modules/)
+6. [Contributing](../CONTRIBUTING.md)
 
-### For Template Authors
+## 📖 Documentation by Category
+
+### Configuration & Setup
+- [Getting Started](./guides/GETTING_STARTED.md)
+- [Configuration Guide](./CONFIGURATION.md)
+- [Environment Setup](./guides/GETTING_STARTED.md#environment-setup)
+- [YAML Configuration](../README.md#yaml-configuration-support)
+
+### Template Development
+- [Template Creation Guide](./guides/TEMPLATE_CREATION.md)
 - [Template Syntax](./api/TEMPLATE_SYNTAX.md)
-- [Template Creation](./guides/TEMPLATE_CREATION.md)
-- [Variables Reference](./templates/VARIABLES.md)
-- [Examples](./examples/ADVANCED_TEMPLATES.md)
+- [Template Engine Module](./modules/template-engine.md)
+- [Template Validator](./modules/template-validator.md)
+- [Template Service](./modules/template-service.md)
+- [Variable Reference](./api/TEMPLATE_SYNTAX.md#variables)
+- [Control Flow](./api/TEMPLATE_SYNTAX.md#control-flow)
+- [Advanced Features](./guides/TEMPLATE_CREATION.md#advanced-features)
+
+### Marketplace & Community
+- [Marketplace Service](./modules/marketplace-service.md)
+- [Publishing Templates](./guides/TEMPLATE_CREATION.md#publishing-templates)
+- [Installing Templates](./modules/marketplace-service.md#installing-templates)
+- [Author Management](./modules/marketplace-service.md#author-management)
+- [Template Discovery](../README.md#discovering-templates)
+
+### Plugin System
+- [Plugin Development Guide](./PLUGIN_DEVELOPMENT.md)
+- [Plugin API Reference](./api/PLUGIN_API.md)
+- [Plugin System Module](./modules/plugin-system.md)
+- [Creating Plugins](./modules/plugin-system.md#creating-a-new-plugin)
+- [Plugin Distribution](./modules/plugin-system.md#plugin-distribution)
+- [Custom Commands](./PLUGIN_DEVELOPMENT.md#custom-commands)
+
+### Integration & Extensions
+- [Cursor IDE Integration](./CURSOR_INTEGRATION.md)
+- [Context Aggregator](./modules/context-aggregator.md)
+- [Git Integration](./modules/context-aggregator.md#gitservice)
+- [File Context](./modules/context-aggregator.md#filecontextservice)
+
+### API Reference
+- [CLI Commands](./API.md#cli-commands)
+- [Core Classes](./API.md#core-classes)
+- [Services](./API.md#services)
+- [Interfaces](./API.md#interfaces)
+- [Error Handling](./API.md#error-handling)
+- [Plugin API](./api/PLUGIN_API.md)
+
+### Troubleshooting & Support
+- [Common Issues](./TROUBLESHOOTING.md)
+- [Debugging Guide](./TROUBLESHOOTING.md#debugging)
+- [Performance Tips](./TROUBLESHOOTING.md#performance)
+- [Security Considerations](./modules/plugin-system.md#security-considerations)
+
+## 🔧 Module Documentation
+
+### Core Modules
+- **[Template Engine](./modules/template-engine.md)** - Template processing and rendering
+- **[Template Validator](./modules/template-validator.md)** - Syntax and structure validation
+- **[Template Service](./modules/template-service.md)** - Template discovery and management
+- **[Context Aggregator](./modules/context-aggregator.md)** - Context collection from multiple sources
+
+### Marketplace Modules
+- **[Marketplace Service](./modules/marketplace-service.md)** - Template marketplace operations
+- **[Author Service](./modules/marketplace-service.md#authorservice)** - Author profiles and authentication
+- **[Version Manager](./modules/marketplace-service.md#versionmanager)** - Version control and updates
+
+### Plugin System
+- **[Plugin System](./modules/plugin-system.md)** - Plugin architecture and management
+- **[Plugin API](./api/PLUGIN_API.md)** - Complete API for plugin development
+- **[Command Registry](./modules/plugin-system.md#commandregistry)** - Command registration system
+
+## 📝 Additional Resources
+
+### External Links
+- [GitHub Repository](https://github.com/AdamManuel-dev/cursor-prompt-template-engine)
+- [Issue Tracker](https://github.com/AdamManuel-dev/cursor-prompt-template-engine/issues)
+- [Discussions](https://github.com/AdamManuel-dev/cursor-prompt-template-engine/discussions)
+- [NPM Package](https://www.npmjs.com/package/cursor-prompt)
+- [Cursor IDE](https://cursor.sh)
+
+### Community
+- [Contributing Guide](../CONTRIBUTING.md)
+- [Code of Conduct](../CONTRIBUTING.md#code-of-conduct)
+- [Template Marketplace](https://cursor-prompt.com/marketplace)
+- Discord Community (Coming Soon)
+
+### Learning Resources
+- [Template Examples](https://github.com/cursor-prompt/templates)
+- [Plugin Examples](https://github.com/cursor-prompt/plugins)
+- [Video Tutorials](https://youtube.com/cursor-prompt) (Coming Soon)
+- [Blog](https://cursor-prompt.com/blog) (Coming Soon)
+
+## 🔄 Documentation Updates
+
+This documentation is continuously updated. For the latest version, please check the [GitHub repository](https://github.com/AdamManuel-dev/cursor-prompt-template-engine).
+
+### Recent Updates
+- Added comprehensive module documentation
+- Created Template Creation Guide
+- Added Plugin API Reference
+- Enhanced Marketplace documentation
+- Added Template Validator documentation
+- Created Context Aggregator documentation
+- Updated navigation structure
+
+### Documentation Coverage
+- ✅ Core API Documentation
+- ✅ CLI Command Reference
+- ✅ Template Syntax Guide
+- ✅ Plugin Development Guide
+- ✅ Module Documentation
+- ✅ Configuration Guide
+- ✅ Troubleshooting Guide
+- ✅ Getting Started Guide
+- ✅ Template Creation Guide
+- ✅ Marketplace Documentation
 
 ---
 
-*Documentation Version: 1.0.0 | Last Updated: 2025-08-22*
+*Documentation Version: 1.1.0 | Last Updated: 2025-08-23*

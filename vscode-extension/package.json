@@ -1,0 +1,270 @@
+{
+  "name": "cursor-prompt-template-engine",
+  "displayName": "Cursor Prompt Template Engine",
+  "description": "Intelligent template-based prompt generation for Cursor IDE with context awareness and rule synchronization",
+  "version": "0.1.0",
+  "publisher": "cursor-prompt-team",
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#2C3E50",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Snippets",
+    "Programming Languages",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "cursor",
+    "prompt",
+    "template",
+    "ai",
+    "claude",
+    "context",
+    "rules"
+  ],
+  "activationEvents": [
+    "onCommand:cursorPrompt.generate",
+    "onCommand:cursorPrompt.listTemplates",
+    "onCommand:cursorPrompt.syncRules",
+    "onCommand:cursorPrompt.previewTemplate",
+    "onCommand:cursorPrompt.insertTemplate",
+    "onCommand:cursorPrompt.openConfig",
+    "onCommand:cursorPrompt.reloadTemplates",
+    "onCommand:cursorPrompt.quickFix",
+    "workspaceContains:.cursor/**",
+    "workspaceContains:.cursorprompt.json",
+    "workspaceContains:.cursorrules"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cursorPrompt.generate",
+        "title": "Generate from Template",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.listTemplates",
+        "title": "List Available Templates",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.syncRules",
+        "title": "Sync Templates to Cursor Rules",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.previewTemplate",
+        "title": "Preview Template",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.insertTemplate",
+        "title": "Insert Template at Cursor",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.openConfig",
+        "title": "Open Configuration",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.reloadTemplates",
+        "title": "Reload Templates",
+        "category": "Cursor Prompt"
+      },
+      {
+        "command": "cursorPrompt.quickFix",
+        "title": "Quick Fix with Template",
+        "category": "Cursor Prompt"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "cursorPrompt.generate",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "cursorPrompt.listTemplates",
+        "key": "ctrl+shift+l",
+        "mac": "cmd+shift+l",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "cursorPrompt.syncRules",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s"
+      }
+    ],
+    "configuration": {
+      "title": "Cursor Prompt Template Engine",
+      "properties": {
+        "cursorPrompt.autoSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically sync templates to Cursor rules on changes"
+        },
+        "cursorPrompt.syncInterval": {
+          "type": "number",
+          "default": 30000,
+          "description": "Auto-sync interval in milliseconds (default: 30 seconds)"
+        },
+        "cursorPrompt.rulesOutputDir": {
+          "type": "string",
+          "default": ".cursor/rules",
+          "description": "Directory for generated Cursor rules"
+        },
+        "cursorPrompt.legacySupport": {
+          "type": "boolean",
+          "default": true,
+          "description": "Support legacy .cursorrules file format"
+        },
+        "cursorPrompt.enableCommands": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable command palette integration"
+        },
+        "cursorPrompt.enableQuickFix": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable quick fix suggestions for errors"
+        },
+        "cursorPrompt.maxReferences": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum number of file references to include"
+        },
+        "cursorPrompt.cacheTimeout": {
+          "type": "number",
+          "default": 300000,
+          "description": "Context cache timeout in milliseconds (default: 5 minutes)"
+        },
+        "cursorPrompt.templatePaths": {
+          "type": "array",
+          "default": [
+            "./templates",
+            "./.cursor/templates"
+          ],
+          "description": "Paths to search for template files"
+        },
+        "cursorPrompt.enableTelemetry": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable anonymous usage telemetry"
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "cursorPrompt.generate",
+          "group": "cursor-prompt@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "cursorPrompt.previewTemplate",
+          "group": "cursor-prompt@2",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "cursorPrompt.insertTemplate",
+          "group": "cursor-prompt@3",
+          "when": "editorTextFocus"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "cursorPrompt.generate",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "cursorPrompt.listTemplates"
+        },
+        {
+          "command": "cursorPrompt.syncRules"
+        },
+        {
+          "command": "cursorPrompt.previewTemplate",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "cursorPrompt.insertTemplate",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "cursorPrompt.openConfig"
+        },
+        {
+          "command": "cursorPrompt.reloadTemplates"
+        },
+        {
+          "command": "cursorPrompt.quickFix",
+          "when": "editorHasSelection"
+        }
+      ]
+    },
+    "codeActions": [
+      {
+        "kind": "quickfix",
+        "languages": ["*"],
+        "command": "cursorPrompt.quickFix"
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "cursor-prompt",
+        "owner": "cursor-prompt",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "test-compile": "tsc -p ./",
+    "test-watch": "tsc -watch -p ./",
+    "pretest": "npm run test-compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
+    "@vscode/test-electron": "^2.3.9",
+    "@vscode/vsce": "^2.24.0",
+    "eslint": "^8.57.1",
+    "glob": "^11.0.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.7.3",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AdamManuel-dev/cursor-prompt-template-engine"
+  },
+  "homepage": "https://github.com/AdamManuel-dev/cursor-prompt-template-engine#readme",
+  "bugs": {
+    "url": "https://github.com/AdamManuel-dev/cursor-prompt-template-engine/issues"
+  },
+  "license": "MIT"
+}

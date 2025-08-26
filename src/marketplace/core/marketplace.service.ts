@@ -13,6 +13,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 
 import { MarketplaceAPI } from '../api/marketplace.api';
+import { IMarketplaceDatabase } from '../database/database.interface';
+import { getDatabase } from '../database/database.factory';
 import {
   TemplateModel,
   TemplateSearchQuery,
@@ -44,6 +46,18 @@ interface IMarketplaceService {
     rating: number,
     review?: Partial<TemplateReview>
   ): Promise<void>;
+  publishTemplate(
+    template: TemplateModel,
+    options?: {
+      version?: string;
+      isDraft?: boolean;
+      isPrivate?: boolean;
+    }
+  ): Promise<{
+    templateId: string;
+    version: string;
+    url?: string;
+  }>;
 }
 
 export class MarketplaceService
@@ -53,14 +67,12 @@ export class MarketplaceService
   private static instance: IMarketplaceService;
 
   private api: MarketplaceAPI;
-
   private registry: TemplateRegistry;
-
+  private database: IMarketplaceDatabase | null = null;
   // private _versionManager: VersionManager; // Reserved for future use
   private cache: Map<string, { data: unknown; expires: number }> = new Map();
 
   private manifestPath: string;
-
   private manifest: TemplateManifest | null = null;
 
   private constructor() {
@@ -73,7 +85,7 @@ export class MarketplaceService
       '.cursor-prompt',
       'marketplace.json'
     );
-    this.initializeManifest();
+    this.initializeDatabase();
   }
 
   static getInstance(): MarketplaceService {
@@ -88,6 +100,23 @@ export class MarketplaceService
    */
   get apiClient(): MarketplaceAPI {
     return this.api;
+  }
+
+  /**
+   * Initialize database connection
+   */
+  private async initializeDatabase(): Promise<void> {
+    try {
+      this.database = await getDatabase();
+      logger.info('Marketplace database initialized');
+      
+      // Initialize manifest from database or create default
+      await this.initializeManifest();
+    } catch (error) {
+      logger.error(`Failed to initialize marketplace database: ${error}`);
+      // Fallback to file-based initialization
+      await this.initializeManifest();
+    }
   }
 
   /**
@@ -152,9 +181,36 @@ export class MarketplaceService
     }
 
     try {
-      const result = await this.api.searchTemplates(query);
+      let result: TemplateSearchResult;
+      
+      // Use database for local search if available, otherwise API
+      if (this.database) {
+        const offset = ((query.page || 1) - 1) * (query.limit || 20);
+        const templates = query.query 
+          ? await this.database.templates.search(query.query, {
+              limit: query.limit,
+              offset: offset,
+              sort: query.sortBy ? [{ field: query.sortBy, direction: query.sortOrder || 'desc' }] : undefined
+            })
+          : await this.database.templates.findMany({
+              limit: query.limit,
+              offset: offset,
+              sort: query.sortBy ? [{ field: query.sortBy, direction: query.sortOrder || 'desc' }] : undefined
+            });
+        
+        result = {
+          templates: templates as any[], // Convert TemplateModel to MarketplaceTemplate
+          total: templates.length,
+          page: query.page || 1,
+          limit: query.limit || 20,
+          hasMore: templates.length === (query.limit || 20)
+        };
+      } else {
+        // Fallback to API
+        result = await this.api.searchTemplates(query);
+      }
+      
       this.setCache(cacheKey, result, 5 * 60 * 1000); // 5 minutes cache
-
       this.emit('search:completed', { query, result });
       return result;
     } catch (error) {
@@ -176,7 +232,22 @@ export class MarketplaceService
     }
 
     try {
-      const template = await this.api.getTemplate(templateId);
+      let template: TemplateModel;
+      
+      // Try database first, then API
+      if (this.database) {
+        const dbTemplate = await this.database.templates.findById(templateId);
+        if (dbTemplate) {
+          template = dbTemplate;
+        } else {
+          // Not in local database, fetch from API and cache locally
+          template = await this.api.getTemplate(templateId);
+          await this.database.templates.create(template);
+        }
+      } else {
+        template = await this.api.getTemplate(templateId);
+      }
+      
       this.setCache(cacheKey, template, 10 * 60 * 1000); // 10 minutes cache
 
       this.emit('template:fetched', { templateId, template });
@@ -904,6 +975,85 @@ export class MarketplaceService
     }
 
     return resolved;
+  }
+
+  /**
+   * Publish a template to the marketplace
+   */
+  async publishTemplate(
+    template: TemplateModel,
+    options: {
+      version?: string;
+      isDraft?: boolean;
+      isPrivate?: boolean;
+    } = {}
+  ): Promise<{
+    templateId: string;
+    version: string;
+    url?: string;
+  }> {
+    try {
+      logger.info(`Publishing template: ${template.name || template.id}`);
+
+      // Prepare template data for publishing
+      const publishData = {
+        ...template,
+        currentVersion: options.version || template.currentVersion || '1.0.0',
+        isDraft: options.isDraft || false,
+        isPrivate: options.isPrivate || false,
+        updated: new Date(),
+      };
+
+      // Call marketplace API to publish
+      const result = await this.api.publishTemplate(publishData);
+
+      // Register in local registry if successful
+      if (result.templateId) {
+        const templateVersion = template.versions[0] || {
+          version: result.version,
+          description: template.description,
+          content: template,
+          dependencies: [],
+          variables: [],
+          hooks: [],
+          publishedAt: new Date(),
+          changelog: 'Initial release',
+        };
+
+        await this.registry.registerTemplate(
+          template,
+          templateVersion,
+          '' // Will be set during installation
+        );
+      }
+
+      // Emit publish event
+      this.emit('template:published', {
+        templateId: result.templateId,
+        version: result.version,
+        authorId: template.author.id,
+      });
+
+      logger.info(
+        `✅ Template published successfully: ${result.templateId}@${result.version}`
+      );
+
+      return {
+        templateId: result.templateId,
+        version: result.version,
+        url: result.url,
+      };
+    } catch (error) {
+      logger.error(`Failed to publish template: ${error}`);
+
+      // Emit publish error event
+      this.emit('template:publish-error', {
+        templateId: template.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      throw error;
+    }
   }
 }
 

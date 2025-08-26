@@ -28,6 +28,8 @@ A lightweight, high-performance TypeScript CLI tool that revolutionizes prompt c
 - **Template Library**: Extensible template system for custom workflows
 - **Plugin Architecture**: Create custom commands and extend functionality
 - **Real-time Sync**: Live template synchronization with Cursor IDE
+- **YAML Support**: Configure templates using YAML with inheritance and validation
+- **Marketplace**: Share and discover community templates
 
 ## 📦 Installation
 
@@ -102,6 +104,14 @@ cursor-prompt generate refactor --variables '{"files": "src/api/*.ts", "goal": "
 - `plugin:list` - List installed plugins
 - `plugin:load <name>` - Load a plugin
 - `plugin:unload <name>` - Unload a plugin
+- `plugin:install <name>` - Install plugin from marketplace
+- `plugin:create <name>` - Create new plugin from template
+
+#### Marketplace Commands
+- `marketplace:search <query>` - Search for templates
+- `marketplace:install <template>` - Install community template
+- `marketplace:publish` - Publish your template to marketplace
+- `marketplace:info <template>` - View template details
 
 ### Built-in Templates
 - `bug-fix` - Debug and fix issues
@@ -172,6 +182,50 @@ Please analyze the code focusing on the specified areas.
 ```
 
 ## ⚙️ Configuration
+
+### YAML Configuration Support
+Templates can now be configured using YAML for better readability and features:
+
+```yaml
+# .cursor/templates/my-template.yaml
+name: advanced-template
+version: 1.0.0
+description: Advanced template with YAML features
+extends: ./base-template.yaml  # Template inheritance
+
+variables:
+  project_name:
+    type: string
+    default: my-project
+    description: Name of the project
+  framework:
+    type: choice
+    choices: [react, vue, angular]
+    default: react
+  use_typescript:
+    type: boolean
+    default: true
+
+commands:
+  build: npm run build
+  test: npm test
+  dev: npm run dev
+
+environments:
+  development:
+    variables:
+      api_url:
+        default: http://localhost:3000
+  production:
+    variables:
+      api_url:
+        default: https://api.example.com
+
+# Conditional includes
+includes:
+  - condition: ${use_typescript}
+    path: ./typescript-config.yaml
+```
 
 ### Default Configuration
 The tool works with zero configuration. To customize, create `.cursorprompt.json`:
@@ -263,6 +317,15 @@ console.log(result);
 Simple variable: {{variable_name}}
 Nested object: {{user.name}}
 Array access: {{items.0}}
+
+# Enhanced Variable Substitution with Pipes
+{{name | upper}}                          # Convert to uppercase
+{{title | trim | title}}                  # Chain transformations
+{{text | truncate:20:...}}                # With arguments
+{{price * quantity + tax}}                # Expressions
+{{env.API_URL}}                          # Environment variables
+{{isProduction ? prodUrl : devUrl}}      # Conditional
+{{value ?? "default"}}                    # Nullish coalescing
 ```
 
 ### Conditionals
@@ -419,6 +482,124 @@ cursor-prompt list  # List available templates
     "maxFileSize": "100KB"
   }
 }
+```
+
+## 🔌 Plugin System
+
+### Creating Plugins
+Extend functionality with custom plugins:
+
+```javascript
+// .cursor/plugins/my-plugin.js
+module.exports = {
+  name: 'my-plugin',
+  version: '1.0.0',
+  description: 'Custom functionality plugin',
+  
+  // Plugin lifecycle
+  init(api) {
+    // Initialize plugin with API access
+    this.api = api;
+    
+    // Register custom command
+    api.registerCommand('my-command', {
+      execute: (args) => {
+        console.log('Custom command executed!');
+      },
+      description: 'My custom command'
+    });
+    
+    // Hook into events
+    api.on('before-generate', (context) => {
+      // Modify context before template generation
+      context.customData = 'Added by plugin';
+      return context;
+    });
+  },
+  
+  // Hook definitions
+  hooks: {
+    'before-template': (context) => {
+      // Process before template rendering
+      return context;
+    },
+    'after-template': (result) => {
+      // Process after template rendering
+      return result;
+    }
+  }
+};
+```
+
+### Installing Plugins
+```bash
+# Install from marketplace
+cursor-prompt plugin:install awesome-plugin
+
+# Load local plugin
+cursor-prompt plugin:load ./my-plugin.js
+
+# List installed plugins
+cursor-prompt plugin:list
+```
+
+### Plugin API Reference
+- `api.registerCommand(name, handler)` - Register custom command
+- `api.on(event, callback)` - Listen to events
+- `api.emit(event, data)` - Emit custom events
+- `api.getConfig(key)` - Access configuration
+- `api.setConfig(key, value)` - Modify configuration
+- `api.storage.get/set` - Plugin data persistence
+- `api.fs` - Restricted file system access
+- `api.sendMessage(plugin, data)` - Inter-plugin communication
+
+## 🏪 Template Marketplace
+
+### Publishing Templates
+Share your templates with the community:
+
+```bash
+# Publish template to marketplace
+cursor-prompt marketplace:publish --template my-awesome-template \
+  --version 1.0.0 \
+  --category productivity \
+  --tags "automation,testing"
+
+# Update published template
+cursor-prompt marketplace:update my-awesome-template --version 1.1.0
+```
+
+### Template Manifest
+```yaml
+# template.manifest.yaml
+name: my-awesome-template
+version: 1.0.0
+author: your-username
+description: Productivity-boosting template for rapid development
+category: productivity
+tags:
+  - automation
+  - testing
+  - typescript
+license: MIT
+homepage: https://github.com/user/template
+dependencies:
+  - base-template: "^1.0.0"
+```
+
+### Discovering Templates
+```bash
+# Search marketplace
+cursor-prompt marketplace:search "typescript testing"
+
+# View template details
+cursor-prompt marketplace:info awesome-template
+
+# Install template
+cursor-prompt marketplace:install awesome-template
+
+# Rate and review
+cursor-prompt marketplace:rate awesome-template --stars 5 --comment "Great template!"
 ```
 
 ## 📝 License

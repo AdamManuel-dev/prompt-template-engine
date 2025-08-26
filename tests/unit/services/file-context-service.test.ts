@@ -10,6 +10,7 @@
 
 import { MockFactory } from '../../__mocks__/mock-factory';
 import { mockGlob } from '../../__mocks__/glob.mock';
+import { mockFileSystem } from '../../__mocks__/fs.mock';
 
 // Mock the external dependencies before importing the service
 jest.mock('fs', () => require('../../__mocks__/fs.mock').default);

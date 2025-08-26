@@ -16,6 +16,7 @@ import {
   TemplateProcessingError,
   ValidationError,
 } from '../utils/errors';
+import { CacheService } from './cache.service';
 
 export interface TemplateFile {
   path: string;
@@ -71,7 +72,7 @@ export class TemplateService {
 
   private readonly options: TemplateServiceOptions;
 
-  private readonly templateCache: Map<string, Template>;
+  private readonly templateCache: CacheService<Template>;
 
   constructor(options: TemplateServiceOptions = {}) {
     this.engine = new TemplateEngine();
@@ -80,27 +81,42 @@ export class TemplateService {
       cacheEnabled: options.cacheEnabled ?? true,
       validationStrict: options.validationStrict ?? false,
     };
-    this.templateCache = new Map();
+    this.templateCache = new CacheService<Template>({
+      maxSize: 50,
+      maxAge: 1000 * 60 * 30, // 30 minutes TTL for templates
+    });
   }
 
   /**
    * Load a template from file system
    */
   async loadTemplate(templatePath: string): Promise<Template> {
-    // Check cache first
-    if (this.options.cacheEnabled && this.templateCache.has(templatePath)) {
-      return this.templateCache.get(templatePath)!;
+    // Use cache's getOrCompute for automatic caching
+    if (this.options.cacheEnabled) {
+      return this.templateCache.getOrCompute(templatePath, async () =>
+        this.loadTemplateFromDisk(templatePath)
+      );
     }
 
+    // Load without caching
+    return this.loadTemplateFromDisk(templatePath);
+  }
+
+  /**
+   * Load template from disk (internal method)
+   */
+  private async loadTemplateFromDisk(templatePath: string): Promise<Template> {
     // Check if path exists
-    if (!fs.existsSync(templatePath)) {
+    try {
+      await fs.promises.access(templatePath);
+    } catch (error) {
       throw new FileNotFoundError(
         `Template not found: ${templatePath}`,
         templatePath
       );
     }
 
-    const stats = fs.statSync(templatePath);
+    const stats = await fs.promises.stat(templatePath);
     let template: Template;
 
     if (stats.isDirectory()) {
@@ -109,11 +125,6 @@ export class TemplateService {
     } else {
       // Load from single file
       template = await TemplateService.loadTemplateFromFile(templatePath);
-    }
-
-    // Cache the template
-    if (this.options.cacheEnabled) {
-      this.templateCache.set(templatePath, template);
     }
 
     return template;
@@ -149,7 +160,9 @@ export class TemplateService {
   ): Promise<Template> {
     const configPath = path.join(dirPath, 'template.json');
 
-    if (!fs.existsSync(configPath)) {
+    try {
+      await fs.promises.access(configPath);
+    } catch (error) {
       throw new FileNotFoundError(
         `Template configuration not found: ${configPath}`,
         configPath
@@ -164,9 +177,12 @@ export class TemplateService {
       template.files.map(async file => {
         if (!file.content && file.path) {
           const filePath = path.join(dirPath, file.path);
-          if (fs.existsSync(filePath)) {
+          try {
+            await fs.promises.access(filePath);
             const content = await fs.promises.readFile(filePath, 'utf8');
             return { ...file, content };
+          } catch (error) {
+            // File doesn't exist, return as is
           }
         }
         return file;
@@ -281,8 +297,17 @@ export class TemplateService {
       path.join(searchPath, templateName, 'template.json'),
     ]);
 
-    const found = allCandidates.find(candidate => fs.existsSync(candidate));
-    return found || null;
+    // Check each candidate asynchronously
+    for (const candidate of allCandidates) {
+      try {
+        await fs.promises.access(candidate);
+        return candidate;
+      } catch (error) {
+        // File doesn't exist, continue to next candidate
+        continue;
+      }
+    }
+    return null;
   }
 
   /**
@@ -301,9 +326,16 @@ export class TemplateService {
       description?: string;
     }> = [];
 
-    const searchPaths = this.options.templatePaths!.filter(p =>
-      fs.existsSync(p)
-    );
+    // Filter search paths asynchronously
+    const searchPaths: string[] = [];
+    for (const p of this.options.templatePaths!) {
+      try {
+        await fs.promises.access(p);
+        searchPaths.push(p);
+      } catch (error) {
+        // Path doesn't exist, skip
+      }
+    }
 
     const allTemplates = await Promise.all(
       searchPaths.map(async searchPath => {
@@ -317,7 +349,8 @@ export class TemplateService {
 
             if (entry.isDirectory()) {
               const configPath = path.join(fullPath, 'template.json');
-              if (fs.existsSync(configPath)) {
+              try {
+                await fs.promises.access(configPath);
                 try {
                   const template = await this.loadTemplate(fullPath);
                   return {
@@ -328,6 +361,9 @@ export class TemplateService {
                 } catch {
                   return null;
                 }
+              } catch {
+                // Config file doesn't exist, skip
+                return null;
               }
             } else if (entry.name.endsWith('.json')) {
               try {
@@ -469,7 +505,14 @@ export class TemplateService {
   /**
    * Clear template cache
    */
-  clearCache(): void {
-    this.templateCache.clear();
+  async clearCache(): Promise<void> {
+    await this.templateCache.clear();
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return this.templateCache.getStats();
   }
 }

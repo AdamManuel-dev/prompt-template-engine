@@ -16,6 +16,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as yaml from 'js-yaml';
 import chalk from 'chalk';
 import { logger } from '../utils/logger';
 import {
@@ -506,12 +507,15 @@ async function loadTemplate(templatePath: string): Promise<unknown> {
         return JSON.parse(content);
       }
       if (templatePath.endsWith('.yaml') || templatePath.endsWith('.yml')) {
-        // TODO: Add YAML support when available
-        throw new TemplateEngineError(
-          'YAML templates not yet supported',
-          { templatePath },
-          'UNSUPPORTED_FORMAT'
-        );
+        try {
+          return yaml.load(content) as any;
+        } catch (yamlError: unknown) {
+          throw new TemplateEngineError(
+            `Invalid YAML format: ${yamlError instanceof Error ? yamlError.message : 'Unknown YAML parsing error'}`,
+            { templatePath, yamlError },
+            'INVALID_YAML'
+          );
+        }
       } else {
         throw new TemplateEngineError(
           `Unsupported template format: ${path.extname(templatePath)}`,

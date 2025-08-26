@@ -694,3 +694,109 @@ export interface MarketplaceRateOptions extends MarketplaceCommandOptions {
   delete?: boolean;
   title?: string;
 }
+
+/**
+ * Template definition with all properties
+ */
+export interface Template {
+  name: string;
+  version?: string;
+  description?: string;
+  author?: string;
+  tags?: string[];
+  content?: string;
+  variables?: Record<string, unknown>;
+  commands?: Record<string, string>;
+  requirements?: string[];
+  examples?: string[];
+  filePatterns?: string[];
+  contextFiles?: string[];
+  references?: string[];
+  priority?: 'low' | 'medium' | 'high';
+  alwaysApply?: boolean;
+}
+
+/**
+ * Cursor Rule definition for .cursor/rules/*.mdc format
+ */
+export interface CursorRule {
+  name: string;
+  filename: string;
+  frontmatter: RuleFrontmatter;
+  content: string;
+  references?: string[];
+}
+
+/**
+ * Rule frontmatter for MDC format
+ */
+export interface RuleFrontmatter {
+  description: string;
+  globs?: string[];
+  alwaysApply?: boolean;
+  tags?: string[];
+  author?: string;
+  version?: string;
+  generated?: string;
+}
+
+/**
+ * Plugin system interfaces
+ */
+export interface IPlugin {
+  name: string;
+  version: string;
+  description?: string;
+  author?: string;
+  dependencies?: string[];
+  permissions?: string[];
+  priority?: number;
+  defaultConfig?: Record<string, unknown>;
+  configSchema?: Record<string, unknown>;
+  init: (api: PluginAPI, config?: unknown) => Promise<boolean> | boolean;
+  activate?: () => Promise<void> | void;
+  deactivate?: () => Promise<void> | void;
+  dispose?: () => Promise<void> | void;
+  execute?: (args: unknown) => Promise<unknown> | unknown;
+  hooks?: Record<string, (context: unknown) => Promise<unknown> | unknown>;
+}
+
+/**
+ * Plugin API interface
+ */
+export interface PluginAPI {
+  getVersion: () => string;
+  getConfig: (key?: string) => unknown;
+  setConfig: (key: string, value: unknown) => void;
+  registerCommand: (name: string, handler: unknown) => void;
+  getCommand: (name: string) => unknown;
+  on: (event: string, callback: (...args: unknown[]) => void) => void;
+  emit: (event: string, data: unknown) => void;
+  storage: {
+    get: (key: string) => Promise<unknown>;
+    set: (key: string, value: unknown) => Promise<void>;
+    delete: (key: string) => Promise<void>;
+  };
+  fs: {
+    readFile: (path: string) => Promise<string>;
+    writeFile: (path: string, content: string) => Promise<void>;
+    exists: (path: string) => Promise<boolean>;
+    glob: (pattern: string) => Promise<string[]>;
+  };
+  exec: (command: string) => Promise<{ stdout: string; stderr: string }>;
+  log: (level: string, message: string, ...args: unknown[]) => void;
+  sendMessage: (plugin: string, data: unknown) => void;
+  onMessage: (callback: (message: unknown) => void) => void;
+  getPlugin: (name: string) => IPlugin | null;
+}
+
+/**
+ * Plugin metadata
+ */
+export interface PluginMetadata {
+  name: string;
+  version: string;
+  description?: string;
+  author?: string;
+  dependencies?: string[];
+}

@@ -23,6 +23,7 @@ import { listCommand, ListOptions } from './commands/list';
 import { applyCommand, ApplyOptions } from './commands/apply';
 import { validateCommand } from './commands/validate';
 import { configCommand } from './commands/config';
+import { pluginCommand, PluginOptions } from './commands/plugin';
 import { CommandRegistry } from './cli/command-registry';
 import { PluginLoader } from './cli/plugin-loader';
 import { ConfigManager } from './config/config-manager';
@@ -36,6 +37,7 @@ import { ListCommand as MarketplaceListCommand } from './commands/marketplace/li
 import { UpdateCommand as MarketplaceUpdateCommand } from './commands/marketplace/update';
 import { InfoCommand as MarketplaceInfoCommand } from './commands/marketplace/info';
 import { RateCommand as MarketplaceRateCommand } from './commands/marketplace/rate';
+import { PublishCommand as MarketplacePublishCommand } from './commands/marketplace/publish';
 import { AuthorCommand } from './commands/marketplace/author';
 import type {
   MarketplaceInstallOptions,
@@ -585,6 +587,26 @@ function configureProgram(): void {
     );
 
   program
+    .command('marketplace:publish [template-path]')
+    .description('publish a template to the marketplace')
+    .option('-v, --version <version>', 'template version (e.g., 1.0.0)')
+    .option('-c, --category <category>', 'template category')
+    .option('-t, --tags <tags>', 'comma-separated tags')
+    .option('-d, --description <description>', 'template description')
+    .option('--private', 'publish as private template')
+    .option('--draft', 'publish as draft (not publicly visible)')
+    .option('-f, --force', 'force publish even with warnings')
+    .action(async (templatePath: string | undefined, options: any) => {
+      try {
+        const command = new MarketplacePublishCommand();
+        await command.execute(templatePath || '.', options);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
+
+  program
     .command('marketplace:author <action> [author]')
     .description('manage marketplace authors')
     .option('-p, --profile', 'show author profile')
@@ -602,6 +624,25 @@ function configureProgram(): void {
         }
       }
     );
+
+  // Plugin Management Command
+  program
+    .command('plugin')
+    .description('manage plugins')
+    .option('--list', 'list all installed plugins')
+    .option('--install <name>', 'install a plugin from registry')
+    .option('--uninstall <name>', 'uninstall a plugin')
+    .option('--info <name>', 'show detailed plugin information')
+    .option('--stats', 'show plugin statistics')
+    .option('--dev <path>', 'link a development plugin directory')
+    .action(async (options: PluginOptions) => {
+      try {
+        await pluginCommand(options);
+      } catch (error) {
+        ErrorUtils.logError(error, logger);
+        process.exit(ErrorUtils.getExitCode(error));
+      }
+    });
 
   // Error handling
   program.configureOutput({

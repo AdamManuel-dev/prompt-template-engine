@@ -1,0 +1,158 @@
+name: Publish
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      publish_target:
+        description: 'Publish target'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - npm
+          - vscode
+          - both
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Check types
+        run: npm run type-check:strict
+      
+      - name: Lint code
+        run: npm run lint
+
+  publish-npm:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || contains(fromJson('["npm", "both"]'), github.event.inputs.publish_target)
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build package
+        run: npm run build
+      
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+      
+      - name: Upload npm package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: |
+            dist/
+            package.json
+            README.md
+            LICENSE
+
+  publish-vscode:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || contains(fromJson('["vscode", "both"]'), github.event.inputs.publish_target)
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install -g @vscode/vsce
+      
+      - name: Build main package
+        run: npm run build
+      
+      - name: Install VS Code extension dependencies
+        run: |
+          cd vscode-extension
+          npm install
+      
+      - name: Package VS Code extension
+        run: |
+          cd vscode-extension
+          vsce package --out ../cursor-prompt-${{ github.ref_name }}.vsix
+      
+      - name: Publish to VS Code Marketplace
+        run: |
+          cd vscode-extension
+          vsce publish
+        env:
+          VSCE_PAT: ${{secrets.VSCE_TOKEN}}
+      
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-package
+          path: '*.vsix'
+
+  create-github-release:
+    needs: [publish-npm, publish-vscode]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Create release assets
+        run: |
+          cd artifacts
+          tar -czf npm-package.tar.gz npm-package/
+          mv vsix-package/*.vsix ../
+      
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *.vsix
+            artifacts/npm-package.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-success:
+    needs: [publish-npm, publish-vscode]
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: Notify success
+        run: |
+          echo "✅ Successfully published to:"
+          echo "  - npm registry: https://www.npmjs.com/package/cursor-prompt"
+          echo "  - VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=cursor-prompt-team.cursor-prompt-template-engine"

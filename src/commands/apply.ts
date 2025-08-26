@@ -13,6 +13,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { spawn } from 'child_process';
+import * as yaml from 'js-yaml';
 import chalk from 'chalk';
 import { logger } from '../utils/logger';
 import { TemplateEngine } from '../core/template-engine';
@@ -24,6 +26,8 @@ import {
   VariableDefinition,
 } from '../core/template-validator';
 import { loadConfig } from '../utils/config';
+import { ApplyCommandSchema } from '../validation/schemas';
+import { withValidation } from '../middleware/validation.middleware';
 
 export interface ApplyOptions {
   force?: boolean;
@@ -163,8 +167,13 @@ async function loadTemplate(templatePath: string): Promise<TemplateWithPath> {
     return JSON.parse(content);
   }
   if (templatePath.endsWith('.yaml') || templatePath.endsWith('.yml')) {
-    // TODO: Add YAML support
-    throw new Error('YAML templates not yet supported');
+    try {
+      return yaml.load(content) as TemplateSchema;
+    } catch (yamlError: unknown) {
+      throw new Error(
+        `Invalid YAML format in ${templatePath}: ${yamlError instanceof Error ? yamlError.message : 'Unknown YAML parsing error'}`
+      );
+    }
   } else {
     throw new Error(
       `Unsupported template format: ${path.extname(templatePath)}`
@@ -272,7 +281,7 @@ async function applyTemplate(
     if (template.commands && Array.isArray(template.commands)) {
       for (const cmd of template.commands) {
         try {
-          await executeCommand(cmd);
+          await executeCommand(cmd, variables, engine);
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
@@ -336,14 +345,56 @@ async function applyFile(
 }
 
 /**
- * Execute command from template
+ * Execute command from template with variable substitution
  */
-async function executeCommand(cmd: CommandDefinition | string): Promise<void> {
+async function executeCommand(
+  cmd: CommandDefinition | string,
+  variables: Record<string, unknown>,
+  engine: TemplateEngine
+): Promise<void> {
   const command = typeof cmd === 'string' ? cmd : cmd.command;
   if (!command) return;
 
-  // TODO: Implement command execution with variable substitution
-  logger.info(chalk.gray(`  Would execute: ${command}`));
+  // Perform variable substitution
+  const processedCommand = await engine.render(command, variables);
+
+  if (!processedCommand.trim()) {
+    logger.info(
+      chalk.gray('  Command is empty after variable substitution, skipping')
+    );
+    return;
+  }
+
+  logger.info(chalk.cyan(`  Executing: ${processedCommand}`));
+
+  try {
+    const [executable, ...args] = processedCommand.split(' ');
+
+    return new Promise<void>((resolve, reject) => {
+      const child = spawn(executable, args, {
+        stdio: 'inherit',
+        shell: true,
+        cwd: process.cwd(),
+      });
+
+      child.on('close', code => {
+        if (code === 0) {
+          logger.info(chalk.green(`  ✓ Command completed successfully`));
+          resolve();
+        } else {
+          reject(new Error(`Command failed with exit code ${code}`));
+        }
+      });
+
+      child.on('error', error => {
+        reject(new Error(`Failed to execute command: ${error.message}`));
+      });
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(chalk.red(`  ✗ Command execution failed: ${message}`));
+    throw error;
+  }
 }
 
 /**
@@ -385,3 +436,23 @@ function reportApplyResults(result: ApplyResult): void {
     });
   }
 }
+
+/**
+ * Validated apply command wrapper
+ */
+export const applyCommandWithValidation = withValidation(
+  ApplyCommandSchema,
+  async (validatedInput: any) => {
+    const { template, force, dryRun } = validatedInput;
+
+    // Convert to ApplyOptions
+    const options: ApplyOptions = {
+      force,
+      preview: dryRun,
+      variables: {},
+    };
+
+    await applyCommand(template, options);
+    return { success: true };
+  }
+);

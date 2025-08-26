@@ -588,6 +588,30 @@ export class AuthorService extends EventEmitter implements IAuthorService {
   }
 
   /**
+   * Get the current user ID from various sources
+   * Priority: currentProfile.id > USER_ID env var > system username > fallback
+   */
+  private getCurrentUserId(): string {
+    // First try to get from current profile
+    if (this.currentProfile?.id) {
+      return this.currentProfile.id;
+    }
+
+    // Try environment variable (for authenticated scenarios)
+    if (process.env.USER_ID) {
+      return process.env.USER_ID;
+    }
+
+    // Try system username as fallback
+    if (process.env.USER || process.env.USERNAME) {
+      return process.env.USER || process.env.USERNAME || 'unknown-user';
+    }
+
+    // Ultimate fallback
+    return 'anonymous-user';
+  }
+
+  /**
    * Follow an author
    */
   async followAuthor(authorId: string): Promise<void> {
@@ -596,7 +620,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       this.emit('author:followed', { authorId });
 
       // Update cache
-      const currentUserId = 'current-user'; // TODO: Get actual current user ID
+      const currentUserId = this.getCurrentUserId();
       const following = this.followingCache.get(currentUserId) || new Set();
       following.add(authorId);
       this.followingCache.set(currentUserId, following);
@@ -615,7 +639,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       this.emit('author:unfollowed', { authorId });
 
       // Update cache
-      const currentUserId = 'current-user'; // TODO: Get actual current user ID
+      const currentUserId = this.getCurrentUserId();
       const following = this.followingCache.get(currentUserId) || new Set();
       following.delete(authorId);
       this.followingCache.set(currentUserId, following);
