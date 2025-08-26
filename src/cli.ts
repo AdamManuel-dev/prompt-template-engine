@@ -17,7 +17,7 @@ import { TemplateService } from './services/template.service';
 // import { TemplateEngine } from './core/template-engine'; // Using service's renderTemplate instead
 import { CursorIntegration } from './integrations/cursor';
 import { logger } from './utils/logger';
-// import type { Template } from './types'; // Currently unused
+import type { Template } from './types';
 
 // PromptWizard CLI Commands
 import OptimizeCommand from './cli/commands/optimize';
@@ -118,13 +118,14 @@ program
       if (options.tags) {
         const tags = options.tags.split(',').map((t: string) => t.trim());
         filtered = templates.filter(
-          (t: any) => t.tags && tags.some((tag: string) => t.tags.includes(tag))
+          (t: Template) =>
+            t.tags && tags.some((tag: string) => t.tags?.includes(tag))
         );
       }
 
       // Display templates
       if (options.detailed) {
-        filtered.forEach((template: any) => {
+        filtered.forEach((template: Template) => {
           console.log(chalk.cyan(`\n📝 ${template.name}`));
           console.log(
             `   ${chalk.gray(template.description || 'No description')}`
@@ -132,7 +133,7 @@ program
           if (template.version) {
             console.log(`   ${chalk.gray(`Version: ${template.version}`)}`);
           }
-          if (template.tags?.length > 0) {
+          if (template.tags && template.tags.length > 0) {
             console.log(
               `   ${chalk.gray(`Tags: ${template.tags.join(', ')}`)}`
             );
@@ -140,7 +141,7 @@ program
         });
       } else {
         console.log(chalk.cyan('\nAvailable Templates:'));
-        filtered.forEach((template: any) => {
+        filtered.forEach((template: Template) => {
           console.log(
             `  • ${template.name} ${chalk.gray(template.description ? `- ${template.description}` : '')}`
           );

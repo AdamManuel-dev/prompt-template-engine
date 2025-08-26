@@ -149,7 +149,6 @@ export class OptimizationWorkflowManager {
 
   private optimizationService: PromptOptimizationService;
 
-
   private readonly defaultConfig: WorkflowConfig = {
     concurrency: 3,
     maxFileSize: 1024 * 1024, // 1MB
@@ -833,7 +832,8 @@ export class OptimizationWorkflowManager {
       return {
         success: true,
         originalContent: content,
-        optimizedContent: result.optimizedTemplate.files?.map(f => f.content).join('\n') || '',
+        optimizedContent:
+          result.optimizedTemplate.files?.map(f => (f as any).content).join('\n') || '',
         metrics: {
           accuracyImprovement: result.metrics.accuracyImprovement,
           tokenReduction: result.metrics.tokenReduction,

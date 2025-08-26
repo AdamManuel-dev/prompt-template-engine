@@ -198,6 +198,87 @@ export const DEFAULT_PROMPTWIZARD_CONFIG: PromptWizardConfig = {
 };
 
 /**
+ * Validate PromptWizard configuration
+ */
+export function validatePromptWizardConfig(config: PromptWizardConfig): {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+} {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Validate connection config
+  if (!config.connection.serviceUrl) {
+    errors.push('connection.serviceUrl is required');
+  }
+  if (config.connection.timeout < 30000) {
+    warnings.push('connection.timeout is less than 30 seconds');
+  }
+  if (config.connection.retries < 0 || config.connection.retries > 10) {
+    errors.push('connection.retries must be between 0 and 10');
+  }
+
+  // Validate optimization config
+  if (
+    config.optimization.mutateRefineIterations < 1 ||
+    config.optimization.mutateRefineIterations > 10
+  ) {
+    errors.push('optimization.mutateRefineIterations must be between 1 and 10');
+  }
+  if (
+    config.optimization.fewShotCount < 0 ||
+    config.optimization.fewShotCount > 20
+  ) {
+    errors.push('optimization.fewShotCount must be between 0 and 20');
+  }
+  if (
+    config.optimization.minConfidence < 0 ||
+    config.optimization.minConfidence > 1
+  ) {
+    errors.push('optimization.minConfidence must be between 0 and 1');
+  }
+  if (config.optimization.maxPromptLength < 1000) {
+    warnings.push('optimization.maxPromptLength is very low');
+  }
+
+  // Validate cache config
+  if (config.cache.enabled && config.cache.ttl < 300) {
+    warnings.push('cache.ttl is less than 5 minutes');
+  }
+  if (config.cache.maxSize < 10) {
+    warnings.push('cache.maxSize is very low');
+  }
+
+  // Validate rate limiting
+  if (config.rateLimiting.maxRequests < 1) {
+    errors.push('rateLimiting.maxRequests must be at least 1');
+  }
+  if (config.rateLimiting.windowMs < 60000) {
+    warnings.push('rateLimiting.windowMs is less than 1 minute');
+  }
+
+  // Validate protocol configurations
+  if (config.grpc.enabled && !config.grpc.serviceUrl) {
+    errors.push('grpc.serviceUrl is required when gRPC is enabled');
+  }
+  if (config.websocket.enabled && !config.websocket.serviceUrl) {
+    errors.push('websocket.serviceUrl is required when WebSocket is enabled');
+  }
+
+  // Check for conflicting configurations
+  if (!config.enabled && (config.grpc.enabled || config.websocket.enabled)) {
+    warnings.push('gRPC/WebSocket enabled but PromptWizard is disabled');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
  * Get current PromptWizard configuration
  */
 export function getPromptWizardConfig(): PromptWizardConfig {
@@ -398,87 +479,6 @@ export function getPromptWizardConfig(): PromptWizardConfig {
     );
     return DEFAULT_PROMPTWIZARD_CONFIG;
   }
-}
-
-/**
- * Validate PromptWizard configuration
- */
-export function validatePromptWizardConfig(config: PromptWizardConfig): {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
-} {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  // Validate connection config
-  if (!config.connection.serviceUrl) {
-    errors.push('connection.serviceUrl is required');
-  }
-  if (config.connection.timeout < 30000) {
-    warnings.push('connection.timeout is less than 30 seconds');
-  }
-  if (config.connection.retries < 0 || config.connection.retries > 10) {
-    errors.push('connection.retries must be between 0 and 10');
-  }
-
-  // Validate optimization config
-  if (
-    config.optimization.mutateRefineIterations < 1 ||
-    config.optimization.mutateRefineIterations > 10
-  ) {
-    errors.push('optimization.mutateRefineIterations must be between 1 and 10');
-  }
-  if (
-    config.optimization.fewShotCount < 0 ||
-    config.optimization.fewShotCount > 20
-  ) {
-    errors.push('optimization.fewShotCount must be between 0 and 20');
-  }
-  if (
-    config.optimization.minConfidence < 0 ||
-    config.optimization.minConfidence > 1
-  ) {
-    errors.push('optimization.minConfidence must be between 0 and 1');
-  }
-  if (config.optimization.maxPromptLength < 1000) {
-    warnings.push('optimization.maxPromptLength is very low');
-  }
-
-  // Validate cache config
-  if (config.cache.enabled && config.cache.ttl < 300) {
-    warnings.push('cache.ttl is less than 5 minutes');
-  }
-  if (config.cache.maxSize < 10) {
-    warnings.push('cache.maxSize is very low');
-  }
-
-  // Validate rate limiting
-  if (config.rateLimiting.maxRequests < 1) {
-    errors.push('rateLimiting.maxRequests must be at least 1');
-  }
-  if (config.rateLimiting.windowMs < 60000) {
-    warnings.push('rateLimiting.windowMs is less than 1 minute');
-  }
-
-  // Validate protocol configurations
-  if (config.grpc.enabled && !config.grpc.serviceUrl) {
-    errors.push('grpc.serviceUrl is required when gRPC is enabled');
-  }
-  if (config.websocket.enabled && !config.websocket.serviceUrl) {
-    errors.push('websocket.serviceUrl is required when WebSocket is enabled');
-  }
-
-  // Check for conflicting configurations
-  if (!config.enabled && (config.grpc.enabled || config.websocket.enabled)) {
-    warnings.push('gRPC/WebSocket enabled but PromptWizard is disabled');
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings,
-  };
 }
 
 /**

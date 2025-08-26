@@ -18,6 +18,7 @@ import {
   PromptWizardClient,
   createDefaultConfig,
 } from '../../integrations/promptwizard';
+import type { QualityScore } from '../../integrations/promptwizard/types';
 
 interface ScoreOptions {
   prompt?: string;
@@ -308,7 +309,7 @@ export class ScoreCommand extends BaseCommand {
    * Display score in table format
    */
   private displayTableScore(
-    score: any,
+    score: QualityScore,
     promptText: string,
     sourceName: string,
     options: ScoreOptions
@@ -341,10 +342,11 @@ export class ScoreCommand extends BaseCommand {
     }
 
     metrics.forEach(([metric, value]) => {
-      const color = this.getScoreColor(value);
-      const label = this.getScoreLabel(value);
+      const numericValue = typeof value === 'number' ? value : 0;
+      const color = this.getScoreColor(numericValue);
+      const label = this.getScoreLabel(numericValue);
       console.log(
-        `│ ${metric.padEnd(19)} │ ${color(`${value}/100`.padEnd(11))} │ ${color(label.padEnd(13))} │`
+        `│ ${String(metric).padEnd(19)} │ ${color(`${numericValue}/100`.padEnd(11))} │ ${color(label.padEnd(13))} │`
       );
     });
 
@@ -374,7 +376,7 @@ export class ScoreCommand extends BaseCommand {
   /**
    * Display score in JSON format
    */
-  private displayJsonScore(score: any, sourceName: string): void {
+  private displayJsonScore(score: QualityScore, sourceName: string): void {
     const result = {
       source: sourceName,
       timestamp: new Date().toISOString(),
@@ -387,7 +389,7 @@ export class ScoreCommand extends BaseCommand {
    * Display score in markdown format
    */
   private displayMarkdownScore(
-    score: any,
+    score: QualityScore,
     promptText: string,
     sourceName: string
   ): void {
@@ -434,7 +436,7 @@ export class ScoreCommand extends BaseCommand {
   /**
    * Display score in badge format
    */
-  private displayBadgeScore(score: any, sourceName: string): void {
+  private displayBadgeScore(score: QualityScore, sourceName: string): void {
     const color = this.getScoreColor(score.overall);
     const label = this.getScoreLabel(score.overall);
 
@@ -458,7 +460,12 @@ export class ScoreCommand extends BaseCommand {
    * Display batch scoring results
    */
   private displayBatchResults(
-    results: any[],
+    results: Array<{
+      template: string;
+      score?: QualityScore;
+      passed: boolean;
+      error?: string;
+    }>,
     threshold: number,
     options: ScoreOptions
   ): void {
@@ -491,8 +498,8 @@ export class ScoreCommand extends BaseCommand {
             `│ ${name} │ ${chalk.red('ERROR'.padEnd(11))} │ ${chalk.red('FAILED'.padEnd(11))} │`
           );
         } else {
-          const scoreStr = `${result.score.overall}/100`;
-          const scoreColor = this.getScoreColor(result.score.overall);
+          const scoreStr = `${result.score?.overall || 0}/100`;
+          const scoreColor = this.getScoreColor(result.score?.overall || 0);
           const status = result.passed
             ? chalk.green('PASSED')
             : chalk.red('FAILED');
@@ -510,7 +517,7 @@ export class ScoreCommand extends BaseCommand {
     // Summary statistics
     const validResults = results.filter(r => !r.error && r.score);
     if (validResults.length > 0) {
-      const scores = validResults.map(r => r.score.overall);
+      const scores = validResults.map(r => r.score?.overall || 0);
       const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
       const minScore = Math.min(...scores);
       const maxScore = Math.max(...scores);
@@ -534,7 +541,7 @@ export class ScoreCommand extends BaseCommand {
   /**
    * Check if score meets threshold
    */
-  private checkThreshold(score: any, threshold: number): void {
+  private checkThreshold(score: QualityScore, threshold: number): void {
     if (score.overall >= threshold) {
       this.success(
         `Quality score meets threshold (${score.overall} >= ${threshold})`
@@ -572,7 +579,7 @@ export class ScoreCommand extends BaseCommand {
    * Save scoring report
    */
   private async saveScoreReport(
-    score: any,
+    score: QualityScore,
     promptText: string,
     sourceName: string,
     options: ScoreOptions
@@ -613,7 +620,12 @@ export class ScoreCommand extends BaseCommand {
    * Save batch scoring report
    */
   private async saveBatchReport(
-    results: any[],
+    results: Array<{
+      template: string;
+      score?: QualityScore;
+      passed: boolean;
+      error?: string;
+    }>,
     options: ScoreOptions
   ): Promise<void> {
     try {
@@ -626,7 +638,7 @@ export class ScoreCommand extends BaseCommand {
       }
 
       const validResults = results.filter(r => !r.error && r.score);
-      const scores = validResults.map(r => r.score.overall);
+      const scores = validResults.map(r => r.score?.overall || 0);
 
       const report = {
         metadata: {

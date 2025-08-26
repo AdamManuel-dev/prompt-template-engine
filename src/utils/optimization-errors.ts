@@ -180,11 +180,11 @@ export class RetryManager {
 
   static async retry<T>(
     operation: () => Promise<T>,
-    options: Partial<RetryOptions> = {},
-    errorTracker?: ErrorTracker
+    errorTracker?: ErrorTracker,
+    options: Partial<RetryOptions> = {}
   ): Promise<T> {
     const config = { ...this.DEFAULT_OPTIONS, ...options };
-    let lastError: Error;
+    let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
       try {
@@ -217,11 +217,13 @@ export class RetryManager {
           ? delay + Math.random() * delay * 0.1
           : delay;
 
-        await new Promise(resolve => setTimeout(resolve, finalDelay));
+        await new Promise(resolve => {
+          setTimeout(resolve, finalDelay);
+        });
       }
     }
 
-    throw lastError!;
+    throw new Error(lastError?.message || 'Operation failed after all retries');
   }
 }
 
@@ -270,7 +272,7 @@ export class CircuitBreaker {
 
       // Success
       if (this.state === CircuitState.HALF_OPEN) {
-        this.successCount++;
+        this.successCount += 1;
         if (this.successCount >= 3) {
           // Require 3 successes to close
           this.state = CircuitState.CLOSED;
@@ -280,7 +282,7 @@ export class CircuitBreaker {
 
       return result;
     } catch (error) {
-      this.failures++;
+      this.failures += 1;
       this.lastFailureTime = Date.now();
 
       if (this.failures >= this.options.failureThreshold) {

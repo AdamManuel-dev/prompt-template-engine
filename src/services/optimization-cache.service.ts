@@ -256,8 +256,8 @@ export class OptimizationCacheService {
           try {
             const redisResult = await RetryManager.retry(
               () => this.redisCache!.get(cacheKey),
-              { maxRetries: 2, initialDelay: 100 },
-              this.errorTracker
+              this.errorTracker,
+              { maxRetries: 2, initialDelay: 100 }
             );
 
             if (redisResult) {
@@ -518,7 +518,7 @@ export class OptimizationCacheService {
     this.memoryCache.clear();
 
     if (this.redisCache) {
-      await this.redisCache.cleanup();
+      await (this.redisCache as any).cleanup?.();
     }
 
     logger.info('Optimization cache service cleaned up');

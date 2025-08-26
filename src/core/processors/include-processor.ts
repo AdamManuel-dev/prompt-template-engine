@@ -32,6 +32,11 @@ export class IncludeProcessor {
     context: TemplateContext,
     depth = 0
   ): Promise<string> {
+    // Reset tracking for top-level calls
+    if (depth === 0) {
+      this.includedFiles.clear();
+    }
+
     const maxDepth = 10;
     if (depth > maxDepth) {
       throw new Error('Maximum include depth exceeded');
@@ -79,16 +84,15 @@ export class IncludeProcessor {
         );
 
         result = result.replace(fullMatch, processed);
+
+        // Remove from tracking after successful processing at this depth level
+        this.includedFiles.delete(absolutePath);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         logger.error(`Failed to include file ${includePath}: ${errorMessage}`);
+
         throw new Error(`Failed to include template: ${includePath}`);
-      } finally {
-        // Clean up tracking for this level
-        if (depth === 0) {
-          this.includedFiles.clear();
-        }
       }
     }
 

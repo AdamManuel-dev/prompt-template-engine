@@ -286,7 +286,7 @@ export class xAIAdapter {
    */
   private optimizePromptForXAI(
     prompt: string,
-    context?: { personality?: string }
+    _context?: { personality?: string }
   ): string {
     let optimized = prompt;
 

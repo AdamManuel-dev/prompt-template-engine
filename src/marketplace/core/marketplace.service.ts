@@ -1340,7 +1340,7 @@ export class MarketplaceService
         // Remove target directory if it exists to avoid ENOTEMPTY error
         try {
           await fs.rm(targetPath, { recursive: true, force: true });
-        } catch (error) {
+        } catch (_error) {
           // Ignore error if directory doesn't exist
         }
 
@@ -1629,11 +1629,11 @@ export class MarketplaceService
         try {
           // eslint-disable-next-line no-await-in-loop
           const installation = this.getInstallation(templateId);
-          
+
           if (installation) {
             // eslint-disable-next-line no-await-in-loop
             const template = await this.getTemplate(templateId);
-            
+
             if (template.currentVersion !== installation.version) {
               updates.push({
                 templateId,
@@ -2028,7 +2028,10 @@ export class MarketplaceService
     try {
       let reviews: TemplateReview[] = [];
 
-      if (this.database && typeof this.database.reviews?.findByTemplate === 'function') {
+      if (
+        this.database &&
+        typeof this.database.reviews?.findByTemplate === 'function'
+      ) {
         reviews = await this.database.reviews.findByTemplate(id, {
           sort: [{ field: 'created', direction: 'desc' }],
         });

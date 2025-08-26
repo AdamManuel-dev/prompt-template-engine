@@ -147,7 +147,7 @@ export class LlamaOptimizer {
 
   private optimizeInstructionFormat(
     prompt: string,
-    task: string
+    _task: string
   ): { prompt: string; applied: boolean } {
     // Check if instruction format already present
     if (this.hasInstructionFormat(prompt)) {
@@ -345,9 +345,9 @@ export class LlamaOptimizer {
   }
 
   private calculateImprovements(
-    original: string,
+    _original: string,
     optimized: string,
-    context?: any
+    _context?: any
   ) {
     const efficiencyScore = this.calculateEfficiencyScore(optimized);
     const clarityScore = this.calculateClarityScore(optimized);

@@ -11,14 +11,6 @@
 import { logger } from '../utils/logger';
 import { Template } from '../types';
 
-export interface ContextAnalysisResult {
-  relevanceScore: number;
-  tokenCount: number;
-  redundancies: RedundantSection[];
-  suggestions: ContextSuggestion[];
-  optimizedContext?: string;
-}
-
 export interface RedundantSection {
   startIndex: number;
   endIndex: number;
@@ -33,6 +25,14 @@ export interface ContextSuggestion {
   suggestion: string;
   tokenSavings: number;
   qualityImpact: number;
+}
+
+export interface ContextAnalysisResult {
+  relevanceScore: number;
+  tokenCount: number;
+  redundancies: RedundantSection[];
+  suggestions: ContextSuggestion[];
+  optimizedContext?: string;
 }
 
 export interface AnalysisConfig {

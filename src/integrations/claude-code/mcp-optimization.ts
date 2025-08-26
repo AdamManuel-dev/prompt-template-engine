@@ -255,7 +255,9 @@ export class MCPOptimizationTools {
       const [originalScore, optimizedScore] = await Promise.all([
         this.client.scorePrompt(promptText, request.task),
         this.client.scorePrompt(
-          result.optimizedTemplate.files?.map(f => f.content).join('\n') || '',
+          result.optimizedTemplate.files
+            ?.map(f => (f as any).content)
+            .join('\n') || '',
           request.task
         ),
       ]);
@@ -266,7 +268,7 @@ export class MCPOptimizationTools {
         success: true,
         originalPrompt: promptText,
         optimizedPrompt:
-          result.optimizedTemplate.files?.map(f => f.content).join('\n') || '',
+          result.optimizedTemplate.files?.map(f => (f as any).content).join('\n') || '',
         metrics: {
           accuracyImprovement: result.metrics.accuracyImprovement,
           tokenReduction: result.metrics.tokenReduction,
@@ -336,7 +338,8 @@ export class MCPOptimizationTools {
             template,
             {}
           );
-          promptText = renderedTemplate.files?.map(f => f.content).join('\n') || '';
+          promptText =
+            renderedTemplate.files?.map(f => f.content).join('\n') || '';
         } else {
           return {
             success: false,

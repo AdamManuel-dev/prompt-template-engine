@@ -29,7 +29,7 @@ export function convertServiceToIndexTemplate(
       ? Object.fromEntries(
           Object.entries(serviceTemplate.variables).map(([key, config]) => [
             key,
-            config.default || config.defaultValue,
+            config.default,
           ])
         )
       : undefined,
@@ -91,11 +91,16 @@ export function convertIndexToServiceTemplate(
 
   const files =
     indexTemplate.files?.map(file => ({
-      path: file.path || file.source,
-      name: file.name,
-      content: file.content || indexTemplate.content || '',
-      encoding: file.encoding,
-      mode: file.mode,
+      path: ('path' in file ? file.path : undefined) || file.source,
+      name: 'name' in file ? file.name : undefined,
+      content:
+        ('content' in file ? file.content : undefined) ||
+        indexTemplate.content ||
+        '',
+      encoding: 'encoding' in file ? file.encoding : undefined,
+      mode: 'mode' in file ? file.mode : undefined,
+      source: file.source || ('path' in file ? file.path : '') || '',
+      destination: file.destination || file.source || ('path' in file ? file.path : '') || '',
     })) || [];
 
   return {

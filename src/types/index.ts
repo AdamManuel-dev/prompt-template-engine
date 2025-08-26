@@ -751,7 +751,7 @@ export interface Template {
     created?: string;
     updated?: string;
     category?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   // Optimization tracking fields
   isOptimized?: boolean;

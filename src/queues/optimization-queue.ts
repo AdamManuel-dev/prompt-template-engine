@@ -22,15 +22,15 @@ import {
 
 // Optional Bull Queue support for Redis-backed job queues
 let Queue: any;
-let Job: any;
+// let _Job: any; // Commented out as unused
 try {
   const bullModule = require('bull');
   Queue = bullModule.default || bullModule.Queue || bullModule;
-  Job = bullModule.Job;
-} catch (error) {
+  // _Job = bullModule.Job; // Commented out as unused
+} catch (_error) {
   // Bull not available - fallback to in-memory queue
   Queue = null;
-  Job = null;
+  // _Job = null; // Not used
 }
 
 export type JobStatus =
@@ -107,7 +107,7 @@ export class OptimizationQueue extends EventEmitter {
 
   private optimizationPipeline: OptimizationPipeline;
 
-  private cacheService: OptimizationCacheService;
+  // private _cacheService: OptimizationCacheService; // Commented out as unused
 
   private config: QueueConfig;
 
@@ -122,13 +122,13 @@ export class OptimizationQueue extends EventEmitter {
 
   constructor(
     optimizationPipeline: OptimizationPipeline,
-    cacheService: OptimizationCacheService,
+    _cacheService: OptimizationCacheService,
     config: Partial<QueueConfig> = {}
   ) {
     super();
 
     this.optimizationPipeline = optimizationPipeline;
-    this.cacheService = cacheService;
+    // this._cacheService = cacheService; // Commented out as unused
 
     // Get PromptWizard configuration for Redis settings
     const promptwizardConfig = getPromptWizardConfig();
@@ -488,11 +488,12 @@ export class OptimizationQueue extends EventEmitter {
       const timeoutPromise = this.createJobTimeout(job);
 
       // Set up progress callback
-      const progressCallback = (stage: any, progress: number) => {
-        job.currentStep = stage;
-        job.progress = progress;
-        this.emit('job:progress', job);
-      };
+      // Progress callback commented out as unused
+      // const _progressCallback = (stage: any, progress: number) => {
+      //   job.currentStep = stage;
+      //   job.progress = progress;
+      //   this.emit('job:progress', job);
+      // };
 
       // Process job with timeout
       const processingPromise = this.optimizationPipeline.process(
@@ -528,7 +529,8 @@ export class OptimizationQueue extends EventEmitter {
         this.emit('job:completed', job);
       } else {
         // Job failed
-        throw new Error(result.error || 'Pipeline processing failed');
+        const errorMessage = typeof result.error === 'string' ? result.error : 'Pipeline processing failed';
+        throw new Error(errorMessage);
       }
     } catch (error) {
       await this.handleJobError(
@@ -600,7 +602,7 @@ export class OptimizationQueue extends EventEmitter {
   /**
    * Create job timeout promise
    */
-  private createJobTimeout(job: OptimizationJob): Promise<never> {
+  private createJobTimeout(_job: OptimizationJob): Promise<never> {
     return new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error(`Job timeout after ${this.config.jobTimeout}ms`));
@@ -711,7 +713,7 @@ export class OptimizationQueue extends EventEmitter {
    * Process a Bull job
    */
   private async processBullJob(bullJob: any): Promise<any> {
-    const { templateId, template, request, options } = bullJob.data;
+    const { templateId, template, request, options: _options } = bullJob.data;
 
     try {
       // Update job progress
@@ -729,7 +731,7 @@ export class OptimizationQueue extends EventEmitter {
       if (result.success && result.optimizationResult) {
         return result.optimizationResult;
       }
-      throw new Error(result.error || 'Pipeline processing failed');
+      throw new Error(typeof result.error === 'string' ? result.error : 'Pipeline processing failed');
     } catch (error) {
       logger.error(`Bull job processing failed: ${error}`);
       throw error;
@@ -776,7 +778,9 @@ export class OptimizationQueue extends EventEmitter {
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => {
+      setTimeout(resolve, ms);
+    });
   }
 
   /**

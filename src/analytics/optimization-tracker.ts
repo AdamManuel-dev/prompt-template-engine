@@ -38,7 +38,7 @@ export interface OptimizationEvent {
     source?: 'cli' | 'api' | 'auto-optimize' | 'websocket';
     version?: string;
     clientType?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -118,7 +118,7 @@ interface AnalyticsStorage {
   initialize(): Promise<void>;
   cleanup(): Promise<void>;
   storeEvent(event: OptimizationEvent): Promise<void>;
-  getEvents(filters?: any): Promise<OptimizationEvent[]>;
+  getEvents(filters?: Record<string, unknown>): Promise<OptimizationEvent[]>;
   aggregateMetrics(timeRange?: {
     start: Date;
     end: Date;
@@ -144,13 +144,17 @@ class MemoryStorage implements AnalyticsStorage {
     this.events.push({ ...event });
   }
 
-  async getEvents(filters?: any): Promise<OptimizationEvent[]> {
+  async getEvents(
+    filters?: Record<string, unknown>
+  ): Promise<OptimizationEvent[]> {
     let filtered = [...this.events];
 
     if (filters) {
       if (filters.start && filters.end) {
         filtered = filtered.filter(
-          e => e.timestamp >= filters.start && e.timestamp <= filters.end
+          e =>
+            e.timestamp >= (filters.start as Date) &&
+            e.timestamp <= (filters.end as Date)
         );
       }
       if (filters.type) {
@@ -179,7 +183,7 @@ class MemoryStorage implements AnalyticsStorage {
     this.events = this.events.filter(e => e.timestamp >= cutoffDate);
   }
 
-  private calculateMetrics(events: OptimizationEvent[]): UsageMetrics {
+  public calculateMetrics(events: OptimizationEvent[]): UsageMetrics {
     const totalOptimizations = events.length;
     const successfulOptimizations = events.filter(
       e => e.type === 'optimization_completed'
@@ -328,13 +332,17 @@ class FileStorage implements AnalyticsStorage {
     fs.appendFileSync(this.filePath, line, 'utf-8');
   }
 
-  async getEvents(filters?: any): Promise<OptimizationEvent[]> {
+  async getEvents(
+    filters?: Record<string, unknown>
+  ): Promise<OptimizationEvent[]> {
     let filtered = [...this.events];
 
     if (filters) {
       if (filters.start && filters.end) {
         filtered = filtered.filter(
-          e => e.timestamp >= filters.start && e.timestamp <= filters.end
+          e =>
+            e.timestamp >= (filters.start as Date) &&
+            e.timestamp <= (filters.end as Date)
         );
       }
       if (filters.type) {
@@ -354,7 +362,7 @@ class FileStorage implements AnalyticsStorage {
   }): Promise<UsageMetrics> {
     const events = await this.getEvents(timeRange);
     const memoryStorage = new MemoryStorage();
-    return (memoryStorage as any).calculateMetrics(events);
+    return memoryStorage.calculateMetrics(events);
   }
 
   async purgeOldData(retentionDays: number): Promise<void> {
@@ -515,7 +523,7 @@ export class OptimizationTracker extends EventEmitter {
   trackOptimizationStart(
     request: OptimizationRequest,
     userId?: string,
-    metadata?: any
+    metadata?: Record<string, unknown>
   ): string {
     if (!this.config.enabled || !this.isInitialized) return '';
 
@@ -656,12 +664,27 @@ export class OptimizationTracker extends EventEmitter {
     const events = await this.storage.getEvents(reportTimeRange);
 
     // Generate user analytics
-    const userMap = new Map<string, any>();
+    interface UserData {
+      count: number;
+      lastOptimization: Date;
+      userId: string;
+      totalOptimizations: number;
+      successful: number;
+      totalTokensSaved: number;
+      totalCostSaved: number;
+      confidenceScores: number[];
+      models: string[];
+      lastActivity: Date;
+    }
+
+    const userMap = new Map<string, UserData>();
     events.forEach(event => {
       if (!event.userId) return;
 
       if (!userMap.has(event.userId)) {
         userMap.set(event.userId, {
+          count: 0,
+          lastOptimization: event.timestamp,
           userId: event.userId,
           totalOptimizations: 0,
           successful: 0,
@@ -674,25 +697,29 @@ export class OptimizationTracker extends EventEmitter {
       }
 
       const userData = userMap.get(event.userId);
-      userData.totalOptimizations += 1;
+      if (userData) {
+        userData.count += 1;
+        userData.totalOptimizations += 1;
 
-      if (event.type === 'optimization_completed') {
-        userData.successful += 1;
-        if (event.metrics) {
-          userData.totalTokensSaved += event.metrics.tokenReduction || 0;
-          userData.totalCostSaved += event.metrics.costReduction || 0;
+        if (event.type === 'optimization_completed') {
+          userData.successful += 1;
+          if (event.metrics) {
+            userData.totalTokensSaved += event.metrics.tokenReduction || 0;
+            userData.totalCostSaved += event.metrics.costReduction || 0;
+          }
+          if (event.response?.confidence) {
+            userData.confidenceScores.push(event.response.confidence);
+          }
         }
-        if (event.response?.confidence) {
-          userData.confidenceScores.push(event.response.confidence);
+
+        if (event.request.targetModel) {
+          userData.models.push(event.request.targetModel);
         }
-      }
 
-      if (event.request.targetModel) {
-        userData.models.push(event.request.targetModel);
-      }
-
-      if (event.timestamp > userData.lastActivity) {
-        userData.lastActivity = event.timestamp;
+        if (event.timestamp > userData.lastActivity) {
+          userData.lastActivity = event.timestamp;
+          userData.lastOptimization = event.timestamp;
+        }
       }
     });
 

@@ -52,7 +52,8 @@ export class PromptWizardGrpcClient extends EventEmitter {
     super();
     this.config = {
       ...config,
-      maxReceiveMessageLength: config.maxReceiveMessageLength || 4 * 1024 * 1024, // 4MB
+      maxReceiveMessageLength:
+        config.maxReceiveMessageLength || 4 * 1024 * 1024, // 4MB
       maxSendMessageLength: config.maxSendMessageLength || 4 * 1024 * 1024, // 4MB
     };
 

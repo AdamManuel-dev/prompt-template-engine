@@ -383,7 +383,9 @@ export class AutoOptimizeManager {
         }
 
         // Wait before checking again
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => {
+          setTimeout(resolve, 1000);
+        });
       }
     };
 
@@ -569,12 +571,12 @@ export class AutoOptimizeManager {
    * Update statistics
    */
   private updateStats(success: boolean, processingTime: number): void {
-    this.stats.totalProcessed++;
+    this.stats.totalProcessed += 1;
 
     if (success) {
-      this.stats.successCount++;
+      this.stats.successCount += 1;
     } else {
-      this.stats.failureCount++;
+      this.stats.failureCount += 1;
     }
 
     // Update average processing time
@@ -593,7 +595,9 @@ export class AutoOptimizeManager {
     const startTime = Date.now();
 
     while (this.activeJobs.size > 0 && Date.now() - startTime < timeoutMs) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => {
+        setTimeout(resolve, 1000);
+      });
     }
 
     if (this.activeJobs.size > 0) {

@@ -32,8 +32,8 @@ export interface TemplateFile {
   content?: string;
   encoding?: string;
   mode?: string;
-  source?: string;
-  destination?: string;
+  source: string;
+  destination: string;
   transform?: boolean;
   condition?: string;
 }
@@ -194,9 +194,11 @@ export class TemplateService {
           files: [
             {
               path: `${frontmatter.name || path.basename(filePath, ext)}.md`,
+              source: `${frontmatter.name || path.basename(filePath, ext)}.md`,
+              destination: `${frontmatter.name || path.basename(filePath, ext)}.md`,
               content: parsed.content,
               name: frontmatter.name || path.basename(filePath, ext),
-            },
+            } as any,
           ],
           variables: TemplateService.parseVariables(
             frontmatter.variables || {}
@@ -222,9 +224,11 @@ export class TemplateService {
             files: [
               {
                 path: `${frontmatter.name || path.basename(filePath, ext)}.md`,
+                source: `${frontmatter.name || path.basename(filePath, ext)}.md`,
+                destination: `${frontmatter.name || path.basename(filePath, ext)}.md`,
                 content: parsed.content,
                 name: frontmatter.name || path.basename(filePath, ext),
-              },
+              } as any,
             ],
             variables: TemplateService.parseVariables(
               frontmatter.variables || {}
@@ -246,9 +250,11 @@ export class TemplateService {
             files: [
               {
                 path: `${parsed.name}.md`,
+                source: `${parsed.name}.md`,
+                destination: `${parsed.name}.md`,
                 content: parsed.content || '',
                 name: parsed.name,
-              },
+              } as any,
             ],
             variables: TemplateService.parseVariables(parsed.variables || {}),
             commands: parsed.commands || [],
@@ -298,7 +304,7 @@ export class TemplateService {
 
     // Load file contents if they reference external files
     template.files = await Promise.all(
-      template.files.map(async file => {
+      (template.files || []).map(async file => {
         if (!file.content && file.path) {
           const filePath = path.join(dirPath, file.path);
           try {
@@ -336,20 +342,25 @@ export class TemplateService {
 
     // Render all files
     const renderedFiles = await Promise.all(
-      template.files.map(async file => ({
+      (template.files || []).map(async file => ({
         ...file,
-        content: await this.engine.render(file.content, context),
-        path: await this.engine.render(file.path || file.name || '', context),
+        content: await this.engine.render(file.content!, context),
+        path: await this.engine.render(
+          file.path || file.name || file.source || 'template.md',
+          context
+        ),
       }))
     );
 
     // Render commands
-    const renderedCommands = await Promise.all(
-      template.commands.map(async cmd => ({
-        ...cmd,
-        command: await this.engine.render(cmd.command, context),
-      }))
-    );
+    const renderedCommands = template.commands
+      ? await Promise.all(
+          template.commands.map(async cmd => ({
+            ...cmd,
+            command: await this.engine.render(cmd.command, context),
+          }))
+        )
+      : [];
 
     return {
       ...template,
@@ -383,7 +394,7 @@ export class TemplateService {
     }
 
     // Validate file structures
-    template.files.forEach((file, index) => {
+    template.files?.forEach((file, index) => {
       if (!file.path && !file.name) {
         errors.push(`File at index ${index} has no path or name`);
       }
@@ -734,7 +745,7 @@ export class TemplateService {
         : 0;
 
     const comparison: TemplateComparison = {
-      original: originalTemplate,
+      original: originalTemplate as any,
       optimized: {
         ...comparisonTemplate,
         isOptimized: true,
@@ -1055,8 +1066,8 @@ export class TemplateService {
     comparison: Template
   ): boolean {
     // Simple heuristic: check if file order changed
-    const originalFiles = original.files.map(f => f.name || f.path);
-    const comparisonFiles = comparison.files.map(f => f.name || f.path);
+    const originalFiles = (original.files || []).map(f => f.name || f.path);
+    const comparisonFiles = (comparison.files || []).map(f => f.name || f.path);
 
     return originalFiles.join(',') !== comparisonFiles.join(',');
   }
@@ -1185,9 +1196,11 @@ export class TemplateService {
   ): string[] {
     const changes: string[] = [];
 
-    if (original.files.length !== modified.files.length) {
+    const origLen = original.files?.length || 0;
+    const modLen = modified.files?.length || 0;
+    if (origLen !== modLen) {
       changes.push(
-        `File count changed from ${original.files.length} to ${modified.files.length}`
+        `File count changed from ${origLen} to ${modLen}`
       );
     }
 

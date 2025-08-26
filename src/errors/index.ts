@@ -37,6 +37,19 @@ export enum ErrorCategory {
 }
 
 /**
+ * Interface for errors with code property
+ */
+interface ErrorWithCode extends Error {
+  code: string;
+  context?: Record<string, unknown>;
+  response?: unknown;
+  originalError?: Error;
+  severity?: ErrorSeverity;
+  category?: ErrorCategory;
+  isOperational?: boolean;
+}
+
+/**
  * Base error class for all custom errors
  */
 export abstract class BaseError extends Error {
@@ -48,7 +61,7 @@ export abstract class BaseError extends Error {
 
   public readonly timestamp: Date;
 
-  public readonly context?: Record<string, any>;
+  public readonly context?: Record<string, unknown>;
 
   public readonly originalError?: Error;
 
@@ -59,7 +72,7 @@ export abstract class BaseError extends Error {
     code: string,
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
     category: ErrorCategory = ErrorCategory.INTERNAL,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
     originalError?: Error
   ) {
     super(message);
@@ -80,7 +93,7 @@ export abstract class BaseError extends Error {
   /**
    * Convert error to JSON-serializable object
    */
-  toJSON(): Record<string, any> {
+  toJSON(): Record<string, unknown> {
     return {
       name: this.name,
       message: this.message,
@@ -123,15 +136,15 @@ export abstract class BaseError extends Error {
 export class ValidationError extends BaseError {
   public readonly field?: string;
 
-  public readonly value?: any;
+  public readonly value?: unknown;
 
-  public readonly constraints?: Record<string, any>;
+  public readonly constraints?: Record<string, unknown>;
 
   constructor(
     message: string,
     field?: string,
-    value?: any,
-    constraints?: Record<string, any>
+    value?: unknown,
+    constraints?: Record<string, unknown>
   ) {
     super(
       message,
@@ -178,14 +191,14 @@ export class FileSystemError extends BaseError {
 export class FileNotFoundError extends FileSystemError {
   constructor(path: string) {
     super(`File not found: ${path}`, path, 'read');
-    (this as any).code = 'FILE_NOT_FOUND';
+    (this as ErrorWithCode).code = 'FILE_NOT_FOUND';
   }
 }
 
 export class FileAccessError extends FileSystemError {
   constructor(path: string, operation: string = 'access') {
     super(`Cannot ${operation} file: ${path}`, path, operation);
-    (this as any).code = 'FILE_ACCESS_DENIED';
+    (this as ErrorWithCode).code = 'FILE_ACCESS_DENIED';
   }
 }
 
@@ -201,7 +214,7 @@ export class TemplateError extends BaseError {
     message: string,
     templateName?: string,
     templatePath?: string,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
     super(
       message,
@@ -219,7 +232,7 @@ export class TemplateError extends BaseError {
 export class TemplateNotFoundError extends TemplateError {
   constructor(templateName: string) {
     super(`Template not found: ${templateName}`, templateName);
-    (this as any).code = 'TEMPLATE_NOT_FOUND';
+    (this as ErrorWithCode).code = 'TEMPLATE_NOT_FOUND';
   }
 }
 
@@ -232,8 +245,8 @@ export class TemplateProcessingError extends TemplateError {
     originalError?: Error
   ) {
     super(message, templateName, undefined, { line, column });
-    (this as any).code = 'TEMPLATE_PROCESSING_ERROR';
-    (this as any).originalError = originalError;
+    (this as ErrorWithCode).code = 'TEMPLATE_PROCESSING_ERROR';
+    (this as ErrorWithCode).originalError = originalError;
   }
 }
 
@@ -268,7 +281,7 @@ export class PluginError extends BaseError {
 export class PluginLoadError extends PluginError {
   constructor(pluginName: string, reason: string) {
     super(`Failed to load plugin ${pluginName}: ${reason}`, pluginName);
-    (this as any).code = 'PLUGIN_LOAD_ERROR';
+    (this as ErrorWithCode).code = 'PLUGIN_LOAD_ERROR';
   }
 }
 
@@ -280,7 +293,7 @@ export class PluginExecutionError extends PluginError {
       undefined,
       originalError
     );
-    (this as any).code = 'PLUGIN_EXECUTION_ERROR';
+    (this as ErrorWithCode).code = 'PLUGIN_EXECUTION_ERROR';
   }
 }
 
@@ -321,19 +334,19 @@ export class ApiError extends NetworkError {
     message: string,
     url: string,
     statusCode: number,
-    response?: any
+    response?: unknown
   ) {
     super(message, url, statusCode);
-    (this as any).code = `API_ERROR_${statusCode}`;
-    (this as any).context = { ...this.context, response };
+    (this as ErrorWithCode).code = `API_ERROR_${statusCode}`;
+    (this as ErrorWithCode).context = { ...this.context, response };
   }
 }
 
 export class TimeoutError extends NetworkError {
   constructor(url: string, timeout: number) {
     super(`Request timed out after ${timeout}ms: ${url}`, url);
-    (this as any).code = 'TIMEOUT_ERROR';
-    (this as any).severity = ErrorSeverity.HIGH;
+    (this as ErrorWithCode).code = 'TIMEOUT_ERROR';
+    (this as ErrorWithCode).severity = ErrorSeverity.HIGH;
   }
 }
 
@@ -344,7 +357,7 @@ export class SecurityError extends BaseError {
   constructor(
     message: string,
     code: string = 'SECURITY_ERROR',
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
     super(
       message,
@@ -369,7 +382,7 @@ export class AuthorizationError extends SecurityError {
       action,
       user,
     });
-    (this as any).category = ErrorCategory.AUTHORIZATION;
+    (this as ErrorWithCode).category = ErrorCategory.AUTHORIZATION;
   }
 }
 
@@ -398,14 +411,14 @@ export class ConfigurationError extends BaseError {
 export class MissingConfigError extends ConfigurationError {
   constructor(configKey: string) {
     super(`Missing required configuration: ${configKey}`, configKey);
-    (this as any).code = 'MISSING_CONFIG';
+    (this as ErrorWithCode).code = 'MISSING_CONFIG';
   }
 }
 
 export class InvalidConfigError extends ConfigurationError {
   constructor(configKey: string, reason: string) {
     super(`Invalid configuration for ${configKey}: ${reason}`, configKey);
-    (this as any).code = 'INVALID_CONFIG';
+    (this as ErrorWithCode).code = 'INVALID_CONFIG';
   }
 }
 
@@ -440,14 +453,14 @@ export class MarketplaceError extends BaseError {
 export class TemplateInstallError extends MarketplaceError {
   constructor(templateId: string, reason: string) {
     super(`Failed to install template ${templateId}: ${reason}`, templateId);
-    (this as any).code = 'TEMPLATE_INSTALL_ERROR';
+    (this as ErrorWithCode).code = 'TEMPLATE_INSTALL_ERROR';
   }
 }
 
 export class PublishError extends MarketplaceError {
   constructor(templateId: string, reason: string) {
     super(`Failed to publish template ${templateId}: ${reason}`, templateId);
-    (this as any).code = 'PUBLISH_ERROR';
+    (this as ErrorWithCode).code = 'PUBLISH_ERROR';
   }
 }
 
@@ -468,15 +481,15 @@ export class InternalError extends BaseError {
       originalError
     );
 
-    (this as any).isOperational = false; // Unexpected error
+    (this as ErrorWithCode).isOperational = false; // Unexpected error
   }
 }
 
 export class NotImplementedError extends InternalError {
   constructor(feature: string) {
     super(`Feature not implemented: ${feature}`);
-    (this as any).code = 'NOT_IMPLEMENTED';
-    (this as any).severity = ErrorSeverity.LOW;
+    (this as ErrorWithCode).code = 'NOT_IMPLEMENTED';
+    (this as ErrorWithCode).severity = ErrorSeverity.LOW;
   }
 }
 
@@ -574,7 +587,7 @@ export class ErrorBoundary {
  * Error serializer for API responses
  */
 export class ErrorSerializer {
-  static serialize(error: Error): Record<string, any> {
+  static serialize(error: Error): Record<string, unknown> {
     if (error instanceof BaseError) {
       return error.toJSON();
     }
@@ -586,7 +599,7 @@ export class ErrorSerializer {
     };
   }
 
-  static serializeForUser(error: Error): Record<string, any> {
+  static serializeForUser(error: Error): Record<string, unknown> {
     if (error instanceof BaseError) {
       return {
         message: error.getUserMessage(),

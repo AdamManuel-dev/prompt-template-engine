@@ -214,7 +214,7 @@ export class CostCalculator {
     for (const model of models) {
       try {
         estimates[model] = this.calculateCost(model, inputTokens, outputTokens);
-      } catch (error) {
+      } catch (_error) {
         logger.warn(`Skipping unknown model: ${model}`);
       }
     }

@@ -20,6 +20,10 @@ import {
   PromptWizardClient,
   createDefaultConfig,
 } from '../../integrations/promptwizard';
+import type {
+  QualityScore,
+  PromptComparison,
+} from '../../integrations/promptwizard/types';
 
 /**
  * Options for the wizard command
@@ -89,9 +93,16 @@ interface WizardState {
   /** Current optimized prompt content */
   currentOptimized?: string;
   /** History of quality scores */
-  scores: any[];
+  scores: Array<{
+    type: 'original' | 'optimized';
+    score: QualityScore;
+    timestamp: Date;
+  }>;
   /** History of comparison results */
-  comparisons: any[];
+  comparisons: Array<{
+    comparison: PromptComparison;
+    timestamp: Date;
+  }>;
   /** Number of refinement cycles performed */
   refinements: number;
 }
@@ -377,7 +388,7 @@ export class OptimizationWizardCommand extends BaseCommand {
   private async runWizard(options: WizardOptions): Promise<void> {
     while (this.state.step <= this.state.maxSteps) {
       await this.runStep(options);
-      this.state.step++;
+      this.state.step += 1;
     }
 
     await this.showCompletion();
@@ -806,6 +817,8 @@ export class OptimizationWizardCommand extends BaseCommand {
           files: [
             {
               path: 'content.txt',
+              source: 'content.txt',
+              destination: 'content.txt',
               content: this.state.originalPrompt,
               name: 'content',
             },
@@ -815,7 +828,12 @@ export class OptimizationWizardCommand extends BaseCommand {
         },
         config: {
           task: this.state.task,
-          targetModel: this.state.targetModel as any,
+          targetModel: this.state.targetModel as
+            | 'gpt-4'
+            | 'gpt-3.5-turbo'
+            | 'claude-3-opus'
+            | 'claude-3-sonnet'
+            | 'gemini-pro',
           mutateRefineIterations: this.state.iterations,
           fewShotCount: this.state.examples,
           generateReasoning: this.state.reasoning,
@@ -824,7 +842,7 @@ export class OptimizationWizardCommand extends BaseCommand {
 
       // Extract content from optimized template files
       this.state.currentOptimized =
-        result.optimizedTemplate.files?.[0]?.content || '';
+        (result.optimizedTemplate.files?.[0] as any)?.content || '';
 
       spinner.succeed('Optimization completed successfully!');
       console.log();
@@ -997,7 +1015,7 @@ export class OptimizationWizardCommand extends BaseCommand {
       if (!satisfied && this.state.refinements < 2) {
         console.log();
         console.log(chalk.yellow("💡 Let's try refining the optimization..."));
-        this.state.refinements++;
+        this.state.refinements += 1;
         this.state.step = 2; // Go back to analysis step
       }
 

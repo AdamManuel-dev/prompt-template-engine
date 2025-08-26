@@ -356,9 +356,7 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
     this.authors = new FileRepository(
       path.join(dataDir, 'authors.json')
     ) as any;
-    this.reviews = new FileRepository(
-      path.join(dataDir, 'reviews.json')
-    ) as any;
+    this.reviews = new FileReviewRepository(path.join(dataDir, 'reviews.json'));
     this.installations = new FileRepository(
       path.join(dataDir, 'installations.json')
     ) as any;
@@ -368,6 +366,7 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
     try {
       await fs.mkdir(path.dirname(this.manifestPath), { recursive: true });
       await this.templates.init();
+      await (this.reviews as any).init();
       this.isConnectedFlag = true;
       logger.info('File database connected successfully');
     } catch (error) {
@@ -541,6 +540,102 @@ class FileRepository<T extends { id: string }> {
   async delete(id: string): Promise<void> {
     this.items.delete(id);
     await this.save();
+  }
+}
+
+/**
+ * File-based review repository with template filtering
+ */
+class FileReviewRepository
+  extends FileRepository<any>
+  implements IReviewRepository
+{
+  constructor(filePath: string) {
+    super(filePath);
+  }
+
+  async init(): Promise<void> {
+    await super.init();
+  }
+
+  async findByTemplate(
+    templateId: string,
+    options?: QueryOptions
+  ): Promise<any[]> {
+    await this.init();
+    const allReviews = await this.findMany();
+    const reviews = allReviews.filter(
+      review => review.templateId === templateId
+    );
+
+    if (options?.sort) {
+      reviews.sort((a, b) => {
+        for (const sortOption of options.sort!) {
+          const aVal = this.getFieldValue(a, sortOption.field);
+          const bVal = this.getFieldValue(b, sortOption.field);
+
+          if (aVal !== bVal) {
+            const result =
+              sortOption.direction === 'desc'
+                ? bVal > aVal
+                  ? 1
+                  : -1
+                : aVal > bVal
+                  ? 1
+                  : -1;
+            return result;
+          }
+        }
+        return 0;
+      });
+    }
+
+    return reviews;
+  }
+
+  async findByAuthor(
+    authorId: string,
+    _options?: QueryOptions
+  ): Promise<any[]> {
+    await this.init();
+    const allReviews = await this.findMany();
+    return allReviews.filter(review => review.userId === authorId);
+  }
+
+  async getAverageRating(templateId: string): Promise<number> {
+    const reviews = await this.findByTemplate(templateId);
+    if (reviews.length === 0) return 0;
+
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return sum / reviews.length;
+  }
+
+  async getRatingDistribution(
+    templateId: string
+  ): Promise<Record<number, number>> {
+    const reviews = await this.findByTemplate(templateId);
+    const distribution: Record<number, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+
+    reviews.forEach(review => {
+      distribution[review.rating] = (distribution[review.rating] || 0) + 1;
+    });
+
+    return distribution;
+  }
+
+  async getReviewCount(templateId: string): Promise<number> {
+    const reviews = await this.findByTemplate(templateId);
+    return reviews.length;
+  }
+
+  private getFieldValue(obj: any, field: string): any {
+    return field.split('.').reduce((o, key) => o?.[key], obj);
   }
 }
 

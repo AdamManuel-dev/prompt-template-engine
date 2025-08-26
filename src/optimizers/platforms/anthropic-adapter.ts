@@ -299,8 +299,8 @@ export class AnthropicAdapter {
     let structuredPrompt = prompt;
     const structure = {
       thinkingEnabled: false,
-      reasoningSteps: [],
-      structuredSections: [],
+      reasoningSteps: [] as string[],
+      structuredSections: [] as string[],
       applied: false,
     };
 

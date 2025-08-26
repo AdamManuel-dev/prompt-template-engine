@@ -305,7 +305,7 @@ export class CursorOptimizer {
       try {
         context.cursorRules = await fs.readFile(cursorRulesPath, 'utf-8');
         logger.info('Detected .cursorrules file');
-      } catch (error) {
+      } catch (_error) {
         logger.debug('No .cursorrules file found');
       }
 
@@ -396,9 +396,8 @@ export class CursorOptimizer {
       template,
       {}
     );
-    const originalContent = renderedTemplate.files
-      ?.map(f => f.content)
-      .join('\n') || '';
+    const originalContent =
+      renderedTemplate.files?.map(f => f.content).join('\n') || '';
 
     // Create optimized template object
     const originalTemplate: Template = {
@@ -450,7 +449,9 @@ export class CursorOptimizer {
 
     // Apply additional Cursor-specific optimizations
     const cursorOptimizedContent = await this.applyCursorSpecificOptimizations(
-      optimizationResult.optimizedTemplate.files?.map(f => f.content).join('\n') || '',
+      optimizationResult.optimizedTemplate.files
+        ?.map(f => (f as any).content)
+        .join('\n') || '',
       cursorContext
     );
 

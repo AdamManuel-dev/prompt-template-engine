@@ -19,7 +19,9 @@ import { CacheService } from '../../services/cache.service';
 import {
   PromptOptimizationService,
   OptimizationRequest,
+  OptimizationResult,
   BatchOptimizationRequest,
+  BatchOptimizationResult,
 } from '../../services/prompt-optimization.service';
 import {
   PromptWizardClient,
@@ -346,7 +348,12 @@ export class OptimizeCommand extends BaseCommand {
         template,
         config: {
           task,
-          targetModel: options.model as any,
+          targetModel: options.model as
+            | 'gpt-4'
+            | 'gpt-3.5-turbo'
+            | 'claude-3-opus'
+            | 'claude-3-sonnet'
+            | 'gemini-pro',
           mutateRefineIterations: parseInt(
             options.iterations?.toString() || '3',
             10
@@ -356,7 +363,7 @@ export class OptimizeCommand extends BaseCommand {
         },
         options: {
           skipCache: options.skipCache,
-          priority: options.priority as any,
+          priority: options.priority as 'low' | 'normal' | 'high' | 'critical',
         },
       };
 
@@ -467,7 +474,12 @@ export class OptimizeCommand extends BaseCommand {
           template,
         })),
         config: {
-          targetModel: options.model as any,
+          targetModel: options.model as
+            | 'gpt-4'
+            | 'gpt-3.5-turbo'
+            | 'claude-3-opus'
+            | 'claude-3-sonnet'
+            | 'gemini-pro',
           mutateRefineIterations: parseInt(
             options.iterations?.toString() || '3',
             10
@@ -477,7 +489,7 @@ export class OptimizeCommand extends BaseCommand {
         },
         options: {
           skipCache: options.skipCache,
-          priority: options.priority as any,
+          priority: options.priority as 'low' | 'normal' | 'high' | 'critical',
         },
       };
 
@@ -532,7 +544,7 @@ export class OptimizeCommand extends BaseCommand {
    * // Optimization Time: 12.3s
    * ```
    */
-  private displayOptimizationResult(result: any): void {
+  private displayOptimizationResult(result: OptimizationResult): void {
     console.log(`\n${chalk.green.bold('🎉 Optimization Results')}`);
     console.log(chalk.cyan('═'.repeat(50)));
 
@@ -576,7 +588,7 @@ export class OptimizeCommand extends BaseCommand {
 
     console.log(`\n${chalk.magenta.bold('🔄 Optimized Content')}`);
     console.log(chalk.gray('─'.repeat(50)));
-    console.log(result.optimizedTemplate.content);
+    console.log(result.optimizedTemplate.content || 'No content available');
     console.log(chalk.gray('─'.repeat(50)));
   }
 
@@ -609,7 +621,7 @@ export class OptimizeCommand extends BaseCommand {
    * // • template-b: Invalid format
    * ```
    */
-  private displayBatchResult(batchResult: any): void {
+  private displayBatchResult(batchResult: BatchOptimizationResult): void {
     console.log(`\n${chalk.green.bold('🎉 Batch Optimization Results')}`);
     console.log(chalk.cyan('═'.repeat(50)));
 
@@ -623,25 +635,30 @@ export class OptimizeCommand extends BaseCommand {
 
     if (batchResult.errors.length > 0) {
       console.log(`\n${chalk.red.bold('❌ Errors')}`);
-      batchResult.errors.forEach((error: any) => {
-        console.log(`${chalk.red('•')} ${error.templateId}: ${error.error}`);
-      });
+      batchResult.errors.forEach(
+        (error: { templateId: string; error: string }) => {
+          console.log(`${chalk.red('•')} ${error.templateId}: ${error.error}`);
+        }
+      );
     }
 
     if (batchResult.results.length > 0) {
       console.log(`\n${chalk.yellow.bold('📊 Summary Statistics')}`);
       const avgTokenReduction =
         batchResult.results.reduce(
-          (sum: number, r: any) => sum + r.metrics.tokenReduction,
+          (sum: number, r: OptimizationResult) =>
+            sum + r.metrics.tokenReduction,
           0
         ) / batchResult.results.length;
       const avgAccuracyImprovement =
         batchResult.results.reduce(
-          (sum: number, r: any) => sum + r.metrics.accuracyImprovement,
+          (sum: number, r: OptimizationResult) =>
+            sum + r.metrics.accuracyImprovement,
           0
         ) / batchResult.results.length;
       const totalOptimizationTime = batchResult.results.reduce(
-        (sum: number, r: any) => sum + r.metrics.optimizationTime,
+        (sum: number, r: OptimizationResult) =>
+          sum + r.metrics.optimizationTime,
         0
       );
 
@@ -691,7 +708,7 @@ export class OptimizeCommand extends BaseCommand {
    * ```
    */
   private async saveOptimizedTemplate(
-    result: any,
+    result: OptimizationResult,
     outputPath: string
   ): Promise<void> {
     try {
@@ -758,7 +775,7 @@ export class OptimizeCommand extends BaseCommand {
    * ```
    */
   private async saveBatchResults(
-    batchResult: any,
+    batchResult: BatchOptimizationResult,
     outputPath: string
   ): Promise<void> {
     try {

@@ -21,6 +21,33 @@ export type RateLimitAlgorithm =
   | 'leaky-bucket';
 
 /**
+ * Rate limit data structure
+ */
+export interface RateLimitData {
+  count: number;
+  resetTime: number;
+  firstHit: number;
+
+  // Token bucket specific
+  tokens?: number;
+  lastRefill?: number;
+
+  // Sliding window specific
+  hits?: Array<{ timestamp: number; count: number }>;
+}
+
+/**
+ * Rate limit storage interface
+ */
+export interface IRateLimitStore {
+  get(key: string): Promise<RateLimitData | null>;
+  set(key: string, data: RateLimitData): Promise<void>;
+  increment(key: string, ttl: number): Promise<number>;
+  reset(key: string): Promise<void>;
+  cleanup(): Promise<void>;
+}
+
+/**
  * Rate limit configuration
  */
 export interface RateLimitConfig {
@@ -59,33 +86,6 @@ export interface RateLimitResult {
   resetTime: number;
   retryAfter?: number;
   error?: string;
-}
-
-/**
- * Rate limit storage interface
- */
-export interface IRateLimitStore {
-  get(key: string): Promise<RateLimitData | null>;
-  set(key: string, data: RateLimitData): Promise<void>;
-  increment(key: string, ttl: number): Promise<number>;
-  reset(key: string): Promise<void>;
-  cleanup(): Promise<void>;
-}
-
-/**
- * Rate limit data structure
- */
-export interface RateLimitData {
-  count: number;
-  resetTime: number;
-  firstHit: number;
-
-  // Token bucket specific
-  tokens?: number;
-  lastRefill?: number;
-
-  // Sliding window specific
-  hits?: Array<{ timestamp: number; count: number }>;
 }
 
 /**
@@ -531,7 +531,9 @@ export function withRateLimit(config: Partial<RateLimitConfig> = {}) {
 
       // Apply delay if configured
       if (config.delayAfterHit && config.delayAfterHit > 0) {
-        await new Promise(resolve => setTimeout(resolve, config.delayAfterHit));
+        await new Promise(resolve => {
+          setTimeout(resolve, config.delayAfterHit);
+        });
       }
 
       return method.apply(this, args);
@@ -563,7 +565,9 @@ export function createRateLimitMiddleware(
 
     // Apply delay if configured
     if (config.delayAfterHit && config.delayAfterHit > 0) {
-      await new Promise(resolve => setTimeout(resolve, config.delayAfterHit));
+      await new Promise(resolve => {
+        setTimeout(resolve, config.delayAfterHit);
+      });
     }
 
     return operation();

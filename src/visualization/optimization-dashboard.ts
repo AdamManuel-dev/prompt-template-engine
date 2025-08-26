@@ -304,8 +304,8 @@ export class OptimizationDashboard extends EventEmitter {
    * @returns Promise resolving to export file path
    */
   async exportData(
-    format: 'json' | 'csv' | 'html' = 'json',
-    filePath?: string
+    filePath?: string,
+    format: 'json' | 'csv' | 'html' = 'json'
   ): Promise<string> {
     if (!this.metricsData) {
       throw new Error('No metrics data to export');
@@ -889,6 +889,9 @@ export class OptimizationDashboard extends EventEmitter {
         if (value < thresholds.costEffectiveness.excellent) level = 'excellent';
         else if (value < thresholds.costEffectiveness.good) level = 'good';
         else if (value < thresholds.costEffectiveness.fair) level = 'fair';
+        break;
+      default:
+        level = 'poor';
         break;
     }
 

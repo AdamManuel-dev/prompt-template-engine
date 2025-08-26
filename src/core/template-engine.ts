@@ -156,6 +156,16 @@ export class TemplateEngine {
 
       const absolutePath = this.resolveIncludePath(include.path);
 
+      // Check for circular dependency
+      if (includeStack.includes(absolutePath)) {
+        throw new Error(
+          `Circular dependency detected: ${absolutePath} is already included in the call stack`
+        );
+      }
+
+      // Debug logging
+      // console.log(`[UNCONDITIONAL] Processing include: ${absolutePath}, stack: [${includeStack.join(', ')}], depth: ${depth}`);
+
       try {
         // Read the included template
         // eslint-disable-next-line no-await-in-loop
@@ -231,6 +241,16 @@ export class TemplateEngine {
     for (let i = 0; i < includes.length; i += 1) {
       const include = includes[i];
       const absolutePath = this.resolveIncludePath(include.path);
+
+      // Check for circular dependency
+      if (includeStack.includes(absolutePath)) {
+        throw new Error(
+          `Circular dependency detected: ${absolutePath} is already included in the call stack`
+        );
+      }
+
+      // Debug logging
+      // console.log(`Processing include: ${absolutePath}, stack: [${includeStack.join(', ')}], depth: ${depth}`);
 
       try {
         // Read the included template

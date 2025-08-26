@@ -41,18 +41,18 @@ export interface ChainOptimizationConfig {
   optimizationGoal?: 'clarity' | 'accuracy' | 'efficiency' | 'balanced';
 }
 
-export interface ChainValidationResult {
-  valid: boolean;
-  issues: ValidationIssue[];
-  suggestions: string[];
-  overallScore: number;
-}
-
 export interface ValidationIssue {
   stepId: string;
   type: 'logical_error' | 'missing_connection' | 'redundancy' | 'ambiguity';
   severity: 'low' | 'medium' | 'high';
   description: string;
+}
+
+export interface ChainValidationResult {
+  valid: boolean;
+  issues: ValidationIssue[];
+  suggestions: string[];
+  overallScore: number;
 }
 
 export class ChainOfThoughtOptimizer {

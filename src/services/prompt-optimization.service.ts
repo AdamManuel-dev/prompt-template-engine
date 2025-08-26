@@ -18,7 +18,8 @@ import {
   PromptComparison,
   OptimizationJob,
 } from '../integrations/promptwizard';
-import { TemplateService, Template } from './template.service';
+import { TemplateService } from './template.service';
+import { Template } from '../types';
 import { CacheService } from './cache.service';
 import { OptimizationCacheService } from './optimization-cache.service';
 import { OptimizationQueue } from '../queues/optimization-queue';
@@ -190,6 +191,8 @@ export class PromptOptimizationService extends EventEmitter {
 
   private resultCache: LRUCache<string, OptimizationResult>;
 
+  private templateService: TemplateService;
+
   /**
    * Creates a new PromptOptimizationService instance
    *
@@ -214,13 +217,14 @@ export class PromptOptimizationService extends EventEmitter {
    */
   constructor(
     client: PromptWizardClient,
-    _templateService: TemplateService, // Keep parameter for interface compatibility
+    templateService: TemplateService,
     cacheService: CacheService,
     optimizationPipeline?: OptimizationPipeline
   ) {
     super();
     this.client = client;
     this.cacheService = cacheService;
+    this.templateService = templateService;
 
     // Initialize optimization cache service
     this.optimizationCacheService = new OptimizationCacheService();
@@ -376,7 +380,7 @@ export class PromptOptimizationService extends EventEmitter {
           task: request.template.name,
           prompt:
             request.template.content ||
-            request.template.files?.[0]?.content ||
+            (request.template.files?.[0] as any)?.content ||
             request.template.description ||
             '',
           targetModel: request.config?.targetModel || 'gpt-4',
@@ -408,10 +412,16 @@ export class PromptOptimizationService extends EventEmitter {
               optimizationTime: Date.now() - startTime,
               apiCalls: cached.metrics?.apiCallsUsed || 0,
             },
-            qualityScore: cached.qualityScore || {
-              overall: 0.8,
-              breakdown: {},
-            },
+            qualityScore: (typeof cached.qualityScore === 'object' ? cached.qualityScore : {
+              overall: cached.qualityScore || 80,
+              confidence: 0.8,
+              metrics: {
+                clarity: 80,
+                taskAlignment: 80,
+                tokenEfficiency: 80,
+              },
+              suggestions: [],
+            }) as QualityScore,
             comparison: cached.comparison || { improvements: {} },
             timestamp: new Date(),
           };
@@ -435,7 +445,7 @@ export class PromptOptimizationService extends EventEmitter {
         task: request.template.name,
         prompt:
           request.template.content ||
-          request.template.files?.[0]?.content ||
+          (request.template.files?.[0] as any)?.content ||
           request.template.description ||
           '',
         targetModel: request.config?.targetModel || 'gpt-4',
@@ -476,7 +486,20 @@ export class PromptOptimizationService extends EventEmitter {
         request.options?.timeoutMs || 10 * 60 * 1000
       ); // 10 minutes default
 
-      const onCompleted = (completedJob: any) => {
+      // Forward declaration
+      let onCompleted: (completedJob: any) => void;
+      let onFailed: (failedJob: any) => void;
+
+      onFailed = (failedJob: any) => {
+        if (failedJob.jobId === job.jobId) {
+          clearTimeout(timeout);
+          this.optimizationQueue.off('job:completed', onCompleted);
+          this.optimizationQueue.off('job:failed', onFailed);
+          reject(new Error(failedJob.error || 'Job failed'));
+        }
+      };
+
+      onCompleted = (completedJob: any) => {
         if (completedJob.jobId === job.jobId) {
           clearTimeout(timeout);
           this.optimizationQueue.off('job:completed', onCompleted);
@@ -487,15 +510,6 @@ export class PromptOptimizationService extends EventEmitter {
           } else {
             reject(new Error('Job completed but no result available'));
           }
-        }
-      };
-
-      const onFailed = (failedJob: any) => {
-        if (failedJob.jobId === job.jobId) {
-          clearTimeout(timeout);
-          this.optimizationQueue.off('job:completed', onCompleted);
-          this.optimizationQueue.off('job:failed', onFailed);
-          reject(new Error(failedJob.error || 'Job failed'));
         }
       };
 
@@ -640,7 +654,7 @@ export class PromptOptimizationService extends EventEmitter {
         return null;
       }
     }
-    return job;
+    return job as any;
   }
 
   /**
@@ -882,10 +896,12 @@ export class PromptOptimizationService extends EventEmitter {
    * @returns Unique cache key string
    * @private
    */
+  /*
   private generateCacheKey(request: OptimizationRequest): string {
     const configHash = JSON.stringify(request.config || {});
     return `optimize:${request.templateId}:${configHash}`;
   }
+  */
 
   /**
    * Retrieve a cached optimization result from multi-tier cache
@@ -898,27 +914,7 @@ export class PromptOptimizationService extends EventEmitter {
    * @returns Cached optimization result or null if not found
    * @private
    */
-  private async getCachedResult(
-    key: string
-  ): Promise<OptimizationResult | null> {
-    // Check in-memory cache first
-    const memCached = this.resultCache.get(key);
-    if (memCached) {
-      return memCached;
-    }
-
-    // Check distributed cache
-    const cached = (await this.cacheService.get(
-      key
-    )) as OptimizationResult | null;
-    if (cached) {
-      // Populate memory cache
-      this.resultCache.set(key, cached);
-      return cached;
-    }
-
-    return null;
-  }
+  // getCachedResult method commented out as unused
 
   /**
    * Store an optimization result in multi-tier cache
@@ -931,16 +927,7 @@ export class PromptOptimizationService extends EventEmitter {
    * @param result - Optimization result to cache
    * @private
    */
-  private async cacheResult(
-    key: string,
-    result: OptimizationResult
-  ): Promise<void> {
-    // Cache in memory
-    this.resultCache.set(key, result);
-
-    // Cache in distributed cache
-    await this.cacheService.set(key, result); // Use default TTL
-  }
+  // cacheResult method commented out as unused
 
   /**
    * Generate a unique request identifier

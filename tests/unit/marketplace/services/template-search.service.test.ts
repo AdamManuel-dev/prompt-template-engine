@@ -4,23 +4,36 @@
  */
 
 import { TemplateSearchService } from '../../../../src/marketplace/services/template-search.service';
-import { MarketplaceAPI } from '../../../../src/marketplace/api/marketplace.api';
 import {
   TemplateSearchQuery,
   TemplateSearchResult,
   TemplateModel,
 } from '../../../../src/marketplace/models/template.model';
 
-jest.mock('../../../../src/marketplace/api/marketplace.api');
+// Mock the MarketplaceAPI class
+const mockMarketplaceAPI = {
+  searchTemplates: jest.fn(),
+  getTemplate: jest.fn(),
+  getFeatured: jest.fn(),
+  getTrending: jest.fn(),
+  getByCategory: jest.fn(),
+};
+
+jest.mock('../../../../src/marketplace/api/marketplace.api', () => {
+  return {
+    MarketplaceAPI: jest.fn().mockImplementation(() => mockMarketplaceAPI),
+  };
+});
 
 describe('TemplateSearchService', () => {
   let service: TemplateSearchService;
-  let mockApi: jest.Mocked<MarketplaceAPI>;
+  let mockApi: typeof mockMarketplaceAPI;
 
   beforeEach(() => {
-    mockApi = new MarketplaceAPI() as jest.Mocked<MarketplaceAPI>;
-    service = new TemplateSearchService(mockApi);
+    // Reset all mocks before each test
     jest.clearAllMocks();
+    mockApi = mockMarketplaceAPI;
+    service = new TemplateSearchService(mockApi as any);
   });
 
   describe('search', () => {

@@ -14,53 +14,6 @@ import { logger } from '../utils/logger';
 import { SecurePluginManager } from './secure-plugin-manager';
 
 /**
- * Plugin registration information
- */
-export interface PluginRegistration {
-  /** Plugin name */
-  name: string;
-
-  /** Plugin display name */
-  displayName: string;
-
-  /** Plugin version */
-  version: string;
-
-  /** Plugin description */
-  description: string;
-
-  /** Plugin author */
-  author: string;
-
-  /** Plugin type/category */
-  type: PluginType;
-
-  /** Plugin capabilities */
-  capabilities: PluginCapability[];
-
-  /** Plugin configuration schema */
-  configSchema?: Record<string, any>;
-
-  /** Plugin dependencies */
-  dependencies: PluginDependency[];
-
-  /** Plugin installation path */
-  installPath: string;
-
-  /** Plugin manifest path */
-  manifestPath: string;
-
-  /** Registration timestamp */
-  registeredAt: Date;
-
-  /** Plugin status */
-  status: PluginStatus;
-
-  /** Plugin metadata */
-  metadata?: PluginMetadata;
-}
-
-/**
  * Plugin types
  */
 export enum PluginType {
@@ -152,6 +105,53 @@ export interface PluginMetadata {
 
   /** Available version */
   availableVersion?: string;
+}
+
+/**
+ * Plugin registration information
+ */
+export interface PluginRegistration {
+  /** Plugin name */
+  name: string;
+
+  /** Plugin display name */
+  displayName: string;
+
+  /** Plugin version */
+  version: string;
+
+  /** Plugin description */
+  description: string;
+
+  /** Plugin author */
+  author: string;
+
+  /** Plugin type/category */
+  type: PluginType;
+
+  /** Plugin capabilities */
+  capabilities: PluginCapability[];
+
+  /** Plugin configuration schema */
+  configSchema?: Record<string, any>;
+
+  /** Plugin dependencies */
+  dependencies: PluginDependency[];
+
+  /** Plugin installation path */
+  installPath: string;
+
+  /** Plugin manifest path */
+  manifestPath: string;
+
+  /** Registration timestamp */
+  registeredAt: Date;
+
+  /** Plugin status */
+  status: PluginStatus;
+
+  /** Plugin metadata */
+  metadata?: PluginMetadata;
 }
 
 /**
@@ -582,6 +582,8 @@ export class PluginRegistry {
 
     // Merge metadata
     registration.metadata = {
+      source: 'local' as const, // Provide default required value
+      installMethod: 'unknown',
       ...registration.metadata,
       ...metadata,
       lastUpdated: new Date(),
@@ -666,7 +668,7 @@ export class PluginRegistry {
         }
         this.registrations.set(name, registration);
       }
-    } catch (error) {
+    } catch (_error) {
       // Registry file doesn't exist or is invalid - start fresh
       logger.debug('No existing plugin registry found, starting fresh');
     }
@@ -732,8 +734,10 @@ export class PluginRegistry {
     try {
       this.changeWatcher = fs.watch(
         this.registryPath,
-        { recursive: true },
-        async (eventType, filename) => {
+        { recursive: true }
+      );
+      
+      this.changeWatcher.on('change', async (_eventType: string, filename?: string) => {
           if (filename && filename.endsWith('plugin.json')) {
             // Plugin manifest changed - refresh registration
             const pluginDir = path.dirname(
@@ -741,8 +745,7 @@ export class PluginRegistry {
             );
             await this.refreshPlugin(pluginDir);
           }
-        }
-      );
+      });
     } catch (error) {
       logger.warn('Failed to start plugin watching:', error);
     }
@@ -857,7 +860,7 @@ export class PluginRegistry {
    * @returns Plugin metadata
    * @private
    */
-  private extractMetadata(manifest: any, installPath: string): PluginMetadata {
+  private extractMetadata(manifest: any, _installPath: string): PluginMetadata {
     return {
       source: 'local',
       installMethod: 'manual',

@@ -61,7 +61,7 @@ class Logger {
   private formatMessage(
     level: string,
     message: string,
-    ...args: any[]
+    ...args: unknown[]
   ): string {
     const parts = [this.config.prefix];
 
@@ -98,7 +98,7 @@ class Logger {
     levelName: string,
     message: string,
     colorFn?: (str: string) => string,
-    ...args: any[]
+    ...args: unknown[]
   ): void {
     if (level < this.config.level) {
       return;

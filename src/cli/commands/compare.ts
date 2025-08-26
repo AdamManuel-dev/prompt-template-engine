@@ -21,6 +21,7 @@ import {
   PromptWizardClient,
   createDefaultConfig,
 } from '../../integrations/promptwizard';
+import type { PromptComparison } from '../../integrations/promptwizard/types';
 
 interface CompareOptions {
   original?: string;
@@ -245,7 +246,7 @@ export class CompareCommand extends BaseCommand {
    * Display comparison in table format
    */
   private displayTableComparison(
-    comparison: any,
+    comparison: PromptComparison,
     _originalPrompt: string,
     _optimizedPrompt: string,
     options: CompareOptions
@@ -299,6 +300,9 @@ export class CompareCommand extends BaseCommand {
     ];
 
     metrics.forEach(([metric, original, optimized]) => {
+      const metricStr = String(metric);
+      const originalStr = String(original);
+      const optimizedStr = String(optimized);
       const improvement =
         typeof original === 'number' && typeof optimized === 'number'
           ? `${(((optimized - original) / original) * 100).toFixed(1)}%`
@@ -309,7 +313,7 @@ export class CompareCommand extends BaseCommand {
         : chalk.green;
 
       console.log(
-        `│ ${metric.padEnd(19)} │ ${String(original).padEnd(11)} │ ${String(optimized).padEnd(11)} │ ${improvementColor(String(improvement).padEnd(11))} │`
+        `│ ${metricStr.padEnd(19)} │ ${originalStr.padEnd(11)} │ ${optimizedStr.padEnd(11)} │ ${improvementColor(String(improvement).padEnd(11))} │`
       );
     });
 
@@ -375,7 +379,7 @@ export class CompareCommand extends BaseCommand {
   /**
    * Display comparison in JSON format
    */
-  private displayJsonComparison(comparison: any): void {
+  private displayJsonComparison(comparison: PromptComparison): void {
     console.log(JSON.stringify(comparison, null, 2));
   }
 
@@ -383,7 +387,7 @@ export class CompareCommand extends BaseCommand {
    * Display comparison in Markdown format
    */
   private displayMarkdownComparison(
-    comparison: any,
+    comparison: PromptComparison,
     originalPrompt: string,
     optimizedPrompt: string
   ): void {
@@ -484,7 +488,7 @@ export class CompareCommand extends BaseCommand {
    * Save comparison report to file
    */
   private async saveComparisonReport(
-    comparison: any,
+    comparison: PromptComparison,
     originalPrompt: string,
     optimizedPrompt: string,
     options: CompareOptions

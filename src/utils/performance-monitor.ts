@@ -64,8 +64,8 @@ export class PerformanceMonitor extends EventEmitter {
    */
   endTimer(
     timerId: string,
-    success: boolean = true,
-    error?: string
+    error?: string,
+    success: boolean = true
   ): PerformanceMetrics | null {
     const timer = this.timers.get(timerId);
     if (!timer) {
@@ -231,11 +231,11 @@ export class OptimizationMetricsCollector {
 
     return fn()
       .then(result => {
-        this.monitor.endTimer(timerId, true);
+        this.monitor.endTimer(timerId);
         return result;
       })
       .catch(error => {
-        this.monitor.endTimer(timerId, false, error.message);
+        this.monitor.endTimer(timerId, error.message, false);
         throw error;
       });
   }
@@ -253,11 +253,11 @@ export class OptimizationMetricsCollector {
 
     return fn()
       .then(result => {
-        this.monitor.endTimer(timerId, true);
+        this.monitor.endTimer(timerId);
         return result;
       })
       .catch(error => {
-        this.monitor.endTimer(timerId, false, error.message);
+        this.monitor.endTimer(timerId, error.message, false);
         throw error;
       });
   }
@@ -275,11 +275,11 @@ export class OptimizationMetricsCollector {
 
     return fn()
       .then(result => {
-        this.monitor.endTimer(timerId, true);
+        this.monitor.endTimer(timerId);
         return result;
       })
       .catch(error => {
-        this.monitor.endTimer(timerId, false, error.message);
+        this.monitor.endTimer(timerId, error.message, false);
         throw error;
       });
   }
