@@ -1,6 +1,6 @@
 /**
  * @fileoverview Core marketplace service for template management
- * @lastmodified 2025-08-26T02:29:27Z
+ * @lastmodified 2025-08-26T03:27:11Z
  *
  * Features: Template discovery, installation, version management, ratings, search filters, batch operations
  * Main APIs: search(), searchByTags(), install(), batchInstall(), update(), rate(), getReviews(), clearCache()
@@ -84,13 +84,15 @@ interface IMarketplaceService {
       continueOnError?: boolean;
       maxConcurrency?: number;
     }
-  ): Promise<Array<{
-    templateQuery: string;
-    success: boolean;
-    template?: TemplateModel;
-    installation?: TemplateInstallation;
-    error?: Error;
-  }>>;
+  ): Promise<
+    Array<{
+      templateQuery: string;
+      success: boolean;
+      template?: TemplateModel;
+      installation?: TemplateInstallation;
+      error?: Error;
+    }>
+  >;
   batchInstall(
     ids: string[],
     targetPath: string,
@@ -98,14 +100,18 @@ interface IMarketplaceService {
       maxConcurrency?: number;
       continueOnError?: boolean;
     }
-  ): Promise<Array<{
-    id: string;
-    success: boolean;
-    result?: InstallationResult;
-    error?: Error;
-  }>>;
+  ): Promise<
+    Array<{
+      id: string;
+      success: boolean;
+      result?: InstallationResult;
+      error?: Error;
+    }>
+  >;
   // Update methods
-  checkUpdates(): Promise<Array<{ templateId: string; currentVersion: string; latestVersion: string }>>;
+  checkUpdates(): Promise<
+    Array<{ templateId: string; currentVersion: string; latestVersion: string }>
+  >;
   checkUpdates(installedPath: string): Promise<UpdateCheckResult>;
   updateTemplate(
     id: string,
@@ -586,7 +592,6 @@ export class MarketplaceService
     }
   }
 
-
   /**
    * Get list of installed templates
    */
@@ -621,7 +626,12 @@ export class MarketplaceService
   }
 
   /**
-   * One-click install with smart defaults
+   * One-click install with smart defaults and automatic resolution
+   * Resolves template by ID or search, selects optimal version, handles updates
+   * @param templateQuery - Template ID or search query
+   * @param options - Quick install options (autoConfirm, useLatest, enableAutoUpdate)
+   * @returns Promise resolving to template and installation details
+   * @throws Error if template not found or installation fails
    */
   async quickInstall(
     templateQuery: string,
@@ -721,9 +731,13 @@ export class MarketplaceService
     }
   }
 
-
   /**
-   * Install template with dependencies
+   * Install template with dependencies using dependency resolution
+   * @param templateId - Template ID to install
+   * @param version - Optional specific version (defaults to current)
+   * @param options - Dependency installation options (skipOptional, maxDepth)
+   * @returns Promise resolving to primary template and dependency installations
+   * @throws Error if dependencies cannot be resolved or installation fails
    */
   async installWithDependencies(
     templateId: string,
@@ -817,7 +831,11 @@ export class MarketplaceService
   }
 
   /**
-   * Check template dependencies
+   * Check template dependencies to ensure all required dependencies are available
+   * @param templateVersion - Template version object containing dependencies
+   * @returns Promise that resolves when all dependencies are verified
+   * @throws Error if required dependencies are missing
+   * @private
    */
   private async checkDependencies(
     templateVersion: TemplateVersion
@@ -840,7 +858,12 @@ export class MarketplaceService
   }
 
   /**
-   * Download template content
+   * Download template content and metadata to local filesystem
+   * @param template - Template model to download
+   * @param version - Specific template version to download
+   * @returns Promise resolving to local installation directory path
+   * @throws Error if download or file operations fail
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
   private async downloadTemplate(
@@ -986,7 +1009,10 @@ export class MarketplaceService
   }
 
   /**
-   * Search templates by tags
+   * Search templates by tags with caching and database fallback
+   * @param tags - Array of tags to search for
+   * @returns Promise resolving to search results with templates matching the tags
+   * @throws Error if search operation fails
    */
   async searchByTags(tags: string[]): Promise<TemplateSearchResult> {
     const cacheKey = `searchByTags:${JSON.stringify(tags)}`;
@@ -1003,7 +1029,7 @@ export class MarketplaceService
         const templates = await this.database.templates.findByTags(tags, {
           sort: [{ field: 'downloads', direction: 'desc' }],
         });
-        
+
         result = {
           templates: templates as any[],
           total: templates.length,
@@ -1027,7 +1053,10 @@ export class MarketplaceService
   }
 
   /**
-   * Search templates by category
+   * Search templates by category with caching and database fallback
+   * @param category - Category name to search for
+   * @returns Promise resolving to search results for the specified category
+   * @throws Error if search operation fails
    */
   async searchByCategory(category: string): Promise<TemplateSearchResult> {
     const cacheKey = `searchByCategory:${category}`;
@@ -1041,10 +1070,13 @@ export class MarketplaceService
       let result: TemplateSearchResult;
 
       if (this.database) {
-        const templates = await this.database.templates.findByCategory(category, {
-          sort: [{ field: 'downloads', direction: 'desc' }],
-        });
-        
+        const templates = await this.database.templates.findByCategory(
+          category,
+          {
+            sort: [{ field: 'downloads', direction: 'desc' }],
+          }
+        );
+
         result = {
           templates: templates as any[],
           total: templates.length,
@@ -1068,7 +1100,10 @@ export class MarketplaceService
   }
 
   /**
-   * Get popular templates
+   * Get popular templates sorted by download count
+   * @param limit - Maximum number of templates to return (default: 20)
+   * @returns Promise resolving to search results with most popular templates
+   * @throws Error if retrieval operation fails
    */
   async getPopularTemplates(limit: number = 20): Promise<TemplateSearchResult> {
     const cacheKey = `popular:${limit}`;
@@ -1083,7 +1118,7 @@ export class MarketplaceService
 
       if (this.database) {
         const templates = await this.database.templates.getPopular(limit);
-        
+
         result = {
           templates: templates as any[],
           total: templates.length,
@@ -1093,10 +1128,10 @@ export class MarketplaceService
         };
       } else {
         // Fallback to API search
-        result = await this.search({ 
+        result = await this.search({
           sortBy: 'downloads',
           sortOrder: 'desc',
-          limit 
+          limit,
         });
       }
 
@@ -1111,7 +1146,10 @@ export class MarketplaceService
   }
 
   /**
-   * Get top rated templates
+   * Get top rated templates sorted by rating
+   * @param limit - Maximum number of templates to return (default: 20)
+   * @returns Promise resolving to search results with highest rated templates
+   * @throws Error if retrieval operation fails
    */
   async getTopRated(limit: number = 20): Promise<TemplateSearchResult> {
     const cacheKey = `topRated:${limit}`;
@@ -1129,7 +1167,7 @@ export class MarketplaceService
           sort: [{ field: 'rating', direction: 'desc' }],
           limit,
         });
-        
+
         result = {
           templates: templates as any[],
           total: templates.length,
@@ -1139,10 +1177,10 @@ export class MarketplaceService
         };
       } else {
         // Fallback to API search
-        result = await this.search({ 
+        result = await this.search({
           sortBy: 'rating',
           sortOrder: 'desc',
-          limit 
+          limit,
         });
       }
 
@@ -1157,7 +1195,10 @@ export class MarketplaceService
   }
 
   /**
-   * Get templates by author
+   * Get all templates by a specific author
+   * @param author - Author name or ID to search for
+   * @returns Promise resolving to search results with all templates by the author
+   * @throws Error if search operation fails
    */
   async getByAuthor(author: string): Promise<TemplateSearchResult> {
     const cacheKey = `byAuthor:${author}`;
@@ -1174,7 +1215,7 @@ export class MarketplaceService
         const templates = await this.database.templates.findByAuthor(author, {
           sort: [{ field: 'updated', direction: 'desc' }],
         });
-        
+
         result = {
           templates: templates as any[],
           total: templates.length,
@@ -1198,7 +1239,10 @@ export class MarketplaceService
   }
 
   /**
-   * Get trending templates
+   * Get trending templates based on recent download activity
+   * @param hours - Time window in hours for trending calculation (default: 24)
+   * @returns Promise resolving to search results with trending templates
+   * @throws Error if retrieval operation fails
    */
   async getTrending(hours: number = 24): Promise<TemplateSearchResult> {
     const cacheKey = `trending:${hours}`;
@@ -1215,13 +1259,14 @@ export class MarketplaceService
         // Get templates with recent downloads
         // const cutoffDate = new Date(Date.now() - hours * 60 * 60 * 1000);
         const templates = await this.database.templates.getTrending();
-        
+
         // Filter by recent activity (this would need installation tracking)
-        const filtered = templates.filter(template => {
-          // In a real implementation, check installation history
-          return template.stats && template.stats.downloads > 0;
-        });
-        
+        const filtered = templates.filter(
+          template =>
+            // In a real implementation, check installation history
+            template.stats && template.stats.downloads > 0
+        );
+
         result = {
           templates: filtered as any[],
           total: filtered.length,
@@ -1231,10 +1276,10 @@ export class MarketplaceService
         };
       } else {
         // Fallback to API search
-        result = await this.search({ 
+        result = await this.search({
           trending: true,
           sortBy: 'downloads',
-          sortOrder: 'desc'
+          sortOrder: 'desc',
         });
       }
 
@@ -1249,7 +1294,12 @@ export class MarketplaceService
   }
 
   /**
-   * Install template to specific path with options
+   * Install template to specific path with advanced options
+   * @param id - Template ID to install
+   * @param targetPath - Target installation path
+   * @param options - Installation options (version, skipDeps, enableAutoUpdate)
+   * @returns Promise resolving to installation result with success status and metadata
+   * @throws Error if installation fails or template not found
    */
   async installTemplate(
     id: string,
@@ -1261,7 +1311,7 @@ export class MarketplaceService
     }
   ): Promise<InstallationResult> {
     const startTime = Date.now();
-    
+
     try {
       this.emit('installTemplate:started', { id, targetPath, options });
 
@@ -1271,15 +1321,17 @@ export class MarketplaceService
 
       // Install to specific path
       const installResult = await this.install(id, version);
-      
+
       // If target path is different, move installation
       if (targetPath !== installResult.installPath) {
         await fs.mkdir(path.dirname(targetPath), { recursive: true });
         await fs.rename(installResult.installPath, targetPath);
-        
+
         // Update manifest with new path
         if (this.manifest) {
-          const installation = this.manifest.templates.find(t => t.templateId === id);
+          const installation = this.manifest.templates.find(
+            t => t.templateId === id
+          );
           if (installation) {
             installation.installPath = targetPath;
             await this.saveManifest();
@@ -1303,7 +1355,12 @@ export class MarketplaceService
   }
 
   /**
-   * Batch install multiple templates - backward compatible overloads
+   * Batch install multiple templates with concurrent processing
+   * Supports two overloads: install by queries or install to specific paths
+   * @param templateQueries - Array of template queries/IDs to install
+   * @param options - Batch installation options (continueOnError, maxConcurrency)
+   * @returns Promise resolving to array of installation results with success/failure status
+   * @throws Error if critical installation failures occur and continueOnError is false
    */
   async batchInstall(
     templateQueries: string[],
@@ -1311,13 +1368,16 @@ export class MarketplaceService
       continueOnError?: boolean;
       maxConcurrency?: number;
     }
-  ): Promise<Array<{
-    templateQuery: string;
-    success: boolean;
-    template?: TemplateModel;
-    installation?: TemplateInstallation;
-    error?: Error;
-  }>>;
+  ): Promise<
+    Array<{
+      templateQuery: string;
+      success: boolean;
+      template?: TemplateModel;
+      installation?: TemplateInstallation;
+      error?: Error;
+    }>
+  >;
+
   async batchInstall(
     ids: string[],
     targetPath: string,
@@ -1325,18 +1385,23 @@ export class MarketplaceService
       maxConcurrency?: number;
       continueOnError?: boolean;
     }
-  ): Promise<Array<{
-    id: string;
-    success: boolean;
-    result?: InstallationResult;
-    error?: Error;
-  }>>;
+  ): Promise<
+    Array<{
+      id: string;
+      success: boolean;
+      result?: InstallationResult;
+      error?: Error;
+    }>
+  >;
+
   async batchInstall(
     idsOrQueries: string[],
-    targetPathOrOptions?: string | {
-      continueOnError?: boolean;
-      maxConcurrency?: number;
-    },
+    targetPathOrOptions?:
+      | string
+      | {
+          continueOnError?: boolean;
+          maxConcurrency?: number;
+        },
     options?: {
       maxConcurrency?: number;
       continueOnError?: boolean;
@@ -1349,17 +1414,21 @@ export class MarketplaceService
       const { maxConcurrency = 3, continueOnError = true } = options || {};
       const results = [];
 
-      this.emit('batchInstall:started', { ids: idsOrQueries, targetPath, options });
+      this.emit('batchInstall:started', {
+        ids: idsOrQueries,
+        targetPath,
+        options,
+      });
 
       // Process in batches to avoid overwhelming the system
       for (let i = 0; i < idsOrQueries.length; i += maxConcurrency) {
         const batch = idsOrQueries.slice(i, i + maxConcurrency);
-        
+
         const batchPromises = batch.map(async id => {
           try {
             const templatePath = path.join(targetPath, id);
             const result = await this.installTemplate(id, templatePath);
-            
+
             return {
               id,
               success: true,
@@ -1388,62 +1457,80 @@ export class MarketplaceService
 
       this.emit('batchInstall:completed', { results });
       return results;
-    } else {
-      // First overload: batchInstall(templateQueries, options) - legacy behavior
-      const templateQueries = idsOrQueries;
-      const { continueOnError = true, maxConcurrency = 3 } = targetPathOrOptions || {};
-      const results = [];
-
-      this.emit('batch-install:started', { templateQueries, options: targetPathOrOptions });
-
-      // Process in batches to avoid overwhelming the marketplace API
-      for (let i = 0; i < templateQueries.length; i += maxConcurrency) {
-        const batch = templateQueries.slice(i, i + maxConcurrency);
-
-        const batchPromises = batch.map(async templateQuery => {
-          try {
-            const result = await this.quickInstall(templateQuery, {
-              autoConfirm: true,
-              useLatest: true,
-            });
-            return {
-              templateQuery,
-              success: true,
-              template: result.template,
-              installation: result.installation,
-            };
-          } catch (error) {
-            const errorResult = {
-              templateQuery,
-              success: false,
-              error: error as Error,
-            };
-
-            if (!continueOnError) {
-              throw error;
-            }
-
-            logger.warn(`Failed to install ${templateQuery}: ${error}`);
-            return errorResult;
-          }
-        });
-
-        // eslint-disable-next-line no-await-in-loop
-        const batchResults = await Promise.all(batchPromises);
-        results.push(...batchResults);
-      }
-
-      this.emit('batch-install:completed', { results });
-      return results;
     }
+    // First overload: batchInstall(templateQueries, options) - legacy behavior
+    const templateQueries = idsOrQueries;
+    const { continueOnError = true, maxConcurrency = 3 } =
+      targetPathOrOptions || {};
+    const results = [];
+
+    this.emit('batch-install:started', {
+      templateQueries,
+      options: targetPathOrOptions,
+    });
+
+    // Process in batches to avoid overwhelming the marketplace API
+    for (let i = 0; i < templateQueries.length; i += maxConcurrency) {
+      const batch = templateQueries.slice(i, i + maxConcurrency);
+
+      const batchPromises = batch.map(async templateQuery => {
+        try {
+          const result = await this.quickInstall(templateQuery, {
+            autoConfirm: true,
+            useLatest: true,
+          });
+          return {
+            templateQuery,
+            success: true,
+            template: result.template,
+            installation: result.installation,
+          };
+        } catch (error) {
+          const errorResult = {
+            templateQuery,
+            success: false,
+            error: error as Error,
+          };
+
+          if (!continueOnError) {
+            throw error;
+          }
+
+          logger.warn(`Failed to install ${templateQuery}: ${error}`);
+          return errorResult;
+        }
+      });
+
+      // eslint-disable-next-line no-await-in-loop
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+    }
+
+    this.emit('batch-install:completed', { results });
+    return results;
   }
 
   /**
-   * Check for updates - backward compatible overload
+   * Check for template updates with flexible input options
+   * Supports checking all installed templates or templates in specific path
+   * @param installedPath - Optional path to check for installed templates
+   * @returns Promise resolving to update check results or array of available updates
+   * @throws Error if update check operation fails
    */
-  async checkUpdates(): Promise<Array<{ templateId: string; currentVersion: string; latestVersion: string }>>;
+  async checkUpdates(): Promise<
+    Array<{ templateId: string; currentVersion: string; latestVersion: string }>
+  >;
+
   async checkUpdates(installedPath: string): Promise<UpdateCheckResult>;
-  async checkUpdates(installedPath?: string): Promise<UpdateCheckResult | Array<{ templateId: string; currentVersion: string; latestVersion: string }>> {
+
+  async checkUpdates(installedPath?: string): Promise<
+    | UpdateCheckResult
+    | Array<{
+        templateId: string;
+        currentVersion: string;
+        latestVersion: string;
+      }>
+  > {
     try {
       this.emit('checkUpdates:started', { installedPath });
 
@@ -1484,7 +1571,7 @@ export class MarketplaceService
 
       // New behavior - read installed templates from path
       const installedTemplates: string[] = [];
-      
+
       try {
         const items = await fs.readdir(installedPath);
         for (const item of items) {
@@ -1493,8 +1580,15 @@ export class MarketplaceService
           if (stat.isDirectory()) {
             // Check if it's a template directory
             const metadataPath = path.join(itemPath, 'template.json');
-            if (await fs.access(metadataPath).then(() => true).catch(() => false)) {
-              const metadata = JSON.parse(await fs.readFile(metadataPath, 'utf8'));
+            if (
+              await fs
+                .access(metadataPath)
+                .then(() => true)
+                .catch(() => false)
+            ) {
+              const metadata = JSON.parse(
+                await fs.readFile(metadataPath, 'utf8')
+              );
               if (metadata.template?.id) {
                 installedTemplates.push(metadata.template.id);
               }
@@ -1546,7 +1640,12 @@ export class MarketplaceService
   }
 
   /**
-   * Update specific template
+   * Update specific template to latest or specified version
+   * @param id - Template ID to update
+   * @param installedPath - Path where template is installed
+   * @param version - Optional specific version to update to (defaults to latest)
+   * @returns Promise resolving to installation result with update details
+   * @throws Error if template not found or update fails
    */
   async updateTemplate(
     id: string,
@@ -1554,7 +1653,7 @@ export class MarketplaceService
     version?: string
   ): Promise<InstallationResult> {
     const startTime = Date.now();
-    
+
     try {
       this.emit('updateTemplate:started', { id, installedPath, version });
 
@@ -1583,14 +1682,14 @@ export class MarketplaceService
 
       // Update the template
       const updateResult = await this.update(id, targetVersion);
-      
-      this.emit('updateTemplate:completed', { 
-        id, 
-        installedPath, 
+
+      this.emit('updateTemplate:completed', {
+        id,
+        installedPath,
         fromVersion: installation.version,
-        toVersion: targetVersion 
+        toVersion: targetVersion,
       });
-      
+
       return {
         ...updateResult,
         duration: Date.now() - startTime,
@@ -1603,7 +1702,10 @@ export class MarketplaceService
   }
 
   /**
-   * Update all templates
+   * Update all templates in specified path to their latest versions
+   * @param installedPath - Path containing installed templates
+   * @returns Promise resolving to update result with success/failure counts
+   * @throws Error if path is invalid or update process fails
    */
   async updateAll(installedPath: string): Promise<UpdateResult> {
     try {
@@ -1611,14 +1713,14 @@ export class MarketplaceService
 
       // Check for updates first
       const updateCheck = await this.checkUpdates(installedPath);
-      
+
       if (!updateCheck.hasUpdates) {
         const result: UpdateResult = {
           success: true,
           updated: [],
           failed: [],
         };
-        
+
         this.emit('updateAll:completed', { result });
         return result;
       }
@@ -1635,7 +1737,7 @@ export class MarketplaceService
             installedPath,
             update.latestVersion
           );
-          
+
           updated.push({
             templateId: update.templateId,
             oldVersion: update.currentVersion,
@@ -1665,7 +1767,12 @@ export class MarketplaceService
   }
 
   /**
-   * Rollback template to specific version
+   * Rollback template to specific version using backup or reinstallation
+   * @param id - Template ID to rollback
+   * @param version - Target version to rollback to
+   * @param installedPath - Path where template is installed
+   * @returns Promise resolving to installation result after rollback
+   * @throws Error if template not found or rollback fails
    */
   async rollbackTemplate(
     id: string,
@@ -1673,7 +1780,7 @@ export class MarketplaceService
     installedPath: string
   ): Promise<InstallationResult> {
     const startTime = Date.now();
-    
+
     try {
       this.emit('rollback:started', { id, version, installedPath });
 
@@ -1683,20 +1790,27 @@ export class MarketplaceService
       }
 
       // Check if backup exists for the target version
-      const backupPath = path.join(installation.installPath, 'backups', version);
-      const backupExists = await fs.access(backupPath).then(() => true).catch(() => false);
-      
+      const backupPath = path.join(
+        installation.installPath,
+        'backups',
+        version
+      );
+      const backupExists = await fs
+        .access(backupPath)
+        .then(() => true)
+        .catch(() => false);
+
       if (backupExists) {
         // Restore from backup
         const templateFiles = await fs.readdir(backupPath);
-        
+
         for (const file of templateFiles) {
           const backupFilePath = path.join(backupPath, file);
           const targetFilePath = path.join(installation.installPath, file);
           // eslint-disable-next-line no-await-in-loop
           await fs.copyFile(backupFilePath, targetFilePath);
         }
-        
+
         // Update installation record
         if (this.manifest) {
           const installIndex = this.manifest.templates.findIndex(
@@ -1707,18 +1821,20 @@ export class MarketplaceService
             await this.saveManifest();
           }
         }
-        
-        logger.info(`Template ${id} rolled back to version ${version} from backup`);
+
+        logger.info(
+          `Template ${id} rolled back to version ${version} from backup`
+        );
       } else {
         // Reinstall the specific version
         logger.info(`No backup found, reinstalling ${id}@${version}`);
         const installResult = await this.install(id, version);
-        
+
         const result: InstallationResult = {
           ...installResult,
           duration: Date.now() - startTime,
         };
-        
+
         this.emit('rollback:completed', { id, version, result });
         return result;
       }
@@ -1744,7 +1860,13 @@ export class MarketplaceService
   }
 
   /**
-   * Rate a template
+   * Rate a template with optional review comment
+   * @param id - Template ID to rate
+   * @param rating - Rating value (1-5 integer)
+   * @param userId - User ID submitting the rating
+   * @param options - Optional rating options (comment, title)
+   * @returns Promise resolving to rating result with success status
+   * @throws Error if rating is invalid or submission fails
    */
   async rateTemplate(
     id: string,
@@ -1788,7 +1910,7 @@ export class MarketplaceService
           flagged: false,
           created: new Date(),
         };
-        
+
         await this.database.reviews.create(fullReview);
       }
 
@@ -1810,7 +1932,11 @@ export class MarketplaceService
   }
 
   /**
-   * Add a review for a template
+   * Add a detailed review for a template
+   * @param id - Template ID to review
+   * @param review - Review data including userId, rating, title, and comment
+   * @returns Promise resolving to created template review
+   * @throws Error if database unavailable or review creation fails
    */
   async addReview(
     id: string,
@@ -1830,7 +1956,7 @@ export class MarketplaceService
 
       // Get template to get current version
       const template = await this.getTemplate(id);
-      
+
       const fullReview: TemplateReview = {
         id: `${id}_${review.userId}_${Date.now()}`,
         userId: review.userId,
@@ -1859,7 +1985,10 @@ export class MarketplaceService
   }
 
   /**
-   * Get reviews for a template
+   * Get all reviews for a specific template with caching
+   * @param id - Template ID to get reviews for
+   * @returns Promise resolving to array of template reviews
+   * @throws Error if template not found or review retrieval fails
    */
   async getReviews(id: string): Promise<TemplateReview[]> {
     const cacheKey = `reviews:${id}`;
@@ -1895,7 +2024,10 @@ export class MarketplaceService
   }
 
   /**
-   * Record a download for analytics
+   * Record a download for analytics and usage tracking
+   * @param id - Template ID that was downloaded
+   * @returns Promise that resolves when download is recorded
+   * @throws Does not throw - logs warnings for non-critical failures
    */
   async recordDownload(id: string): Promise<void> {
     try {
@@ -1918,7 +2050,7 @@ export class MarketplaceService
             downloads: (template.stats.downloads || 0) + 1,
             lastDownload: new Date(),
           };
-          
+
           await this.database.templates.update(id, {
             stats: updatedStats,
           });
@@ -1938,12 +2070,14 @@ export class MarketplaceService
   }
 
   /**
-   * Get total cache size
+   * Get total cache size across memory and file-based caches
+   * @returns Promise resolving to total cache size in bytes
+   * @throws Error if cache size calculation fails
    */
   async getCacheSize(): Promise<number> {
     try {
       let totalSize = 0;
-      
+
       // Calculate memory cache size
       for (const [, entry] of this.cache) {
         totalSize += JSON.stringify(entry.data).length;
@@ -1971,7 +2105,9 @@ export class MarketplaceService
   }
 
   /**
-   * Clear all caches
+   * Clear all caches including memory, database, and file-based caches
+   * @returns Promise that resolves when all caches are cleared
+   * @throws Error if cache clearing operation fails
    */
   async clearCache(): Promise<void> {
     try {
@@ -2004,7 +2140,11 @@ export class MarketplaceService
   }
 
   /**
-   * Publish a template to the marketplace
+   * Publish a template to the marketplace with version and privacy options
+   * @param template - Template model to publish
+   * @param options - Publishing options (version, isDraft, isPrivate)
+   * @returns Promise resolving to publication result with template ID and version
+   * @throws Error if template validation fails or publication is rejected
    */
   async publishTemplate(
     template: TemplateModel,

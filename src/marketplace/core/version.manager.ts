@@ -1,6 +1,6 @@
 /**
  * @fileoverview Version management for template marketplace
- * @lastmodified 2025-08-25T21:44:14-05:00
+ * @lastmodified 2025-08-26T03:27:11Z
  *
  * Features: Semantic versioning, version comparison, update detection
  * Main APIs: compareVersions(), isCompatible(), findUpdates(), resolveVersion()
@@ -40,7 +40,10 @@ export class VersionManager {
   private static readonly RANGE_REGEX = /^([~^><=]+)?(.+)$/;
 
   /**
-   * Parse version string into VersionInfo
+   * Parse version string into VersionInfo object following semantic versioning
+   * @param version - Version string in format major.minor.patch[-prerelease][+build]
+   * @returns VersionInfo object with parsed components
+   * @throws Error if version format is invalid
    */
   // eslint-disable-next-line class-methods-use-this
   parseVersion(version: string): VersionInfo {
@@ -61,7 +64,10 @@ export class VersionManager {
   }
 
   /**
-   * Parse version range string
+   * Parse version range string into VersionRange object
+   * @param range - Range string (e.g., '^1.2.3', '>=1.0.0', '1.2.3 - 1.5.0')
+   * @returns VersionRange object with operator and version
+   * @throws Error if range format is invalid
    */
   parseRange(range: string): VersionRange {
     const trimmed = range.trim();
@@ -92,7 +98,11 @@ export class VersionManager {
   }
 
   /**
-   * Get operator from prefix
+   * Get operator from prefix string
+   * @param prefix - Operator prefix ('^', '~', '>=', etc.)
+   * @returns VersionOperator enum value
+   * @throws Error if prefix is unknown
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
   private getOperator(prefix: string): VersionOperator {
@@ -117,8 +127,10 @@ export class VersionManager {
   }
 
   /**
-   * Compare two versions
-   * Returns: -1 if a < b, 0 if a === b, 1 if a > b
+   * Compare two versions according to semantic versioning rules
+   * @param a - First version (string or VersionInfo)
+   * @param b - Second version (string or VersionInfo)
+   * @returns -1 if a < b, 0 if a === b, 1 if a > b
    */
   compareVersions(a: string | VersionInfo, b: string | VersionInfo): number {
     const versionA = typeof a === 'string' ? this.parseVersion(a) : a;
@@ -154,7 +166,10 @@ export class VersionManager {
   }
 
   /**
-   * Check if version satisfies range
+   * Check if version satisfies range according to semantic versioning
+   * @param version - Version string to test
+   * @param range - Range string to test against
+   * @returns True if version satisfies the range
    */
   satisfies(version: string, range: string): boolean {
     const versionInfo = this.parseVersion(version);
@@ -199,6 +214,10 @@ export class VersionManager {
   /**
    * Check if version satisfies caret range (^1.2.3)
    * Compatible within same major version
+   * @param version - Version to test
+   * @param range - Caret range base version
+   * @returns True if version is compatible with caret range
+   * @private
    */
   private satisfiesCaret(version: VersionInfo, range: VersionInfo): boolean {
     if (version.major !== range.major) {
@@ -211,6 +230,10 @@ export class VersionManager {
   /**
    * Check if version satisfies tilde range (~1.2.3)
    * Compatible within same major.minor version
+   * @param version - Version to test
+   * @param range - Tilde range base version
+   * @returns True if version is compatible with tilde range
+   * @private
    */
   private satisfiesTilde(version: VersionInfo, range: VersionInfo): boolean {
     if (version.major !== range.major || version.minor !== range.minor) {
@@ -221,7 +244,10 @@ export class VersionManager {
   }
 
   /**
-   * Find the latest version that satisfies range
+   * Find the latest version that satisfies range from array of versions
+   * @param versions - Array of version strings to search
+   * @param range - Range string to satisfy
+   * @returns Latest satisfying version or null if none found
    */
   findLatestSatisfying(versions: string[], range: string): string | null {
     const satisfying = versions.filter(v => this.satisfies(v, range));
@@ -234,14 +260,19 @@ export class VersionManager {
   }
 
   /**
-   * Get all versions that satisfy range
+   * Get all versions that satisfy range from array of versions
+   * @param versions - Array of version strings to filter
+   * @param range - Range string to satisfy
+   * @returns Array of versions that satisfy the range
    */
   filterSatisfying(versions: string[], range: string): string[] {
     return versions.filter(v => this.satisfies(v, range));
   }
 
   /**
-   * Check if version is stable (no prerelease)
+   * Check if version is stable (no prerelease suffix)
+   * @param version - Version string to check
+   * @returns True if version has no prerelease suffix
    */
   isStable(version: string): boolean {
     const versionInfo = this.parseVersion(version);
@@ -249,35 +280,47 @@ export class VersionManager {
   }
 
   /**
-   * Check if version is prerelease
+   * Check if version is prerelease (has prerelease suffix)
+   * @param version - Version string to check
+   * @returns True if version has prerelease suffix
    */
   isPrerelease(version: string): boolean {
     return !this.isStable(version);
   }
 
   /**
-   * Get major version
+   * Get major version number from version string
+   * @param version - Version string to parse
+   * @returns Major version number
    */
   getMajor(version: string): number {
     return this.parseVersion(version).major;
   }
 
   /**
-   * Get minor version
+   * Get minor version number from version string
+   * @param version - Version string to parse
+   * @returns Minor version number
    */
   getMinor(version: string): number {
     return this.parseVersion(version).minor;
   }
 
   /**
-   * Get patch version
+   * Get patch version number from version string
+   * @param version - Version string to parse
+   * @returns Patch version number
    */
   getPatch(version: string): number {
     return this.parseVersion(version).patch;
   }
 
   /**
-   * Increment version
+   * Increment version by major, minor, or patch level
+   * @param version - Base version string
+   * @param type - Type of increment ('major', 'minor', or 'patch')
+   * @returns New incremented version string
+   * @throws Error if increment type is invalid
    */
   increment(version: string, type: 'major' | 'minor' | 'patch'): string {
     const versionInfo = this.parseVersion(version);
@@ -295,7 +338,10 @@ export class VersionManager {
   }
 
   /**
-   * Get version difference
+   * Get version difference type between two versions
+   * @param from - Source version string
+   * @param to - Target version string
+   * @returns Difference type: 'major', 'minor', 'patch', 'prerelease', or 'equal'
    */
   diff(
     from: string,
@@ -324,7 +370,10 @@ export class VersionManager {
   }
 
   /**
-   * Sort versions in descending order (latest first)
+   * Sort versions in descending order (latest first) or ascending order
+   * @param versions - Array of version strings to sort
+   * @param ascending - Sort in ascending order if true (default: false)
+   * @returns Sorted array of version strings
    */
   sortVersions(versions: string[], ascending = false): string[] {
     return versions.sort((a, b) => {
@@ -334,7 +383,10 @@ export class VersionManager {
   }
 
   /**
-   * Check if upgrade is breaking change
+   * Check if upgrade is breaking change (major version increase)
+   * @param from - Current version string
+   * @param to - Target version string
+   * @returns True if upgrade involves major version increase
    */
   isBreakingChange(from: string, to: string): boolean {
     const fromInfo = this.parseVersion(from);
@@ -345,7 +397,10 @@ export class VersionManager {
   }
 
   /**
-   * Get next possible versions for upgrade
+   * Get next possible versions for upgrade categorized by change type
+   * @param currentVersion - Current version string
+   * @param availableVersions - Array of available version strings
+   * @returns Object with patch, minor, and major upgrade options
    */
   getUpgradeOptions(
     currentVersion: string,
@@ -377,7 +432,9 @@ export class VersionManager {
   }
 
   /**
-   * Validate version string
+   * Validate version string format
+   * @param version - Version string to validate
+   * @returns True if version string is valid semantic version
    */
   isValidVersion(version: string): boolean {
     try {
@@ -389,7 +446,9 @@ export class VersionManager {
   }
 
   /**
-   * Validate version range string
+   * Validate version range string format
+   * @param range - Range string to validate
+   * @returns True if range string is valid
    */
   isValidRange(range: string): boolean {
     try {
@@ -401,8 +460,9 @@ export class VersionManager {
   }
 
   /**
-   * Parse version string into components (simple wrapper for parseVersion)
-   * Required by TODO: Split by dots and hyphens, return version object
+   * Parse version string into components
+   * @param version - Version string to parse
+   * @returns VersionInfo object with parsed components
    */
   // eslint-disable-next-line class-methods-use-this
   parse(version: string): VersionInfo {
@@ -410,16 +470,19 @@ export class VersionManager {
   }
 
   /**
-   * Compare two versions (simple wrapper for compareVersions)
-   * Required by TODO: Compare major, minor, patch, return -1, 0, or 1
+   * Compare two versions
+   * @param v1 - First version string
+   * @param v2 - Second version string
+   * @returns -1 if v1 < v2, 0 if v1 === v2, 1 if v1 > v2
    */
   compare(v1: string, v2: string): number {
     return this.compareVersions(v1, v2);
   }
 
   /**
-   * Get latest version from array
-   * Required by TODO: Sort versions and return highest
+   * Get latest version from array of version strings
+   * @param versions - Array of version strings
+   * @returns Latest version string or null if array is empty
    */
   getLatest(versions: string[]): string | null {
     if (versions.length === 0) {
@@ -430,12 +493,13 @@ export class VersionManager {
   }
 
   /**
-   * Get latest stable version from array
-   * Required by TODO: Filter out pre-releases, return highest stable
+   * Get latest stable version from array (excludes prereleases)
+   * @param versions - Array of version strings
+   * @returns Latest stable version string or null if no stable versions found
    */
   getLatestStable(versions: string[]): string | null {
     const stableVersions = versions.filter(v => this.isStable(v));
-    
+
     if (stableVersions.length === 0) {
       return null;
     }

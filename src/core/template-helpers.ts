@@ -68,8 +68,9 @@ export class TemplateHelpers {
     });
     this.register('titlecase', (str: unknown) => {
       const s = String(str);
-      return s.replace(/\w\S*/g, txt => 
-        txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase()
+      return s.replace(
+        /\w\S*/g,
+        txt => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase()
       );
     });
     this.register('concat', (...args: unknown[]) => args.map(String).join(''));

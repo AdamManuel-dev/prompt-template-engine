@@ -39,6 +39,7 @@
     "sourceMap": true,
     "removeComments": false,
     "importHelpers": true,
+    "downlevelIteration": true,
     
     // Advanced Options
     "skipLibCheck": true,

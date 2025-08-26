@@ -85,9 +85,9 @@ export class CacheService<T extends {} = any> {
     const value = this.cache.get(key);
 
     if (value !== undefined) {
-      this.stats.hits++;
+      this.stats.hits += 1;
     } else {
-      this.stats.misses++;
+      this.stats.misses += 1;
     }
 
     return value;
@@ -113,7 +113,7 @@ export class CacheService<T extends {} = any> {
   async set(key: string, value: T, ttl?: number): Promise<void> {
     const options = ttl ? { ttl } : undefined;
     this.cache.set(key, value, options);
-    this.stats.sets++;
+    this.stats.sets += 1;
   }
 
   /**
@@ -122,7 +122,7 @@ export class CacheService<T extends {} = any> {
   async delete(key: string): Promise<boolean> {
     const deleted = this.cache.delete(key);
     if (deleted) {
-      this.stats.deletes++;
+      this.stats.deletes += 1;
     }
     return deleted;
   }
@@ -139,7 +139,7 @@ export class CacheService<T extends {} = any> {
    */
   async clear(): Promise<void> {
     this.cache.clear();
-    this.stats.clears++;
+    this.stats.clears += 1;
   }
 
   /**
@@ -210,7 +210,7 @@ export class CacheService<T extends {} = any> {
 
         if (fs.existsSync(this.cacheDir)) {
           const files = fs.readdirSync(this.cacheDir, { withFileTypes: true });
-          
+
           for (const file of files) {
             if (file.isFile()) {
               const filePath = path.join(this.cacheDir, file.name);
@@ -219,7 +219,7 @@ export class CacheService<T extends {} = any> {
             }
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Silently ignore filesystem errors - return in-memory size only
       }
     }

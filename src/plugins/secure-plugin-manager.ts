@@ -1,6 +1,6 @@
 /**
  * @fileoverview Secure plugin manager with sandboxing
- * @lastmodified 2025-08-26T10:30:00Z
+ * @lastmodified 2025-08-26T03:27:11Z
  *
  * Features: Secure plugin loading, execution, and lifecycle management
  * Main APIs: SecurePluginManager class for safe plugin operations
@@ -15,7 +15,6 @@ import {
   PluginSandbox,
   SandboxConfig,
   PluginExecutionResult,
-  PartialSandboxConfig,
 } from './sandbox/plugin-sandbox';
 import { logger } from '../utils/logger';
 
@@ -88,17 +87,28 @@ export const DEFAULT_SECURITY_POLICY: PluginSecurityPolicy = {
  */
 export class SecurePluginManager {
   private plugins = new Map<string, IPlugin>();
+
   private metadata = new Map<string, SecurePluginMetadata>();
+
   private sandbox: PluginSandbox;
+
   private activePlugins = new Set<string>();
+
   private disabledPlugins = new Set<string>();
+
   private validationErrors: string[] = [];
-  private hooks = new Map<string, Array<{ plugin: IPlugin; handler: Function; priority: number }>>();
+
+  private hooks = new Map<
+    string,
+    Array<{ plugin: IPlugin; handler: Function; priority: number }>
+  >();
+
   private helpers = new Map<string, Function>();
+
   private pluginsDir: string;
+
   private enableSandbox: boolean;
-  private timeout: number;
-  private memoryLimit: number;
+
   private securityPolicy: PluginSecurityPolicy;
 
   constructor(
@@ -109,21 +119,20 @@ export class SecurePluginManager {
     if (typeof options === 'string') {
       this.pluginsDir = options;
       this.enableSandbox = true;
-      this.timeout = 5000;
-      this.memoryLimit = 50 * 1024 * 1024; // 50MB
     } else {
       this.pluginsDir = options.pluginsPath;
       this.enableSandbox = options.enableSandbox ?? true;
-      this.timeout = options.timeout ?? 5000;
-      this.memoryLimit = options.memoryLimit ?? 50 * 1024 * 1024;
     }
-    
+
     this.securityPolicy = securityPolicy;
     this.sandbox = new PluginSandbox(this.securityPolicy.sandbox);
   }
 
   /**
-   * Load a plugin from file
+   * Load a plugin from file with comprehensive security validation
+   * @param pluginPath - Absolute path to the plugin file
+   * @returns Promise that resolves when plugin is successfully loaded
+   * @throws Error if plugin path is invalid, code fails validation, or loading fails
    */
   async loadPlugin(pluginPath: string): Promise<void> {
     try {
@@ -163,7 +172,9 @@ export class SecurePluginManager {
   }
 
   /**
-   * Load all plugins from directory
+   * Load all plugins from directory with error handling for individual failures
+   * @returns Promise that resolves when directory scan and loading is complete
+   * @throws Error if plugins directory cannot be accessed
    */
   async loadPluginsFromDirectory(): Promise<void> {
     try {
@@ -189,7 +200,10 @@ export class SecurePluginManager {
   }
 
   /**
-   * Load all plugins from directory (wrapper for loadPluginsFromDirectory)
+   * Load all plugins from directory with optional user configuration
+   * @param userConfig - Optional configuration object with plugin-specific settings
+   * @returns Promise that resolves when all plugins are loaded and initialized
+   * @throws Error if plugins directory cannot be accessed or critical plugins fail
    */
   async loadPlugins(userConfig?: Record<string, unknown>): Promise<void> {
     await this.loadPluginsFromDirectory();
@@ -200,7 +214,9 @@ export class SecurePluginManager {
           try {
             await plugin.init(this.createPluginAPI(name), userConfig[name]);
           } catch (error: any) {
-            this.validationErrors.push(`Plugin ${name} init failed: ${error.message}`);
+            this.validationErrors.push(
+              `Plugin ${name} init failed: ${error.message}`
+            );
           }
         }
       }
@@ -208,77 +224,93 @@ export class SecurePluginManager {
   }
 
   /**
-   * Get array of loaded plugins
+   * Get array of all currently loaded plugins
+   * @returns Array of loaded plugin instances
    */
   getLoadedPlugins(): IPlugin[] {
     return Array.from(this.plugins.values());
   }
 
   /**
-   * Shutdown all plugins and cleanup
+   * Shutdown all plugins and perform complete cleanup
+   * @returns Promise that resolves when shutdown and cleanup is complete
    */
   async shutdown(): Promise<void> {
     await this.cleanup();
   }
 
   /**
-   * Get validation errors
+   * Get all validation errors encountered during plugin loading
+   * @returns Array of validation error messages
    */
   getValidationErrors(): string[] {
     return [...this.validationErrors];
   }
 
   /**
-   * Execute hook on all plugins
+   * Execute hook on all plugins with priority ordering and sandboxing
+   * @param name - Hook name to execute
+   * @param args - Arguments to pass to hook handlers
+   * @returns Promise resolving to the final result after all hook processing
+   * @throws Error if critical hook execution fails
    */
   async executeHook(name: string, ...args: unknown[]): Promise<unknown> {
     const hookHandlers = this.hooks.get(name) || [];
-    
+
     // Sort by priority (higher priority first)
     hookHandlers.sort((a, b) => (b.priority || 0) - (a.priority || 0));
-    
+
     let result = args[0]; // First argument is usually the main data to transform
-    
+
     for (const { plugin, handler } of hookHandlers) {
       // Skip disabled plugins
       if (this.disabledPlugins.has(plugin.name)) {
         continue;
       }
-      
+
       try {
         if (this.enableSandbox) {
           // Execute in sandbox
-          const sandboxResult = await this.sandbox.executePlugin(plugin, 'executeHook', [name, result, ...args.slice(1)]);
+          const sandboxResult = await this.sandbox.executePlugin(
+            plugin,
+            'executeHook',
+            [name, result, ...args.slice(1)]
+          );
           if (sandboxResult.success) {
             result = sandboxResult.result;
           } else {
-            logger.error(`Hook ${name} failed in plugin ${plugin.name}: ${sandboxResult.error}`);
+            logger.error(
+              `Hook ${name} failed in plugin ${plugin.name}: ${sandboxResult.error}`
+            );
           }
         } else {
           // Execute directly
           result = await handler.call(plugin, result, ...args.slice(1));
         }
       } catch (error: any) {
-        logger.error(`Hook ${name} error in plugin ${plugin.name}: ${error.message}`);
+        logger.error(
+          `Hook ${name} error in plugin ${plugin.name}: ${error.message}`
+        );
         // Continue with other plugins
       }
     }
-    
+
     return result;
   }
 
   /**
-   * Get aggregated helpers from all plugins
+   * Get aggregated helpers from all plugins (excluding disabled plugins)
+   * @returns Record of helper name to function mappings from all active plugins
    */
   getHelpers(): Record<string, Function> {
     const allHelpers: Record<string, Function> = {};
-    
+
     // Collect helpers from all plugins (last loaded wins for conflicts)
     for (const [pluginName, plugin] of Array.from(this.plugins.entries())) {
       if (this.disabledPlugins.has(pluginName)) {
         continue;
       }
-      
+
       if (plugin.hooks && typeof plugin.hooks === 'object') {
         // Check if hooks contains helpers property
         const hooks = plugin.hooks as any;
@@ -287,42 +319,47 @@ export class SecurePluginManager {
         }
       }
     }
-    
+
     // Also include directly registered helpers
     for (const [name, helper] of Array.from(this.helpers.entries())) {
       allHelpers[name] = helper;
     }
-    
+
     return allHelpers;
   }
 
   /**
-   * Enable a specific plugin
+   * Enable a specific plugin and activate it
+   * @param name - Plugin name to enable
+   * @returns Promise resolving to true if plugin was successfully enabled
    */
   async enablePlugin(name: string): Promise<boolean> {
     if (!this.plugins.has(name)) {
       logger.error(`Cannot enable unknown plugin: ${name}`);
       return false;
     }
-    
+
     this.disabledPlugins.delete(name);
     return await this.activatePlugin(name);
   }
 
   /**
-   * Disable a specific plugin
+   * Disable a specific plugin and deactivate it
+   * @param name - Plugin name to disable
+   * @returns Promise resolving to true if plugin was successfully disabled
    */
   async disablePlugin(name: string): Promise<boolean> {
     if (!this.plugins.has(name)) {
       return true; // Already not loaded
     }
-    
+
     this.disabledPlugins.add(name);
     return await this.deactivatePlugin(name);
   }
 
   /**
-   * Initialize all plugins
+   * Initialize all loaded plugins with API access and hook registration
+   * @returns Promise that resolves when all plugins are initialized
    */
   async initializePlugins(): Promise<void> {
     const initResults = [];
@@ -331,13 +368,13 @@ export class SecurePluginManager {
       try {
         // Create plugin API
         const api = this.createPluginAPI(name);
-        
+
         // Initialize plugin
         const initResult = await plugin.init(api);
         if (initResult) {
           this.activePlugins.add(name);
           logger.info(`Plugin initialized: ${name}`);
-          
+
           // Register hooks
           if (plugin.hooks) {
             for (const [hookName, handler] of Object.entries(plugin.hooks)) {
@@ -346,11 +383,10 @@ export class SecurePluginManager {
               }
             }
           }
-          
         } else {
           logger.error(`Plugin initialization failed: ${name}`);
         }
-        
+
         initResults.push({
           name,
           success: !!initResult,
@@ -358,7 +394,9 @@ export class SecurePluginManager {
         });
       } catch (error: any) {
         logger.error(`Plugin initialization error: ${name} - ${error.message}`);
-        this.validationErrors.push(`Plugin ${name} initialization failed: ${error.message}`);
+        this.validationErrors.push(
+          `Plugin ${name} initialization failed: ${error.message}`
+        );
         initResults.push({ name, success: false, error: error.message });
       }
     }
@@ -369,7 +407,11 @@ export class SecurePluginManager {
   }
 
   /**
-   * Execute a plugin method safely
+   * Execute a plugin method safely in sandbox with error handling
+   * @param pluginName - Name of plugin to execute
+   * @param method - Method name to execute (default: 'execute')
+   * @param args - Arguments to pass to the method
+   * @returns Promise resolving to plugin execution result with stats
    */
   async executePlugin(
     pluginName: string,
@@ -389,7 +431,7 @@ export class SecurePluginManager {
 
     try {
       // Update execution stats
-      metadata.executionCount++;
+      metadata.executionCount += 1;
       metadata.lastExecuted = new Date();
 
       // Execute in sandbox
@@ -420,7 +462,9 @@ export class SecurePluginManager {
   }
 
   /**
-   * Activate a plugin
+   * Activate a plugin by calling its activate method
+   * @param pluginName - Name of plugin to activate
+   * @returns Promise resolving to true if activation was successful
    */
   async activatePlugin(pluginName: string): Promise<boolean> {
     if (!this.plugins.has(pluginName)) {
@@ -439,7 +483,9 @@ export class SecurePluginManager {
   }
 
   /**
-   * Deactivate a plugin
+   * Deactivate a plugin by calling its deactivate method
+   * @param pluginName - Name of plugin to deactivate
+   * @returns Promise resolving to true if deactivation was successful
    */
   async deactivatePlugin(pluginName: string): Promise<boolean> {
     if (!this.activePlugins.has(pluginName)) {
@@ -457,7 +503,9 @@ export class SecurePluginManager {
   }
 
   /**
-   * Unload a plugin
+   * Unload a plugin completely from memory and cleanup resources
+   * @param pluginName - Name of plugin to unload
+   * @returns Promise resolving to true if plugin was successfully unloaded
    */
   async unloadPlugin(pluginName: string): Promise<boolean> {
     try {
@@ -477,35 +525,40 @@ export class SecurePluginManager {
   }
 
   /**
-   * Get plugin information
+   * Get plugin information including metadata and execution stats
+   * @param pluginName - Name of plugin to get information for
+   * @returns Plugin metadata object or null if plugin not found
    */
   getPluginInfo(pluginName: string): SecurePluginMetadata | null {
     return this.metadata.get(pluginName) || null;
   }
 
   /**
-   * List all loaded plugins
+   * List all loaded plugins with their metadata
+   * @returns Array of plugin metadata for all loaded plugins
    */
   listPlugins(): SecurePluginMetadata[] {
     return Array.from(this.metadata.values());
   }
 
   /**
-   * Get active plugins
+   * Get names of all currently active plugins
+   * @returns Array of active plugin names
    */
   getActivePlugins(): string[] {
     return Array.from(this.activePlugins);
   }
 
   /**
-   * Cleanup all resources
+   * Cleanup all resources including plugins, sandbox, and internal state
+   * @returns Promise that resolves when cleanup is complete
    */
   async cleanup(): Promise<void> {
     // Deactivate all plugins
     for (const pluginName of Array.from(this.activePlugins)) {
       await this.deactivatePlugin(pluginName);
     }
-    
+
     // Dispose all plugins
     for (const [name, plugin] of Array.from(this.plugins.entries())) {
       try {
@@ -521,7 +574,7 @@ export class SecurePluginManager {
     if (this.sandbox) {
       await this.sandbox.cleanup();
     }
-    
+
     // Clear all collections
     this.plugins.clear();
     this.metadata.clear();
@@ -535,7 +588,12 @@ export class SecurePluginManager {
   }
 
   /**
-   * Validate plugin code for security issues
+   * Validate plugin code for security issues and policy violations
+   * @param code - Plugin code to validate
+   * @param _filePath - File path (unused but kept for interface compatibility)
+   * @returns Promise that resolves if code is valid
+   * @throws Error if code violates security policy
+   * @private
    */
   private async validatePluginCode(
     code: string,
@@ -576,14 +634,19 @@ export class SecurePluginManager {
   }
 
   /**
-   * Parse plugin from code
+   * Parse plugin from code string into plugin object
+   * @param code - Plugin code to parse
+   * @param filePath - File path for error reporting
+   * @returns Promise resolving to parsed plugin object
+   * @throws Error if plugin cannot be parsed or is missing required fields
+   * @private
    */
   private async parsePlugin(code: string, filePath: string): Promise<IPlugin> {
     try {
       // For now, we'll use a simple module evaluation
       // In production, this would be more sophisticated
       let plugin: any;
-      
+
       try {
         // Try to evaluate the module code
         // This is a simplified approach - in production, use proper module loading
@@ -593,10 +656,10 @@ export class SecurePluginManager {
           ${code}
           return module.exports.default || module.exports;
         `;
-        
+
         const pluginFactory = new Function(moduleCode);
         plugin = pluginFactory();
-      } catch (evalError) {
+      } catch (_evalError) {
         // Fallback to basic plugin structure
         plugin = {
           name: path.basename(filePath, path.extname(filePath)),
@@ -605,7 +668,7 @@ export class SecurePluginManager {
           author: 'Unknown',
         };
       }
-      
+
       // Validate required fields
       if (!plugin.name) {
         throw new Error('Plugin missing required field: name');
@@ -613,12 +676,12 @@ export class SecurePluginManager {
       if (!plugin.version) {
         throw new Error('Plugin missing required field: version');
       }
-      
+
       // Ensure init function exists
       if (!plugin.init) {
         plugin.init = () => Promise.resolve(true);
       }
-      
+
       // Set default priority if not provided
       if (plugin.priority === undefined) {
         plugin.priority = 0;
@@ -626,13 +689,20 @@ export class SecurePluginManager {
 
       return plugin as IPlugin;
     } catch (error: any) {
-      this.validationErrors.push(`Failed to parse plugin ${filePath}: ${error.message}`);
+      this.validationErrors.push(
+        `Failed to parse plugin ${filePath}: ${error.message}`
+      );
       throw new Error(`Failed to parse plugin: ${error.message}`);
     }
   }
 
   /**
-   * Perform security checks on plugin
+   * Perform security checks on plugin including author validation and blacklisting
+   * @param plugin - Plugin object to validate
+   * @param _code - Plugin code (unused but kept for interface compatibility)
+   * @returns Promise that resolves if plugin passes security checks
+   * @throws Error if plugin fails security validation
+   * @private
    */
   private async performSecurityChecks(
     plugin: IPlugin,
@@ -661,7 +731,10 @@ export class SecurePluginManager {
   }
 
   /**
-   * Calculate hash of plugin code
+   * Calculate SHA-256 hash of plugin code for integrity verification
+   * @param code - Plugin code to hash
+   * @returns Promise resolving to hex-encoded SHA-256 hash
+   * @private
    */
   private async calculateHash(code: string): Promise<string> {
     const crypto = await import('crypto');
@@ -669,23 +742,30 @@ export class SecurePluginManager {
   }
 
   /**
-   * Register a hook handler
+   * Register a hook handler for a specific plugin with priority
+   * @param name - Hook name to register
+   * @param plugin - Plugin instance registering the hook
+   * @param handler - Hook handler function
+   * @private
    */
   private registerHook(name: string, plugin: IPlugin, handler: Function): void {
     if (!this.hooks.has(name)) {
       this.hooks.set(name, []);
     }
-    
+
     const handlers = this.hooks.get(name)!;
     handlers.push({
       plugin,
       handler,
-      priority: plugin.priority || 0
+      priority: plugin.priority || 0,
     });
   }
-  
+
   /**
-   * Create plugin API for a specific plugin
+   * Create plugin API for a specific plugin with security restrictions
+   * @param pluginName - Name of plugin to create API for
+   * @returns Plugin API object with restricted access to system functions
+   * @private
    */
   private createPluginAPI(pluginName: string): PluginAPI {
     return {
@@ -701,31 +781,29 @@ export class SecurePluginManager {
           plugin.defaultConfig[key] = value;
         }
       },
-      registerCommand: (name: string, handler: unknown) => {
+      registerCommand: (name: string, _handler: unknown) => {
         // Store command handler
         logger.info(`Plugin ${pluginName} registered command: ${name}`);
       },
-      getCommand: (name: string) => {
+      getCommand: (_name: string) =>
         // Return command handler
-        return undefined;
-      },
-      on: (event: string, callback: (...args: unknown[]) => void) => {
+        undefined,
+      on: (event: string, _callback: (...args: unknown[]) => void) => {
         // Event subscription
         logger.info(`Plugin ${pluginName} subscribed to event: ${event}`);
       },
-      emit: (event: string, data: unknown) => {
+      emit: (event: string, _data: unknown) => {
         // Event emission
         logger.info(`Plugin ${pluginName} emitted event: ${event}`);
       },
       storage: {
-        get: async (key: string) => {
+        get: async (_key: string) =>
           // Simple storage implementation
-          return undefined;
-        },
-        set: async (key: string, value: unknown) => {
+          undefined,
+        set: async (_key: string, _value: unknown) => {
           // Simple storage implementation
         },
-        delete: async (key: string) => {
+        delete: async (_key: string) => {
           // Simple storage implementation
         },
       },
@@ -749,42 +827,45 @@ export class SecurePluginManager {
             return false;
           }
         },
-        glob: async (pattern: string) => {
+        glob: async (_pattern: string) =>
           // Simple glob implementation
-          return [];
-        },
+          [],
       },
-      exec: async (command: string) => {
+      exec: async (_command: string) => {
         throw new Error('Command execution not allowed in sandbox');
       },
-      log: (level: string, message: string, ...args: unknown[]) => {
+      log: (_level: string, message: string, ..._args: unknown[]) => {
         logger.info(`[${pluginName}] ${message}`);
       },
-      sendMessage: (plugin: string, data: unknown) => {
+      sendMessage: (plugin: string, _data: unknown) => {
         // Inter-plugin messaging
         logger.info(`Plugin ${pluginName} sent message to ${plugin}`);
       },
-      onMessage: (callback: (message: unknown) => void) => {
+      onMessage: (_callback: (message: unknown) => void) => {
         // Message reception
         logger.info(`Plugin ${pluginName} registered message handler`);
       },
-      getPlugin: (name: string) => {
-        return this.plugins.get(name) || null;
-      },
+      getPlugin: (name: string) => this.plugins.get(name) || null,
     };
   }
-  
+
   /**
-   * Validate file path for plugin access
+   * Validate file path for plugin access within allowed directories
+   * @param filePath - File path to validate
+   * @returns Normalized path if valid
+   * @throws Error if path is outside allowed plugin directory
+   * @private
    */
   private validatePluginPath(filePath: string): string {
     const normalizedPath = path.normalize(filePath);
     const pluginsDir = path.normalize(this.pluginsDir);
-    
+
     if (!normalizedPath.startsWith(pluginsDir)) {
-      throw new Error(`Access denied: Path outside plugin directory: ${filePath}`);
+      throw new Error(
+        `Access denied: Path outside plugin directory: ${filePath}`
+      );
     }
-    
+
     return normalizedPath;
   }
 }

@@ -1,0 +1,20 @@
+{
+  "templates": [],
+  "lastSync": "2025-08-26T03:08:06.078Z",
+  "marketplaceUrl": "https://marketplace.cursor-prompt.com",
+  "preferences": {
+    "autoUpdate": false,
+    "checkInterval": 86400000,
+    "includePrerelease": false,
+    "trustedAuthors": [],
+    "blockedAuthors": [],
+    "preferredCategories": [],
+    "notifications": {
+      "newVersions": true,
+      "newFromAuthors": false,
+      "featuredTemplates": false,
+      "securityUpdates": true,
+      "weeklyDigest": false
+    }
+  }
+}

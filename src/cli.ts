@@ -181,7 +181,7 @@ program
   .action(async options => {
     try {
       const { access, mkdir, writeFile } = await import('fs/promises');
-      const { join } = await import('path');
+      const { join: pathJoin } = await import('path');
 
       // Create directories
       const dirs = ['.cursor', '.cursor/rules', 'templates'];
@@ -224,7 +224,7 @@ program
       }
 
       // Create example template
-      const exampleTemplatePath = join('templates', 'example.yaml');
+      const exampleTemplatePath = pathJoin('templates', 'example.yaml');
       let shouldCreateExample = false;
       try {
         await access(exampleTemplatePath);

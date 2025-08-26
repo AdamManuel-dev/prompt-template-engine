@@ -116,7 +116,7 @@ export class TemplateService {
     // Check if path exists
     try {
       await fs.promises.access(templatePath);
-    } catch (error) {
+    } catch (_error) {
       throw new FileNotFoundError(
         `Template not found: ${templatePath}`,
         templatePath
@@ -231,13 +231,13 @@ export class TemplateService {
 
       template.basePath = path.dirname(filePath);
       return template;
-    } catch (error) {
+    } catch (_error) {
       throw new TemplateProcessingError(
         `Failed to load template from file: ${filePath}`,
         filePath,
         undefined,
         undefined,
-        { error: (error as Error).message }
+        { error: (_error as Error).message }
       );
     }
   }
@@ -252,7 +252,7 @@ export class TemplateService {
 
     try {
       await fs.promises.access(configPath);
-    } catch (error) {
+    } catch (_error) {
       throw new FileNotFoundError(
         `Template configuration not found: ${configPath}`,
         configPath
@@ -271,7 +271,7 @@ export class TemplateService {
             await fs.promises.access(filePath);
             const content = await fs.promises.readFile(filePath, 'utf8');
             return { ...file, content };
-          } catch (error) {
+          } catch (_error) {
             // File doesn't exist, return as is
           }
         }
@@ -396,7 +396,7 @@ export class TemplateService {
       try {
         await fs.promises.access(candidate);
         return candidate;
-      } catch (error) {
+      } catch (_error) {
         // File doesn't exist, continue to next candidate
         continue;
       }
@@ -430,7 +430,7 @@ export class TemplateService {
       try {
         await fs.promises.access(p);
         searchPaths.push(p);
-      } catch (error) {
+      } catch (_error) {
         // Path doesn't exist, skip
       }
     }

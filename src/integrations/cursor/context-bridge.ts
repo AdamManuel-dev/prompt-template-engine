@@ -125,7 +125,7 @@ export class ContextBridge {
             references.add(this.toFileReference(file));
           }
         }
-      } catch (error) {
+      } catch (_error) {
         logger.warn(`Failed to resolve pattern ${pattern}`);
       }
     }
@@ -434,7 +434,7 @@ export class ContextBridge {
       selectedLines.push(lines[endLine].substring(0, endChar));
 
       return selectedLines.join('\n');
-    } catch (error) {
+    } catch (_error) {
       logger.warn('Failed to get selected text');
       return '';
     }
@@ -454,7 +454,7 @@ export class ContextBridge {
       const { execSync } = require('child_process');
       const diff = execSync('git diff --cached', { encoding: 'utf-8' });
       return this.truncateOutput(diff);
-    } catch (error) {
+    } catch (_error) {
       logger.warn('Failed to get git diff');
       return '';
     }

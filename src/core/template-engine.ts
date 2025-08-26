@@ -1,10 +1,10 @@
 /**
  * @fileoverview Template engine for cursor-prompt-template-engine
- * @lastmodified 2025-08-22T19:00:00Z
+ * @lastmodified 2025-08-26T03:27:11Z
  *
- * Features: Template rendering with variable substitution
+ * Features: Template rendering with variable substitution, array access, conditionals with else blocks
  * Main APIs: TemplateEngine.render()
- * Constraints: Supports Handlebars-style variable substitution
+ * Constraints: Supports Handlebars-style syntax with array bracket notation, nested conditionals, else blocks
  * Patterns: Variable replacement, template parsing
  */
 
@@ -20,7 +20,7 @@ export interface TemplateContext {
 }
 
 export class TemplateEngine {
-  private variablePattern = /\{\{(\s*[@\w.\[\]]+\s*)\}\}/g;
+  private variablePattern = /\{\{(\s*[@\w.[\]]+\s*)\}\}/g;
 
   private transformPattern = /\{\{([^|}]+\|[^}]+)\}\}/g;
 
@@ -50,7 +50,12 @@ export class TemplateEngine {
   }
 
   /**
-   * Render a template string with variables
+   * Render a template string with variables, supporting complex expressions
+   * Processes includes, conditionals with else blocks, loops, partials, helpers, and transformations
+   * @param template - Template string to render
+   * @param context - Context object containing variables and data
+   * @returns Promise resolving to rendered template string
+   * @throws Error if include files not found or processing fails
    */
   async render(template: string, context: TemplateContext): Promise<string> {
     // Reset included files tracking for new render
@@ -79,7 +84,11 @@ export class TemplateEngine {
   }
 
   /**
-   * Process variables in a template
+   * Process variables in a template with dot notation and array bracket access
+   * @param template - Template string containing variable expressions
+   * @param context - Context object for variable resolution
+   * @returns Template with variables replaced by their values
+   * @private
    */
   private processVariables(template: string, context: TemplateContext): string {
     return template.replace(this.variablePattern, (match, variable) => {
@@ -90,7 +99,14 @@ export class TemplateEngine {
   }
 
   /**
-   * Process {{#include}} directives to include external templates
+   * Process {{#include}} directives to include external templates with recursion protection
+   * @param template - Template string that may contain include directives
+   * @param context - Context object for variable resolution
+   * @param depth - Current include depth to prevent infinite recursion
+   * @param includeStack - Stack of included files for circular dependency detection
+   * @returns Promise resolving to template with includes processed
+   * @throws Error if include files not found or max depth exceeded
+   * @private
    */
   private async processIncludes(
     template: string,
@@ -161,6 +177,9 @@ export class TemplateEngine {
 
   /**
    * Resolve include path relative to current working directory or absolute
+   * @param includePath - Path to include file (relative or absolute)
+   * @returns Absolute path to include file
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
   private resolveIncludePath(includePath: string): string {
@@ -174,7 +193,13 @@ export class TemplateEngine {
   }
 
   /**
-   * Process {{#each}} blocks for array iteration with proper nesting support
+   * Process {{#each}} blocks for array iteration with proper nesting support and else blocks
+   * Supports iteration over arrays and objects with @key access
+   * @param template - Template string containing #each blocks
+   * @param context - Context object for variable resolution
+   * @param depth - Recursion depth to prevent infinite loops
+   * @returns Template with #each blocks processed
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
   private processEachBlocks(
@@ -209,7 +234,12 @@ export class TemplateEngine {
   }
 
   /**
-   * Process {{#if}} and {{#unless}} blocks for conditional rendering
+   * Process {{#if}} and {{#unless}} blocks for conditional rendering with else support
+   * Handles nested conditionals and complex expressions
+   * @param template - Template string containing conditional blocks
+   * @param context - Context object for condition evaluation
+   * @param depth - Recursion depth to prevent infinite loops
+   * @returns Template with conditional blocks processed
    */
   // eslint-disable-next-line class-methods-use-this
   public processConditionalBlocks(
@@ -270,7 +300,11 @@ export class TemplateEngine {
   }
 
   /**
-   * Check if a conditional block is inside an #each block
+   * Check if a conditional block is inside an #each block for proper processing order
+   * @param block - Conditional block to check
+   * @param template - Full template string
+   * @returns True if the conditional is nested inside an #each block
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
   private isInsideEachBlock(
@@ -298,7 +332,12 @@ export class TemplateEngine {
   }
 
   /**
-   * Process a single #if block
+   * Process a single #if block with else clause support
+   * @param block - If block containing condition, inner template, and optional else template
+   * @param context - Context object for condition evaluation
+   * @param depth - Recursion depth for nested processing
+   * @returns Object with replacement text and change status
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
   private processSingleIfBlock(
@@ -356,7 +395,12 @@ export class TemplateEngine {
   }
 
   /**
-   * Process a single #unless block
+   * Process a single #unless block with else clause support
+   * @param block - Unless block containing condition, inner template, and optional else template
+   * @param context - Context object for condition evaluation
+   * @param depth - Recursion depth for nested processing
+   * @returns Object with replacement text and change status
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
   private processSingleUnlessBlock(
@@ -414,7 +458,9 @@ export class TemplateEngine {
   }
 
   /**
-   * Find only the outermost #if blocks (we'll handle nesting recursively)
+   * Find only the outermost #if blocks with else clause parsing
+   * @param template - Template string to search
+   * @returns Array of if blocks with conditions, inner templates, and optional else templates
    */
   // eslint-disable-next-line class-methods-use-this
   public findOutermostIfBlocks(template: string): Array<{
@@ -427,7 +473,10 @@ export class TemplateEngine {
   }
 
   /**
-   * Find only the outermost #unless blocks (we'll handle nesting recursively)
+   * Find only the outermost #unless blocks with else clause parsing
+   * @param template - Template string to search
+   * @returns Array of unless blocks with conditions, inner templates, and optional else templates
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
   private findOutermostUnlessBlocks(template: string): Array<{
@@ -440,7 +489,10 @@ export class TemplateEngine {
   }
 
   /**
-   * Generic method to find outermost conditional blocks
+   * Generic method to find outermost conditional blocks with else clause support
+   * @param template - Template string to search
+   * @param blockType - Type of block to find ('if' or 'unless')
+   * @returns Array of conditional blocks with parsed else clauses
    */
   // eslint-disable-next-line class-methods-use-this
   public findOutermostConditionalBlocks(
@@ -540,7 +592,9 @@ export class TemplateEngine {
   }
 
   /**
-   * Determine if a value is truthy according to template logic
+   * Determine if a value is truthy according to template logic rules
+   * @param value - Value to evaluate for truthiness
+   * @returns True if value should be considered truthy in template context
    */
   // eslint-disable-next-line class-methods-use-this
   public isTruthy(value: unknown): boolean {
@@ -567,11 +621,21 @@ export class TemplateEngine {
   }
 
   /**
-   * Process a single #each block
+   * Process a single #each block with array/object iteration and else clause support
+   * @param block - Each block containing array path, inner template, and optional else template
+   * @param context - Context object for variable resolution
+   * @param depth - Recursion depth for nested processing
+   * @returns Object with replacement text and change status
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
   private processSingleEachBlock(
-    block: { fullMatch: string; arrayPath: string; innerTemplate: string; elseTemplate?: string },
+    block: {
+      fullMatch: string;
+      arrayPath: string;
+      innerTemplate: string;
+      elseTemplate?: string;
+    },
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
@@ -601,7 +665,7 @@ export class TemplateEngine {
 
         return { replacement: processedElse, hasChanges: true };
       }
-      
+
       return this.processArrayIteration(value, block, context, depth);
     }
 
@@ -609,7 +673,7 @@ export class TemplateEngine {
     if (value && typeof value === 'object' && value.constructor === Object) {
       const objectValue = value as Record<string, unknown>;
       const entries = Object.entries(objectValue);
-      
+
       // Check if object is empty
       if (entries.length === 0 && block.elseTemplate) {
         // Render else block for empty object
@@ -632,7 +696,7 @@ export class TemplateEngine {
 
         return { replacement: processedElse, hasChanges: true };
       }
-      
+
       return this.processObjectIteration(objectValue, block, context, depth);
     }
 
@@ -662,11 +726,23 @@ export class TemplateEngine {
   }
 
   /**
-   * Process array iteration in #each blocks
+   * Process array iteration in #each blocks with special context variables
+   * Creates @index, @first, @last context variables for each iteration
+   * @param arrayValue - Array to iterate over
+   * @param block - Each block configuration
+   * @param context - Parent context object
+   * @param depth - Recursion depth
+   * @returns Object with processed template and change status
+   * @private
    */
   private processArrayIteration(
     arrayValue: unknown[],
-    block: { fullMatch: string; arrayPath: string; innerTemplate: string; elseTemplate?: string },
+    block: {
+      fullMatch: string;
+      arrayPath: string;
+      innerTemplate: string;
+      elseTemplate?: string;
+    },
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
@@ -739,11 +815,23 @@ export class TemplateEngine {
   }
 
   /**
-   * Process object iteration in #each blocks (for @key support)
+   * Process object iteration in #each blocks with @key support
+   * Creates @key, @index, @first, @last context variables for each key-value pair
+   * @param objectValue - Object to iterate over
+   * @param block - Each block configuration
+   * @param context - Parent context object
+   * @param depth - Recursion depth
+   * @returns Object with processed template and change status
+   * @private
    */
   private processObjectIteration(
     objectValue: Record<string, unknown>,
-    block: { fullMatch: string; arrayPath: string; innerTemplate: string; elseTemplate?: string },
+    block: {
+      fullMatch: string;
+      arrayPath: string;
+      innerTemplate: string;
+      elseTemplate?: string;
+    },
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
@@ -824,12 +912,18 @@ export class TemplateEngine {
   }
 
   /**
-   * Find only the outermost #each blocks (we'll handle nesting recursively)
+   * Find only the outermost #each blocks with else clause parsing
+   * @param template - Template string to search
+   * @returns Array of each blocks with array paths, inner templates, and optional else templates
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
-  private findOutermostEachBlocks(
-    template: string
-  ): Array<{ fullMatch: string; arrayPath: string; innerTemplate: string; elseTemplate?: string }> {
+  private findOutermostEachBlocks(template: string): Array<{
+    fullMatch: string;
+    arrayPath: string;
+    innerTemplate: string;
+    elseTemplate?: string;
+  }> {
     const blocks: Array<{
       fullMatch: string;
       arrayPath: string;
@@ -869,12 +963,17 @@ export class TemplateEngine {
           // Check if this {{else}} is inside a conditional block by counting open/close pairs
           const textBeforeElse = template.substring(pos, nextElse);
           const ifCount = (textBeforeElse.match(/\{\{#if\s/g) || []).length;
-          const unlessCount = (textBeforeElse.match(/\{\{#unless\s/g) || []).length;
-          const ifCloseCount = (textBeforeElse.match(/\{\{\/if\}\}/g) || []).length;
-          const unlessCloseCount = (textBeforeElse.match(/\{\{\/unless\}\}/g) || []).length;
-          
+          const unlessCount = (textBeforeElse.match(/\{\{#unless\s/g) || [])
+            .length;
+          const ifCloseCount = (textBeforeElse.match(/\{\{\/if\}\}/g) || [])
+            .length;
+          const unlessCloseCount = (
+            textBeforeElse.match(/\{\{\/unless\}\}/g) || []
+          ).length;
+
           // If conditional blocks are balanced, this {{else}} might belong to {{#each}}
-          validElse = (ifCount === ifCloseCount) && (unlessCount === unlessCloseCount);
+          validElse =
+            ifCount === ifCloseCount && unlessCount === unlessCloseCount;
         }
 
         if (validElse) {
@@ -927,7 +1026,11 @@ export class TemplateEngine {
   }
 
   /**
-   * Render a template file with variables
+   * Render a template file with variables by reading from filesystem
+   * @param templatePath - Path to template file
+   * @param context - Context object containing variables
+   * @returns Promise resolving to rendered template string
+   * @throws Error if file cannot be read or rendering fails
    */
   async renderFile(
     templatePath: string,
@@ -938,7 +1041,12 @@ export class TemplateEngine {
   }
 
   /**
-   * Resolve a variable from context (supports dot notation and bracket notation)
+   * Resolve a variable from context supporting dot notation and array bracket access
+   * Examples: user.name, items[0], users[0].profile.email
+   * @param key - Variable key with optional dot notation and brackets
+   * @param context - Context object to resolve variable from
+   * @returns Resolved variable value or undefined if not found
+   * @private
    */
   // eslint-disable-next-line class-methods-use-this
   private resolveVariable(key: string, context: TemplateContext): unknown {
@@ -972,7 +1080,9 @@ export class TemplateEngine {
   }
 
   /**
-   * Check if a string contains template variables
+   * Check if a string contains template variables or expressions
+   * @param template - Template string to check
+   * @returns True if template contains variables, conditionals, loops, or includes
    */
   hasVariables(template: string): boolean {
     return (

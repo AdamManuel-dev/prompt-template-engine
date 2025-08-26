@@ -74,8 +74,8 @@ export class DatabaseFactory {
       type: databaseType,
       dataDir: process.env.MARKETPLACE_DATA_DIR || './data/marketplace',
       enableCache: process.env.MARKETPLACE_DB_CACHE !== 'false',
-      cacheSize: parseInt(process.env.MARKETPLACE_DB_CACHE_SIZE || '1000'),
-      cacheTtl: parseInt(process.env.MARKETPLACE_DB_CACHE_TTL || '300000'), // 5 minutes
+      cacheSize: parseInt(process.env.MARKETPLACE_DB_CACHE_SIZE || '1000', 10),
+      cacheTtl: parseInt(process.env.MARKETPLACE_DB_CACHE_TTL || '300000', 10), // 5 minutes
     };
 
     // Database-specific configuration
@@ -83,19 +83,19 @@ export class DatabaseFactory {
       config.connectionString = process.env.MARKETPLACE_DB_CONNECTION_STRING;
       config.host = process.env.MARKETPLACE_DB_HOST;
       config.port = process.env.MARKETPLACE_DB_PORT
-        ? parseInt(process.env.MARKETPLACE_DB_PORT)
+        ? parseInt(process.env.MARKETPLACE_DB_PORT, 10)
         : undefined;
       config.database = process.env.MARKETPLACE_DB_NAME;
       config.username = process.env.MARKETPLACE_DB_USERNAME;
       config.password = process.env.MARKETPLACE_DB_PASSWORD;
       config.maxConnections = process.env.MARKETPLACE_DB_MAX_CONNECTIONS
-        ? parseInt(process.env.MARKETPLACE_DB_MAX_CONNECTIONS)
+        ? parseInt(process.env.MARKETPLACE_DB_MAX_CONNECTIONS, 10)
         : undefined;
       config.connectionTimeout = process.env.MARKETPLACE_DB_CONNECTION_TIMEOUT
-        ? parseInt(process.env.MARKETPLACE_DB_CONNECTION_TIMEOUT)
+        ? parseInt(process.env.MARKETPLACE_DB_CONNECTION_TIMEOUT, 10)
         : undefined;
       config.queryTimeout = process.env.MARKETPLACE_DB_QUERY_TIMEOUT
-        ? parseInt(process.env.MARKETPLACE_DB_QUERY_TIMEOUT)
+        ? parseInt(process.env.MARKETPLACE_DB_QUERY_TIMEOUT, 10)
         : undefined;
     }
 

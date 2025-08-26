@@ -26,41 +26,6 @@ export interface PluginOptions {
   dev?: string; // For development: link a local plugin directory
 }
 
-export async function pluginCommand(options: PluginOptions): Promise<void> {
-  try {
-    // Get the enhanced plugin manager instance
-    // Note: In real implementation, this would be injected from the main CLI
-    // For now, we'll create a temporary command registry - in production this would be passed in
-    const { Command } = require('commander');
-    const tempProgram = new Command();
-    const commandRegistry = CommandRegistry.getInstance(tempProgram);
-    const pluginManager = EnhancedPluginManager.getInstance(commandRegistry);
-
-    if (options.list) {
-      await listPlugins(pluginManager);
-    } else if (options.install) {
-      await installPlugin(options.install, pluginManager);
-    } else if (options.uninstall) {
-      await uninstallPlugin(options.uninstall, pluginManager);
-    } else if (options.info) {
-      await showPluginInfo(options.info, pluginManager);
-    } else if (options.stats) {
-      await showPluginStats(pluginManager);
-    } else if (options.dev) {
-      await linkDevPlugin(options.dev, pluginManager);
-    } else {
-      // Default: show help
-      showPluginHelp();
-    }
-  } catch (error) {
-    logger.error(chalk.red('❌ Plugin command failed'));
-    if (error instanceof Error) {
-      logger.error(chalk.red(error.message));
-    }
-    throw error;
-  }
-}
-
 async function listPlugins(
   pluginManager: EnhancedPluginManager
 ): Promise<void> {
@@ -337,4 +302,39 @@ function showPluginHelp(): void {
   logger.info('  cursor-prompt plugin --list');
   logger.info('  cursor-prompt plugin --info my-plugin');
   logger.info('  cursor-prompt plugin --dev ./my-plugin-dev');
+}
+
+export async function pluginCommand(options: PluginOptions): Promise<void> {
+  try {
+    // Get the enhanced plugin manager instance
+    // Note: In real implementation, this would be injected from the main CLI
+    // For now, we'll create a temporary command registry - in production this would be passed in
+    const { Command } = require('commander');
+    const tempProgram = new Command();
+    const commandRegistry = CommandRegistry.getInstance(tempProgram);
+    const pluginManager = EnhancedPluginManager.getInstance(commandRegistry);
+
+    if (options.list) {
+      await listPlugins(pluginManager);
+    } else if (options.install) {
+      await installPlugin(options.install, pluginManager);
+    } else if (options.uninstall) {
+      await uninstallPlugin(options.uninstall, pluginManager);
+    } else if (options.info) {
+      await showPluginInfo(options.info, pluginManager);
+    } else if (options.stats) {
+      await showPluginStats(pluginManager);
+    } else if (options.dev) {
+      await linkDevPlugin(options.dev, pluginManager);
+    } else {
+      // Default: show help
+      showPluginHelp();
+    }
+  } catch (error) {
+    logger.error(chalk.red('❌ Plugin command failed'));
+    if (error instanceof Error) {
+      logger.error(chalk.red(error.message));
+    }
+    throw error;
+  }
 }

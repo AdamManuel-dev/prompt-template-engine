@@ -109,7 +109,7 @@ export const DEFAULT_RATE_LIMIT_CONFIG: RateLimitConfig = {
 export class MemoryRateLimitStore implements IRateLimitStore {
   private store = new Map<string, RateLimitData>();
 
-  private cleanupInterval: NodeJS.Timeout;
+  private cleanupInterval: ReturnType<typeof setInterval>;
 
   constructor(cleanupIntervalMs = 60000) {
     // Clean up expired entries every minute
@@ -149,7 +149,7 @@ export class MemoryRateLimitStore implements IRateLimitStore {
       return 1;
     }
 
-    existing.count++;
+    existing.count += 1;
     await this.set(key, existing);
     return existing.count;
   }
@@ -362,7 +362,7 @@ export class RateLimiter extends EventEmitter {
 
     // Consume one token
     data.tokens = (data.tokens || 0) - 1;
-    data.count++;
+    data.count += 1;
 
     await this.store.set(key, data);
 
@@ -406,7 +406,7 @@ export class RateLimiter extends EventEmitter {
       };
     }
 
-    data.count++;
+    data.count += 1;
     await this.store.set(key, data);
 
     return {
@@ -459,7 +459,7 @@ export class RateLimiter extends EventEmitter {
       };
     }
 
-    data.count++;
+    data.count += 1;
     await this.store.set(key, data);
 
     return {

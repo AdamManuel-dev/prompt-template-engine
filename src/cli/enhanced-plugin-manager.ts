@@ -64,6 +64,14 @@ export interface FileGenerator {
   ): Promise<void>;
 }
 
+export interface PluginLifecycleHooks {
+  onLoad?(): Promise<void>;
+  onUnload?(): Promise<void>;
+  onEnable?(): Promise<void>;
+  onDisable?(): Promise<void>;
+  onConfigUpdate?(config: Record<string, unknown>): Promise<void>;
+}
+
 export interface EnhancedPlugin extends Plugin {
   commands?: ICommand[];
   processors?: TemplateProcessor[];
@@ -73,14 +81,6 @@ export interface EnhancedPlugin extends Plugin {
   contextProviders?: ContextProvider[];
   fileGenerators?: FileGenerator[];
   lifecycle?: PluginLifecycleHooks;
-}
-
-export interface PluginLifecycleHooks {
-  onLoad?(): Promise<void>;
-  onUnload?(): Promise<void>;
-  onEnable?(): Promise<void>;
-  onDisable?(): Promise<void>;
-  onConfigUpdate?(config: Record<string, unknown>): Promise<void>;
 }
 
 export interface ExtensionPoint<T = unknown> {
@@ -93,6 +93,7 @@ export interface ExtensionPoint<T = unknown> {
   getSorted(): T[]; // For extensions with priority
 }
 
+// Forward declaration for self-referencing type
 export class EnhancedPluginManager extends EventEmitter {
   private static instance: EnhancedPluginManager | undefined;
 

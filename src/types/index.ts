@@ -717,17 +717,6 @@ export interface Template {
 }
 
 /**
- * Cursor Rule definition for .cursor/rules/*.mdc format
- */
-export interface CursorRule {
-  name: string;
-  filename: string;
-  frontmatter: RuleFrontmatter;
-  content: string;
-  references?: string[];
-}
-
-/**
  * Rule frontmatter for MDC format
  */
 export interface RuleFrontmatter {
@@ -738,6 +727,17 @@ export interface RuleFrontmatter {
   author?: string;
   version?: string;
   generated?: string;
+}
+
+/**
+ * Cursor Rule definition for .cursor/rules/*.mdc format
+ */
+export interface CursorRule {
+  name: string;
+  filename: string;
+  frontmatter: RuleFrontmatter;
+  content: string;
+  references?: string[];
 }
 
 /**

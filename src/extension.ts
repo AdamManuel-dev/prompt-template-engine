@@ -18,6 +18,34 @@ let commandIntegration: CursorCommandIntegration | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
 
 /**
+ * Handle configuration changes
+ */
+async function handleConfigurationChange(): Promise<void> {
+  try {
+    const config = vscode.workspace.getConfiguration('cursorPrompt');
+
+    if (integration) {
+      integration.updateConfig({
+        autoSync: config.get<boolean>('autoSync', true),
+        syncInterval: config.get<number>('syncInterval', 30000),
+        rulesOutputDir: config.get<string>('rulesOutputDir', '.cursor/rules'),
+        legacySupport: config.get<boolean>('legacySupport', true),
+        enableCommands: config.get<boolean>('enableCommands', true),
+        enableQuickFix: config.get<boolean>('enableQuickFix', true),
+      });
+
+      logger.info('Configuration updated');
+      vscode.window.showInformationMessage(
+        'Cursor Prompt configuration updated'
+      );
+    }
+  } catch (error) {
+    logger.error('Failed to update configuration');
+    vscode.window.showErrorMessage(`Failed to update configuration: ${error}`);
+  }
+}
+
+/**
  * Extension activation entry point
  */
 export async function activate(
@@ -119,15 +147,15 @@ export async function activate(
         try {
           await integration?.syncTemplates();
           logger.info('Initial template sync completed');
-        } catch (error) {
+        } catch (_error) {
           logger.error('Initial sync failed');
         }
       }, 1000);
     }
-  } catch (error) {
+  } catch (_error) {
     logger.error('Failed to activate extension');
     vscode.window.showErrorMessage(
-      `Failed to activate Cursor Prompt Template Engine: ${error}`
+      `Failed to activate Cursor Prompt Template Engine: ${_error}`
     );
   }
 }
@@ -158,36 +186,8 @@ export function deactivate(): void {
     }
 
     logger.info('Extension deactivated successfully');
-  } catch (error) {
+  } catch (_error) {
     logger.error('Error during deactivation');
-  }
-}
-
-/**
- * Handle configuration changes
- */
-async function handleConfigurationChange(): Promise<void> {
-  try {
-    const config = vscode.workspace.getConfiguration('cursorPrompt');
-
-    if (integration) {
-      integration.updateConfig({
-        autoSync: config.get<boolean>('autoSync', true),
-        syncInterval: config.get<number>('syncInterval', 30000),
-        rulesOutputDir: config.get<string>('rulesOutputDir', '.cursor/rules'),
-        legacySupport: config.get<boolean>('legacySupport', true),
-        enableCommands: config.get<boolean>('enableCommands', true),
-        enableQuickFix: config.get<boolean>('enableQuickFix', true),
-      });
-
-      logger.info('Configuration updated');
-      vscode.window.showInformationMessage(
-        'Cursor Prompt configuration updated'
-      );
-    }
-  } catch (error) {
-    logger.error('Failed to update configuration');
-    vscode.window.showErrorMessage(`Failed to update configuration: ${error}`);
   }
 }
 
@@ -242,5 +242,7 @@ class CursorPromptQuickFixProvider implements vscode.CodeActionProvider {
   }
 }
 
-// Export the integration for testing
-export { integration };
+// Export a getter function instead of the mutable variable
+export function getIntegration(): CursorIntegration | undefined {
+  return integration;
+}

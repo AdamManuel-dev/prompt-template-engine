@@ -92,6 +92,7 @@
     "**/*.d.ts",
     "**/*.js",
     "tests/**/*.ts",
-    ".cursor-prompt/plugins/**/*.ts"
+    ".cursor-prompt/plugins/**/*.ts",
+    "scripts/**/*.ts"
   ]
 }

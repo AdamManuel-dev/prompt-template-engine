@@ -86,6 +86,7 @@ export interface WorkerMessage {
  */
 export class PluginSandbox {
   private workers = new Map<string, Worker>();
+
   private config: SandboxConfig;
   // Message handlers would be used for complex async operations
 
@@ -93,9 +94,9 @@ export class PluginSandbox {
     // Merge with defaults
     this.config = {
       ...DEFAULT_SANDBOX_CONFIG,
-      ...config
+      ...config,
     };
-    
+
     // Handle aliases
     if (config.timeout && !this.config.maxExecutionTimeMs) {
       this.config.maxExecutionTimeMs = config.timeout;
@@ -414,10 +415,13 @@ export class PluginSandbox {
   async execute(code: string, context: unknown): Promise<unknown> {
     try {
       // Simplified code execution for testing - in production this would use workers
-      const result = new Function('context', `
+      const result = new Function(
+        'context',
+        `
         'use strict';
         ${code}
-      `)(context);
+      `
+      )(context);
       return result;
     } catch (error: any) {
       throw new Error(`Sandbox execution failed: ${error.message}`);

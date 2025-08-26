@@ -28,6 +28,18 @@ export interface PluginConfig {
   dependencies?: Record<string, string>;
 }
 
+export interface PluginDefinition {
+  metadata: PluginConfig;
+  commands?: ICommand[];
+  processors?: TemplateProcessor[];
+  validators?: TemplateValidator[];
+  transformers?: TemplateTransformer[];
+  marketplaceHooks?: MarketplaceHook[];
+  contextProviders?: ContextProvider[];
+  fileGenerators?: FileGenerator[];
+  lifecycle?: PluginLifecycleHooks;
+}
+
 export interface PluginBuilder {
   config: PluginConfig;
   addCommand(command: ICommand): PluginBuilder;
@@ -39,18 +51,6 @@ export interface PluginBuilder {
   addFileGenerator(generator: FileGenerator): PluginBuilder;
   setLifecycleHooks(hooks: PluginLifecycleHooks): PluginBuilder;
   build(): PluginDefinition;
-}
-
-export interface PluginDefinition {
-  metadata: PluginConfig;
-  commands?: ICommand[];
-  processors?: TemplateProcessor[];
-  validators?: TemplateValidator[];
-  transformers?: TemplateTransformer[];
-  marketplaceHooks?: MarketplaceHook[];
-  contextProviders?: ContextProvider[];
-  fileGenerators?: FileGenerator[];
-  lifecycle?: PluginLifecycleHooks;
 }
 
 /**

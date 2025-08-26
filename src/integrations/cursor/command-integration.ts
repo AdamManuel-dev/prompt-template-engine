@@ -320,6 +320,9 @@ export class CursorCommandIntegration {
       case 'Reset to Defaults':
         await this.resetConfiguration();
         break;
+      default:
+        // User cancelled or selected an unknown option
+        break;
     }
   }
 
@@ -515,7 +518,7 @@ export class CursorCommandIntegration {
           };
         }
       }
-    } catch (error) {
+    } catch (_error) {
       logger.warn('Failed to get git status');
     }
 
@@ -601,6 +604,9 @@ export class CursorCommandIntegration {
       case 'Copy':
         await vscode.env.clipboard.writeText(prompt);
         vscode.window.showInformationMessage('Copied to clipboard');
+        break;
+      default:
+        // User cancelled or selected an unknown action
         break;
     }
   }

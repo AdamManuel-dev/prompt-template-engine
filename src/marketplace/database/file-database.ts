@@ -48,7 +48,7 @@ class FileTemplateRepository implements ITemplateRepository {
       templates.forEach(template => {
         this.templates.set(template.id, template);
       });
-    } catch (error) {
+    } catch (_error) {
       // File doesn't exist, start with empty collection
       this.templates.clear();
     }
