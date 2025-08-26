@@ -1,0 +1,54 @@
+# PromptWizard Python Service Dependencies
+# FastAPI framework for REST API
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# PromptWizard core (to be installed from GitHub)
+# git+https://github.com/microsoft/promptwizard.git
+
+# HTTP client for API calls
+httpx==0.25.2
+aiohttp==3.9.1
+
+# Data validation and serialization
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Authentication and security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Caching and session management
+redis==5.0.1
+aioredis==2.0.1
+
+# Database support (optional)
+sqlalchemy==2.0.23
+alembic==1.13.1
+
+# Async task queue
+celery==5.3.4
+kombu==5.3.4
+
+# Monitoring and logging
+structlog==23.2.0
+prometheus-client==0.19.0
+
+# Development and testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Configuration management
+python-decouple==3.8
+pyyaml==6.0.1
+
+# WebSocket support
+websockets==12.0
+
+# CORS and middleware
+python-cors==1.7.0

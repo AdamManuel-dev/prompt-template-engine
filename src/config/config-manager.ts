@@ -157,6 +157,104 @@ export class ConfigManager implements IConfigManager {
           },
         },
       },
+      promptwizard: {
+        type: 'object',
+        properties: {
+          enabled: {
+            type: 'boolean',
+            default: false,
+            description: 'Enable PromptWizard optimization features',
+          },
+          serviceUrl: {
+            type: 'string',
+            default: 'http://localhost:8000',
+            description: 'PromptWizard Python service URL',
+          },
+          timeout: {
+            type: 'number',
+            default: 120000,
+            min: 30000,
+            max: 600000,
+            description: 'Request timeout in milliseconds',
+          },
+          retries: {
+            type: 'number',
+            default: 3,
+            min: 0,
+            max: 10,
+            description: 'Number of retry attempts',
+          },
+          autoOptimize: {
+            type: 'boolean',
+            default: false,
+            description: 'Automatically optimize templates on save',
+          },
+          defaultModel: {
+            type: 'string',
+            enum: ['gpt-4', 'gpt-3.5-turbo', 'claude-3-opus', 'claude-3-sonnet', 'gemini-pro'],
+            default: 'gpt-4',
+            description: 'Default target model for optimization',
+          },
+          mutateRefineIterations: {
+            type: 'number',
+            default: 3,
+            min: 1,
+            max: 10,
+            description: 'Number of refinement iterations',
+          },
+          fewShotCount: {
+            type: 'number',
+            default: 5,
+            min: 0,
+            max: 20,
+            description: 'Number of few-shot examples to generate',
+          },
+          generateReasoning: {
+            type: 'boolean',
+            default: true,
+            description: 'Generate reasoning chains in optimized prompts',
+          },
+          cache: {
+            type: 'object',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                default: true,
+                description: 'Enable optimization result caching',
+              },
+              ttl: {
+                type: 'number',
+                default: 86400,
+                min: 300,
+                description: 'Cache TTL in seconds',
+              },
+              maxSize: {
+                type: 'number',
+                default: 1000,
+                min: 10,
+                description: 'Maximum cache entries',
+              },
+            },
+          },
+          rateLimiting: {
+            type: 'object',
+            properties: {
+              maxRequests: {
+                type: 'number',
+                default: 100,
+                min: 1,
+                description: 'Maximum requests per window',
+              },
+              windowMs: {
+                type: 'number',
+                default: 3600000,
+                min: 60000,
+                description: 'Rate limiting window in milliseconds',
+              },
+            },
+          },
+        },
+      },
     };
   }
 
