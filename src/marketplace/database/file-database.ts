@@ -371,9 +371,19 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
     }
   }
 
+  // Alias for connect() for backward compatibility
+  async init(): Promise<void> {
+    return this.connect();
+  }
+
   async disconnect(): Promise<void> {
     this.isConnectedFlag = false;
     logger.info('File database disconnected');
+  }
+
+  // Alias for disconnect() for backward compatibility
+  async close(): Promise<void> {
+    return this.disconnect();
   }
 
   isConnected(): boolean {
@@ -528,3 +538,7 @@ class FileRepository<T extends { id: string }> {
     await this.save();
   }
 }
+
+// Export aliases for backward compatibility
+export { FileMarketplaceDatabase as FileDatabase };
+export { FileTemplateRepository };

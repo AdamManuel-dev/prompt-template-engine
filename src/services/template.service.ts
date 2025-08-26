@@ -81,7 +81,10 @@ export class TemplateService {
   constructor(options: TemplateServiceOptions = {}) {
     this.engine = new TemplateEngine();
     this.options = {
-      templatePaths: options.templatePaths || ['./templates', '.cursor/templates'],
+      templatePaths: options.templatePaths || [
+        './templates',
+        '.cursor/templates',
+      ],
       cacheEnabled: options.cacheEnabled ?? true,
       validationStrict: options.validationStrict ?? false,
     };
@@ -149,7 +152,7 @@ export class TemplateService {
         // Parse markdown with frontmatter
         const parsed = matter(content);
         const frontmatter = parsed.data;
-        
+
         template = {
           name: frontmatter.name || path.basename(filePath, ext),
           version: frontmatter.version || '1.0.0',
@@ -158,43 +161,74 @@ export class TemplateService {
             {
               path: `${frontmatter.name || path.basename(filePath, ext)}.md`,
               content: parsed.content,
-              name: frontmatter.name || path.basename(filePath, ext)
-            }
+              name: frontmatter.name || path.basename(filePath, ext),
+            },
           ],
-          variables: TemplateService.parseVariables(frontmatter.variables || {}),
+          variables: TemplateService.parseVariables(
+            frontmatter.variables || {}
+          ),
           commands: frontmatter.commands || [],
           metadata: {
             author: frontmatter.author,
             tags: frontmatter.tags || [],
-            category: frontmatter.category
-          }
+            category: frontmatter.category,
+          },
         };
       } else if (ext === '.yaml' || ext === '.yml') {
-        // Parse YAML file
-        const parsed = yaml.load(content) as any;
-        template = {
-          name: parsed.name,
-          version: parsed.version || '1.0.0',
-          description: parsed.description,
-          files: [
-            {
-              path: `${parsed.name}.md`,
-              content: parsed.content || '',
-              name: parsed.name
-            }
-          ],
-          variables: TemplateService.parseVariables(parsed.variables || {}),
-          commands: parsed.commands || [],
-          metadata: {
-            author: parsed.author,
-            tags: parsed.tags || []
-          }
-        };
+        // Check if YAML has frontmatter (starts with ---)
+        if (content.trim().startsWith('---')) {
+          // Parse YAML with frontmatter (like Markdown)
+          const parsed = matter(content);
+          const frontmatter = parsed.data;
+
+          template = {
+            name: frontmatter.name || path.basename(filePath, ext),
+            version: frontmatter.version || '1.0.0',
+            description: frontmatter.description,
+            files: [
+              {
+                path: `${frontmatter.name || path.basename(filePath, ext)}.md`,
+                content: parsed.content,
+                name: frontmatter.name || path.basename(filePath, ext),
+              },
+            ],
+            variables: TemplateService.parseVariables(
+              frontmatter.variables || {}
+            ),
+            commands: frontmatter.commands || [],
+            metadata: {
+              author: frontmatter.author,
+              tags: frontmatter.tags || [],
+              category: frontmatter.category,
+            },
+          };
+        } else {
+          // Parse pure YAML file
+          const parsed = yaml.load(content) as any;
+          template = {
+            name: parsed.name,
+            version: parsed.version || '1.0.0',
+            description: parsed.description,
+            files: [
+              {
+                path: `${parsed.name}.md`,
+                content: parsed.content || '',
+                name: parsed.name,
+              },
+            ],
+            variables: TemplateService.parseVariables(parsed.variables || {}),
+            commands: parsed.commands || [],
+            metadata: {
+              author: parsed.author,
+              tags: parsed.tags || [],
+            },
+          };
+        }
       } else {
         // Parse JSON file (existing behavior)
         template = JSON.parse(content) as Template;
       }
-      
+
       template.basePath = path.dirname(filePath);
       return template;
     } catch (error) {
@@ -594,7 +628,9 @@ export class TemplateService {
   /**
    * Parse variables from various formats
    */
-  private static parseVariables(variables: any): Record<string, VariableConfig> {
+  private static parseVariables(
+    variables: any
+  ): Record<string, VariableConfig> {
     if (Array.isArray(variables)) {
       // Handle array format from markdown frontmatter
       const result: Record<string, VariableConfig> = {};
@@ -602,20 +638,21 @@ export class TemplateService {
         if (typeof variable === 'string') {
           result[variable] = {
             type: 'string',
-            required: false
+            required: false,
           };
         } else if (typeof variable === 'object') {
           Object.entries(variable).forEach(([key, value]) => {
             result[key] = {
               type: 'string',
               description: value as string,
-              required: false
+              required: false,
             };
           });
         }
       });
       return result;
-    } else if (typeof variables === 'object' && variables !== null) {
+    }
+    if (typeof variables === 'object' && variables !== null) {
       // Handle object format from YAML/JSON
       return variables as Record<string, VariableConfig>;
     }

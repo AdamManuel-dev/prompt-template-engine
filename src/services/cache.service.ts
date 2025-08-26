@@ -1,6 +1,6 @@
 /**
  * @fileoverview LRU Cache service for template caching and performance optimization
- * @lastmodified 2025-08-23T03:30:00Z
+ * @lastmodified 2025-08-25T21:44:14-05:00
  *
  * Features: LRU caching with TTL, size limits, and performance metrics
  * Main APIs: get(), set(), clear(), getStats()
@@ -14,8 +14,10 @@ import { createHash } from 'crypto';
 export interface CacheOptions {
   maxSize?: number; // Maximum number of items
   maxAge?: number; // TTL in milliseconds
+  ttl?: number; // Alias for maxAge (backward compatibility)
   sizeCalculation?: (value: any, key: string) => number;
   updateAgeOnGet?: boolean;
+  cacheDir?: string; // Directory for persistent cache storage
 }
 
 export interface CacheStats {
@@ -34,6 +36,8 @@ export class CacheService<T extends {} = any> {
 
   private stats: Omit<CacheStats, 'hitRate' | 'size' | 'maxSize'>;
 
+  private cacheDir?: string;
+
   private readonly defaultOptions: CacheOptions = {
     maxSize: 100,
     maxAge: 1000 * 60 * 60, // 1 hour default TTL
@@ -42,6 +46,14 @@ export class CacheService<T extends {} = any> {
 
   constructor(options?: CacheOptions) {
     const finalOptions = { ...this.defaultOptions, ...options };
+
+    // Handle ttl option alias (backward compatibility)
+    if (options?.ttl !== undefined) {
+      finalOptions.maxAge = options.ttl;
+    }
+
+    // Store cacheDir option (Required by TODO)
+    this.cacheDir = finalOptions.cacheDir;
 
     const cacheConfig: any = {
       max: finalOptions.maxSize!,
@@ -174,6 +186,45 @@ export class CacheService<T extends {} = any> {
    */
   keys(): string[] {
     return Array.from(this.cache.keys());
+  }
+
+  /**
+   * Calculate total cache size in bytes
+   * Required by TODO: Calculate total cache size in bytes
+   */
+  async getSize(): Promise<number> {
+    let totalSize = 0;
+
+    // Calculate in-memory cache size
+    for (const [key, value] of this.cache.entries()) {
+      const keySize = Buffer.byteLength(key, 'utf8');
+      const valueSize = Buffer.byteLength(JSON.stringify(value), 'utf8');
+      totalSize += keySize + valueSize;
+    }
+
+    // If cacheDir is specified, add file system cache size
+    if (this.cacheDir) {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+
+        if (fs.existsSync(this.cacheDir)) {
+          const files = fs.readdirSync(this.cacheDir, { withFileTypes: true });
+          
+          for (const file of files) {
+            if (file.isFile()) {
+              const filePath = path.join(this.cacheDir, file.name);
+              const stats = fs.statSync(filePath);
+              totalSize += stats.size;
+            }
+          }
+        }
+      } catch (error) {
+        // Silently ignore filesystem errors - return in-memory size only
+      }
+    }
+
+    return totalSize;
   }
 
   /**

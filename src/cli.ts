@@ -302,13 +302,13 @@ program
   .action(async templatePath => {
     try {
       const service = new TemplateService();
-      
+
       // Resolve template path if needed
       const resolvedPath = await service.resolveTemplatePath(templatePath);
       if (!resolvedPath) {
         throw new Error(`Template file not found: ${templatePath}`);
       }
-      
+
       const template = await service.loadTemplate(resolvedPath);
       const validationResult = await TemplateService.validateTemplate(template);
 

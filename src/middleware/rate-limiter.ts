@@ -1,6 +1,6 @@
 /**
  * @fileoverview Rate limiting middleware for API calls and service operations
- * @lastmodified 2025-08-23T05:30:00Z
+ * @lastmodified 2025-08-25T21:44:14-05:00
  *
  * Features: Flexible rate limiting with multiple algorithms and storage backends
  * Main APIs: RateLimiter class, withRateLimit decorator, rate limiting middleware
@@ -27,6 +27,7 @@ export interface RateLimitConfig {
   // Basic configuration
   windowMs: number; // Time window in milliseconds
   maxRequests: number; // Maximum requests per window
+  max?: number; // Alias for maxRequests (backward compatibility)
   algorithm: RateLimitAlgorithm;
 
   // Advanced configuration
@@ -185,13 +186,19 @@ export class RateLimiter extends EventEmitter {
   constructor(config: Partial<RateLimitConfig> = {}) {
     super();
 
+    // Handle 'max' option alias (Required by TODO)
+    const processedConfig = { ...config };
+    if (config.max !== undefined) {
+      processedConfig.maxRequests = config.max;
+    }
+
     this.config = {
       ...DEFAULT_RATE_LIMIT_CONFIG,
-      ...config,
-      store: config.store || new MemoryRateLimitStore(),
+      ...processedConfig,
+      store: processedConfig.store || new MemoryRateLimitStore(),
       keyGenerator:
-        config.keyGenerator || DEFAULT_RATE_LIMIT_CONFIG.keyGenerator!,
-      message: config.message || DEFAULT_RATE_LIMIT_CONFIG.message!,
+        processedConfig.keyGenerator || DEFAULT_RATE_LIMIT_CONFIG.keyGenerator!,
+      message: processedConfig.message || DEFAULT_RATE_LIMIT_CONFIG.message!,
     } as Required<RateLimitConfig>;
 
     this.store = this.config.store;

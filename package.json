@@ -59,10 +59,12 @@
   "dependencies": {
     "@types/ws": "^8.18.1",
     "chalk": "^4.1.2",
+    "chokidar": "^4.0.3",
     "cli-table3": "^0.6.5",
     "clipboardy": "^4.0.0",
     "commander": "^14.0.0",
     "glob": "^11.0.0",
+    "gray-matter": "^4.0.3",
     "ignore": "^6.0.2",
     "js-yaml": "^4.1.0",
     "lru-cache": "^11.1.0",

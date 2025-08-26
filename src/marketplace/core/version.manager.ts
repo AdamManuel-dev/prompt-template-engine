@@ -1,6 +1,6 @@
 /**
  * @fileoverview Version management for template marketplace
- * @lastmodified 2025-08-22T20:00:00Z
+ * @lastmodified 2025-08-25T21:44:14-05:00
  *
  * Features: Semantic versioning, version comparison, update detection
  * Main APIs: compareVersions(), isCompatible(), findUpdates(), resolveVersion()
@@ -398,5 +398,48 @@ export class VersionManager {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Parse version string into components (simple wrapper for parseVersion)
+   * Required by TODO: Split by dots and hyphens, return version object
+   */
+  // eslint-disable-next-line class-methods-use-this
+  parse(version: string): VersionInfo {
+    return this.parseVersion(version);
+  }
+
+  /**
+   * Compare two versions (simple wrapper for compareVersions)
+   * Required by TODO: Compare major, minor, patch, return -1, 0, or 1
+   */
+  compare(v1: string, v2: string): number {
+    return this.compareVersions(v1, v2);
+  }
+
+  /**
+   * Get latest version from array
+   * Required by TODO: Sort versions and return highest
+   */
+  getLatest(versions: string[]): string | null {
+    if (versions.length === 0) {
+      return null;
+    }
+
+    return this.sortVersions(versions)[0];
+  }
+
+  /**
+   * Get latest stable version from array
+   * Required by TODO: Filter out pre-releases, return highest stable
+   */
+  getLatestStable(versions: string[]): string | null {
+    const stableVersions = versions.filter(v => this.isStable(v));
+    
+    if (stableVersions.length === 0) {
+      return null;
+    }
+
+    return this.sortVersions(stableVersions)[0];
   }
 }

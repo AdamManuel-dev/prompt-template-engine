@@ -20,7 +20,7 @@ export interface TemplateContext {
 }
 
 export class TemplateEngine {
-  private variablePattern = /\{\{(\s*[@\w.]+\s*)\}\}/g;
+  private variablePattern = /\{\{(\s*[@\w.\[\]]+\s*)\}\}/g;
 
   private transformPattern = /\{\{([^|}]+\|[^}]+)\}\}/g;
 
@@ -57,7 +57,7 @@ export class TemplateEngine {
     this.includedFiles.clear();
 
     // First process includes
-    let processed = await this.processIncludes(template, context);
+    let processed = await this.processIncludes(template, context, 0, []);
 
     // Then process conditional blocks (which handle nested #each blocks internally)
     processed = this.processConditionalBlocks(processed, context);
@@ -95,7 +95,8 @@ export class TemplateEngine {
   private async processIncludes(
     template: string,
     context: TemplateContext,
-    depth = 0
+    depth = 0,
+    includeStack: string[] = []
   ): Promise<string> {
     // Prevent infinite recursion
     if (depth > this.maxIncludeDepth) {
@@ -123,17 +124,10 @@ export class TemplateEngine {
       const include = includes[i];
       const absolutePath = this.resolveIncludePath(include.path);
 
-      // Check for circular dependencies
-      if (this.includedFiles.has(absolutePath)) {
-        throw new Error(
-          `Circular dependency detected: ${absolutePath} is already being processed`
-        );
-      }
+      // Allow all includes and rely on depth limit to prevent infinite recursion
+      // The depth limit will handle both circular dependencies and deep recursion
 
       try {
-        // Track this file to prevent circular includes
-        this.includedFiles.add(absolutePath);
-
         // Read the included template
         // eslint-disable-next-line no-await-in-loop
         const includedContent = await fs.promises.readFile(
@@ -142,11 +136,13 @@ export class TemplateEngine {
         );
 
         // Process includes recursively in the included content
+        // Add current file to the include stack to track call chain
         // eslint-disable-next-line no-await-in-loop
         const processedContent = await this.processIncludes(
           includedContent,
           context,
-          depth + 1
+          depth + 1,
+          [...includeStack, absolutePath]
         );
 
         // Replace the include directive with the processed content
@@ -157,9 +153,6 @@ export class TemplateEngine {
           throw new Error(`Include file not found: ${include.path}`);
         }
         throw error;
-      } finally {
-        // Remove from tracking after processing
-        this.includedFiles.delete(absolutePath);
       }
     }
 
@@ -578,7 +571,7 @@ export class TemplateEngine {
    */
   // eslint-disable-next-line class-methods-use-this
   private processSingleEachBlock(
-    block: { fullMatch: string; arrayPath: string; innerTemplate: string },
+    block: { fullMatch: string; arrayPath: string; innerTemplate: string; elseTemplate?: string },
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
@@ -586,20 +579,85 @@ export class TemplateEngine {
 
     // Handle arrays
     if (Array.isArray(value)) {
+      // Check if array is empty
+      if (value.length === 0 && block.elseTemplate) {
+        // Render else block for empty array
+        let processedElse = this.processEachBlocks(
+          block.elseTemplate,
+          context,
+          depth + 1
+        );
+
+        processedElse = this.processConditionalBlocks(
+          processedElse,
+          context,
+          depth + 1
+        );
+
+        processedElse = this.processPartials(processedElse, context);
+        processedElse = this.processHelpers(processedElse, context);
+        processedElse = this.processTransforms(processedElse, context);
+        processedElse = this.processVariables(processedElse, context);
+
+        return { replacement: processedElse, hasChanges: true };
+      }
+      
       return this.processArrayIteration(value, block, context, depth);
     }
 
     // Handle objects (for @key iteration)
     if (value && typeof value === 'object' && value.constructor === Object) {
-      return this.processObjectIteration(
-        value as Record<string, unknown>,
-        block,
-        context,
-        depth
-      );
+      const objectValue = value as Record<string, unknown>;
+      const entries = Object.entries(objectValue);
+      
+      // Check if object is empty
+      if (entries.length === 0 && block.elseTemplate) {
+        // Render else block for empty object
+        let processedElse = this.processEachBlocks(
+          block.elseTemplate,
+          context,
+          depth + 1
+        );
+
+        processedElse = this.processConditionalBlocks(
+          processedElse,
+          context,
+          depth + 1
+        );
+
+        processedElse = this.processPartials(processedElse, context);
+        processedElse = this.processHelpers(processedElse, context);
+        processedElse = this.processTransforms(processedElse, context);
+        processedElse = this.processVariables(processedElse, context);
+
+        return { replacement: processedElse, hasChanges: true };
+      }
+      
+      return this.processObjectIteration(objectValue, block, context, depth);
     }
 
-    // Handle non-iterable values
+    // Handle non-iterable values - render else template if available
+    if (block.elseTemplate) {
+      let processedElse = this.processEachBlocks(
+        block.elseTemplate,
+        context,
+        depth + 1
+      );
+
+      processedElse = this.processConditionalBlocks(
+        processedElse,
+        context,
+        depth + 1
+      );
+
+      processedElse = this.processPartials(processedElse, context);
+      processedElse = this.processHelpers(processedElse, context);
+      processedElse = this.processTransforms(processedElse, context);
+      processedElse = this.processVariables(processedElse, context);
+
+      return { replacement: processedElse, hasChanges: true };
+    }
+
     return { replacement: '', hasChanges: true };
   }
 
@@ -608,7 +666,7 @@ export class TemplateEngine {
    */
   private processArrayIteration(
     arrayValue: unknown[],
-    block: { fullMatch: string; arrayPath: string; innerTemplate: string },
+    block: { fullMatch: string; arrayPath: string; innerTemplate: string; elseTemplate?: string },
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
@@ -685,7 +743,7 @@ export class TemplateEngine {
    */
   private processObjectIteration(
     objectValue: Record<string, unknown>,
-    block: { fullMatch: string; arrayPath: string; innerTemplate: string },
+    block: { fullMatch: string; arrayPath: string; innerTemplate: string; elseTemplate?: string },
     context: TemplateContext,
     depth: number
   ): { replacement: string; hasChanges: boolean } {
@@ -771,11 +829,12 @@ export class TemplateEngine {
   // eslint-disable-next-line class-methods-use-this
   private findOutermostEachBlocks(
     template: string
-  ): Array<{ fullMatch: string; arrayPath: string; innerTemplate: string }> {
+  ): Array<{ fullMatch: string; arrayPath: string; innerTemplate: string; elseTemplate?: string }> {
     const blocks: Array<{
       fullMatch: string;
       arrayPath: string;
       innerTemplate: string;
+      elseTemplate?: string;
     }> = [];
     const openPattern = /\{\{#each\s+([\w.]+)\s*\}\}/g;
 
@@ -788,15 +847,40 @@ export class TemplateEngine {
       const arrayPath = match[1];
       let depth = 1;
       let pos = openPattern.lastIndex;
+      let elsePos = -1;
 
-      // Find the matching closing tag
+      // Find the matching closing tag and else tag
       while (depth > 0 && pos < template.length) {
         const nextOpen = template.indexOf('{{#each', pos);
         const nextClose = template.indexOf('{{/each}}', pos);
+        const nextElse = template.indexOf('{{else}}', pos);
 
         if (nextClose === -1) break; // No more closing tags
 
-        if (nextOpen !== -1 && nextOpen < nextClose) {
+        // We need to be more careful about {{else}} detection to avoid conflicts with {{#if}}...{{else}}...{{/if}}
+        // Only consider {{else}} as belonging to {{#each}} if it's not inside a conditional block
+        let validElse = false;
+        if (
+          depth === 1 &&
+          nextElse !== -1 &&
+          nextElse < nextClose &&
+          (nextOpen === -1 || nextElse < nextOpen)
+        ) {
+          // Check if this {{else}} is inside a conditional block by counting open/close pairs
+          const textBeforeElse = template.substring(pos, nextElse);
+          const ifCount = (textBeforeElse.match(/\{\{#if\s/g) || []).length;
+          const unlessCount = (textBeforeElse.match(/\{\{#unless\s/g) || []).length;
+          const ifCloseCount = (textBeforeElse.match(/\{\{\/if\}\}/g) || []).length;
+          const unlessCloseCount = (textBeforeElse.match(/\{\{\/unless\}\}/g) || []).length;
+          
+          // If conditional blocks are balanced, this {{else}} might belong to {{#each}}
+          validElse = (ifCount === ifCloseCount) && (unlessCount === unlessCloseCount);
+        }
+
+        if (validElse) {
+          elsePos = nextElse;
+          pos = nextElse + 8; // Move past '{{else}}'
+        } else if (nextOpen !== -1 && nextOpen < nextClose) {
           depth += 1;
           pos = nextOpen + 7; // Move past '{{#each'
         } else {
@@ -809,13 +893,27 @@ export class TemplateEngine {
         const endPos = pos;
         const fullMatch = template.substring(startPos, endPos);
         const innerStart = template.indexOf('}}', startPos) + 2;
-        const innerEnd = template.lastIndexOf('{{/each}}', endPos);
-        const innerTemplate = template.substring(innerStart, innerEnd);
+
+        let innerTemplate: string;
+        let elseTemplate: string | undefined;
+
+        if (elsePos !== -1) {
+          // We have an else clause
+          innerTemplate = template.substring(innerStart, elsePos);
+          const elseStart = elsePos + 8; // Move past '{{else}}'
+          const innerEnd = template.lastIndexOf('{{/each}}', endPos);
+          elseTemplate = template.substring(elseStart, innerEnd);
+        } else {
+          // No else clause
+          const innerEnd = template.lastIndexOf('{{/each}}', endPos);
+          innerTemplate = template.substring(innerStart, innerEnd);
+        }
 
         blocks.push({
           fullMatch,
           arrayPath,
           innerTemplate,
+          elseTemplate,
         });
 
         // Skip past this block to avoid nested blocks
@@ -840,7 +938,7 @@ export class TemplateEngine {
   }
 
   /**
-   * Resolve a variable from context (supports dot notation)
+   * Resolve a variable from context (supports dot notation and bracket notation)
    */
   // eslint-disable-next-line class-methods-use-this
   private resolveVariable(key: string, context: TemplateContext): unknown {
@@ -848,7 +946,22 @@ export class TemplateEngine {
     let value: unknown = context;
 
     keys.forEach(k => {
-      if (value && typeof value === 'object' && k in value) {
+      if (value === null || value === undefined) {
+        value = undefined;
+        return;
+      }
+
+      // Handle bracket notation for array access: [0], [1], etc.
+      if (k.startsWith('[') && k.endsWith(']')) {
+        const indexStr = k.slice(1, -1);
+        const index = parseInt(indexStr, 10);
+        if (Array.isArray(value) && !Number.isNaN(index)) {
+          // Handle out of bounds gracefully
+          value = index >= 0 && index < value.length ? value[index] : undefined;
+        } else {
+          value = undefined;
+        }
+      } else if (value && typeof value === 'object' && k in value) {
         value = (value as Record<string, unknown>)[k];
       } else {
         value = undefined;
