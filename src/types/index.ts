@@ -741,27 +741,6 @@ export interface CursorRule {
 }
 
 /**
- * Plugin system interfaces
- */
-export interface IPlugin {
-  name: string;
-  version: string;
-  description?: string;
-  author?: string;
-  dependencies?: string[];
-  permissions?: string[];
-  priority?: number;
-  defaultConfig?: Record<string, unknown>;
-  configSchema?: Record<string, unknown>;
-  init: (api: PluginAPI, config?: unknown) => Promise<boolean> | boolean;
-  activate?: () => Promise<void> | void;
-  deactivate?: () => Promise<void> | void;
-  dispose?: () => Promise<void> | void;
-  execute?: (args: unknown) => Promise<unknown> | unknown;
-  hooks?: Record<string, (context: unknown) => Promise<unknown> | unknown>;
-}
-
-/**
  * Plugin API interface
  */
 export interface PluginAPI {
@@ -787,7 +766,29 @@ export interface PluginAPI {
   log: (level: string, message: string, ...args: unknown[]) => void;
   sendMessage: (plugin: string, data: unknown) => void;
   onMessage: (callback: (message: unknown) => void) => void;
+  // eslint-disable-next-line no-use-before-define
   getPlugin: (name: string) => IPlugin | null;
+}
+
+/**
+ * Plugin system interfaces
+ */
+export interface IPlugin {
+  name: string;
+  version: string;
+  description?: string;
+  author?: string;
+  dependencies?: string[];
+  permissions?: string[];
+  priority?: number;
+  defaultConfig?: Record<string, unknown>;
+  configSchema?: Record<string, unknown>;
+  init: (api: PluginAPI, config?: unknown) => Promise<boolean> | boolean;
+  activate?: () => Promise<void> | void;
+  deactivate?: () => Promise<void> | void;
+  dispose?: () => Promise<void> | void;
+  execute?: (args: unknown) => Promise<unknown> | unknown;
+  hooks?: Record<string, (context: unknown) => Promise<unknown> | unknown>;
 }
 
 /**

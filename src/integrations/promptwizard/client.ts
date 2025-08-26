@@ -340,7 +340,7 @@ export class PromptWizardClient implements PromptWizardService {
     data?: unknown
   ): Promise<ServiceResponse<T>> {
     const url = `${this.config.serviceUrl}${endpoint}`;
-    let lastError: Error;
+    let lastError: Error = new Error('Unknown error');
 
     for (let attempt = 0; attempt <= this.config.retries; attempt += 1) {
       try {
@@ -383,7 +383,7 @@ export class PromptWizardClient implements PromptWizardService {
       }
     }
 
-    throw new Error(lastError ? lastError.message : 'Request failed');
+    throw lastError;
   }
 
   /**
@@ -403,8 +403,10 @@ export class PromptWizardClient implements PromptWizardService {
 /**
  * Create default PromptWizard configuration
  */
-export function createDefaultConfig(): PromptWizardConfig {
-  return {
+export function createDefaultConfig(
+  overrides?: Partial<PromptWizardConfig>
+): PromptWizardConfig {
+  const config = {
     serviceUrl: process.env.PROMPTWIZARD_SERVICE_URL || 'http://localhost:8000',
     timeout: 120000, // 2 minutes
     retries: 3,
@@ -427,4 +429,6 @@ export function createDefaultConfig(): PromptWizardConfig {
       windowMs: 3600000, // 1 hour
     },
   };
+
+  return overrides ? { ...config, ...overrides } : config;
 }

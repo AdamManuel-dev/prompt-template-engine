@@ -143,7 +143,7 @@ export interface PromptComparison {
   };
 
   /** Comparison results */
-  improvements: {
+  improvements?: {
     qualityImprovement: number;
     tokenReduction: number;
     costSavings: number;

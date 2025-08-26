@@ -93,8 +93,8 @@ export interface ExtensionPoint<T = unknown> {
   getSorted(): T[]; // For extensions with priority
 }
 
-// Forward declaration for self-referencing type
 export class EnhancedPluginManager extends EventEmitter {
+  // eslint-disable-next-line no-use-before-define
   private static instance: EnhancedPluginManager | undefined;
 
   private pluginLoader: PluginLoader;

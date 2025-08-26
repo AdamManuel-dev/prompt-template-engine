@@ -191,7 +191,13 @@ export class ConfigManager implements IConfigManager {
           },
           defaultModel: {
             type: 'string',
-            enum: ['gpt-4', 'gpt-3.5-turbo', 'claude-3-opus', 'claude-3-sonnet', 'gemini-pro'],
+            enum: [
+              'gpt-4',
+              'gpt-3.5-turbo',
+              'claude-3-opus',
+              'claude-3-sonnet',
+              'gemini-pro',
+            ],
             default: 'gpt-4',
             description: 'Default target model for optimization',
           },

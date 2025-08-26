@@ -24,6 +24,7 @@ import { applyCommand, ApplyOptions } from './commands/apply';
 import { validateCommand } from './commands/validate';
 import { configCommand } from './commands/config';
 import { pluginCommand, PluginOptions } from './commands/plugin';
+import { createOptimizeCommand } from './commands/optimize';
 import { CommandRegistry } from './cli/command-registry';
 import { PluginLoader } from './cli/plugin-loader';
 import { ConfigManager } from './config/config-manager';
@@ -314,6 +315,9 @@ function configureProgram(): void {
         process.exit(ErrorUtils.getExitCode(error));
       }
     });
+
+  // Add optimize command
+  program.addCommand(createOptimizeCommand());
 
   // Cursor IDE integration commands
   program

@@ -1388,6 +1388,7 @@ export class MarketplaceService
     }>
   >;
 
+  // eslint-disable-next-line no-dupe-class-members
   async batchInstall(
     ids: string[],
     targetPath: string,
@@ -1404,6 +1405,7 @@ export class MarketplaceService
     }>
   >;
 
+  // eslint-disable-next-line no-dupe-class-members
   async batchInstall(
     idsOrQueries: string[],
     targetPathOrOptions?:
@@ -1527,12 +1529,15 @@ export class MarketplaceService
    * @returns Promise resolving to update check results or array of available updates
    * @throws Error if update check operation fails
    */
+  // eslint-disable-next-line no-dupe-class-members
   async checkUpdates(): Promise<
     Array<{ templateId: string; currentVersion: string; latestVersion: string }>
   >;
 
+  // eslint-disable-next-line no-dupe-class-members
   async checkUpdates(installedPath: string): Promise<UpdateCheckResult>;
 
+  // eslint-disable-next-line no-dupe-class-members
   async checkUpdates(installedPath?: string): Promise<
     | UpdateCheckResult
     | Array<{
