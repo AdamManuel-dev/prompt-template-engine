@@ -297,8 +297,8 @@ export class CursorIntegration {
     }
 
     // Use provided path or fallback to common template directories
-    const watchPaths = watchPath 
-      ? [watchPath] 
+    const watchPaths = watchPath
+      ? [watchPath]
       : ['./templates', '.cursor/templates'];
 
     // Find the first existing path to watch

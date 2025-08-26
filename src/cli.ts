@@ -166,7 +166,7 @@ program
       console.log(
         chalk.green(`✅ Successfully synced templates to Cursor rules`)
       );
-      
+
       // Dispose the integration to clean up resources
       integration.dispose();
     } catch (error) {

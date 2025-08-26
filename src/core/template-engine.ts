@@ -62,10 +62,18 @@ export class TemplateEngine {
     this.includedFiles.clear();
 
     // First process unconditional includes (not wrapped in conditionals)
-    let processed = await this.processUnconditionalIncludes(template, context, 0, []);
+    let processed = await this.processUnconditionalIncludes(
+      template,
+      context,
+      0,
+      []
+    );
 
     // Then process conditional blocks (which will handle conditional includes internally)
-    processed = await this.processConditionalBlocksWithIncludes(processed, context);
+    processed = await this.processConditionalBlocksWithIncludes(
+      processed,
+      context
+    );
 
     // Then process any standalone #each blocks not inside conditionals
     processed = this.processEachBlocks(processed, context);
@@ -140,7 +148,7 @@ export class TemplateEngine {
     // eslint-disable-next-line no-await-in-loop
     for (let i = 0; i < includes.length; i += 1) {
       const include = includes[i];
-      
+
       // Check if this include is wrapped in a conditional
       if (this.isIncludeWrappedInConditional(include, template)) {
         continue; // Skip conditional includes for now
@@ -382,7 +390,11 @@ export class TemplateEngine {
           // Skip this block
         } else {
           // eslint-disable-next-line no-await-in-loop
-          const blockResult = await this.processSingleIfBlockWithIncludes(block, context, depth);
+          const blockResult = await this.processSingleIfBlockWithIncludes(
+            block,
+            context,
+            depth
+          );
           result = result.replace(block.fullMatch, blockResult.replacement);
           if (blockResult.hasChanges) {
             changed = true;
@@ -699,11 +711,7 @@ export class TemplateEngine {
         []
       );
 
-      processedElse = this.processEachBlocks(
-        processedElse,
-        context,
-        depth + 1
-      );
+      processedElse = this.processEachBlocks(processedElse, context, depth + 1);
 
       processedElse = await this.processConditionalBlocksWithIncludes(
         processedElse,
@@ -777,11 +785,7 @@ export class TemplateEngine {
         []
       );
 
-      processedElse = this.processEachBlocks(
-        processedElse,
-        context,
-        depth + 1
-      );
+      processedElse = this.processEachBlocks(processedElse, context, depth + 1);
 
       processedElse = await this.processConditionalBlocksWithIncludes(
         processedElse,

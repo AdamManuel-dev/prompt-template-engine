@@ -265,7 +265,10 @@ export class SecurePluginManager {
    * @returns Promise resolving to the final result after all hook processing
    * @throws Error if critical hook execution fails
    */
-  private async executeHookWithType<T>(name: string, ...args: unknown[]): Promise<T> {
+  private async executeHookWithType<T>(
+    name: string,
+    ...args: unknown[]
+  ): Promise<T> {
     const hookHandlers = this.hooks.get(name) || [];
 
     // Sort by priority (higher priority first)
