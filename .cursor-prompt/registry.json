@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "updated": "2025-08-26T05:58:34.352Z",
+  "updated": "2025-08-26T06:48:58.812Z",
   "templates": [
     {
       "id": "my-new-template",
@@ -34,7 +34,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.218Z",
+            "created": "2025-08-26T06:48:58.663Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -62,7 +62,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.218Z",
+          "lastDownload": "2025-08-26T06:48:58.663Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -77,8 +77,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.218Z",
-        "updated": "2025-08-26T05:58:34.218Z",
+        "created": "2025-08-26T06:48:58.663Z",
+        "updated": "2025-08-26T06:48:58.663Z",
         "featured": false,
         "verified": false,
         "deprecated": false
@@ -95,11 +95,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.218Z",
+        "created": "2025-08-26T06:48:58.663Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.218Z",
+      "registered": "2025-08-26T06:48:58.663Z",
       "active": true
     },
     {
@@ -120,11 +120,11 @@
           "1.0.0"
         ],
         "size": 34,
-        "created": "2025-08-26T05:58:34.223Z",
+        "created": "2025-08-26T06:48:58.668Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.223Z",
+      "registered": "2025-08-26T06:48:58.668Z",
       "active": true
     },
     {
@@ -159,7 +159,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.232Z",
+            "created": "2025-08-26T06:48:58.682Z",
             "downloads": 0,
             "deprecated": false
           },
@@ -175,7 +175,7 @@
               "1.0.0"
             ],
             "size": 120,
-            "created": "2025-08-26T05:58:34.233Z",
+            "created": "2025-08-26T06:48:58.684Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -202,7 +202,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.232Z",
+          "lastDownload": "2025-08-26T06:48:58.682Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -217,8 +217,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.232Z",
-        "updated": "2025-08-26T05:58:34.232Z",
+        "created": "2025-08-26T06:48:58.682Z",
+        "updated": "2025-08-26T06:48:58.682Z",
         "featured": false,
         "verified": false,
         "deprecated": false
@@ -235,11 +235,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.232Z",
+        "created": "2025-08-26T06:48:58.682Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.234Z",
+      "registered": "2025-08-26T06:48:58.684Z",
       "active": true
     },
     {
@@ -274,7 +274,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.238Z",
+            "created": "2025-08-26T06:48:58.688Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -301,7 +301,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.238Z",
+          "lastDownload": "2025-08-26T06:48:58.688Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -316,8 +316,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.238Z",
-        "updated": "2025-08-26T05:58:34.238Z",
+        "created": "2025-08-26T06:48:58.688Z",
+        "updated": "2025-08-26T06:48:58.688Z",
         "featured": false,
         "verified": false,
         "deprecated": false
@@ -334,11 +334,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.238Z",
+        "created": "2025-08-26T06:48:58.688Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.240Z",
+      "registered": "2025-08-26T06:48:58.690Z",
       "active": true
     },
     {
@@ -373,7 +373,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.271Z",
+            "created": "2025-08-26T06:48:58.725Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -400,7 +400,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.271Z",
+          "lastDownload": "2025-08-26T06:48:58.725Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -415,8 +415,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.271Z",
-        "updated": "2025-08-26T05:58:34.271Z",
+        "created": "2025-08-26T06:48:58.725Z",
+        "updated": "2025-08-26T06:48:58.725Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -435,11 +435,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.271Z",
+        "created": "2025-08-26T06:48:58.725Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.275Z",
+      "registered": "2025-08-26T06:48:58.727Z",
       "active": true
     },
     {
@@ -474,7 +474,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.277Z",
+            "created": "2025-08-26T06:48:58.728Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -501,7 +501,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.277Z",
+          "lastDownload": "2025-08-26T06:48:58.728Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -516,8 +516,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.277Z",
-        "updated": "2025-08-26T05:58:34.277Z",
+        "created": "2025-08-26T06:48:58.728Z",
+        "updated": "2025-08-26T06:48:58.728Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -536,11 +536,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.277Z",
+        "created": "2025-08-26T06:48:58.728Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.279Z",
+      "registered": "2025-08-26T06:48:58.730Z",
       "active": true
     },
     {
@@ -575,7 +575,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.298Z",
+            "created": "2025-08-26T06:48:58.758Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -602,7 +602,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.298Z",
+          "lastDownload": "2025-08-26T06:48:58.758Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -617,8 +617,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.298Z",
-        "updated": "2025-08-26T05:58:34.298Z",
+        "created": "2025-08-26T06:48:58.758Z",
+        "updated": "2025-08-26T06:48:58.758Z",
         "featured": false,
         "verified": false,
         "deprecated": false
@@ -635,11 +635,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.298Z",
+        "created": "2025-08-26T06:48:58.758Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.298Z",
+      "registered": "2025-08-26T06:48:58.758Z",
       "active": true
     },
     {
@@ -674,7 +674,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.315Z",
+            "created": "2025-08-26T06:48:58.778Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -701,7 +701,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.315Z",
+          "lastDownload": "2025-08-26T06:48:58.778Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -716,8 +716,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.315Z",
-        "updated": "2025-08-26T05:58:34.316Z",
+        "created": "2025-08-26T06:48:58.778Z",
+        "updated": "2025-08-26T06:48:58.779Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -736,11 +736,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.315Z",
+        "created": "2025-08-26T06:48:58.778Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.322Z",
+      "registered": "2025-08-26T06:48:58.783Z",
       "active": true
     },
     {
@@ -775,7 +775,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.326Z",
+            "created": "2025-08-26T06:48:58.787Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -802,7 +802,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.326Z",
+          "lastDownload": "2025-08-26T06:48:58.787Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -817,8 +817,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.326Z",
-        "updated": "2025-08-26T05:58:34.326Z",
+        "created": "2025-08-26T06:48:58.787Z",
+        "updated": "2025-08-26T06:48:58.787Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -837,11 +837,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.326Z",
+        "created": "2025-08-26T06:48:58.787Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.331Z",
+      "registered": "2025-08-26T06:48:58.793Z",
       "active": true
     },
     {
@@ -876,7 +876,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.336Z",
+            "created": "2025-08-26T06:48:58.797Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -903,7 +903,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.336Z",
+          "lastDownload": "2025-08-26T06:48:58.797Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -918,8 +918,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.336Z",
-        "updated": "2025-08-26T05:58:34.337Z",
+        "created": "2025-08-26T06:48:58.797Z",
+        "updated": "2025-08-26T06:48:58.798Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -938,11 +938,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.336Z",
+        "created": "2025-08-26T06:48:58.797Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.339Z",
+      "registered": "2025-08-26T06:48:58.800Z",
       "active": true
     },
     {
@@ -977,7 +977,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.340Z",
+            "created": "2025-08-26T06:48:58.801Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -1004,7 +1004,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.340Z",
+          "lastDownload": "2025-08-26T06:48:58.801Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -1019,8 +1019,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.340Z",
-        "updated": "2025-08-26T05:58:34.340Z",
+        "created": "2025-08-26T06:48:58.801Z",
+        "updated": "2025-08-26T06:48:58.801Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -1039,11 +1039,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.340Z",
+        "created": "2025-08-26T06:48:58.801Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.342Z",
+      "registered": "2025-08-26T06:48:58.803Z",
       "active": true
     },
     {
@@ -1078,7 +1078,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.343Z",
+            "created": "2025-08-26T06:48:58.804Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -1105,7 +1105,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.343Z",
+          "lastDownload": "2025-08-26T06:48:58.804Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -1120,8 +1120,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.343Z",
-        "updated": "2025-08-26T05:58:34.343Z",
+        "created": "2025-08-26T06:48:58.804Z",
+        "updated": "2025-08-26T06:48:58.805Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -1140,11 +1140,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.343Z",
+        "created": "2025-08-26T06:48:58.804Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.345Z",
+      "registered": "2025-08-26T06:48:58.806Z",
       "active": true
     },
     {
@@ -1179,7 +1179,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.347Z",
+            "created": "2025-08-26T06:48:58.808Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -1206,7 +1206,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.347Z",
+          "lastDownload": "2025-08-26T06:48:58.808Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -1221,8 +1221,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.347Z",
-        "updated": "2025-08-26T05:58:34.347Z",
+        "created": "2025-08-26T06:48:58.808Z",
+        "updated": "2025-08-26T06:48:58.808Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -1241,11 +1241,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.347Z",
+        "created": "2025-08-26T06:48:58.808Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.349Z",
+      "registered": "2025-08-26T06:48:58.809Z",
       "active": true
     },
     {
@@ -1280,7 +1280,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.350Z",
+            "created": "2025-08-26T06:48:58.810Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -1307,7 +1307,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.350Z",
+          "lastDownload": "2025-08-26T06:48:58.810Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -1322,8 +1322,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.350Z",
-        "updated": "2025-08-26T05:58:34.350Z",
+        "created": "2025-08-26T06:48:58.810Z",
+        "updated": "2025-08-26T06:48:58.810Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -1342,11 +1342,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.350Z",
+        "created": "2025-08-26T06:48:58.810Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.352Z",
+      "registered": "2025-08-26T06:48:58.812Z",
       "active": true
     },
     {
@@ -1381,7 +1381,7 @@
               "1.0.0"
             ],
             "size": 1000,
-            "created": "2025-08-26T05:58:34.156Z",
+            "created": "2025-08-26T06:48:58.611Z",
             "downloads": 1500,
             "deprecated": false
           }
@@ -1389,7 +1389,8 @@
         "tags": [
           "auth",
           "security",
-          "user-management"
+          "user-management",
+          "backend"
         ],
         "rating": {
           "average": 4.5,
@@ -1410,7 +1411,7 @@
           "forks": 5,
           "favorites": 20,
           "issues": 2,
-          "lastDownload": "2025-08-26T05:58:34.156Z",
+          "lastDownload": "2025-08-26T06:48:58.611Z",
           "trending": false,
           "popularityScore": 85
         },
@@ -1426,8 +1427,8 @@
           ]
         },
         "category": "development",
-        "created": "2025-08-26T05:58:34.156Z",
-        "updated": "2025-08-26T05:58:34.156Z",
+        "created": "2025-08-26T06:48:58.611Z",
+        "updated": "2025-08-26T06:48:58.611Z",
         "featured": false,
         "verified": true,
         "deprecated": false
@@ -1444,11 +1445,11 @@
           "1.0.0"
         ],
         "size": 1000,
-        "created": "2025-08-26T05:58:34.156Z",
+        "created": "2025-08-26T06:48:58.611Z",
         "downloads": 1500,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.156Z",
+      "registered": "2025-08-26T06:48:58.611Z",
       "active": true
     },
     {
@@ -1483,7 +1484,7 @@
               "1.0.0"
             ],
             "size": 1500,
-            "created": "2025-08-26T05:58:34.156Z",
+            "created": "2025-08-26T06:48:58.611Z",
             "downloads": 3200,
             "deprecated": false
           }
@@ -1512,7 +1513,7 @@
           "forks": 12,
           "favorites": 45,
           "issues": 1,
-          "lastDownload": "2025-08-26T05:58:34.156Z",
+          "lastDownload": "2025-08-26T06:48:58.611Z",
           "trending": true,
           "popularityScore": 92
         },
@@ -1528,8 +1529,8 @@
           ]
         },
         "category": "development",
-        "created": "2025-08-26T05:58:34.156Z",
-        "updated": "2025-08-26T05:58:34.156Z",
+        "created": "2025-08-26T06:48:58.611Z",
+        "updated": "2025-08-26T06:48:58.611Z",
         "featured": true,
         "verified": true,
         "deprecated": false
@@ -1546,11 +1547,11 @@
           "1.0.0"
         ],
         "size": 1500,
-        "created": "2025-08-26T05:58:34.156Z",
+        "created": "2025-08-26T06:48:58.611Z",
         "downloads": 3200,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.158Z",
+      "registered": "2025-08-26T06:48:58.612Z",
       "active": true
     },
     {
@@ -1585,7 +1586,7 @@
               "1.0.0"
             ],
             "size": 1200,
-            "created": "2025-08-26T05:58:34.156Z",
+            "created": "2025-08-26T06:48:58.611Z",
             "downloads": 2100,
             "deprecated": false
           }
@@ -1615,7 +1616,7 @@
           "forks": 8,
           "favorites": 25,
           "issues": 3,
-          "lastDownload": "2025-08-26T05:58:34.156Z",
+          "lastDownload": "2025-08-26T06:48:58.611Z",
           "trending": false,
           "popularityScore": 78
         },
@@ -1631,8 +1632,8 @@
           ]
         },
         "category": "development",
-        "created": "2025-08-26T05:58:34.156Z",
-        "updated": "2025-08-26T05:58:34.156Z",
+        "created": "2025-08-26T06:48:58.611Z",
+        "updated": "2025-08-26T06:48:58.611Z",
         "featured": false,
         "verified": true,
         "deprecated": false
@@ -1649,11 +1650,11 @@
           "1.0.0"
         ],
         "size": 1200,
-        "created": "2025-08-26T05:58:34.156Z",
+        "created": "2025-08-26T06:48:58.611Z",
         "downloads": 2100,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.159Z",
+      "registered": "2025-08-26T06:48:58.613Z",
       "active": true
     },
     {
@@ -1688,7 +1689,7 @@
               "1.0.0"
             ],
             "size": 800,
-            "created": "2025-08-26T05:58:34.156Z",
+            "created": "2025-08-26T06:48:58.611Z",
             "downloads": 890,
             "deprecated": false
           }
@@ -1717,7 +1718,7 @@
           "forks": 3,
           "favorites": 15,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.156Z",
+          "lastDownload": "2025-08-26T06:48:58.611Z",
           "trending": false,
           "popularityScore": 70
         },
@@ -1733,8 +1734,8 @@
           ]
         },
         "category": "deployment",
-        "created": "2025-08-26T05:58:34.156Z",
-        "updated": "2025-08-26T05:58:34.156Z",
+        "created": "2025-08-26T06:48:58.611Z",
+        "updated": "2025-08-26T06:48:58.611Z",
         "featured": false,
         "verified": true,
         "deprecated": false
@@ -1751,11 +1752,11 @@
           "1.0.0"
         ],
         "size": 800,
-        "created": "2025-08-26T05:58:34.156Z",
+        "created": "2025-08-26T06:48:58.611Z",
         "downloads": 890,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.160Z",
+      "registered": "2025-08-26T06:48:58.614Z",
       "active": true
     },
     {
@@ -1790,7 +1791,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.202Z",
+            "created": "2025-08-26T06:48:58.646Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -1817,7 +1818,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.202Z",
+          "lastDownload": "2025-08-26T06:48:58.646Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -1832,8 +1833,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.202Z",
-        "updated": "2025-08-26T05:58:34.202Z",
+        "created": "2025-08-26T06:48:58.646Z",
+        "updated": "2025-08-26T06:48:58.646Z",
         "featured": false,
         "verified": false,
         "deprecated": false
@@ -1850,18 +1851,18 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.202Z",
+        "created": "2025-08-26T06:48:58.646Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.203Z",
+      "registered": "2025-08-26T06:48:58.646Z",
       "active": true
     },
     {
       "id": "deps-template",
       "name": "Template with Dependencies",
       "version": "1.0.0",
-      "path": "",
+      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Template with Dependencies",
       "metadata": {
         "id": "deps-template",
         "name": "Template with Dependencies",
@@ -1886,13 +1887,13 @@
                 "name": "base-template",
                 "version": "^1.0.0",
                 "type": "template",
-                "optional": false
+                "optional": true
               },
               {
                 "name": "utils-template",
                 "version": "~2.0.0",
                 "type": "template",
-                "optional": false
+                "optional": true
               }
             ],
             "variables": [],
@@ -1902,7 +1903,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.177Z",
+            "created": "2025-08-26T06:48:58.630Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -1929,7 +1930,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.177Z",
+          "lastDownload": "2025-08-26T06:48:58.630Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -1944,11 +1945,13 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.177Z",
-        "updated": "2025-08-26T05:58:34.177Z",
+        "created": "2025-08-26T06:48:58.630Z",
+        "updated": "2025-08-26T06:48:58.630Z",
         "featured": false,
         "verified": false,
-        "deprecated": false
+        "deprecated": false,
+        "isDraft": false,
+        "isPrivate": false
       },
       "versionInfo": {
         "version": "1.0.0",
@@ -1959,13 +1962,13 @@
             "name": "base-template",
             "version": "^1.0.0",
             "type": "template",
-            "optional": false
+            "optional": true
           },
           {
             "name": "utils-template",
             "version": "~2.0.0",
             "type": "template",
-            "optional": false
+            "optional": true
           }
         ],
         "variables": [],
@@ -1975,11 +1978,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.177Z",
+        "created": "2025-08-26T06:48:58.630Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.178Z",
+      "registered": "2025-08-26T06:48:58.631Z",
       "active": true
     },
     {
@@ -2014,7 +2017,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T05:58:34.206Z",
+            "created": "2025-08-26T06:48:58.651Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -2041,7 +2044,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T05:58:34.206Z",
+          "lastDownload": "2025-08-26T06:48:58.651Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -2056,8 +2059,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T05:58:34.206Z",
-        "updated": "2025-08-26T05:58:34.207Z",
+        "created": "2025-08-26T06:48:58.651Z",
+        "updated": "2025-08-26T06:48:58.651Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -2076,11 +2079,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T05:58:34.206Z",
+        "created": "2025-08-26T06:48:58.651Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T05:58:34.210Z",
+      "registered": "2025-08-26T06:48:58.654Z",
       "active": true
     }
   ]

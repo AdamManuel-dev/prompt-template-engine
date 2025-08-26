@@ -2,14 +2,18 @@
 
 ## 📊 Feature Overview
 
-**Status:** Ready for Implementation
-**Priority:** High
+**Status:** Not Started - Feature Planned
+**Priority:** High (Post-MVP)
 **Estimated Timeline:** 7-10 days (critical path), 12-15 days (full feature)
 **Total Tasks:** 90+
+**Last Updated:** 2025-08-26
+
+> ⚠️ **Note**: This entire feature is pending implementation. All tasks below are unstarted.
 
 ## Phase 1: Foundation & Architecture Setup
 
 _[Estimated: 2-3 days | Priority: P1]_
+_**Status: 0% Complete**_
 
 ### Research & Design
 
