@@ -9,7 +9,7 @@
  */
 
 import { logger } from '../utils/logger';
-import { Template } from '../services/template.service';
+import { Template } from '../types';
 
 export interface ExampleGenerationConfig {
   count: number;
