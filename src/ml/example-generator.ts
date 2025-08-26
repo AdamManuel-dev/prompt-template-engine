@@ -69,26 +69,43 @@ export class ExampleGenerator {
     template: Template,
     config: ExampleGenerationConfig
   ): Promise<GeneratedExample[]> {
-    logger.info(`Generating ${config.count} examples for template: ${template.name}`);
+    logger.info(
+      `Generating ${config.count} examples for template: ${template.name}`
+    );
 
     const examples: GeneratedExample[] = [];
     const diversityThreshold = this.diversityStrategies[config.diversityLevel];
 
     const normalCount = Math.floor(config.count * (1 - diversityThreshold));
-    const edgeCaseCount = config.includeEdgeCases 
+    const edgeCaseCount = config.includeEdgeCases
       ? Math.floor(config.count * diversityThreshold * 0.5)
       : 0;
-    const adversarialCount = Math.floor(config.count * diversityThreshold * 0.3);
-    const boundaryCount = config.count - normalCount - edgeCaseCount - adversarialCount;
+    const adversarialCount = Math.floor(
+      config.count * diversityThreshold * 0.3
+    );
+    const boundaryCount =
+      config.count - normalCount - edgeCaseCount - adversarialCount;
 
-    examples.push(...await this.generateNormalExamples(template, normalCount, config));
-    
+    examples.push(
+      ...(await this.generateNormalExamples(template, normalCount, config))
+    );
+
     if (config.includeEdgeCases) {
-      examples.push(...await this.generateEdgeCases(template, edgeCaseCount, config));
+      examples.push(
+        ...(await this.generateEdgeCases(template, edgeCaseCount, config))
+      );
     }
-    
-    examples.push(...await this.generateAdversarialExamples(template, adversarialCount, config));
-    examples.push(...await this.generateBoundaryExamples(template, boundaryCount, config));
+
+    examples.push(
+      ...(await this.generateAdversarialExamples(
+        template,
+        adversarialCount,
+        config
+      ))
+    );
+    examples.push(
+      ...(await this.generateBoundaryExamples(template, boundaryCount, config))
+    );
 
     const validatedExamples = await this.validateAndFilter(examples, template);
 
@@ -105,7 +122,7 @@ export class ExampleGenerator {
     config: ExampleGenerationConfig
   ): Promise<GeneratedExample[]> {
     const examples: GeneratedExample[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       const input = this.generateTemplateBasedInput(template, config);
       const example: GeneratedExample = {
@@ -114,19 +131,22 @@ export class ExampleGenerator {
         confidence: 0.9,
         metadata: {
           generationMethod: 'template_based',
-          diversity: this.calculateDiversity(input, examples.map(e => e.input)),
+          diversity: this.calculateDiversity(
+            input,
+            examples.map(e => e.input)
+          ),
           complexity: this.calculateComplexity(input),
           coverage: this.analyzeCoverage(input, template),
         },
       };
-      
+
       if (template.variables) {
         example.expectedOutput = this.generateExpectedOutput(template, input);
       }
-      
+
       examples.push(example);
     }
-    
+
     return examples;
   }
 
@@ -134,18 +154,17 @@ export class ExampleGenerator {
    * Generate edge case examples
    */
   async generateEdgeCases(
-    template: Template,
+    _template: Template,
     count: number,
     _config: ExampleGenerationConfig
   ): Promise<GeneratedExample[]> {
     const examples: GeneratedExample[] = [];
-    const patternsPerExample = Math.max(1, Math.floor(this.edgeCasePatterns.length / count));
-    
+
     for (let i = 0; i < count; i++) {
       const patternIndex = i % this.edgeCasePatterns.length;
       const pattern = this.edgeCasePatterns[patternIndex];
       const input = pattern.pattern();
-      
+
       examples.push({
         input,
         category: 'edge_case',
@@ -158,7 +177,7 @@ export class ExampleGenerator {
         },
       });
     }
-    
+
     return examples;
   }
 
@@ -171,7 +190,7 @@ export class ExampleGenerator {
     config: ExampleGenerationConfig
   ): Promise<GeneratedExample[]> {
     const examples: GeneratedExample[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       const input = this.generateAdversarialInput(template, config);
       examples.push({
@@ -186,7 +205,7 @@ export class ExampleGenerator {
         },
       });
     }
-    
+
     return examples;
   }
 
@@ -199,7 +218,7 @@ export class ExampleGenerator {
     config: ExampleGenerationConfig
   ): Promise<GeneratedExample[]> {
     const examples: GeneratedExample[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       const input = this.generateBoundaryInput(template, config);
       examples.push({
@@ -214,7 +233,7 @@ export class ExampleGenerator {
         },
       });
     }
-    
+
     return examples;
   }
 
@@ -255,7 +274,7 @@ export class ExampleGenerator {
     }
 
     const requiredVars = Object.entries(template.variables || {})
-      .filter(([, config]) => config.required)
+      .filter(([, config]) => (config as any).required)
       .map(([key]) => key);
 
     const missingVars = requiredVars.filter(
@@ -283,11 +302,13 @@ export class ExampleGenerator {
     template: Template
   ): Promise<GeneratedExample[]> {
     const validationResults = await this.validateExamples(examples, template);
-    
-    return examples.filter((example, index) => {
+
+    return examples.filter((_example, index) => {
       const validation = validationResults[index];
       if (!validation.valid) {
-        logger.warn(`Filtering out invalid example: ${validation.errors.join(', ')}`);
+        logger.warn(
+          `Filtering out invalid example: ${validation.errors.join(', ')}`
+        );
         return false;
       }
       if (validation.score < 0.3) {
@@ -308,7 +329,7 @@ export class ExampleGenerator {
     let input = template.content || '';
 
     Object.entries(variables).forEach(([key, varConfig]) => {
-      const value = this.generateValueForType(varConfig.type, config);
+      const value = this.generateValueForType((varConfig as any).type, config);
       input = input.replace(new RegExp(`{{${key}}}`, 'g'), value);
     });
 
@@ -321,8 +342,10 @@ export class ExampleGenerator {
   ): string {
     switch (type) {
       case 'string':
-        return this.generateString(config.constraints?.minLength || 10, 
-                                   config.constraints?.maxLength || 100);
+        return this.generateString(
+          config.constraints?.minLength || 10,
+          config.constraints?.maxLength || 100
+        );
       case 'number':
         return Math.floor(Math.random() * 1000).toString();
       case 'boolean':
@@ -337,8 +360,10 @@ export class ExampleGenerator {
   }
 
   private generateString(minLength: number, maxLength: number): string {
-    const length = Math.floor(Math.random() * (maxLength - minLength)) + minLength;
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ';
+    const length =
+      Math.floor(Math.random() * (maxLength - minLength)) + minLength;
+    const chars =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ';
     let result = '';
     for (let i = 0; i < length; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -348,7 +373,9 @@ export class ExampleGenerator {
 
   private generateArray(): unknown[] {
     const length = Math.floor(Math.random() * 5) + 1;
-    return Array(length).fill(0).map(() => this.generateString(5, 15));
+    return Array(length)
+      .fill(0)
+      .map(() => this.generateString(5, 15));
   }
 
   private generateObject(): Record<string, unknown> {
@@ -371,24 +398,28 @@ export class ExampleGenerator {
     const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>?/\\`~"\' ';
     let result = '';
     for (let i = 0; i < 50; i++) {
-      result += specialChars.charAt(Math.floor(Math.random() * specialChars.length));
+      result += specialChars.charAt(
+        Math.floor(Math.random() * specialChars.length)
+      );
     }
     return result;
   }
 
   private generateUnicode(): string {
     const unicodeRanges = [
-      [0x0041, 0x005A], // Latin uppercase
-      [0x0061, 0x007A], // Latin lowercase
-      [0x4E00, 0x4E20], // CJK
+      [0x0041, 0x005a], // Latin uppercase
+      [0x0061, 0x007a], // Latin lowercase
+      [0x4e00, 0x4e20], // CJK
       [0x0600, 0x0620], // Arabic
       [0x0400, 0x0420], // Cyrillic
     ];
-    
+
     let result = '';
     for (let i = 0; i < 20; i++) {
-      const range = unicodeRanges[Math.floor(Math.random() * unicodeRanges.length)];
-      const codePoint = Math.floor(Math.random() * (range[1] - range[0])) + range[0];
+      const range =
+        unicodeRanges[Math.floor(Math.random() * unicodeRanges.length)];
+      const codePoint =
+        Math.floor(Math.random() * (range[1] - range[0])) + range[0];
       result += String.fromCodePoint(codePoint);
     }
     return result;
@@ -415,7 +446,7 @@ export class ExampleGenerator {
       () => `key: ${this.generateString(10, 20)}`,
       () => `${this.generateString(5, 10)}|${this.generateString(5, 10)}`,
     ];
-    
+
     return formats[Math.floor(Math.random() * formats.length)]();
   }
 
@@ -431,24 +462,26 @@ export class ExampleGenerator {
       '\x00\x01\x02\x03',
       'A'.repeat(100000),
     ];
-    
-    return adversarialPatterns[Math.floor(Math.random() * adversarialPatterns.length)];
+
+    return adversarialPatterns[
+      Math.floor(Math.random() * adversarialPatterns.length)
+    ];
   }
 
   private generateBoundaryInput(
-    template: Template,
+    _template: Template,
     config: ExampleGenerationConfig
   ): string {
     const maxLength = config.constraints?.maxLength || 1000;
     const minLength = config.constraints?.minLength || 1;
-    
+
     const boundaries = [
       this.generateString(minLength, minLength),
       this.generateString(maxLength, maxLength),
       this.generateString(maxLength - 1, maxLength - 1),
       this.generateString(minLength + 1, minLength + 1),
     ];
-    
+
     return boundaries[Math.floor(Math.random() * boundaries.length)];
   }
 
@@ -458,36 +491,37 @@ export class ExampleGenerator {
 
   private calculateDiversity(input: string, existingInputs: string[]): number {
     if (existingInputs.length === 0) return 1.0;
-    
-    const similarities = existingInputs.map(existing => 
+
+    const similarities = existingInputs.map(existing =>
       this.calculateSimilarity(input, existing)
     );
-    
-    const avgSimilarity = similarities.reduce((a, b) => a + b, 0) / similarities.length;
+
+    const avgSimilarity =
+      similarities.reduce((a, b) => a + b, 0) / similarities.length;
     return 1.0 - avgSimilarity;
   }
 
   private calculateSimilarity(str1: string, str2: string): number {
     const longer = str1.length > str2.length ? str1 : str2;
     const shorter = str1.length > str2.length ? str2 : str1;
-    
+
     if (longer.length === 0) return 1.0;
-    
+
     const editDistance = this.levenshteinDistance(longer, shorter);
     return (longer.length - editDistance) / longer.length;
   }
 
   private levenshteinDistance(str1: string, str2: string): number {
     const matrix: number[][] = [];
-    
+
     for (let i = 0; i <= str2.length; i++) {
       matrix[i] = [i];
     }
-    
+
     for (let j = 0; j <= str1.length; j++) {
       matrix[0][j] = j;
     }
-    
+
     for (let i = 1; i <= str2.length; i++) {
       for (let j = 1; j <= str1.length; j++) {
         if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
@@ -501,7 +535,7 @@ export class ExampleGenerator {
         }
       }
     }
-    
+
     return matrix[str2.length][str1.length];
   }
 
@@ -509,28 +543,32 @@ export class ExampleGenerator {
     const factors = {
       length: Math.min(input.length / 1000, 1.0),
       uniqueChars: new Set(input).size / input.length,
-      specialChars: (input.match(/[^a-zA-Z0-9\s]/g) || []).length / input.length,
+      specialChars:
+        (input.match(/[^a-zA-Z0-9\s]/g) || []).length / input.length,
       nesting: (input.match(/[{}\[\]()]/g) || []).length / 10,
     };
-    
-    return Object.values(factors).reduce((a, b) => a + b, 0) / Object.keys(factors).length;
+
+    return (
+      Object.values(factors).reduce((a, b) => a + b, 0) /
+      Object.keys(factors).length
+    );
   }
 
   private analyzeCoverage(input: string, template: Template): string[] {
     const coverage: string[] = [];
-    
+
     const variables = Object.keys(template.variables || {});
     variables.forEach(varName => {
       if (input.includes(`{{${varName}}}`)) {
         coverage.push(`var:${varName}`);
       }
     });
-    
+
     if (input.length < 10) coverage.push('short_input');
     if (input.length > 1000) coverage.push('long_input');
     if (/[^a-zA-Z0-9\s]/.test(input)) coverage.push('special_chars');
     if (/\d/.test(input)) coverage.push('numeric');
-    
+
     return coverage;
   }
 }

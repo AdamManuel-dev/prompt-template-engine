@@ -93,17 +93,18 @@ export class ChainOfThoughtOptimizer {
 
     const goal = this.extractGoal(prompt, template);
     const context = this.extractContext(prompt, template);
-    
-    const steps = await this.buildReasoningSteps(
-      prompt,
-      goal,
-      context,
-      config
-    );
+
+    const steps = await this.buildReasoningSteps(prompt, goal, context, config);
 
     const optimizedSteps = await this.optimizeSteps(steps, config);
     const effectiveness = this.measureEffectiveness(optimizedSteps, goal);
-    const validated = await this.validateChain({ steps: optimizedSteps, goal, context, effectiveness, validated: false });
+    const validated = await this.validateChain({
+      steps: optimizedSteps,
+      goal,
+      context,
+      effectiveness,
+      validated: false,
+    });
 
     const chain: ReasoningChain = {
       steps: optimizedSteps,
@@ -115,7 +116,7 @@ export class ChainOfThoughtOptimizer {
 
     logger.info(
       `Generated reasoning chain with ${chain.steps.length} steps, ` +
-      `effectiveness: ${effectiveness.toFixed(2)}`
+        `effectiveness: ${effectiveness.toFixed(2)}`
     );
 
     return chain;
@@ -143,23 +144,33 @@ export class ChainOfThoughtOptimizer {
 
     // Apply model-specific optimizations
     if (config.targetModel) {
-      optimized = this.applyModelSpecificOptimizations(optimized, config.targetModel);
+      optimized = this.applyModelSpecificOptimizations(
+        optimized,
+        config.targetModel
+      );
     }
 
     // Ensure confidence thresholds
-    if (config.minConfidence) {
-      optimized = optimized.filter(step => step.confidence >= config.minConfidence);
+    if (config.minConfidence !== undefined) {
+      optimized = optimized.filter(
+        step => step.confidence >= config.minConfidence!
+      );
     }
 
     // Apply verbosity settings
-    optimized = this.applyVerbositySettings(optimized, config.verbosity || 'moderate');
+    optimized = this.applyVerbositySettings(
+      optimized,
+      config.verbosity || 'moderate'
+    );
 
     // Limit to max steps if specified
     if (config.maxSteps && optimized.length > config.maxSteps) {
       optimized = this.selectMostImportantSteps(optimized, config.maxSteps);
     }
 
-    logger.info(`Optimization complete: ${steps.length} → ${optimized.length} steps`);
+    logger.info(
+      `Optimization complete: ${steps.length} → ${optimized.length} steps`
+    );
 
     return optimized;
   }
@@ -206,7 +217,7 @@ export class ChainOfThoughtOptimizer {
 
     logger.info(
       `Validation complete: ${result.valid ? 'VALID' : 'INVALID'}, ` +
-      `score: ${overallScore.toFixed(2)}, ${issues.length} issues found`
+        `score: ${overallScore.toFixed(2)}, ${issues.length} issues found`
     );
 
     return result;
@@ -218,7 +229,7 @@ export class ChainOfThoughtOptimizer {
   generatePatternBasedChain(
     pattern: keyof typeof this.reasoningPatterns,
     content: string,
-    config: ChainOptimizationConfig = {}
+    _config: ChainOptimizationConfig = {}
   ): ReasoningChain {
     const patternSteps = this.reasoningPatterns[pattern];
     const steps: ReasoningStep[] = [];
@@ -229,7 +240,7 @@ export class ChainOfThoughtOptimizer {
         content: this.generateStepContent(stepType, content, index),
         type: stepType as ReasoningStep['type'],
         dependencies: index > 0 ? [`step-${index - 1}`] : [],
-        confidence: 0.8 + (index * 0.02), // Confidence increases with progression
+        confidence: 0.8 + index * 0.02, // Confidence increases with progression
         metadata: {
           source: pattern,
         },
@@ -274,7 +285,10 @@ export class ChainOfThoughtOptimizer {
       const index = prompt.toLowerCase().indexOf(marker);
       if (index !== -1) {
         const endIndex = prompt.indexOf('\n', index);
-        context += prompt.substring(index + marker.length, endIndex > 0 ? endIndex : undefined) + ' ';
+        context += `${prompt.substring(
+          index + marker.length,
+          endIndex > 0 ? endIndex : undefined
+        )} `;
       }
     });
 
@@ -292,7 +306,7 @@ export class ChainOfThoughtOptimizer {
     config: ChainOptimizationConfig
   ): Promise<ReasoningStep[]> {
     const steps: ReasoningStep[] = [];
-    
+
     // Add initial premise
     steps.push({
       id: 'step-0',
@@ -323,7 +337,7 @@ export class ChainOfThoughtOptimizer {
         content: this.generateIntermediateStep(prompt, i, numIntermediateSteps),
         type: 'inference',
         dependencies: [`step-${i + 1}`],
-        confidence: 0.8 - (i * 0.05),
+        confidence: 0.8 - i * 0.05,
       });
     }
 
@@ -413,7 +427,10 @@ export class ChainOfThoughtOptimizer {
     steps: ReasoningStep[],
     model: string
   ): ReasoningStep[] {
-    const pattern = this.modelSpecificPatterns[model as keyof typeof this.modelSpecificPatterns];
+    const pattern =
+      this.modelSpecificPatterns[
+        model as keyof typeof this.modelSpecificPatterns
+      ];
     if (!pattern) return steps;
 
     let optimized = [...steps];
@@ -478,7 +495,7 @@ export class ChainOfThoughtOptimizer {
     intermediate.sort((a, b) => b.confidence - a.confidence);
 
     const keepIntermediate = maxSteps - premises.length - conclusions.length;
-    
+
     return [
       ...premises,
       ...intermediate.slice(0, Math.max(0, keepIntermediate)),
@@ -503,7 +520,11 @@ export class ChainOfThoughtOptimizer {
       });
 
       // Check for logical gaps
-      if (index > 0 && step.dependencies.length === 0 && step.type !== 'premise') {
+      if (
+        index > 0 &&
+        step.dependencies.length === 0 &&
+        step.type !== 'premise'
+      ) {
         issues.push({
           stepId: step.id,
           type: 'missing_connection',
@@ -545,7 +566,7 @@ export class ChainOfThoughtOptimizer {
 
   private checkRedundancies(steps: ReasoningStep[]): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
-    
+
     for (let i = 0; i < steps.length - 1; i++) {
       for (let j = i + 1; j < steps.length; j++) {
         if (this.areSimilarSteps(steps[i], steps[j])) {
@@ -568,8 +589,10 @@ export class ChainOfThoughtOptimizer {
 
     steps.forEach(step => {
       const words = step.content.toLowerCase().split(/\s+/);
-      const ambiguousCount = words.filter(w => ambiguousTerms.includes(w)).length;
-      
+      const ambiguousCount = words.filter(w =>
+        ambiguousTerms.includes(w)
+      ).length;
+
       if (ambiguousCount > 2) {
         issues.push({
           stepId: step.id,
@@ -663,7 +686,8 @@ export class ChainOfThoughtOptimizer {
     }
 
     // Check confidence levels
-    const avgConfidence = steps.reduce((sum, s) => sum + s.confidence, 0) / steps.length;
+    const avgConfidence =
+      steps.reduce((sum, s) => sum + s.confidence, 0) / steps.length;
     effectiveness += avgConfidence * 0.1;
 
     return Math.min(1.0, effectiveness);
@@ -682,16 +706,16 @@ export class ChainOfThoughtOptimizer {
   private areSimilarSteps(step1: ReasoningStep, step2: ReasoningStep): boolean {
     const normalized1 = this.normalizeStepContent(step1.content);
     const normalized2 = this.normalizeStepContent(step2.content);
-    
+
     // Calculate similarity
     const words1 = new Set(normalized1.split(' '));
     const words2 = new Set(normalized2.split(' '));
-    
+
     const intersection = new Set([...words1].filter(x => words2.has(x)));
     const union = new Set([...words1, ...words2]);
-    
+
     const similarity = intersection.size / union.size;
-    
+
     return similarity > 0.7;
   }
 
@@ -699,9 +723,10 @@ export class ChainOfThoughtOptimizer {
     // Merge similar steps into one comprehensive step
     const allDependencies = new Set<string>();
     steps.forEach(s => s.dependencies.forEach(d => allDependencies.add(d)));
-    
-    const avgConfidence = steps.reduce((sum, s) => sum + s.confidence, 0) / steps.length;
-    
+
+    const avgConfidence =
+      steps.reduce((sum, s) => sum + s.confidence, 0) / steps.length;
+
     return {
       id: steps[0].id,
       content: steps[0].content, // Use first step's content as primary
@@ -714,7 +739,11 @@ export class ChainOfThoughtOptimizer {
     };
   }
 
-  private generateStepContent(stepType: string, content: string, index: number): string {
+  private generateStepContent(
+    stepType: string,
+    content: string,
+    index: number
+  ): string {
     const templates = {
       premise: `Given information #${index + 1}: ${content.substring(0, 100)}`,
       inference: `Based on the above, we can infer: ${content.substring(0, 100)}`,
@@ -734,20 +763,24 @@ export class ChainOfThoughtOptimizer {
     // Estimate complexity based on prompt length and goal
     const promptComplexity = Math.min(10, Math.floor(prompt.length / 100));
     const goalComplexity = goal.split(' ').length > 10 ? 2 : 1;
-    
+
     return promptComplexity + goalComplexity;
   }
 
-  private generateIntermediateStep(prompt: string, index: number, total: number): string {
+  private generateIntermediateStep(
+    _prompt: string,
+    index: number,
+    total: number
+  ): string {
     const progress = (index + 1) / total;
-    
+
     if (progress < 0.3) {
       return `Analyzing the initial conditions and constraints`;
-    } else if (progress < 0.6) {
-      return `Applying logical reasoning to derive intermediate results`;
-    } else {
-      return `Synthesizing findings to approach the conclusion`;
     }
+    if (progress < 0.6) {
+      return `Applying logical reasoning to derive intermediate results`;
+    }
+    return `Synthesizing findings to approach the conclusion`;
   }
 
   private generateConclusion(goal: string, steps: ReasoningStep[]): string {
@@ -764,15 +797,15 @@ export class ChainOfThoughtOptimizer {
     // Extract the most important phrase from content
     const words = content.split(' ');
     if (words.length <= 5) return content;
-    
+
     return words.slice(0, 5).join(' ');
   }
 
   private summarizeContent(content: string, maxWords: number): string {
     const words = content.split(' ');
     if (words.length <= maxWords) return content;
-    
-    return words.slice(0, maxWords).join(' ') + '...';
+
+    return `${words.slice(0, maxWords).join(' ')}...`;
   }
 
   private expandContent(content: string): string {
@@ -797,14 +830,16 @@ export class ChainOfThoughtOptimizer {
   }
 
   private addressesGoal(conclusionContent: string, goal: string): boolean {
-    const goalKeywords = goal.toLowerCase().split(' ')
+    const goalKeywords = goal
+      .toLowerCase()
+      .split(' ')
       .filter(w => w.length > 3);
     const conclusionWords = conclusionContent.toLowerCase().split(' ');
-    
-    const matches = goalKeywords.filter(keyword => 
+
+    const matches = goalKeywords.filter(keyword =>
       conclusionWords.includes(keyword)
     );
-    
+
     return matches.length > goalKeywords.length * 0.5;
   }
 
@@ -815,12 +850,12 @@ export class ChainOfThoughtOptimizer {
       const hasDependency = currentStep.dependencies.some(depId =>
         steps.slice(0, i).some(s => s.id === depId)
       );
-      
+
       if (!hasDependency && currentStep.type !== 'premise') {
         return false;
       }
     }
-    
+
     return true;
   }
 }

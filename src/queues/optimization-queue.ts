@@ -1,0 +1,551 @@
+/**
+ * @fileoverview Job queue system for optimization tasks with priority scheduling and progress tracking
+ * @lastmodified 2025-08-26T16:00:00Z
+ *
+ * Features: Priority queue, job progress tracking, failure handling, retry mechanism
+ * Main APIs: addJob(), processJobs(), getJobStatus(), cancelJob()
+ * Constraints: In-memory queue with optional Redis backing
+ * Patterns: Producer-consumer, priority queue, job state machine
+ */
+
+import { EventEmitter } from 'events';
+import { logger } from '../utils/logger';
+import { OptimizationPipeline } from '../core/optimization-pipeline';
+import { OptimizationCacheService } from '../services/optimization-cache.service';
+import { Template } from '../types/index';
+import { OptimizationRequest, OptimizationResult, PipelineResult } from '../integrations/promptwizard/types';
+
+export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+export type JobPriority = 'low' | 'normal' | 'high' | 'urgent';
+
+export interface OptimizationJob {
+  id: string;
+  templateId: string;
+  template: Template;
+  request: OptimizationRequest;
+  priority: JobPriority;
+  status: JobStatus;
+  progress: number;
+  currentStep?: string;
+  result?: OptimizationResult;
+  error?: string;
+  createdAt: Date;
+  startedAt?: Date;
+  completedAt?: Date;
+  retryCount: number;
+  maxRetries: number;
+  metadata?: Record<string, any>;
+}
+
+export interface QueueStats {
+  totalJobs: number;
+  pendingJobs: number;
+  processingJobs: number;
+  completedJobs: number;
+  failedJobs: number;
+  cancelledJobs: number;
+  averageProcessingTime: number;
+  successRate: number;
+  activeWorkers: number;
+  queueLength: number;
+}
+
+export interface QueueConfig {
+  maxConcurrency: number;
+  defaultPriority: JobPriority;
+  maxRetries: number;
+  retryDelay: number; // milliseconds
+  jobTimeout: number; // milliseconds
+  cleanupInterval: number; // milliseconds
+  maxJobHistory: number;
+}
+
+export class OptimizationQueue extends EventEmitter {
+  private jobs = new Map<string, OptimizationJob>();
+  private pendingQueue: OptimizationJob[] = [];
+  private processingJobs = new Set<string>();
+  private workers: Map<string, Promise<void>> = new Map();
+  private optimizationPipeline: OptimizationPipeline;
+  private cacheService: OptimizationCacheService;
+  private config: QueueConfig;
+  private isProcessing = false;
+  private cleanupTimer?: NodeJS.Timeout;
+
+  constructor(
+    optimizationPipeline: OptimizationPipeline,
+    cacheService: OptimizationCacheService,
+    config: Partial<QueueConfig> = {}
+  ) {
+    super();
+    
+    this.optimizationPipeline = optimizationPipeline;
+    this.cacheService = cacheService;
+    this.config = {
+      maxConcurrency: 3,
+      defaultPriority: 'normal',
+      maxRetries: 3,
+      retryDelay: 5000,
+      jobTimeout: 10 * 60 * 1000, // 10 minutes
+      cleanupInterval: 60 * 60 * 1000, // 1 hour
+      maxJobHistory: 1000,
+      ...config
+    };
+
+    // Setup periodic cleanup
+    this.setupPeriodicCleanup();
+
+    logger.info('Optimization queue initialized', {
+      maxConcurrency: this.config.maxConcurrency,
+      maxRetries: this.config.maxRetries
+    });
+  }
+
+  /**
+   * Add optimization job to queue
+   */
+  async addJob(
+    templateId: string,
+    template: Template,
+    request: OptimizationRequest,
+    options: {
+      priority?: JobPriority;
+      maxRetries?: number;
+      metadata?: Record<string, any>;
+    } = {}
+  ): Promise<OptimizationJob> {
+    const job: OptimizationJob = {
+      id: this.generateJobId(),
+      templateId,
+      template,
+      request,
+      priority: options.priority || this.config.defaultPriority,
+      status: 'pending',
+      progress: 0,
+      createdAt: new Date(),
+      retryCount: 0,
+      maxRetries: options.maxRetries ?? this.config.maxRetries,
+      metadata: options.metadata
+    };
+
+    // Store job
+    this.jobs.set(job.id, job);
+
+    // Add to pending queue with priority ordering
+    this.insertJobByPriority(job);
+
+    logger.info('Optimization job added to queue', {
+      jobId: job.id,
+      templateId,
+      priority: job.priority,
+      queueLength: this.pendingQueue.length
+    });
+
+    this.emit('job:added', job);
+
+    // Start processing if not already running
+    this.startProcessing();
+
+    return job;
+  }
+
+  /**
+   * Get job status
+   */
+  getJob(jobId: string): OptimizationJob | null {
+    return this.jobs.get(jobId) || null;
+  }
+
+  /**
+   * Cancel job
+   */
+  async cancelJob(jobId: string): Promise<boolean> {
+    const job = this.jobs.get(jobId);
+    if (!job) {
+      return false;
+    }
+
+    if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
+      return false; // Cannot cancel completed/failed/cancelled jobs
+    }
+
+    if (job.status === 'pending') {
+      // Remove from pending queue
+      const index = this.pendingQueue.findIndex(j => j.id === jobId);
+      if (index > -1) {
+        this.pendingQueue.splice(index, 1);
+      }
+    }
+
+    if (job.status === 'processing') {
+      // Mark for cancellation - the worker will check this flag
+      this.processingJobs.delete(jobId);
+    }
+
+    job.status = 'cancelled';
+    job.completedAt = new Date();
+
+    logger.info('Optimization job cancelled', { jobId });
+    this.emit('job:cancelled', job);
+
+    return true;
+  }
+
+  /**
+   * Get queue statistics
+   */
+  getStats(): QueueStats {
+    const totalJobs = this.jobs.size;
+    const jobsByStatus = this.getJobsByStatus();
+    
+    // Calculate average processing time
+    const completedJobs = Array.from(this.jobs.values()).filter(job => 
+      job.status === 'completed' && job.startedAt && job.completedAt
+    );
+    
+    const averageProcessingTime = completedJobs.length > 0
+      ? completedJobs.reduce((sum, job) => {
+          return sum + (job.completedAt!.getTime() - job.startedAt!.getTime());
+        }, 0) / completedJobs.length
+      : 0;
+
+    // Calculate success rate
+    const finishedJobs = jobsByStatus.completed + jobsByStatus.failed;
+    const successRate = finishedJobs > 0 ? jobsByStatus.completed / finishedJobs : 1;
+
+    return {
+      totalJobs,
+      pendingJobs: jobsByStatus.pending,
+      processingJobs: jobsByStatus.processing,
+      completedJobs: jobsByStatus.completed,
+      failedJobs: jobsByStatus.failed,
+      cancelledJobs: jobsByStatus.cancelled,
+      averageProcessingTime,
+      successRate,
+      activeWorkers: this.workers.size,
+      queueLength: this.pendingQueue.length
+    };
+  }
+
+  /**
+   * Clear completed jobs from history
+   */
+  cleanup(): void {
+    const jobsArray = Array.from(this.jobs.values());
+    
+    // Sort by completion time (most recent first)
+    const completedJobs = jobsArray
+      .filter(job => job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled')
+      .sort((a, b) => (b.completedAt?.getTime() || 0) - (a.completedAt?.getTime() || 0));
+
+    // Keep only the most recent jobs up to maxJobHistory
+    const jobsToRemove = completedJobs.slice(this.config.maxJobHistory);
+    
+    jobsToRemove.forEach(job => {
+      this.jobs.delete(job.id);
+    });
+
+    if (jobsToRemove.length > 0) {
+      logger.info('Queue cleanup completed', {
+        jobsRemoved: jobsToRemove.length,
+        totalJobs: this.jobs.size
+      });
+    }
+  }
+
+  /**
+   * Start job processing
+   */
+  private async startProcessing(): Promise<void> {
+    if (this.isProcessing) {
+      return;
+    }
+
+    this.isProcessing = true;
+
+    // Start workers up to max concurrency
+    while (this.workers.size < this.config.maxConcurrency && this.pendingQueue.length > 0) {
+      this.startWorker();
+    }
+
+    // Check if we should stop processing
+    if (this.pendingQueue.length === 0 && this.workers.size === 0) {
+      this.isProcessing = false;
+    }
+  }
+
+  /**
+   * Start a worker to process jobs
+   */
+  private startWorker(): void {
+    const workerId = this.generateWorkerId();
+    
+    const workerPromise = this.runWorker(workerId);
+    this.workers.set(workerId, workerPromise);
+
+    workerPromise
+      .catch(error => {
+        logger.error('Worker error', { workerId, error });
+      })
+      .finally(() => {
+        this.workers.delete(workerId);
+        
+        // Start new worker if there are pending jobs
+        if (this.pendingQueue.length > 0 && this.workers.size < this.config.maxConcurrency) {
+          this.startWorker();
+        } else if (this.pendingQueue.length === 0 && this.workers.size === 0) {
+          this.isProcessing = false;
+        }
+      });
+  }
+
+  /**
+   * Run worker to process jobs
+   */
+  private async runWorker(workerId: string): Promise<void> {
+    logger.debug('Worker started', { workerId });
+
+    while (this.pendingQueue.length > 0) {
+      const job = this.pendingQueue.shift();
+      if (!job) break;
+
+      // Check if job was cancelled while waiting
+      if (job.status === 'cancelled') {
+        continue;
+      }
+
+      await this.processJob(job, workerId);
+
+      // Small delay to prevent overwhelming the system
+      await this.delay(100);
+    }
+
+    logger.debug('Worker finished', { workerId });
+  }
+
+  /**
+   * Process a single job
+   */
+  private async processJob(job: OptimizationJob, workerId: string): Promise<void> {
+    try {
+      // Mark job as processing
+      job.status = 'processing';
+      job.startedAt = new Date();
+      job.progress = 0;
+      this.processingJobs.add(job.id);
+
+      logger.info('Processing optimization job', {
+        jobId: job.id,
+        workerId,
+        templateId: job.templateId,
+        priority: job.priority
+      });
+
+      this.emit('job:started', job);
+
+      // Set up job timeout
+      const timeoutPromise = this.createJobTimeout(job);
+
+      // Set up progress callback
+      const progressCallback = (stage: any, progress: number) => {
+        job.currentStep = stage;
+        job.progress = progress;
+        this.emit('job:progress', job);
+      };
+
+      // Process job with timeout
+      const processingPromise = this.optimizationPipeline.process(
+        job.templateId,
+        job.template,
+        job.request
+      );
+
+      const result = await Promise.race([processingPromise, timeoutPromise]) as PipelineResult;
+
+      // Clear timeout
+      clearTimeout(timeoutPromise as any);
+
+      if (result.success && result.optimizationResult) {
+        // Job completed successfully
+        job.status = 'completed';
+        job.result = result.optimizationResult;
+        job.progress = 100;
+        job.completedAt = new Date();
+
+        logger.info('Optimization job completed', {
+          jobId: job.id,
+          templateId: job.templateId,
+          processingTime: job.completedAt.getTime() - job.startedAt!.getTime()
+        });
+
+        this.emit('job:completed', job);
+      } else {
+        // Job failed
+        throw new Error(result.error || 'Pipeline processing failed');
+      }
+
+    } catch (error) {
+      await this.handleJobError(job, error instanceof Error ? error : new Error(String(error)));
+    } finally {
+      this.processingJobs.delete(job.id);
+    }
+  }
+
+  /**
+   * Handle job error with retry logic
+   */
+  private async handleJobError(job: OptimizationJob, error: Error): Promise<void> {
+    job.error = error.message;
+    job.retryCount++;
+
+    logger.warn('Optimization job failed', {
+      jobId: job.id,
+      error: error.message,
+      retryCount: job.retryCount,
+      maxRetries: job.maxRetries
+    });
+
+    if (job.retryCount < job.maxRetries) {
+      // Retry job after delay
+      job.status = 'pending';
+      job.progress = 0;
+      job.currentStep = undefined;
+
+      logger.info('Retrying optimization job', {
+        jobId: job.id,
+        retryCount: job.retryCount,
+        delay: this.config.retryDelay
+      });
+
+      // Add back to queue after delay
+      setTimeout(() => {
+        this.insertJobByPriority(job);
+        this.startProcessing();
+      }, this.config.retryDelay);
+
+      this.emit('job:retry', job);
+    } else {
+      // Max retries reached, mark as failed
+      job.status = 'failed';
+      job.completedAt = new Date();
+
+      logger.error('Optimization job failed permanently', {
+        jobId: job.id,
+        error: error.message,
+        retryCount: job.retryCount
+      });
+
+      this.emit('job:failed', job);
+    }
+  }
+
+  /**
+   * Create job timeout promise
+   */
+  private createJobTimeout(job: OptimizationJob): Promise<never> {
+    return new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Job timeout after ${this.config.jobTimeout}ms`));
+      }, this.config.jobTimeout);
+    });
+  }
+
+  /**
+   * Insert job into pending queue by priority
+   */
+  private insertJobByPriority(job: OptimizationJob): void {
+    const priorityOrder: Record<JobPriority, number> = {
+      'urgent': 0,
+      'high': 1,
+      'normal': 2,
+      'low': 3
+    };
+
+    const insertIndex = this.pendingQueue.findIndex(
+      existingJob => priorityOrder[existingJob.priority] > priorityOrder[job.priority]
+    );
+
+    if (insertIndex === -1) {
+      this.pendingQueue.push(job);
+    } else {
+      this.pendingQueue.splice(insertIndex, 0, job);
+    }
+  }
+
+  /**
+   * Get jobs grouped by status
+   */
+  private getJobsByStatus(): Record<JobStatus, number> {
+    const counts: Record<JobStatus, number> = {
+      pending: 0,
+      processing: 0,
+      completed: 0,
+      failed: 0,
+      cancelled: 0
+    };
+
+    for (const job of this.jobs.values()) {
+      counts[job.status]++;
+    }
+
+    return counts;
+  }
+
+  /**
+   * Setup periodic cleanup
+   */
+  private setupPeriodicCleanup(): void {
+    this.cleanupTimer = setInterval(() => {
+      this.cleanup();
+    }, this.config.cleanupInterval);
+  }
+
+  /**
+   * Generate unique job ID
+   */
+  private generateJobId(): string {
+    return `job_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  }
+
+  /**
+   * Generate unique worker ID
+   */
+  private generateWorkerId(): string {
+    return `worker_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  }
+
+  /**
+   * Utility delay function
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Cleanup resources
+   */
+  async shutdown(): Promise<void> {
+    logger.info('Shutting down optimization queue');
+
+    // Clear cleanup timer
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+    }
+
+    // Wait for all workers to complete
+    await Promise.all(Array.from(this.workers.values()));
+
+    // Cancel all pending jobs
+    for (const job of this.pendingQueue) {
+      job.status = 'cancelled';
+      job.completedAt = new Date();
+      this.emit('job:cancelled', job);
+    }
+
+    this.pendingQueue = [];
+    this.processingJobs.clear();
+    this.workers.clear();
+    this.isProcessing = false;
+
+    logger.info('Optimization queue shutdown completed');
+  }
+}

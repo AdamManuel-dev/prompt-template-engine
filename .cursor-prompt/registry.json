@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "updated": "2025-08-26T09:07:42.292Z",
+  "updated": "2025-08-26T09:49:10.513Z",
   "templates": [
     {
       "id": "my-new-template",
@@ -34,7 +34,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.126Z",
+            "created": "2025-08-26T09:49:10.369Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -62,7 +62,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.126Z",
+          "lastDownload": "2025-08-26T09:49:10.369Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -77,8 +77,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.126Z",
-        "updated": "2025-08-26T09:07:42.126Z",
+        "created": "2025-08-26T09:49:10.369Z",
+        "updated": "2025-08-26T09:49:10.369Z",
         "featured": false,
         "verified": false,
         "deprecated": false
@@ -95,11 +95,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.126Z",
+        "created": "2025-08-26T09:49:10.369Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.127Z",
+      "registered": "2025-08-26T09:49:10.370Z",
       "active": true
     },
     {
@@ -120,11 +120,11 @@
           "1.0.0"
         ],
         "size": 34,
-        "created": "2025-08-26T09:07:42.131Z",
+        "created": "2025-08-26T09:49:10.375Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.131Z",
+      "registered": "2025-08-26T09:49:10.375Z",
       "active": true
     },
     {
@@ -159,7 +159,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.148Z",
+            "created": "2025-08-26T09:49:10.390Z",
             "downloads": 0,
             "deprecated": false
           },
@@ -175,7 +175,7 @@
               "1.0.0"
             ],
             "size": 120,
-            "created": "2025-08-26T09:07:42.150Z",
+            "created": "2025-08-26T09:49:10.391Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -202,7 +202,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.148Z",
+          "lastDownload": "2025-08-26T09:49:10.390Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -217,8 +217,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.148Z",
-        "updated": "2025-08-26T09:07:42.148Z",
+        "created": "2025-08-26T09:49:10.390Z",
+        "updated": "2025-08-26T09:49:10.390Z",
         "featured": false,
         "verified": false,
         "deprecated": false
@@ -235,11 +235,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.148Z",
+        "created": "2025-08-26T09:49:10.390Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.150Z",
+      "registered": "2025-08-26T09:49:10.392Z",
       "active": true
     },
     {
@@ -274,7 +274,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.153Z",
+            "created": "2025-08-26T09:49:10.396Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -301,7 +301,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.153Z",
+          "lastDownload": "2025-08-26T09:49:10.396Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -316,8 +316,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.153Z",
-        "updated": "2025-08-26T09:07:42.153Z",
+        "created": "2025-08-26T09:49:10.396Z",
+        "updated": "2025-08-26T09:49:10.396Z",
         "featured": false,
         "verified": false,
         "deprecated": false
@@ -334,11 +334,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.153Z",
+        "created": "2025-08-26T09:49:10.396Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.155Z",
+      "registered": "2025-08-26T09:49:10.398Z",
       "active": true
     },
     {
@@ -373,7 +373,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.189Z",
+            "created": "2025-08-26T09:49:10.428Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -400,7 +400,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.189Z",
+          "lastDownload": "2025-08-26T09:49:10.428Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -415,8 +415,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.189Z",
-        "updated": "2025-08-26T09:07:42.189Z",
+        "created": "2025-08-26T09:49:10.428Z",
+        "updated": "2025-08-26T09:49:10.429Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -435,11 +435,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.189Z",
+        "created": "2025-08-26T09:49:10.428Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.191Z",
+      "registered": "2025-08-26T09:49:10.430Z",
       "active": true
     },
     {
@@ -474,7 +474,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.192Z",
+            "created": "2025-08-26T09:49:10.432Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -501,7 +501,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.192Z",
+          "lastDownload": "2025-08-26T09:49:10.432Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -516,8 +516,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.192Z",
-        "updated": "2025-08-26T09:07:42.192Z",
+        "created": "2025-08-26T09:49:10.432Z",
+        "updated": "2025-08-26T09:49:10.432Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -536,11 +536,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.192Z",
+        "created": "2025-08-26T09:49:10.432Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.195Z",
+      "registered": "2025-08-26T09:49:10.434Z",
       "active": true
     },
     {
@@ -575,7 +575,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.226Z",
+            "created": "2025-08-26T09:49:10.460Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -602,7 +602,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.226Z",
+          "lastDownload": "2025-08-26T09:49:10.460Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -617,8 +617,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.226Z",
-        "updated": "2025-08-26T09:07:42.226Z",
+        "created": "2025-08-26T09:49:10.460Z",
+        "updated": "2025-08-26T09:49:10.460Z",
         "featured": false,
         "verified": false,
         "deprecated": false
@@ -635,11 +635,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.226Z",
+        "created": "2025-08-26T09:49:10.460Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.228Z",
+      "registered": "2025-08-26T09:49:10.462Z",
       "active": true
     },
     {
@@ -674,7 +674,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.251Z",
+            "created": "2025-08-26T09:49:10.481Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -701,7 +701,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.251Z",
+          "lastDownload": "2025-08-26T09:49:10.481Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -716,8 +716,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.251Z",
-        "updated": "2025-08-26T09:07:42.251Z",
+        "created": "2025-08-26T09:49:10.481Z",
+        "updated": "2025-08-26T09:49:10.482Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -736,11 +736,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.251Z",
+        "created": "2025-08-26T09:49:10.481Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.255Z",
+      "registered": "2025-08-26T09:49:10.485Z",
       "active": true
     },
     {
@@ -775,7 +775,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.261Z",
+            "created": "2025-08-26T09:49:10.489Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -802,7 +802,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.261Z",
+          "lastDownload": "2025-08-26T09:49:10.489Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -817,8 +817,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.261Z",
-        "updated": "2025-08-26T09:07:42.261Z",
+        "created": "2025-08-26T09:49:10.489Z",
+        "updated": "2025-08-26T09:49:10.490Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -837,11 +837,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.261Z",
+        "created": "2025-08-26T09:49:10.489Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.266Z",
+      "registered": "2025-08-26T09:49:10.494Z",
       "active": true
     },
     {
@@ -876,7 +876,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.272Z",
+            "created": "2025-08-26T09:49:10.499Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -903,7 +903,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.272Z",
+          "lastDownload": "2025-08-26T09:49:10.499Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -918,8 +918,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.272Z",
-        "updated": "2025-08-26T09:07:42.272Z",
+        "created": "2025-08-26T09:49:10.499Z",
+        "updated": "2025-08-26T09:49:10.500Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -938,11 +938,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.272Z",
+        "created": "2025-08-26T09:49:10.499Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.275Z",
+      "registered": "2025-08-26T09:49:10.501Z",
       "active": true
     },
     {
@@ -977,7 +977,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.276Z",
+            "created": "2025-08-26T09:49:10.502Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -1004,7 +1004,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.276Z",
+          "lastDownload": "2025-08-26T09:49:10.502Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -1019,8 +1019,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.276Z",
-        "updated": "2025-08-26T09:07:42.276Z",
+        "created": "2025-08-26T09:49:10.502Z",
+        "updated": "2025-08-26T09:49:10.502Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -1039,11 +1039,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.276Z",
+        "created": "2025-08-26T09:49:10.502Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.278Z",
+      "registered": "2025-08-26T09:49:10.504Z",
       "active": true
     },
     {
@@ -1078,7 +1078,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.279Z",
+            "created": "2025-08-26T09:49:10.504Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -1105,7 +1105,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.279Z",
+          "lastDownload": "2025-08-26T09:49:10.504Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -1120,8 +1120,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.279Z",
-        "updated": "2025-08-26T09:07:42.279Z",
+        "created": "2025-08-26T09:49:10.504Z",
+        "updated": "2025-08-26T09:49:10.505Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -1140,11 +1140,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.279Z",
+        "created": "2025-08-26T09:49:10.504Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.283Z",
+      "registered": "2025-08-26T09:49:10.506Z",
       "active": true
     },
     {
@@ -1179,7 +1179,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.285Z",
+            "created": "2025-08-26T09:49:10.507Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -1206,7 +1206,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.285Z",
+          "lastDownload": "2025-08-26T09:49:10.507Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -1221,8 +1221,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.285Z",
-        "updated": "2025-08-26T09:07:42.285Z",
+        "created": "2025-08-26T09:49:10.507Z",
+        "updated": "2025-08-26T09:49:10.507Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -1241,11 +1241,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.285Z",
+        "created": "2025-08-26T09:49:10.507Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.288Z",
+      "registered": "2025-08-26T09:49:10.509Z",
       "active": true
     },
     {
@@ -1280,7 +1280,7 @@
               "1.0.0"
             ],
             "size": 100,
-            "created": "2025-08-26T09:07:42.289Z",
+            "created": "2025-08-26T09:49:10.511Z",
             "downloads": 0,
             "deprecated": false
           }
@@ -1307,7 +1307,7 @@
           "forks": 0,
           "favorites": 0,
           "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.289Z",
+          "lastDownload": "2025-08-26T09:49:10.511Z",
           "trending": false,
           "popularityScore": 0
         },
@@ -1322,8 +1322,8 @@
           ]
         },
         "category": "other",
-        "created": "2025-08-26T09:07:42.289Z",
-        "updated": "2025-08-26T09:07:42.290Z",
+        "created": "2025-08-26T09:49:10.511Z",
+        "updated": "2025-08-26T09:49:10.511Z",
         "featured": false,
         "verified": false,
         "deprecated": false,
@@ -1342,748 +1342,11 @@
           "1.0.0"
         ],
         "size": 100,
-        "created": "2025-08-26T09:07:42.289Z",
+        "created": "2025-08-26T09:49:10.511Z",
         "downloads": 0,
         "deprecated": false
       },
-      "registered": "2025-08-26T09:07:42.292Z",
-      "active": true
-    },
-    {
-      "id": "auth-template",
-      "name": "Authentication Template",
-      "version": "2.1.0",
-      "path": "",
-      "metadata": {
-        "id": "auth-template",
-        "name": "Authentication Template",
-        "displayName": "Authentication Template",
-        "description": "Complete authentication flow template",
-        "author": {
-          "id": "john_doe",
-          "name": "John Doe",
-          "verified": true,
-          "reputation": 100,
-          "totalTemplates": 5,
-          "totalDownloads": 1500
-        },
-        "currentVersion": "2.1.0",
-        "versions": [
-          {
-            "version": "2.1.0",
-            "description": "Authentication template",
-            "content": "Template content",
-            "dependencies": [],
-            "variables": [],
-            "examples": [],
-            "changelog": "Initial version",
-            "compatibility": [
-              "1.0.0"
-            ],
-            "size": 1000,
-            "created": "2025-08-26T09:07:42.071Z",
-            "downloads": 1500,
-            "deprecated": false
-          }
-        ],
-        "tags": [
-          "auth",
-          "security",
-          "user-management",
-          "backend"
-        ],
-        "rating": {
-          "average": 4.5,
-          "total": 10,
-          "distribution": {
-            "1": 0,
-            "2": 0,
-            "3": 1,
-            "4": 4,
-            "5": 5
-          },
-          "reviews": []
-        },
-        "stats": {
-          "downloads": 1500,
-          "weeklyDownloads": 50,
-          "monthlyDownloads": 200,
-          "forks": 5,
-          "favorites": 20,
-          "issues": 2,
-          "lastDownload": "2025-08-26T09:07:42.071Z",
-          "trending": false,
-          "popularityScore": 85
-        },
-        "metadata": {
-          "license": "MIT",
-          "keywords": [
-            "auth",
-            "security"
-          ],
-          "minEngineVersion": "1.0.0",
-          "platform": [
-            "web"
-          ]
-        },
-        "category": "development",
-        "created": "2025-08-26T09:07:42.071Z",
-        "updated": "2025-08-26T09:07:42.071Z",
-        "featured": false,
-        "verified": true,
-        "deprecated": false
-      },
-      "versionInfo": {
-        "version": "2.1.0",
-        "description": "Authentication template",
-        "content": "Template content",
-        "dependencies": [],
-        "variables": [],
-        "examples": [],
-        "changelog": "Initial version",
-        "compatibility": [
-          "1.0.0"
-        ],
-        "size": 1000,
-        "created": "2025-08-26T09:07:42.071Z",
-        "downloads": 1500,
-        "deprecated": false
-      },
-      "registered": "2025-08-26T09:07:42.072Z",
-      "active": true
-    },
-    {
-      "id": "react-component",
-      "name": "React Component Generator",
-      "version": "3.0.0",
-      "path": "",
-      "metadata": {
-        "id": "react-component",
-        "name": "React Component Generator",
-        "displayName": "React Component Generator",
-        "description": "Generate React components with tests",
-        "author": {
-          "id": "jane_smith",
-          "name": "Jane Smith",
-          "verified": true,
-          "reputation": 120,
-          "totalTemplates": 8,
-          "totalDownloads": 3200
-        },
-        "currentVersion": "3.0.0",
-        "versions": [
-          {
-            "version": "3.0.0",
-            "description": "React component generator",
-            "content": "Template content",
-            "dependencies": [],
-            "variables": [],
-            "examples": [],
-            "changelog": "Initial version",
-            "compatibility": [
-              "1.0.0"
-            ],
-            "size": 1500,
-            "created": "2025-08-26T09:07:42.071Z",
-            "downloads": 3200,
-            "deprecated": false
-          }
-        ],
-        "tags": [
-          "react",
-          "frontend",
-          "component"
-        ],
-        "rating": {
-          "average": 4.8,
-          "total": 15,
-          "distribution": {
-            "1": 0,
-            "2": 0,
-            "3": 0,
-            "4": 3,
-            "5": 12
-          },
-          "reviews": []
-        },
-        "stats": {
-          "downloads": 3200,
-          "weeklyDownloads": 80,
-          "monthlyDownloads": 320,
-          "forks": 12,
-          "favorites": 45,
-          "issues": 1,
-          "lastDownload": "2025-08-26T09:07:42.071Z",
-          "trending": true,
-          "popularityScore": 92
-        },
-        "metadata": {
-          "license": "MIT",
-          "keywords": [
-            "react",
-            "frontend"
-          ],
-          "minEngineVersion": "1.0.0",
-          "platform": [
-            "web"
-          ]
-        },
-        "category": "development",
-        "created": "2025-08-26T09:07:42.071Z",
-        "updated": "2025-08-26T09:07:42.071Z",
-        "featured": true,
-        "verified": true,
-        "deprecated": false
-      },
-      "versionInfo": {
-        "version": "3.0.0",
-        "description": "React component generator",
-        "content": "Template content",
-        "dependencies": [],
-        "variables": [],
-        "examples": [],
-        "changelog": "Initial version",
-        "compatibility": [
-          "1.0.0"
-        ],
-        "size": 1500,
-        "created": "2025-08-26T09:07:42.071Z",
-        "downloads": 3200,
-        "deprecated": false
-      },
-      "registered": "2025-08-26T09:07:42.073Z",
-      "active": true
-    },
-    {
-      "id": "api-crud",
-      "name": "REST API CRUD Template",
-      "version": "1.5.2",
-      "path": "",
-      "metadata": {
-        "id": "api-crud",
-        "name": "REST API CRUD Template",
-        "displayName": "REST API CRUD Template",
-        "description": "Generate CRUD operations for REST APIs",
-        "author": {
-          "id": "api_master",
-          "name": "API Master",
-          "verified": true,
-          "reputation": 90,
-          "totalTemplates": 3,
-          "totalDownloads": 2100
-        },
-        "currentVersion": "1.5.2",
-        "versions": [
-          {
-            "version": "1.5.2",
-            "description": "API CRUD template",
-            "content": "Template content",
-            "dependencies": [],
-            "variables": [],
-            "examples": [],
-            "changelog": "Initial version",
-            "compatibility": [
-              "1.0.0"
-            ],
-            "size": 1200,
-            "created": "2025-08-26T09:07:42.071Z",
-            "downloads": 2100,
-            "deprecated": false
-          }
-        ],
-        "tags": [
-          "api",
-          "rest",
-          "crud",
-          "backend"
-        ],
-        "rating": {
-          "average": 4.3,
-          "total": 8,
-          "distribution": {
-            "1": 0,
-            "2": 0,
-            "3": 2,
-            "4": 4,
-            "5": 2
-          },
-          "reviews": []
-        },
-        "stats": {
-          "downloads": 2100,
-          "weeklyDownloads": 60,
-          "monthlyDownloads": 240,
-          "forks": 8,
-          "favorites": 25,
-          "issues": 3,
-          "lastDownload": "2025-08-26T09:07:42.071Z",
-          "trending": false,
-          "popularityScore": 78
-        },
-        "metadata": {
-          "license": "MIT",
-          "keywords": [
-            "api",
-            "rest"
-          ],
-          "minEngineVersion": "1.0.0",
-          "platform": [
-            "server"
-          ]
-        },
-        "category": "development",
-        "created": "2025-08-26T09:07:42.071Z",
-        "updated": "2025-08-26T09:07:42.071Z",
-        "featured": false,
-        "verified": true,
-        "deprecated": false
-      },
-      "versionInfo": {
-        "version": "1.5.2",
-        "description": "API CRUD template",
-        "content": "Template content",
-        "dependencies": [],
-        "variables": [],
-        "examples": [],
-        "changelog": "Initial version",
-        "compatibility": [
-          "1.0.0"
-        ],
-        "size": 1200,
-        "created": "2025-08-26T09:07:42.071Z",
-        "downloads": 2100,
-        "deprecated": false
-      },
-      "registered": "2025-08-26T09:07:42.074Z",
-      "active": true
-    },
-    {
-      "id": "docker-compose",
-      "name": "Docker Compose Setup",
-      "version": "1.0.0",
-      "path": "",
-      "metadata": {
-        "id": "docker-compose",
-        "name": "Docker Compose Setup",
-        "displayName": "Docker Compose Setup",
-        "description": "Multi-container Docker setup",
-        "author": {
-          "id": "devops_pro",
-          "name": "DevOps Pro",
-          "verified": true,
-          "reputation": 75,
-          "totalTemplates": 4,
-          "totalDownloads": 890
-        },
-        "currentVersion": "1.0.0",
-        "versions": [
-          {
-            "version": "1.0.0",
-            "description": "Docker compose template",
-            "content": "Template content",
-            "dependencies": [],
-            "variables": [],
-            "examples": [],
-            "changelog": "Initial version",
-            "compatibility": [
-              "1.0.0"
-            ],
-            "size": 800,
-            "created": "2025-08-26T09:07:42.071Z",
-            "downloads": 890,
-            "deprecated": false
-          }
-        ],
-        "tags": [
-          "docker",
-          "devops",
-          "containers"
-        ],
-        "rating": {
-          "average": 4.6,
-          "total": 5,
-          "distribution": {
-            "1": 0,
-            "2": 0,
-            "3": 0,
-            "4": 2,
-            "5": 3
-          },
-          "reviews": []
-        },
-        "stats": {
-          "downloads": 890,
-          "weeklyDownloads": 30,
-          "monthlyDownloads": 120,
-          "forks": 3,
-          "favorites": 15,
-          "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.071Z",
-          "trending": false,
-          "popularityScore": 70
-        },
-        "metadata": {
-          "license": "MIT",
-          "keywords": [
-            "docker",
-            "devops"
-          ],
-          "minEngineVersion": "1.0.0",
-          "platform": [
-            "docker"
-          ]
-        },
-        "category": "deployment",
-        "created": "2025-08-26T09:07:42.071Z",
-        "updated": "2025-08-26T09:07:42.071Z",
-        "featured": false,
-        "verified": true,
-        "deprecated": false
-      },
-      "versionInfo": {
-        "version": "1.0.0",
-        "description": "Docker compose template",
-        "content": "Template content",
-        "dependencies": [],
-        "variables": [],
-        "examples": [],
-        "changelog": "Initial version",
-        "compatibility": [
-          "1.0.0"
-        ],
-        "size": 800,
-        "created": "2025-08-26T09:07:42.071Z",
-        "downloads": 890,
-        "deprecated": false
-      },
-      "registered": "2025-08-26T09:07:42.075Z",
-      "active": true
-    },
-    {
-      "id": "test-template",
-      "name": "Test Template",
-      "version": "1.0.0",
-      "path": "",
-      "metadata": {
-        "id": "test-template",
-        "name": "Test Template",
-        "displayName": "Test Template",
-        "description": "Test template for testing",
-        "author": {
-          "id": "test_author",
-          "name": "Test Author",
-          "verified": false,
-          "reputation": 0,
-          "totalTemplates": 1,
-          "totalDownloads": 0
-        },
-        "currentVersion": "1.0.0",
-        "versions": [
-          {
-            "version": "1.0.0",
-            "description": "Test template",
-            "content": "---\nname: test\ndescription: Test template\n---\n# {{title}}\nContent here",
-            "dependencies": [],
-            "variables": [],
-            "examples": [],
-            "changelog": "Initial version",
-            "compatibility": [
-              "1.0.0"
-            ],
-            "size": 100,
-            "created": "2025-08-26T09:07:42.109Z",
-            "downloads": 0,
-            "deprecated": false
-          }
-        ],
-        "tags": [
-          "test"
-        ],
-        "rating": {
-          "average": 0,
-          "total": 0,
-          "distribution": {
-            "1": 0,
-            "2": 0,
-            "3": 0,
-            "4": 0,
-            "5": 0
-          },
-          "reviews": []
-        },
-        "stats": {
-          "downloads": 0,
-          "weeklyDownloads": 0,
-          "monthlyDownloads": 0,
-          "forks": 0,
-          "favorites": 0,
-          "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.109Z",
-          "trending": false,
-          "popularityScore": 0
-        },
-        "metadata": {
-          "license": "MIT",
-          "keywords": [
-            "test"
-          ],
-          "minEngineVersion": "1.0.0",
-          "platform": [
-            "web"
-          ]
-        },
-        "category": "other",
-        "created": "2025-08-26T09:07:42.109Z",
-        "updated": "2025-08-26T09:07:42.109Z",
-        "featured": false,
-        "verified": false,
-        "deprecated": false
-      },
-      "versionInfo": {
-        "version": "1.0.0",
-        "description": "Test template",
-        "content": "---\nname: test\ndescription: Test template\n---\n# {{title}}\nContent here",
-        "dependencies": [],
-        "variables": [],
-        "examples": [],
-        "changelog": "Initial version",
-        "compatibility": [
-          "1.0.0"
-        ],
-        "size": 100,
-        "created": "2025-08-26T09:07:42.109Z",
-        "downloads": 0,
-        "deprecated": false
-      },
-      "registered": "2025-08-26T09:07:42.110Z",
-      "active": true
-    },
-    {
-      "id": "deps-template",
-      "name": "Template with Dependencies",
-      "version": "1.0.0",
-      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Template with Dependencies",
-      "metadata": {
-        "id": "deps-template",
-        "name": "Template with Dependencies",
-        "displayName": "Template with Dependencies",
-        "description": "Template with dependencies",
-        "author": {
-          "id": "test_author",
-          "name": "Test Author",
-          "verified": false,
-          "reputation": 0,
-          "totalTemplates": 1,
-          "totalDownloads": 0
-        },
-        "currentVersion": "1.0.0",
-        "versions": [
-          {
-            "version": "1.0.0",
-            "description": "Template with dependencies",
-            "content": "Template content",
-            "dependencies": [
-              {
-                "name": "base-template",
-                "version": "^1.0.0",
-                "type": "template",
-                "optional": true
-              },
-              {
-                "name": "utils-template",
-                "version": "~2.0.0",
-                "type": "template",
-                "optional": true
-              }
-            ],
-            "variables": [],
-            "examples": [],
-            "changelog": "Initial version",
-            "compatibility": [
-              "1.0.0"
-            ],
-            "size": 100,
-            "created": "2025-08-26T09:07:42.093Z",
-            "downloads": 0,
-            "deprecated": false
-          }
-        ],
-        "tags": [
-          "test"
-        ],
-        "rating": {
-          "average": 0,
-          "total": 0,
-          "distribution": {
-            "1": 0,
-            "2": 0,
-            "3": 0,
-            "4": 0,
-            "5": 0
-          },
-          "reviews": []
-        },
-        "stats": {
-          "downloads": 0,
-          "weeklyDownloads": 0,
-          "monthlyDownloads": 0,
-          "forks": 0,
-          "favorites": 0,
-          "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.093Z",
-          "trending": false,
-          "popularityScore": 0
-        },
-        "metadata": {
-          "license": "MIT",
-          "keywords": [
-            "test"
-          ],
-          "minEngineVersion": "1.0.0",
-          "platform": [
-            "web"
-          ]
-        },
-        "category": "other",
-        "created": "2025-08-26T09:07:42.093Z",
-        "updated": "2025-08-26T09:07:42.093Z",
-        "featured": false,
-        "verified": false,
-        "deprecated": false,
-        "isDraft": false,
-        "isPrivate": false
-      },
-      "versionInfo": {
-        "version": "1.0.0",
-        "description": "Template with dependencies",
-        "content": "Template content",
-        "dependencies": [
-          {
-            "name": "base-template",
-            "version": "^1.0.0",
-            "type": "template",
-            "optional": true
-          },
-          {
-            "name": "utils-template",
-            "version": "~2.0.0",
-            "type": "template",
-            "optional": true
-          }
-        ],
-        "variables": [],
-        "examples": [],
-        "changelog": "Initial version",
-        "compatibility": [
-          "1.0.0"
-        ],
-        "size": 100,
-        "created": "2025-08-26T09:07:42.093Z",
-        "downloads": 0,
-        "deprecated": false
-      },
-      "registered": "2025-08-26T09:07:42.095Z",
-      "active": true
-    },
-    {
-      "id": "template-3",
-      "name": "Template 3",
-      "version": "1.0.0",
-      "path": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Template 3",
-      "metadata": {
-        "id": "template-3",
-        "name": "Template 3",
-        "displayName": "Template 3",
-        "description": "Template 3 description",
-        "author": {
-          "id": "test_author",
-          "name": "Test Author",
-          "verified": false,
-          "reputation": 0,
-          "totalTemplates": 1,
-          "totalDownloads": 0
-        },
-        "currentVersion": "1.0.0",
-        "versions": [
-          {
-            "version": "1.0.0",
-            "description": "Template 3",
-            "content": "Template content",
-            "dependencies": [],
-            "variables": [],
-            "examples": [],
-            "changelog": "Initial version",
-            "compatibility": [
-              "1.0.0"
-            ],
-            "size": 100,
-            "created": "2025-08-26T09:07:42.113Z",
-            "downloads": 0,
-            "deprecated": false
-          }
-        ],
-        "tags": [
-          "test"
-        ],
-        "rating": {
-          "average": 0,
-          "total": 0,
-          "distribution": {
-            "1": 0,
-            "2": 0,
-            "3": 0,
-            "4": 0,
-            "5": 0
-          },
-          "reviews": []
-        },
-        "stats": {
-          "downloads": 0,
-          "weeklyDownloads": 0,
-          "monthlyDownloads": 0,
-          "forks": 0,
-          "favorites": 0,
-          "issues": 0,
-          "lastDownload": "2025-08-26T09:07:42.113Z",
-          "trending": false,
-          "popularityScore": 0
-        },
-        "metadata": {
-          "license": "MIT",
-          "keywords": [
-            "test"
-          ],
-          "minEngineVersion": "1.0.0",
-          "platform": [
-            "web"
-          ]
-        },
-        "category": "other",
-        "created": "2025-08-26T09:07:42.113Z",
-        "updated": "2025-08-26T09:07:42.113Z",
-        "featured": false,
-        "verified": false,
-        "deprecated": false,
-        "isDraft": false,
-        "isPrivate": false
-      },
-      "versionInfo": {
-        "version": "1.0.0",
-        "description": "Template 3",
-        "content": "Template content",
-        "dependencies": [],
-        "variables": [],
-        "examples": [],
-        "changelog": "Initial version",
-        "compatibility": [
-          "1.0.0"
-        ],
-        "size": 100,
-        "created": "2025-08-26T09:07:42.113Z",
-        "downloads": 0,
-        "deprecated": false
-      },
-      "registered": "2025-08-26T09:07:42.117Z",
+      "registered": "2025-08-26T09:49:10.513Z",
       "active": true
     }
   ]

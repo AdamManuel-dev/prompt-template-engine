@@ -11,7 +11,8 @@
 import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
 import { PromptOptimizationService } from '../services/prompt-optimization.service';
-import { TemplateService, Template } from '../services/template.service';
+import { TemplateService } from '../services/template.service';
+import { Template } from '../types/index';
 import { CacheService } from '../services/cache.service';
 import { ConfigManager } from '../config/config-manager';
 
@@ -121,7 +122,7 @@ export class SelfEvolvingSystem extends EventEmitter {
     logger.info(`Tracking performance for template: ${templateId}`);
 
     const cacheKey = `metrics:${templateId}`;
-    const existingMetrics = await this.metricsCache.get(cacheKey) || [];
+    const existingMetrics = (await this.metricsCache.get(cacheKey)) || [];
     existingMetrics.push(performanceMetric);
 
     const maxMetrics = 100;
@@ -150,7 +151,7 @@ export class SelfEvolvingSystem extends EventEmitter {
     const recentMetrics = metrics.slice(-20);
     const avgMetrics = this.calculateAverageMetrics(recentMetrics);
 
-    const needsEvolution = 
+    const needsEvolution =
       avgMetrics.accuracy < this.performanceThresholds.minAccuracy ||
       avgMetrics.tokenUsage > this.performanceThresholds.maxTokenUsage ||
       avgMetrics.successRate < this.performanceThresholds.minSuccessRate ||
@@ -182,7 +183,13 @@ export class SelfEvolvingSystem extends EventEmitter {
         errorRate: acc.errorRate + m.metrics.errorRate,
         executionTime: acc.executionTime + m.metrics.executionTime,
       }),
-      { accuracy: 0, tokenUsage: 0, successRate: 0, errorRate: 0, executionTime: 0 }
+      {
+        accuracy: 0,
+        tokenUsage: 0,
+        successRate: 0,
+        errorRate: 0,
+        executionTime: 0,
+      }
     );
 
     const count = metrics.length;
@@ -202,38 +209,41 @@ export class SelfEvolvingSystem extends EventEmitter {
     templateId: string,
     triggerType: EvolutionTrigger['type']
   ): Promise<EvolutionResult> {
-    logger.info(`Triggering evolution for template: ${templateId} (${triggerType})`);
+    logger.info(
+      `Triggering evolution for template: ${templateId} (${triggerType})`
+    );
     this.emit('evolution:started', { templateId, triggerType });
 
     const startTime = Date.now();
 
     try {
       const template = await this.templateService.loadTemplate(templateId);
-      
+
       const currentVersion = this.getCurrentVersion(templateId);
       const newVersion = this.generateVersion();
 
-      const metrics = await this.metricsCache.get(`metrics:${templateId}`) || [];
+      const metrics =
+        (await this.metricsCache.get(`metrics:${templateId}`)) || [];
       const examples = this.generateExamplesFromMetrics(metrics);
 
-      const optimizationResult = await this.optimizationService.optimizeTemplate({
-        templateId,
-        template,
-        config: {
-          mutateRefineIterations: 5,
-          fewShotCount: examples.length,
-          generateReasoning: true,
-          examples,
-        },
-        options: {
-          skipCache: true,
-          priority: 'high',
-        },
-      });
+      const optimizationResult =
+        await this.optimizationService.optimizeTemplate({
+          templateId,
+          template: template as any,
+          config: {
+            mutateRefineIterations: 5,
+            fewShotCount: examples.length,
+            generateReasoning: true,
+          },
+          options: {
+            skipCache: true,
+            priority: 'high',
+          },
+        });
 
       this.saveVersion(templateId, {
         version: newVersion,
-        template: optimizationResult.optimizedTemplate,
+        template: optimizationResult.optimizedTemplate as any,
         performance: [],
         createdAt: new Date(),
         reason: `Evolution triggered by ${triggerType}`,
@@ -257,7 +267,7 @@ export class SelfEvolvingSystem extends EventEmitter {
 
       return evolutionResult;
     } catch (error) {
-      logger.error(`Evolution failed for template: ${templateId}`, error);
+      logger.error(`Evolution failed for template: ${templateId} - ${error}`);
       this.emit('evolution:failed', { templateId, error });
 
       return {
@@ -283,9 +293,10 @@ export class SelfEvolvingSystem extends EventEmitter {
       .filter(m => m.metrics.successRate > 0.8)
       .slice(-10);
 
-    return successfulExecutions.map(m => {
-      return `Version: ${m.version}, Tokens: ${m.metrics.tokenUsage}, Success: ${m.metrics.successRate}`;
-    });
+    return successfulExecutions.map(
+      m =>
+        `Version: ${m.version}, Tokens: ${m.metrics.tokenUsage}, Success: ${m.metrics.successRate}`
+    );
   }
 
   /**
@@ -300,8 +311,10 @@ export class SelfEvolvingSystem extends EventEmitter {
     const oldAvg = this.calculateAverageMetrics(oldMetrics);
     const newAvg = this.calculateAverageMetrics(newMetrics);
 
-    const executionTimeGain = (oldAvg.executionTime - newAvg.executionTime) / oldAvg.executionTime;
-    const tokenGain = (oldAvg.tokenUsage - newAvg.tokenUsage) / oldAvg.tokenUsage;
+    const executionTimeGain =
+      (oldAvg.executionTime - newAvg.executionTime) / oldAvg.executionTime;
+    const tokenGain =
+      (oldAvg.tokenUsage - newAvg.tokenUsage) / oldAvg.tokenUsage;
     const accuracyGain = (newAvg.accuracy - oldAvg.accuracy) / oldAvg.accuracy;
 
     return (executionTimeGain + tokenGain + accuracyGain) / 3;
@@ -328,10 +341,14 @@ export class SelfEvolvingSystem extends EventEmitter {
     }
 
     if (!targetVersionObj) {
-      throw new Error(`Version ${targetVersion} not found for template: ${templateId}`);
+      throw new Error(
+        `Version ${targetVersion} not found for template: ${templateId}`
+      );
     }
 
-    logger.info(`Rolling back template ${templateId} to version ${targetVersionObj.version}`);
+    logger.info(
+      `Rolling back template ${templateId} to version ${targetVersionObj.version}`
+    );
 
     await this.metricsCache.delete(`metrics:${templateId}`);
 
@@ -391,16 +408,23 @@ export class SelfEvolvingSystem extends EventEmitter {
    */
   private initializeScheduledEvolutions(): void {
     const config = ConfigManager.getInstance();
-    const scheduleEnabled = config.get('promptwizard.evolution.scheduleEnabled', false);
+    const scheduleEnabled = config.get(
+      'promptwizard.evolution.scheduleEnabled',
+      false
+    );
 
     if (scheduleEnabled) {
-      const intervalMs = config.get('promptwizard.evolution.intervalMs', 86400000);
-      
+      const intervalMs = config.get(
+        'promptwizard.evolution.intervalMs',
+        86400000
+      );
+
       setInterval(async () => {
         logger.info('Running scheduled evolution check');
-        
+
         for (const [templateId] of this.versionHistory) {
-          const metrics = await this.metricsCache.get(`metrics:${templateId}`) || [];
+          const metrics =
+            (await this.metricsCache.get(`metrics:${templateId}`)) || [];
           if (metrics.length > 50) {
             await this.triggerEvolution(templateId, 'schedule');
           }
@@ -416,7 +440,7 @@ export class SelfEvolvingSystem extends EventEmitter {
     if (!this.evolutionTriggers.has(templateId)) {
       this.evolutionTriggers.set(templateId, []);
     }
-    
+
     this.evolutionTriggers.get(templateId)!.push(trigger);
     logger.info(`Added evolution trigger for template: ${templateId}`);
   }

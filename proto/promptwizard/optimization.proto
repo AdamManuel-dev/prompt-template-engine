@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package promptwizard;
+
+option go_package = "github.com/promptwizard/proto/optimization";
+
+service PromptOptimizationService {
+  // Main optimization endpoint
+  rpc OptimizePrompt(OptimizationRequest) returns (OptimizationResponse);
+  
+  // Score a prompt
+  rpc ScorePrompt(ScoringRequest) returns (ScoringResponse);
+  
+  // Compare prompts
+  rpc ComparePrompts(ComparisonRequest) returns (ComparisonResponse);
+  
+  // Get job status
+  rpc GetJobStatus(JobStatusRequest) returns (JobStatusResponse);
+  
+  // Cancel a job
+  rpc CancelJob(CancelJobRequest) returns (CancelJobResponse);
+  
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+  
+  // Stream optimization updates
+  rpc StreamOptimization(OptimizationRequest) returns (stream OptimizationUpdate);
+}
+
+// Optimization request message
+message OptimizationRequest {
+  string task = 1;
+  string prompt = 2;
+  string target_model = 3;
+  int32 mutate_refine_iterations = 4;
+  int32 few_shot_count = 5;
+  bool generate_reasoning = 6;
+  repeated string examples = 7;
+  map<string, string> constraints = 8;
+}
+
+// Optimization response message
+message OptimizationResponse {
+  string job_id = 1;
+  string status = 2;
+  string original_prompt = 3;
+  string optimized_prompt = 4;
+  OptimizationMetrics metrics = 5;
+  string error_message = 6;
+}
+
+// Optimization metrics
+message OptimizationMetrics {
+  double accuracy_improvement = 1;
+  double token_reduction = 2;
+  double cost_reduction = 3;
+  double processing_time = 4;
+  int32 api_calls_used = 5;
+}
+
+// Scoring request
+message ScoringRequest {
+  string prompt = 1;
+  string task = 2;
+  string target_model = 3;
+}
+
+// Scoring response
+message ScoringResponse {
+  double overall_score = 1;
+  map<string, double> component_scores = 2;
+  repeated string suggestions = 3;
+  OptimizationMetrics metrics = 4;
+}
+
+// Comparison request
+message ComparisonRequest {
+  string original_prompt = 1;
+  string optimized_prompt = 2;
+  string task = 3;
+  string target_model = 4;
+}
+
+// Comparison response
+message ComparisonResponse {
+  double improvement_score = 1;
+  repeated string improvements = 2;
+  repeated string potential_issues = 3;
+  ComparisonMetrics metrics = 4;
+}
+
+// Comparison metrics
+message ComparisonMetrics {
+  double accuracy_delta = 1;
+  double token_delta = 2;
+  double cost_delta = 3;
+  double readability_delta = 4;
+}
+
+// Job status request
+message JobStatusRequest {
+  string job_id = 1;
+}
+
+// Job status response
+message JobStatusResponse {
+  string job_id = 1;
+  string status = 2;
+  int32 progress_percentage = 3;
+  string current_step = 4;
+  OptimizationResponse result = 5;
+  string error_message = 6;
+}
+
+// Cancel job request
+message CancelJobRequest {
+  string job_id = 1;
+}
+
+// Cancel job response
+message CancelJobResponse {
+  bool cancelled = 1;
+  string message = 2;
+}
+
+// Health check request
+message HealthCheckRequest {}
+
+// Health check response
+message HealthCheckResponse {
+  bool healthy = 1;
+  string version = 2;
+  map<string, bool> services = 3;
+  string error_message = 4;
+}
+
+// Optimization update for streaming
+message OptimizationUpdate {
+  string job_id = 1;
+  int32 progress_percentage = 2;
+  string current_step = 3;
+  string status = 4;
+  OptimizationResponse partial_result = 5;
+}

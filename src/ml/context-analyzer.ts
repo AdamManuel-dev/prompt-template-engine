@@ -44,21 +44,57 @@ export interface AnalysisConfig {
 }
 
 export class ContextAnalyzer {
-  private readonly tokenLimits = {
-    'gpt-4': 8192,
-    'gpt-3.5-turbo': 4096,
-    'claude-3-opus': 200000,
-    'claude-3-sonnet': 200000,
-    'gemini-pro': 32768,
-  };
 
   private readonly stopWords = new Set([
-    'the', 'is', 'at', 'which', 'on', 'a', 'an', 'as', 'are', 'was',
-    'were', 'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did',
-    'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can',
-    'shall', 'to', 'of', 'in', 'for', 'with', 'by', 'from', 'about',
-    'into', 'through', 'during', 'before', 'after', 'above', 'below',
-    'between', 'under', 'again', 'further', 'then', 'once',
+    'the',
+    'is',
+    'at',
+    'which',
+    'on',
+    'a',
+    'an',
+    'as',
+    'are',
+    'was',
+    'were',
+    'been',
+    'be',
+    'have',
+    'has',
+    'had',
+    'do',
+    'does',
+    'did',
+    'will',
+    'would',
+    'could',
+    'should',
+    'may',
+    'might',
+    'must',
+    'can',
+    'shall',
+    'to',
+    'of',
+    'in',
+    'for',
+    'with',
+    'by',
+    'from',
+    'about',
+    'into',
+    'through',
+    'during',
+    'before',
+    'after',
+    'above',
+    'below',
+    'between',
+    'under',
+    'again',
+    'further',
+    'then',
+    'once',
   ]);
 
   /**
@@ -74,11 +110,7 @@ export class ContextAnalyzer {
     const tokenCount = this.estimateTokenCount(context);
     const redundancies = this.detectRedundancies(context);
     const relevanceScore = this.calculateRelevanceScore(context, template);
-    const suggestions = this.generateSuggestions(
-      context,
-      redundancies,
-      config
-    );
+    const suggestions = this.generateSuggestions(context, redundancies, config);
 
     let optimizedContext: string | undefined;
     if (config.aggressiveness !== 'conservative') {
@@ -99,8 +131,8 @@ export class ContextAnalyzer {
 
     logger.info(
       `Context analysis complete: ${tokenCount} tokens, ` +
-      `relevance: ${relevanceScore.toFixed(2)}, ` +
-      `${redundancies.length} redundancies found`
+        `relevance: ${relevanceScore.toFixed(2)}, ` +
+        `${redundancies.length} redundancies found`
     );
 
     return result;
@@ -114,7 +146,9 @@ export class ContextAnalyzer {
     targetReduction: number = 0.3,
     config: AnalysisConfig = {}
   ): Promise<{ optimized: string; reduction: number }> {
-    logger.info(`Optimizing token usage with target reduction: ${targetReduction * 100}%`);
+    logger.info(
+      `Optimizing token usage with target reduction: ${targetReduction * 100}%`
+    );
 
     let optimized = content;
     const originalTokens = this.estimateTokenCount(content);
@@ -123,7 +157,7 @@ export class ContextAnalyzer {
     optimized = this.removeRedundantPhrases(optimized);
     optimized = this.simplifyComplexSentences(optimized);
     optimized = this.consolidateRepeatedConcepts(optimized);
-    
+
     if (config.aggressiveness === 'aggressive') {
       optimized = this.aggressiveOptimization(optimized);
     }
@@ -133,7 +167,7 @@ export class ContextAnalyzer {
 
     logger.info(
       `Token optimization complete: ${originalTokens} → ${optimizedTokens} ` +
-      `(${(reduction * 100).toFixed(1)}% reduction)`
+        `(${(reduction * 100).toFixed(1)}% reduction)`
     );
 
     return { optimized, reduction };
@@ -154,8 +188,9 @@ export class ContextAnalyzer {
       if (sentence.length > 150) {
         suggestions.push({
           type: 'rephrase',
-          target: sentence.substring(0, 50) + '...',
-          suggestion: 'Break this long sentence into shorter, clearer statements',
+          target: `${sentence.substring(0, 50)}...`,
+          suggestion:
+            'Break this long sentence into shorter, clearer statements',
           tokenSavings: Math.floor(sentence.length * 0.2),
           qualityImpact: 0.1,
         });
@@ -168,7 +203,8 @@ export class ContextAnalyzer {
       suggestions.push({
         type: 'remove',
         target: phrase,
-        suggestion: 'This phrase appears multiple times and can be consolidated',
+        suggestion:
+          'This phrase appears multiple times and can be consolidated',
         tokenSavings: phrase.split(' ').length * 2,
         qualityImpact: -0.05,
       });
@@ -176,12 +212,16 @@ export class ContextAnalyzer {
 
     // Analyze focus areas
     if (focusAreas.length > 0) {
-      const irrelevantSections = this.findIrrelevantSections(context, focusAreas);
+      const irrelevantSections = this.findIrrelevantSections(
+        context,
+        focusAreas
+      );
       irrelevantSections.forEach(section => {
         suggestions.push({
           type: 'remove',
-          target: section.substring(0, 30) + '...',
-          suggestion: 'This section is not directly relevant to the focus areas',
+          target: `${section.substring(0, 30)}...`,
+          suggestion:
+            'This section is not directly relevant to the focus areas',
           tokenSavings: this.estimateTokenCount(section),
           qualityImpact: -0.1,
         });
@@ -205,11 +245,11 @@ export class ContextAnalyzer {
     // More accurate would use actual tokenizer
     const wordCount = text.split(/\s+/).length;
     const charCount = text.length;
-    
+
     // Average between word-based and char-based estimates
     const wordBasedEstimate = wordCount * 1.3;
     const charBasedEstimate = charCount / 4;
-    
+
     return Math.ceil((wordBasedEstimate + charBasedEstimate) / 2);
   }
 
@@ -239,11 +279,11 @@ export class ContextAnalyzer {
     // Detect repeated phrases
     const phrases = this.extractPhrases(context);
     const phraseCounts = new Map<string, number>();
-    
+
     phrases.forEach(phrase => {
       const count = (phraseCounts.get(phrase) || 0) + 1;
       phraseCounts.set(phrase, count);
-      
+
       if (count > 2) {
         redundancies.push({
           startIndex: context.lastIndexOf(phrase),
@@ -264,8 +304,11 @@ export class ContextAnalyzer {
     // Check if context contains template-specific keywords
     const templateKeywords = this.extractKeywords(template.content || '');
     const contextKeywords = this.extractKeywords(context);
-    
-    const overlap = this.calculateKeywordOverlap(templateKeywords, contextKeywords);
+
+    const overlap = this.calculateKeywordOverlap(
+      templateKeywords,
+      contextKeywords
+    );
     score *= overlap;
 
     // Check context coherence
@@ -282,7 +325,7 @@ export class ContextAnalyzer {
   private generateSuggestions(
     context: string,
     redundancies: RedundantSection[],
-    config: AnalysisConfig
+    _config: AnalysisConfig
   ): ContextSuggestion[] {
     const suggestions: ContextSuggestion[] = [];
 
@@ -292,7 +335,7 @@ export class ContextAnalyzer {
       .forEach(redundancy => {
         suggestions.push({
           type: 'remove',
-          target: redundancy.content.substring(0, 50) + '...',
+          target: `${redundancy.content.substring(0, 50)}...`,
           suggestion: redundancy.reason,
           tokenSavings: this.estimateTokenCount(redundancy.content),
           qualityImpact: -0.05,
@@ -328,11 +371,11 @@ export class ContextAnalyzer {
     const applicableSuggestions = suggestions.filter(s => {
       if (config.aggressiveness === 'conservative') {
         return s.qualityImpact >= 0;
-      } else if (config.aggressiveness === 'moderate') {
-        return s.qualityImpact >= -0.1;
-      } else {
-        return true; // Apply all suggestions in aggressive mode
       }
+      if (config.aggressiveness === 'moderate') {
+        return s.qualityImpact >= -0.1;
+      }
+      return true; // Apply all suggestions in aggressive mode
     });
 
     // Sort by impact and apply
@@ -394,7 +437,7 @@ export class ContextAnalyzer {
     conceptMap.forEach(sentences => {
       if (sentences.length > 1) {
         // Keep the longest, most informative version
-        const best = sentences.reduce((a, b) => a.length > b.length ? a : b);
+        const best = sentences.reduce((a, b) => (a.length > b.length ? a : b));
         consolidated.push(best);
       } else {
         consolidated.push(sentences[0]);
@@ -470,7 +513,10 @@ export class ContextAnalyzer {
     return new Set(words);
   }
 
-  private calculateKeywordOverlap(set1: Set<string>, set2: Set<string>): number {
+  private calculateKeywordOverlap(
+    set1: Set<string>,
+    set2: Set<string>
+  ): number {
     if (set1.size === 0 || set2.size === 0) return 0.5;
 
     let overlap = 0;
@@ -551,7 +597,10 @@ export class ContextAnalyzer {
 
     return sections.filter(section => {
       const sectionKeywords = this.extractKeywords(section);
-      const overlap = this.calculateKeywordOverlap(sectionKeywords, focusKeywords);
+      const overlap = this.calculateKeywordOverlap(
+        sectionKeywords,
+        focusKeywords
+      );
       return overlap < 0.2;
     });
   }
