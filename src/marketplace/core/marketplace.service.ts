@@ -2174,6 +2174,17 @@ export class MarketplaceService
     url?: string;
   }> {
     try {
+      // Validate template before publishing
+      if (!template) {
+        throw new Error('Template is required for publishing');
+      }
+      if (!template.id && !template.name) {
+        throw new Error('Template must have either an id or name');
+      }
+      if (!template.name) {
+        throw new Error('Template name is required');
+      }
+      
       logger.info(`Publishing template: ${template.name || template.id}`);
 
       // Prepare template data for publishing
@@ -2238,7 +2249,7 @@ export class MarketplaceService
 
       // Emit publish error event
       this.emit('template:publish-error', {
-        templateId: template.id,
+        templateId: template?.id || 'unknown',
         error: error instanceof Error ? error.message : String(error),
       });
 

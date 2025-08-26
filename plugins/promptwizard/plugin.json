@@ -1,0 +1,150 @@
+{
+  "name": "promptwizard",
+  "displayName": "PromptWizard Optimizer",
+  "version": "1.0.0",
+  "description": "Advanced template optimization plugin with quality scoring and performance metrics",
+  "author": "Cursor Prompt Template Engine Team",
+  "license": "MIT",
+  "main": "./index.js",
+  "type": "optimization",
+  "category": "ai-optimization",
+  "keywords": [
+    "optimization",
+    "performance",
+    "quality",
+    "ai",
+    "templates",
+    "scoring",
+    "metrics"
+  ],
+  "engines": {
+    "cursor-prompt-engine": ">=1.0.0"
+  },
+  "capabilities": [
+    "template-optimization",
+    "quality-scoring",
+    "performance-metrics",
+    "batch-optimization",
+    "real-time-feedback",
+    "marketplace-integration"
+  ],
+  "hooks": {
+    "template:preprocess": {
+      "priority": 10,
+      "description": "Preprocess templates for optimization analysis"
+    },
+    "template:optimize": {
+      "priority": 5,
+      "description": "Apply optimization transformations to templates"
+    },
+    "template:postprocess": {
+      "priority": 10,
+      "description": "Post-process optimized templates with quality metrics"
+    },
+    "marketplace:enhance": {
+      "priority": 5,
+      "description": "Enhance marketplace listings with optimization data"
+    },
+    "cli:extend": {
+      "priority": 1,
+      "description": "Extend CLI with optimization commands"
+    }
+  },
+  "configuration": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable/disable PromptWizard optimization plugin"
+    },
+    "optimizationLevel": {
+      "type": "string",
+      "enum": ["basic", "standard", "advanced", "aggressive"],
+      "default": "standard",
+      "description": "Optimization intensity level"
+    },
+    "realTimeFeedback": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable real-time optimization feedback"
+    },
+    "qualityThreshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 75,
+      "description": "Minimum quality score threshold for templates"
+    },
+    "performanceMetrics": {
+      "type": "object",
+      "properties": {
+        "trackTokenUsage": {
+          "type": "boolean",
+          "default": true
+        },
+        "trackResponseTime": {
+          "type": "boolean",
+          "default": true
+        },
+        "trackCostEstimation": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "default": {
+        "trackTokenUsage": true,
+        "trackResponseTime": true,
+        "trackCostEstimation": true
+      }
+    },
+    "marketplaceIntegration": {
+      "type": "object",
+      "properties": {
+        "showOptimizedBadge": {
+          "type": "boolean",
+          "default": true
+        },
+        "displayQualityScore": {
+          "type": "boolean",
+          "default": true
+        },
+        "enablePerformanceFilters": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "default": {
+        "showOptimizedBadge": true,
+        "displayQualityScore": true,
+        "enablePerformanceFilters": true
+      }
+    }
+  },
+  "permissions": [
+    "template:read",
+    "template:write",
+    "template:analyze",
+    "marketplace:read",
+    "marketplace:write",
+    "cli:extend",
+    "storage:read",
+    "storage:write"
+  ],
+  "dependencies": {},
+  "devDependencies": {},
+  "files": [
+    "index.js",
+    "lib/",
+    "ui/",
+    "docs/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cursor-prompt/template-engine"
+  },
+  "bugs": {
+    "url": "https://github.com/cursor-prompt/template-engine/issues"
+  },
+  "homepage": "https://github.com/cursor-prompt/template-engine#readme"
+}

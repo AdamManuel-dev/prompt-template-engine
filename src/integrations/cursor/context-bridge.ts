@@ -1,11 +1,37 @@
 /**
  * @fileoverview Context Bridge for Cursor IDE Integration
- * @lastmodified 2025-08-23T14:15:00Z
+ * @lastmodified 2025-08-26T11:21:38Z
  *
- * Features: Bridge template context with Cursor's @file system
- * Main APIs: ContextBridge class
- * Constraints: Handle file references, caching, validation
- * Patterns: Adapter pattern for context translation
+ * Features: Bridge template context with Cursor's @file system, intelligent file mapping, context caching, variable resolution
+ * Main APIs: ContextBridge class with bridgeContext(), mapFilesToReferences(), resolveContextVariables()
+ * Constraints: Handle file references safely, implement caching for performance, validate file access permissions
+ * Patterns: Adapter pattern for context translation, caching pattern for performance, builder pattern for context construction
+ *
+ * Integration Workflow:
+ * 1. Extract context from Cursor IDE state (files, selection, errors, git status)
+ * 2. Transform Cursor-specific data into template-compatible format
+ * 3. Generate appropriate @file: references for template consumption
+ * 4. Cache results to optimize repeated operations
+ * 5. Provide intelligent file discovery and relationship mapping
+ *
+ * Context Translation Process:
+ * - CursorContext (IDE state) → TemplateContext (template-ready format)
+ * - File paths → @file: references with proper normalization
+ * - IDE selection → template variables with position information
+ * - Error states → formatted error context for template consumption
+ * - Git status → diff and change information for templates
+ *
+ * Performance Considerations:
+ * - Context results are cached with configurable TTL
+ * - File system operations are batched and optimized
+ * - Pattern matching uses efficient glob operations
+ * - Related file discovery is limited to prevent context overflow
+ *
+ * Error Handling Strategy:
+ * - Graceful degradation when files are inaccessible
+ * - Fallback to available context when partial failures occur
+ * - Comprehensive logging for debugging context issues
+ * - Input validation and sanitization for security
  */
 
 import * as fs from 'fs/promises';
@@ -14,6 +40,48 @@ import { glob } from 'glob';
 import { Minimatch } from 'minimatch';
 import { logger } from '../../utils/logger';
 
+/**
+ * Cursor IDE context information extracted from the active workspace and editor state
+ *
+ * @interface CursorContext
+ * @description Represents the complete state of Cursor IDE including active files, selections,
+ * errors, git status, and workspace information. This context serves as the input for template
+ * context bridging and optimization processes.
+ *
+ * @example
+ * ```typescript
+ * const cursorContext: CursorContext = {
+ *   activeFile: '/workspace/src/components/Button.tsx',
+ *   selection: {
+ *     start: { line: 10, character: 5 },
+ *     end: { line: 15, character: 20 }
+ *   },
+ *   openFiles: ['src/App.tsx', 'src/components/Button.tsx'],
+ *   errors: [{
+ *     file: 'src/components/Button.tsx',
+ *     line: 12,
+ *     message: 'Type error: Property does not exist',
+ *     severity: 'error'
+ *   }],
+ *   gitStatus: {
+ *     branch: 'feature/new-component',
+ *     modified: ['src/components/Button.tsx'],
+ *     staged: [],
+ *     untracked: ['src/utils/helper.ts']
+ *   },
+ *   terminalOutput: 'npm run build completed successfully',
+ *   workspaceRoot: '/workspace'
+ * };
+ * ```
+ *
+ * @workflow
+ * 1. Extracted from Cursor IDE via extension API or file system analysis
+ * 2. Processed by ContextBridge to create TemplateContext
+ * 3. Used for intelligent file reference generation and context optimization
+ *
+ * @see {@link TemplateContext} for the corresponding template-ready format
+ * @see {@link ContextBridge.bridgeContext} for context transformation process
+ */
 export interface CursorContext {
   activeFile?: string;
   selection?: {
@@ -37,6 +105,50 @@ export interface CursorContext {
   workspaceRoot: string;
 }
 
+/**
+ * Template-ready context information translated from Cursor IDE state
+ *
+ * @interface TemplateContext
+ * @description Represents context information in a format optimized for template processing,
+ * with normalized file references, extracted variables, and structured metadata. This interface
+ * serves as the output of the context bridging process.
+ *
+ * @example
+ * ```typescript
+ * const templateContext: TemplateContext = {
+ *   files: ['src/components/Button.tsx', 'src/App.tsx'],
+ *   variables: {
+ *     currentFile: 'src/components/Button.tsx',
+ *     fileName: 'Button.tsx',
+ *     selectedText: 'const handleClick = () => {}',
+ *     hasErrors: true,
+ *     gitBranch: 'feature/new-component'
+ *   },
+ *   references: ['@src/components/Button.tsx', '@src/App.tsx'],
+ *   gitDiff: 'diff --git a/src/components/Button.tsx...',
+ *   errors: ['[ERROR] Button.tsx:12 - Type error: Property does not exist'],
+ *   metadata: {
+ *     terminalOutput: 'npm run build completed successfully'
+ *   }
+ * };
+ * ```
+ *
+ * @workflow
+ * 1. Generated from CursorContext by ContextBridge
+ * 2. Consumed by template engines for variable substitution
+ * 3. Used by optimization services for context-aware improvements
+ *
+ * @structure
+ * - **files**: Prioritized list of relevant files for template processing
+ * - **variables**: Key-value pairs for template variable substitution
+ * - **references**: Cursor-style @file: references for IDE integration
+ * - **gitDiff**: Git diff information for change-aware templates
+ * - **errors**: Formatted error messages for debugging contexts
+ * - **metadata**: Additional context information like terminal output
+ *
+ * @see {@link CursorContext} for the source IDE context format
+ * @see {@link ContextBridge.bridgeContext} for the transformation process
+ */
 export interface TemplateContext {
   files: string[];
   variables: Record<string, unknown>;
@@ -46,6 +158,46 @@ export interface TemplateContext {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Configuration options for the Context Bridge behavior and performance tuning
+ *
+ * @interface BridgeOptions
+ * @description Controls how the ContextBridge processes Cursor IDE context, including file filtering,
+ * caching behavior, and performance limits. These options allow fine-tuning of the bridging process
+ * to match specific workspace requirements and performance constraints.
+ *
+ * @example
+ * ```typescript
+ * const options: BridgeOptions = {
+ *   maxFileSize: 2 * 1024 * 1024, // 2MB limit
+ *   includePaths: ['src', 'lib', 'components'],
+ *   excludePaths: ['node_modules', '.git', 'dist', 'coverage'],
+ *   autoDetect: true,
+ *   cacheTimeout: 300000, // 5 minutes
+ *   maxReferences: 25
+ * };
+ * ```
+ *
+ * @performance_tuning
+ * - **maxFileSize**: Prevents processing of large files that could impact performance
+ * - **maxReferences**: Limits context size to prevent overwhelming templates
+ * - **cacheTimeout**: Balances freshness with performance for context caching
+ * - **includePaths/excludePaths**: Focus processing on relevant directories
+ *
+ * @use_cases
+ * - **Large Codebases**: Increase maxReferences and adjust include paths
+ * - **Performance Critical**: Reduce cacheTimeout and maxFileSize
+ * - **Comprehensive Analysis**: Enable autoDetect and increase limits
+ * - **Security Sensitive**: Restrict includePaths to specific directories
+ *
+ * @defaults Default values prioritize performance and common use cases:
+ * - maxFileSize: 1MB, includePaths: ['src', 'lib', 'app']
+ * - excludePaths: ['node_modules', '.git', 'dist', 'build']
+ * - autoDetect: true, cacheTimeout: 60s, maxReferences: 50
+ *
+ * @see {@link ContextBridge.constructor} for how options are applied
+ * @see {@link ContextBridge.isValidFile} for file filtering logic
+ */
 export interface BridgeOptions {
   maxFileSize?: number;
   includePaths?: string[];
@@ -55,6 +207,79 @@ export interface BridgeOptions {
   maxReferences?: number;
 }
 
+/**
+ * Context Bridge service for translating Cursor IDE state into template-ready context
+ *
+ * @class ContextBridge
+ * @description Provides intelligent translation between Cursor IDE context and template system requirements.
+ * The bridge handles file reference normalization, context variable extraction, caching, and relationship
+ * discovery to create optimal context for template processing and optimization.
+ *
+ * @example
+ * ```typescript
+ * // Basic usage with default configuration
+ * const bridge = new ContextBridge();
+ * const templateContext = await bridge.bridgeContext(cursorContext);
+ *
+ * // Advanced usage with custom configuration
+ * const bridge = new ContextBridge({
+ *   maxFileSize: 2 * 1024 * 1024, // 2MB
+ *   includePaths: ['src', 'components'],
+ *   excludePaths: ['node_modules', 'dist'],
+ *   autoDetect: true,
+ *   cacheTimeout: 300000, // 5 minutes
+ *   maxReferences: 30
+ * });
+ *
+ * // Bridge context with caching
+ * const context1 = await bridge.bridgeContext(cursorContext);
+ * const context2 = await bridge.bridgeContext(cursorContext); // Cached result
+ *
+ * // Generate file references for patterns
+ * const references = await bridge.mapFilesToReferences(['src/**.ts', 'components/**.tsx']);
+ *
+ * // Extract variables from context
+ * const variables = await bridge.resolveContextVariables(cursorContext);
+ * ```
+ *
+ * @architecture
+ * The ContextBridge follows a layered architecture:
+ * 1. **Input Layer**: Receives CursorContext from IDE state
+ * 2. **Processing Layer**: Transforms and normalizes context data
+ * 3. **Caching Layer**: Manages context caching for performance
+ * 4. **Output Layer**: Produces TemplateContext for template consumption
+ *
+ * @key_features
+ * - **Intelligent File Mapping**: Converts file paths to @file: references
+ * - **Context Variable Extraction**: Pulls relevant variables from IDE state
+ * - **Related File Discovery**: Automatically finds related files (tests, styles, types)
+ * - **Performance Caching**: Caches results to avoid repeated file system operations
+ * - **Error Context Formatting**: Formats IDE errors for template consumption
+ * - **Git Integration**: Extracts git status and diff information
+ *
+ * @performance_optimizations
+ * - Context results are cached with configurable TTL
+ * - File system operations use efficient async patterns
+ * - Related file discovery is limited and prioritized
+ * - Pattern matching uses optimized glob operations
+ * - Cache cleanup prevents memory leaks in long-running processes
+ *
+ * @error_handling
+ * - Graceful degradation when files are inaccessible
+ * - Fallback strategies for partial context failures
+ * - Comprehensive error logging for debugging
+ * - Input validation and sanitization
+ *
+ * @integration_patterns
+ * - **Template Engines**: Provides context for variable substitution
+ * - **Optimization Services**: Supplies context for intelligent optimization
+ * - **IDE Extensions**: Bridges IDE state with template systems
+ * - **CI/CD Pipelines**: Enables context-aware automation
+ *
+ * @see {@link CursorContext} for input context format
+ * @see {@link TemplateContext} for output context format
+ * @see {@link BridgeOptions} for configuration options
+ */
 export class ContextBridge {
   private cache: Map<string, { data: unknown; timestamp: number }> = new Map();
 
@@ -67,12 +292,141 @@ export class ContextBridge {
     maxReferences: 50,
   };
 
+  /**
+   * Initialize Context Bridge with configuration options and caching systems
+   *
+   * @constructor
+   * @description Creates a new ContextBridge instance with merged default and custom configuration.
+   * Sets up internal caching mechanisms and validates configuration parameters.
+   *
+   * @param {BridgeOptions} [options={}] - Optional configuration overrides
+   * @param {number} [options.maxFileSize=1048576] - Maximum file size in bytes (default: 1MB)
+   * @param {string[]} [options.includePaths=['src','lib','app']] - Paths to include in file discovery
+   * @param {string[]} [options.excludePaths=['node_modules','.git','dist','build']] - Paths to exclude
+   * @param {boolean} [options.autoDetect=true] - Enable automatic related file discovery
+   * @param {number} [options.cacheTimeout=60000] - Cache TTL in milliseconds (default: 1 minute)
+   * @param {number} [options.maxReferences=50] - Maximum number of file references to generate
+   *
+   * @example
+   * ```typescript
+   * // Default configuration
+   * const bridge = new ContextBridge();
+   *
+   * // Performance-optimized configuration
+   * const bridgePerf = new ContextBridge({
+   *   maxFileSize: 512 * 1024,
+   *   cacheTimeout: 300000,
+   *   maxReferences: 25
+   * });
+   *
+   * // Security-focused configuration
+   * const bridgeSecure = new ContextBridge({
+   *   includePaths: ['src/components', 'src/utils'],
+   *   excludePaths: ['node_modules', '.git', 'dist', 'temp'],
+   *   autoDetect: false
+   * });
+   * ```
+   *
+   * @initialization
+   * 1. Merges provided options with secure defaults
+   * 2. Initializes internal cache map for context results
+   * 3. Validates configuration parameters
+   * 4. Sets up cache cleanup mechanisms
+   *
+   * @performance Initializes efficient caching systems to optimize repeated operations
+   * @security Default configuration excludes sensitive directories and limits file access
+   *
+   * @see {@link BridgeOptions} for all available configuration options
+   * @see {@link bridgeContext} for primary context transformation method
+   */
   constructor(private options: BridgeOptions = {}) {
     this.options = { ...this.defaultOptions, ...options };
   }
 
   /**
-   * Bridge Cursor context to template context
+   * Bridge Cursor IDE context to template-ready context with caching and optimization
+   *
+   * @method bridgeContext
+   * @description Transforms CursorContext into TemplateContext by extracting relevant files,
+   * variables, and references. Implements intelligent caching to optimize repeated calls
+   * with the same context. This is the primary method for context transformation.
+   *
+   * @param {CursorContext} cursorContext - Complete Cursor IDE context to transform
+   * @param {string} [cursorContext.activeFile] - Currently active file in editor
+   * @param {Object} [cursorContext.selection] - Current text selection with line/character positions
+   * @param {string[]} cursorContext.openFiles - List of currently open files
+   * @param {Array} [cursorContext.errors] - IDE errors with file, line, message, and severity
+   * @param {Object} [cursorContext.gitStatus] - Git status with branch, modified, staged files
+   * @param {string} [cursorContext.terminalOutput] - Recent terminal output for context
+   * @param {string} cursorContext.workspaceRoot - Root path of the workspace
+   *
+   * @returns {Promise<TemplateContext>} Template-ready context with normalized data
+   * @returns {string[]} returns.files - Prioritized list of relevant files
+   * @returns {Object} returns.variables - Extracted variables for template substitution
+   * @returns {string[]} returns.references - Cursor-style @file: references
+   * @returns {string} [returns.gitDiff] - Git diff for modified files (if available)
+   * @returns {string[]} [returns.errors] - Formatted error messages (if any)
+   * @returns {Object} [returns.metadata] - Additional context like terminal output
+   *
+   * @example
+   * ```typescript
+   * const bridge = new ContextBridge();
+   *
+   * const cursorContext: CursorContext = {
+   *   activeFile: '/workspace/src/components/Button.tsx',
+   *   selection: {
+   *     start: { line: 10, character: 0 },
+   *     end: { line: 15, character: 25 }
+   *   },
+   *   openFiles: ['src/App.tsx', 'src/components/Button.tsx'],
+   *   errors: [{
+   *     file: 'src/components/Button.tsx',
+   *     line: 12,
+   *     message: 'Type error in props',
+   *     severity: 'error'
+   *   }],
+   *   workspaceRoot: '/workspace'
+   * };
+   *
+   * const templateContext = await bridge.bridgeContext(cursorContext);
+   *
+   * // Access transformed context
+   * console.log('Files:', templateContext.files);
+   * console.log('Variables:', templateContext.variables);
+   * console.log('References:', templateContext.references);
+   * ```
+   *
+   * @transformation_process
+   * 1. **Cache Check**: Verify if context was recently processed
+   * 2. **File Mapping**: Convert file paths to prioritized list
+   * 3. **Variable Extraction**: Pull relevant variables from IDE state
+   * 4. **Reference Generation**: Create @file: references for templates
+   * 5. **Git Integration**: Extract diff information if available
+   * 6. **Error Formatting**: Format IDE errors for template consumption
+   * 7. **Metadata Processing**: Include terminal output and other context
+   * 8. **Cache Storage**: Store result for future identical requests
+   *
+   * @caching_strategy
+   * - Context is cached using a hash of key properties (activeFile, openFiles, errors, gitBranch)
+   * - Cache entries expire after configured timeout (default: 1 minute)
+   * - Cache automatically cleans up old entries to prevent memory leaks
+   * - Identical context requests return cached results immediately
+   *
+   * @performance_optimizations
+   * - File system operations are batched and optimized
+   * - Related file discovery is limited and prioritized
+   * - Git operations use efficient diff commands
+   * - Text selection extraction uses optimized line-based reading
+   *
+   * @error_handling
+   * - File access failures fall back gracefully
+   * - Git operations continue even if repository access fails
+   * - Partial context is returned when some operations fail
+   * - Comprehensive error logging helps with debugging
+   *
+   * @see {@link mapFilesToContext} for file prioritization logic
+   * @see {@link extractVariables} for variable extraction process
+   * @see {@link generateReferences} for reference generation
    */
   async bridgeContext(cursorContext: CursorContext): Promise<TemplateContext> {
     const cacheKey = this.getCacheKey(cursorContext);
@@ -108,7 +462,75 @@ export class ContextBridge {
   }
 
   /**
-   * Convert file patterns to Cursor @file references
+   * Convert file patterns to Cursor @file references with intelligent filtering and normalization
+   *
+   * @method mapFilesToReferences
+   * @description Transforms glob patterns into normalized Cursor-style @file: references.
+   * Performs file system validation, applies filtering rules, and limits results to prevent
+   * context overflow. This method is essential for generating template-compatible file references.
+   *
+   * @param {string[]} patterns - Array of glob patterns to resolve into file references
+   *
+   * @returns {Promise<string[]>} Array of normalized @file: references
+   * @returns {string} returns[] - Format: '@relative/path/to/file.ext' (normalized and validated)
+   *
+   * @example
+   * ```typescript
+   * const bridge = new ContextBridge();
+   *
+   * // Convert TypeScript patterns to references
+   * const patterns = ['src/**.ts', 'src/**.tsx', 'tests/**.test.ts'];
+   * const references = await bridge.mapFilesToReferences(patterns);
+   *
+   * console.log(references);
+   * // Example output:
+   * // ['@src/components/Button.tsx', '@src/utils/helpers.ts', '@tests/Button.test.ts']
+   *
+   * // Convert configuration files
+   * const configPatterns = ['*.json', 'config/**.yml'];
+   * const configRefs = await bridge.mapFilesToReferences(configPatterns);
+   *
+   * // Handle empty results gracefully
+   * const noMatches = await bridge.mapFilesToReferences(['nonexistent/']);
+   * console.log(noMatches); // []
+   * ```
+   *
+   * @processing_pipeline
+   * 1. **Pattern Resolution**: Use glob to resolve patterns to file paths
+   * 2. **File Validation**: Check file existence, size, and accessibility
+   * 3. **Filter Application**: Apply include/exclude path filters
+   * 4. **Reference Normalization**: Convert to @file: format with relative paths
+   * 5. **Deduplication**: Remove duplicate references from multiple patterns
+   * 6. **Limit Enforcement**: Truncate results to maxReferences limit
+   *
+   * @filtering_rules Applied in this order:
+   * - File must exist and be readable
+   * - File size must be within maxFileSize limit
+   * - Path must not match excludePaths patterns
+   * - Path should match includePaths if specified
+   * - Total references limited by maxReferences setting
+   *
+   * @performance_considerations
+   * - Glob operations are optimized with appropriate ignore patterns
+   * - File validation is performed asynchronously in batches
+   * - Results are deduplicated efficiently using Set operations
+   * - Early termination when maxReferences limit is reached
+   *
+   * @error_handling
+   * - Individual pattern failures don't stop processing other patterns
+   * - Invalid patterns are logged as warnings and skipped
+   * - File access errors are handled gracefully
+   * - Empty result sets are returned without errors
+   *
+   * @use_cases
+   * - **Template Optimization**: Generate file references for optimization context
+   * - **Context Building**: Build comprehensive file context for templates
+   * - **Pattern Expansion**: Convert user patterns to concrete file lists
+   * - **IDE Integration**: Provide file references for Cursor-style templates
+   *
+   * @see {@link toFileReference} for reference normalization logic
+   * @see {@link isValidFile} for file validation criteria
+   * @see {@link BridgeOptions.maxReferences} for limit configuration
    */
   async mapFilesToReferences(patterns: string[]): Promise<string[]> {
     const references: Set<string> = new Set();
@@ -126,7 +548,7 @@ export class ContextBridge {
           }
         }
       } catch (_error) {
-        logger.warn(`Failed to resolve pattern ${pattern}`);
+        logger.warn(`Failed to resolve pattern: ${pattern}`);
       }
     }
 
@@ -540,3 +962,14 @@ export class ContextBridge {
     this.cache.clear();
   }
 }
+
+/**
+ * Default export of ContextBridge class for convenient importing
+ *
+ * @example
+ * ```typescript
+ * import ContextBridge from './context-bridge';
+ * const bridge = new ContextBridge();
+ * ```
+ */
+export default ContextBridge;

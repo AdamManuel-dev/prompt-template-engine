@@ -18,22 +18,22 @@ import { Template } from '../../types';
 export interface MCPOptimizePromptRequest {
   /** Prompt text to optimize */
   prompt: string;
-  
+
   /** Task description for optimization context */
   task?: string;
-  
+
   /** Target model for optimization */
   model?: 'gpt-4' | 'claude-3-opus' | 'claude-3-sonnet' | 'gemini-pro';
-  
+
   /** Number of refinement iterations */
   iterations?: number;
-  
+
   /** Number of few-shot examples */
   examples?: number;
-  
+
   /** Generate reasoning steps */
   reasoning?: boolean;
-  
+
   /** Template name if optimizing from template */
   templateName?: string;
 }
@@ -41,13 +41,13 @@ export interface MCPOptimizePromptRequest {
 export interface MCPOptimizePromptResponse {
   /** Success status */
   success: boolean;
-  
+
   /** Original prompt */
   originalPrompt: string;
-  
+
   /** Optimized prompt */
   optimizedPrompt: string;
-  
+
   /** Optimization metrics */
   metrics: {
     accuracyImprovement: number;
@@ -55,22 +55,22 @@ export interface MCPOptimizePromptResponse {
     costReduction: number;
     processingTime: number;
   };
-  
+
   /** Quality scores */
   qualityScores: {
     originalScore: number;
     optimizedScore: number;
   };
-  
+
   /** Generated examples if requested */
   examples?: Array<{
     input: string;
     output: string;
   }>;
-  
+
   /** Reasoning steps if generated */
   reasoning?: string[];
-  
+
   /** Error message if failed */
   error?: string;
 }
@@ -78,10 +78,10 @@ export interface MCPOptimizePromptResponse {
 export interface MCPScorePromptRequest {
   /** Prompt text to score */
   prompt: string;
-  
+
   /** Task description for context */
   task?: string;
-  
+
   /** Template name if scoring from template */
   templateName?: string;
 }
@@ -89,10 +89,10 @@ export interface MCPScorePromptRequest {
 export interface MCPScorePromptResponse {
   /** Success status */
   success: boolean;
-  
+
   /** Overall quality score (0-100) */
   overallScore: number;
-  
+
   /** Detailed metrics */
   metrics: {
     clarity: number;
@@ -100,13 +100,13 @@ export interface MCPScorePromptResponse {
     tokenEfficiency: number;
     exampleQuality?: number;
   };
-  
+
   /** Improvement suggestions */
   suggestions: string[];
-  
+
   /** Confidence level */
   confidence: number;
-  
+
   /** Error message if failed */
   error?: string;
 }
@@ -114,14 +114,14 @@ export interface MCPScorePromptResponse {
 export interface MCPBatchOptimizeRequest {
   /** Template names to optimize */
   templateNames?: string[];
-  
+
   /** Direct prompts to optimize */
   prompts?: Array<{
     text: string;
     task?: string;
     name?: string;
   }>;
-  
+
   /** Optimization configuration */
   config?: {
     model?: string;
@@ -134,13 +134,13 @@ export interface MCPBatchOptimizeRequest {
 export interface MCPBatchOptimizeResponse {
   /** Success status */
   success: boolean;
-  
+
   /** Number of successfully optimized items */
   optimized: number;
-  
+
   /** Number of failed optimizations */
   failed: number;
-  
+
   /** Individual results */
   results: Array<{
     name: string;
@@ -153,23 +153,25 @@ export interface MCPBatchOptimizeResponse {
     };
     error?: string;
   }>;
-  
+
   /** Summary statistics */
   summary: {
     avgAccuracyImprovement: number;
     avgTokenReduction: number;
     totalProcessingTime: number;
   };
-  
+
   /** Error message if batch failed */
   error?: string;
 }
 
 export class MCPOptimizationTools {
   private client: PromptWizardClient;
+
   private templateService: TemplateService;
+
   private optimizationService: PromptOptimizationService;
-  
+
   constructor() {
     // Initialize services
     const config = createDefaultConfig();
@@ -186,19 +188,27 @@ export class MCPOptimizationTools {
   /**
    * MCP Tool: Optimize a prompt using PromptWizard
    */
-  async optimizePrompt(request: MCPOptimizePromptRequest): Promise<MCPOptimizePromptResponse> {
+  async optimizePrompt(
+    request: MCPOptimizePromptRequest
+  ): Promise<MCPOptimizePromptResponse> {
     logger.info('MCP: optimize_prompt called');
-    
+
     try {
       let promptText = request.prompt;
-      let templateName = request.templateName;
+      let { templateName } = request;
 
       // If template name provided, load template content
       if (request.templateName) {
-        const templatePath = await this.templateService.findTemplate(request.templateName);
+        const templatePath = await this.templateService.findTemplate(
+          request.templateName
+        );
         if (templatePath) {
-          const template = await this.templateService.loadTemplate(templatePath);
-          const renderedTemplate = await this.templateService.renderTemplate(template, {});
+          const template =
+            await this.templateService.loadTemplate(templatePath);
+          const renderedTemplate = await this.templateService.renderTemplate(
+            template,
+            {}
+          );
           promptText = renderedTemplate.files.map(f => f.content).join('\n');
           templateName = template.name;
         } else {
@@ -206,7 +216,12 @@ export class MCPOptimizationTools {
             success: false,
             originalPrompt: request.prompt,
             optimizedPrompt: '',
-            metrics: { accuracyImprovement: 0, tokenReduction: 0, costReduction: 0, processingTime: 0 },
+            metrics: {
+              accuracyImprovement: 0,
+              tokenReduction: 0,
+              costReduction: 0,
+              processingTime: 0,
+            },
             qualityScores: { originalScore: 0, optimizedScore: 0 },
             error: `Template not found: ${request.templateName}`,
           };
@@ -228,7 +243,7 @@ export class MCPOptimizationTools {
         template,
         config: {
           task: request.task || 'Optimize this prompt for better performance',
-          targetModel: request.model as any || 'gpt-4',
+          targetModel: (request.model as any) || 'gpt-4',
           mutateRefineIterations: request.iterations || 3,
           fewShotCount: request.examples || 5,
           generateReasoning: request.reasoning ?? true,
@@ -238,7 +253,10 @@ export class MCPOptimizationTools {
       // Score both original and optimized prompts
       const [originalScore, optimizedScore] = await Promise.all([
         this.client.scorePrompt(promptText, request.task),
-        this.client.scorePrompt(result.optimizedTemplate.content || '', request.task),
+        this.client.scorePrompt(
+          result.optimizedTemplate.content || '',
+          request.task
+        ),
       ]);
 
       const processingTime = Date.now() - startTime;
@@ -269,15 +287,24 @@ export class MCPOptimizationTools {
         response.reasoning = result.optimizedTemplate.reasoning;
       }
 
-      logger.info(`MCP: optimize_prompt completed successfully - ${result.metrics.accuracyImprovement}% improvement`);
+      logger.info(
+        `MCP: optimize_prompt completed successfully - ${result.metrics.accuracyImprovement}% improvement`
+      );
       return response;
     } catch (error) {
-      logger.error(`MCP: optimize_prompt failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `MCP: optimize_prompt failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       return {
         success: false,
         originalPrompt: request.prompt,
         optimizedPrompt: '',
-        metrics: { accuracyImprovement: 0, tokenReduction: 0, costReduction: 0, processingTime: 0 },
+        metrics: {
+          accuracyImprovement: 0,
+          tokenReduction: 0,
+          costReduction: 0,
+          processingTime: 0,
+        },
         qualityScores: { originalScore: 0, optimizedScore: 0 },
         error: error instanceof Error ? error.message : String(error),
       };
@@ -287,18 +314,26 @@ export class MCPOptimizationTools {
   /**
    * MCP Tool: Score a prompt for quality
    */
-  async scorePrompt(request: MCPScorePromptRequest): Promise<MCPScorePromptResponse> {
+  async scorePrompt(
+    request: MCPScorePromptRequest
+  ): Promise<MCPScorePromptResponse> {
     logger.info('MCP: score_prompt called');
-    
+
     try {
       let promptText = request.prompt;
 
       // If template name provided, load template content
       if (request.templateName) {
-        const templatePath = await this.templateService.findTemplate(request.templateName);
+        const templatePath = await this.templateService.findTemplate(
+          request.templateName
+        );
         if (templatePath) {
-          const template = await this.templateService.loadTemplate(templatePath);
-          const renderedTemplate = await this.templateService.renderTemplate(template, {});
+          const template =
+            await this.templateService.loadTemplate(templatePath);
+          const renderedTemplate = await this.templateService.renderTemplate(
+            template,
+            {}
+          );
           promptText = renderedTemplate.files.map(f => f.content).join('\n');
         } else {
           return {
@@ -331,7 +366,9 @@ export class MCPOptimizationTools {
       logger.info(`MCP: score_prompt completed - score: ${score.overall}/100`);
       return response;
     } catch (error) {
-      logger.error(`MCP: score_prompt failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `MCP: score_prompt failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       return {
         success: false,
         overallScore: 0,
@@ -359,10 +396,10 @@ export class MCPOptimizationTools {
     error?: string;
   }> {
     logger.info('MCP: suggest_improvements called');
-    
+
     try {
       const scoreResult = await this.scorePrompt(request);
-      
+
       if (!scoreResult.success) {
         return {
           success: false,
@@ -377,17 +414,29 @@ export class MCPOptimizationTools {
       const categorizedSuggestions = scoreResult.suggestions.map(suggestion => {
         let category = 'General';
         let impact: 'low' | 'medium' | 'high' = 'medium';
-        
-        if (suggestion.toLowerCase().includes('clarity') || suggestion.toLowerCase().includes('specific')) {
+
+        if (
+          suggestion.toLowerCase().includes('clarity') ||
+          suggestion.toLowerCase().includes('specific')
+        ) {
           category = 'Clarity';
           impact = 'high';
-        } else if (suggestion.toLowerCase().includes('example') || suggestion.toLowerCase().includes('format')) {
+        } else if (
+          suggestion.toLowerCase().includes('example') ||
+          suggestion.toLowerCase().includes('format')
+        ) {
           category = 'Examples';
           impact = 'medium';
-        } else if (suggestion.toLowerCase().includes('context') || suggestion.toLowerCase().includes('background')) {
+        } else if (
+          suggestion.toLowerCase().includes('context') ||
+          suggestion.toLowerCase().includes('background')
+        ) {
           category = 'Context';
           impact = 'high';
-        } else if (suggestion.toLowerCase().includes('length') || suggestion.toLowerCase().includes('concise')) {
+        } else if (
+          suggestion.toLowerCase().includes('length') ||
+          suggestion.toLowerCase().includes('concise')
+        ) {
           category = 'Length';
           impact = 'medium';
         }
@@ -401,21 +450,29 @@ export class MCPOptimizationTools {
 
       // Prioritize actions based on current scores
       const prioritizedActions = [];
-      
+
       if (scoreResult.metrics.clarity < 70) {
-        prioritizedActions.push('Improve clarity by being more specific and direct');
+        prioritizedActions.push(
+          'Improve clarity by being more specific and direct'
+        );
       }
-      
+
       if (scoreResult.metrics.taskAlignment < 70) {
-        prioritizedActions.push('Better align the prompt with the intended task');
+        prioritizedActions.push(
+          'Better align the prompt with the intended task'
+        );
       }
-      
+
       if (scoreResult.metrics.tokenEfficiency < 70) {
-        prioritizedActions.push('Optimize token usage by removing redundant information');
+        prioritizedActions.push(
+          'Optimize token usage by removing redundant information'
+        );
       }
 
       if (scoreResult.overallScore < 60) {
-        prioritizedActions.unshift('Consider complete prompt restructuring for better results');
+        prioritizedActions.unshift(
+          'Consider complete prompt restructuring for better results'
+        );
       }
 
       // Estimate potential improvement
@@ -423,8 +480,10 @@ export class MCPOptimizationTools {
       const currentScore = scoreResult.overallScore;
       const improvementPotential = (maxPossibleScore - currentScore) * 0.7; // Assume 70% of gap can be closed
 
-      logger.info(`MCP: suggest_improvements completed - ${categorizedSuggestions.length} suggestions generated`);
-      
+      logger.info(
+        `MCP: suggest_improvements completed - ${categorizedSuggestions.length} suggestions generated`
+      );
+
       return {
         success: true,
         suggestions: categorizedSuggestions,
@@ -432,7 +491,9 @@ export class MCPOptimizationTools {
         estimatedImprovement: improvementPotential,
       };
     } catch (error) {
-      logger.error(`MCP: suggest_improvements failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `MCP: suggest_improvements failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       return {
         success: false,
         suggestions: [],
@@ -446,9 +507,11 @@ export class MCPOptimizationTools {
   /**
    * MCP Tool: Batch optimize multiple prompts or templates
    */
-  async batchOptimize(request: MCPBatchOptimizeRequest): Promise<MCPBatchOptimizeResponse> {
+  async batchOptimize(
+    request: MCPBatchOptimizeRequest
+  ): Promise<MCPBatchOptimizeResponse> {
     logger.info('MCP: batch_optimize called');
-    
+
     try {
       const results: Array<{
         name: string;
@@ -466,7 +529,7 @@ export class MCPOptimizationTools {
       let totalTokenReduction = 0;
       let totalProcessingTime = 0;
       let successCount = 0;
-      
+
       const startTime = Date.now();
 
       // Process template names
@@ -484,7 +547,7 @@ export class MCPOptimizationTools {
             };
 
             const result = await this.optimizePrompt(optimizeRequest);
-            
+
             if (result.success) {
               results.push({
                 name: templateName,
@@ -496,7 +559,7 @@ export class MCPOptimizationTools {
                   tokenReduction: result.metrics.tokenReduction,
                 },
               });
-              
+
               totalAccuracyImprovement += result.metrics.accuracyImprovement;
               totalTokenReduction += result.metrics.tokenReduction;
               successCount++;
@@ -531,7 +594,7 @@ export class MCPOptimizationTools {
             };
 
             const result = await this.optimizePrompt(optimizeRequest);
-            
+
             if (result.success) {
               results.push({
                 name: promptData.name || 'Direct Prompt',
@@ -543,7 +606,7 @@ export class MCPOptimizationTools {
                   tokenReduction: result.metrics.tokenReduction,
                 },
               });
-              
+
               totalAccuracyImprovement += result.metrics.accuracyImprovement;
               totalTokenReduction += result.metrics.tokenReduction;
               successCount++;
@@ -573,16 +636,22 @@ export class MCPOptimizationTools {
         failed: failedCount,
         results,
         summary: {
-          avgAccuracyImprovement: successCount > 0 ? totalAccuracyImprovement / successCount : 0,
-          avgTokenReduction: successCount > 0 ? totalTokenReduction / successCount : 0,
+          avgAccuracyImprovement:
+            successCount > 0 ? totalAccuracyImprovement / successCount : 0,
+          avgTokenReduction:
+            successCount > 0 ? totalTokenReduction / successCount : 0,
           totalProcessingTime,
         },
       };
 
-      logger.info(`MCP: batch_optimize completed - ${successCount} optimized, ${failedCount} failed`);
+      logger.info(
+        `MCP: batch_optimize completed - ${successCount} optimized, ${failedCount} failed`
+      );
       return response;
     } catch (error) {
-      logger.error(`MCP: batch_optimize failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `MCP: batch_optimize failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       return {
         success: false,
         optimized: 0,
@@ -609,7 +678,7 @@ export class MCPOptimizationTools {
   }> {
     try {
       const isHealthy = await this.client.healthCheck();
-      
+
       return {
         available: isHealthy,
         capabilities: [
@@ -634,7 +703,8 @@ export class MCPOptimizationTools {
 export const MCPToolDefinitions = {
   optimize_prompt: {
     name: 'optimize_prompt',
-    description: 'Optimize a prompt using Microsoft PromptWizard for better performance and quality',
+    description:
+      'Optimize a prompt using Microsoft PromptWizard for better performance and quality',
     inputSchema: {
       type: 'object',
       properties: {
@@ -649,7 +719,8 @@ export const MCPToolDefinitions = {
         model: {
           type: 'string',
           enum: ['gpt-4', 'claude-3-opus', 'claude-3-sonnet', 'gemini-pro'],
-          description: 'Target model for optimization (optional, default: gpt-4)',
+          description:
+            'Target model for optimization (optional, default: gpt-4)',
         },
         iterations: {
           type: 'number',
@@ -659,26 +730,30 @@ export const MCPToolDefinitions = {
         },
         examples: {
           type: 'number',
-          description: 'Number of few-shot examples to generate (optional, default: 5)',
+          description:
+            'Number of few-shot examples to generate (optional, default: 5)',
           minimum: 0,
           maximum: 20,
         },
         reasoning: {
           type: 'boolean',
-          description: 'Generate reasoning steps in optimized prompt (optional, default: true)',
+          description:
+            'Generate reasoning steps in optimized prompt (optional, default: true)',
         },
         templateName: {
           type: 'string',
-          description: 'Template name to optimize instead of direct prompt (optional)',
+          description:
+            'Template name to optimize instead of direct prompt (optional)',
         },
       },
       required: ['prompt'],
     },
   },
-  
+
   score_prompt: {
     name: 'score_prompt',
-    description: 'Score a prompt for quality using PromptWizard quality metrics',
+    description:
+      'Score a prompt for quality using PromptWizard quality metrics',
     inputSchema: {
       type: 'object',
       properties: {
@@ -692,13 +767,14 @@ export const MCPToolDefinitions = {
         },
         templateName: {
           type: 'string',
-          description: 'Template name to score instead of direct prompt (optional)',
+          description:
+            'Template name to score instead of direct prompt (optional)',
         },
       },
       required: ['prompt'],
     },
   },
-  
+
   suggest_improvements: {
     name: 'suggest_improvements',
     description: 'Get specific improvement suggestions for a prompt',
@@ -715,13 +791,14 @@ export const MCPToolDefinitions = {
         },
         templateName: {
           type: 'string',
-          description: 'Template name to analyze instead of direct prompt (optional)',
+          description:
+            'Template name to analyze instead of direct prompt (optional)',
         },
       },
       required: ['prompt'],
     },
   },
-  
+
   batch_optimize: {
     name: 'batch_optimize',
     description: 'Optimize multiple prompts or templates in batch',

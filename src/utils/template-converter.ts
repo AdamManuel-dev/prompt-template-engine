@@ -14,7 +14,9 @@ import { Template as ServiceTemplate } from '../services/template.service';
 /**
  * Convert from service Template to index Template format
  */
-export function convertServiceToIndexTemplate(serviceTemplate: ServiceTemplate): IndexTemplate {
+export function convertServiceToIndexTemplate(
+  serviceTemplate: ServiceTemplate
+): IndexTemplate {
   return {
     id: serviceTemplate.name, // Use name as fallback ID
     name: serviceTemplate.name,
@@ -23,54 +25,78 @@ export function convertServiceToIndexTemplate(serviceTemplate: ServiceTemplate):
     author: serviceTemplate.metadata?.author,
     tags: serviceTemplate.metadata?.tags,
     content: serviceTemplate.files?.[0]?.content || undefined,
-    variables: serviceTemplate.variables ? 
-      Object.fromEntries(Object.entries(serviceTemplate.variables).map(([key, config]) => [key, config.defaultValue])) : 
-      undefined,
-    commands: serviceTemplate.commands ? 
-      Object.fromEntries(serviceTemplate.commands.map((cmd, index) => [`cmd${index}`, cmd.command])) : 
-      undefined,
+    variables: serviceTemplate.variables
+      ? Object.fromEntries(
+          Object.entries(serviceTemplate.variables).map(([key, config]) => [
+            key,
+            config.default || config.defaultValue,
+          ])
+        )
+      : undefined,
+    commands: serviceTemplate.commands
+      ? Object.fromEntries(
+          serviceTemplate.commands.map((cmd, index) => [
+            `cmd${index}`,
+            cmd.command,
+          ])
+        )
+      : undefined,
     category: serviceTemplate.metadata?.category,
     files: serviceTemplate.files?.map(file => ({
-      source: file.source,
-      destination: file.destination || file.source,
+      path: file.path,
+      source: file.path || file.source || '',
+      destination: file.destination || file.path || file.source || '',
       transform: file.transform,
-      condition: file.condition
-    }))
+      condition: file.condition,
+      content: file.content,
+      name: file.name,
+      encoding: file.encoding,
+      mode: file.mode,
+      permissions: file.mode,
+    })),
   };
 }
 
 /**
  * Convert from index Template to service Template format
  */
-export function convertIndexToServiceTemplate(indexTemplate: IndexTemplate): ServiceTemplate {
-  const commands = indexTemplate.commands ? 
-    Object.entries(indexTemplate.commands).map(([name, command], index) => ({
-      name,
-      command,
-      description: `Command ${index + 1}`,
-      args: []
-    })) : 
-    [];
+export function convertIndexToServiceTemplate(
+  indexTemplate: IndexTemplate
+): ServiceTemplate {
+  const commands = indexTemplate.commands
+    ? Array.isArray(indexTemplate.commands)
+      ? indexTemplate.commands
+      : Object.entries(indexTemplate.commands).map(
+          ([name, command], index) => ({
+            command,
+            description: `Command ${name}`,
+            when: undefined,
+          })
+        )
+    : [];
 
-  const variables = indexTemplate.variables ?
-    Object.fromEntries(Object.entries(indexTemplate.variables).map(([key, value]) => [
-      key,
-      {
-        type: typeof value as 'string' | 'number' | 'boolean',
-        description: `Variable ${key}`,
-        defaultValue: value,
-        required: false
-      }
-    ])) :
-    {};
+  const variables = indexTemplate.variables
+    ? Object.fromEntries(
+        Object.entries(indexTemplate.variables).map(([key, value]) => [
+          key,
+          {
+            type: typeof value as 'string' | 'number' | 'boolean',
+            description: `Variable ${key}`,
+            defaultValue: value,
+            required: false,
+          },
+        ])
+      )
+    : {};
 
-  const files = indexTemplate.files?.map(file => ({
-    source: file.source,
-    destination: file.destination,
-    transform: file.transform,
-    condition: file.condition,
-    content: indexTemplate.content || undefined
-  })) || [];
+  const files =
+    indexTemplate.files?.map(file => ({
+      path: file.path || file.source,
+      name: file.name,
+      content: file.content || indexTemplate.content || '',
+      encoding: file.encoding,
+      mode: file.mode,
+    })) || [];
 
   return {
     name: indexTemplate.name,
@@ -85,7 +111,7 @@ export function convertIndexToServiceTemplate(indexTemplate: IndexTemplate): Ser
       tags: indexTemplate.tags,
       category: indexTemplate.category,
       created: new Date().toISOString(),
-      updated: new Date().toISOString()
-    }
+      updated: new Date().toISOString(),
+    },
   };
 }

@@ -85,7 +85,10 @@ export class OpenAIAdapter {
 
     // Add system message if enabled and available
     if (this.config.enableSystemMessage) {
-      const systemMessage = this.extractSystemMessage(optimizedPrompt, context?.systemMessage);
+      const systemMessage = this.extractSystemMessage(
+        optimizedPrompt,
+        context?.systemMessage
+      );
       if (systemMessage) {
         messages.push({
           role: 'system',
@@ -97,25 +100,38 @@ export class OpenAIAdapter {
 
     // Add conversation history if available
     if (context?.conversationHistory) {
-      const historyMessages = this.formatConversationHistory(context.conversationHistory);
+      const historyMessages = this.formatConversationHistory(
+        context.conversationHistory
+      );
       messages.push(...historyMessages);
-      adaptationNotes.push(`Added ${historyMessages.length} conversation history messages`);
+      adaptationNotes.push(
+        `Added ${historyMessages.length} conversation history messages`
+      );
     }
 
     // Process the main prompt
-    const userMessage = this.formatUserMessage(optimizedPrompt, context?.userContext);
-    
+    const userMessage = this.formatUserMessage(
+      optimizedPrompt,
+      context?.userContext
+    );
+
     // Check token limits and split if necessary
-    const totalTokens = this.estimateTokens(messages) + this.estimateTokens([userMessage]);
+    const totalTokens =
+      this.estimateTokens(messages) + this.estimateTokens([userMessage]);
     const modelLimit = this.modelLimits[this.config.model];
-    
+
     if (totalTokens > modelLimit && this.config.splitLongPrompts) {
-      const splitResult = this.splitLongPrompt(userMessage, modelLimit - this.estimateTokens(messages));
+      const splitResult = this.splitLongPrompt(
+        userMessage,
+        modelLimit - this.estimateTokens(messages)
+      );
       messages.push(...splitResult.messages);
       adaptationNotes.push(...splitResult.notes);
       warnings.push(...splitResult.warnings);
     } else if (totalTokens > modelLimit) {
-      warnings.push(`Prompt exceeds model limit (${totalTokens}/${modelLimit} tokens)`);
+      warnings.push(
+        `Prompt exceeds model limit (${totalTokens}/${modelLimit} tokens)`
+      );
       messages.push(userMessage);
     } else {
       messages.push(userMessage);
@@ -144,7 +160,10 @@ export class OpenAIAdapter {
   /**
    * Extract system message from optimized prompt
    */
-  private extractSystemMessage(prompt: string, explicitSystemMessage?: string): string | null {
+  private extractSystemMessage(
+    prompt: string,
+    explicitSystemMessage?: string
+  ): string | null {
     if (explicitSystemMessage) {
       return explicitSystemMessage;
     }
@@ -164,11 +183,22 @@ export class OpenAIAdapter {
     }
 
     // Create a generic system message based on prompt content
-    if (prompt.toLowerCase().includes('code') || prompt.toLowerCase().includes('programming')) {
+    if (
+      prompt.toLowerCase().includes('code') ||
+      prompt.toLowerCase().includes('programming')
+    ) {
       return 'You are a helpful coding assistant that provides accurate, well-commented code examples and explanations.';
-    } else if (prompt.toLowerCase().includes('analysis') || prompt.toLowerCase().includes('research')) {
+    }
+    if (
+      prompt.toLowerCase().includes('analysis') ||
+      prompt.toLowerCase().includes('research')
+    ) {
       return 'You are a knowledgeable research assistant that provides thorough, evidence-based analysis and insights.';
-    } else if (prompt.toLowerCase().includes('creative') || prompt.toLowerCase().includes('writing')) {
+    }
+    if (
+      prompt.toLowerCase().includes('creative') ||
+      prompt.toLowerCase().includes('writing')
+    ) {
       return 'You are a creative writing assistant that helps with engaging, well-structured content creation.';
     }
 
@@ -178,7 +208,9 @@ export class OpenAIAdapter {
   /**
    * Format conversation history for OpenAI
    */
-  private formatConversationHistory(history: Array<{ role: string; content: string }>): OpenAIMessage[] {
+  private formatConversationHistory(
+    history: Array<{ role: string; content: string }>
+  ): OpenAIMessage[] {
     return history.map(msg => ({
       role: this.normalizeRole(msg.role),
       content: msg.content,
@@ -188,7 +220,10 @@ export class OpenAIAdapter {
   /**
    * Format the main user message
    */
-  private formatUserMessage(prompt: string, userContext?: string): OpenAIMessage {
+  private formatUserMessage(
+    prompt: string,
+    userContext?: string
+  ): OpenAIMessage {
     let content = prompt;
 
     // Remove system message if it was extracted
@@ -220,7 +255,7 @@ export class OpenAIAdapter {
     message: OpenAIMessage,
     maxTokens: number
   ): { messages: OpenAIMessage[]; notes: string[]; warnings: string[] } {
-    const content = message.content;
+    const { content } = message;
     const messages: OpenAIMessage[] = [];
     const notes: string[] = [];
     const warnings: string[] = [];
@@ -232,30 +267,35 @@ export class OpenAIAdapter {
 
     for (const paragraph of paragraphs) {
       const testChunk = currentChunk + (currentChunk ? '\n\n' : '') + paragraph;
-      
-      if (this.estimateTokens([{ role: 'user', content: testChunk }]) <= maxTokens) {
+
+      if (
+        this.estimateTokens([{ role: 'user', content: testChunk }]) <= maxTokens
+      ) {
         currentChunk = testChunk;
+      } else if (currentChunk) {
+        messages.push({
+          role: 'user',
+          content: `Part ${chunkIndex}: ${currentChunk}`,
+        });
+        chunkIndex++;
+        currentChunk = paragraph;
       } else {
-        if (currentChunk) {
-          messages.push({
-            role: 'user',
-            content: `Part ${chunkIndex}: ${currentChunk}`,
-          });
-          chunkIndex++;
-          currentChunk = paragraph;
-        } else {
-          // Single paragraph is too long, need to split by sentences
-          const sentences = paragraph.split(/[.!?]+\s/);
-          for (const sentence of sentences) {
-            if (this.estimateTokens([{ role: 'user', content: sentence }]) <= maxTokens) {
-              messages.push({
-                role: 'user',
-                content: `Part ${chunkIndex}: ${sentence}`,
-              });
-              chunkIndex++;
-            } else {
-              warnings.push(`Sentence too long to fit in token limit: ${sentence.substring(0, 100)}...`);
-            }
+        // Single paragraph is too long, need to split by sentences
+        const sentences = paragraph.split(/[.!?]+\s/);
+        for (const sentence of sentences) {
+          if (
+            this.estimateTokens([{ role: 'user', content: sentence }]) <=
+            maxTokens
+          ) {
+            messages.push({
+              role: 'user',
+              content: `Part ${chunkIndex}: ${sentence}`,
+            });
+            chunkIndex++;
+          } else {
+            warnings.push(
+              `Sentence too long to fit in token limit: ${sentence.substring(0, 100)}...`
+            );
           }
         }
       }
@@ -272,7 +312,8 @@ export class OpenAIAdapter {
     if (messages.length > 1) {
       messages.push({
         role: 'user',
-        content: 'Please provide a comprehensive response considering all the parts above.',
+        content:
+          'Please provide a comprehensive response considering all the parts above.',
       });
       notes.push(`Split into ${messages.length - 1} parts due to token limit`);
     }
@@ -286,7 +327,8 @@ export class OpenAIAdapter {
   private normalizeRole(role: string): 'system' | 'user' | 'assistant' {
     const normalizedRole = role.toLowerCase();
     if (normalizedRole === 'system') return 'system';
-    if (normalizedRole === 'assistant' || normalizedRole === 'ai') return 'assistant';
+    if (normalizedRole === 'assistant' || normalizedRole === 'ai')
+      return 'assistant';
     return 'user';
   }
 
@@ -295,13 +337,13 @@ export class OpenAIAdapter {
    */
   private estimateTokens(messages: OpenAIMessage[]): number {
     let totalTokens = 0;
-    
+
     for (const message of messages) {
       // OpenAI tokenization approximation
       totalTokens += Math.ceil(message.content.length / 4);
       totalTokens += 4; // Overhead per message
     }
-    
+
     return totalTokens;
   }
 
@@ -340,7 +382,10 @@ export class OpenAIAdapter {
   /**
    * Validate OpenAI request format
    */
-  validateRequest(request: OpenAIRequest): { valid: boolean; errors: string[] } {
+  validateRequest(request: OpenAIRequest): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!request.model) {
@@ -362,11 +407,17 @@ export class OpenAIAdapter {
       }
     }
 
-    if (request.max_tokens && (request.max_tokens < 1 || request.max_tokens > 4096)) {
+    if (
+      request.max_tokens &&
+      (request.max_tokens < 1 || request.max_tokens > 4096)
+    ) {
       errors.push('max_tokens must be between 1 and 4096');
     }
 
-    if (request.temperature && (request.temperature < 0 || request.temperature > 2)) {
+    if (
+      request.temperature &&
+      (request.temperature < 0 || request.temperature > 2)
+    ) {
       errors.push('Temperature must be between 0 and 2');
     }
 

@@ -180,7 +180,7 @@ export class CostCalculator {
     outputTokens: number = 0
   ): CostEstimate {
     const pricingModel = this.pricingModels[model];
-    
+
     if (!pricingModel) {
       throw new Error(`Pricing model not found for ${model}`);
     }
@@ -210,7 +210,7 @@ export class CostCalculator {
     outputTokens: number = 0
   ): CostComparison {
     const estimates: Record<string, CostEstimate> = {};
-    
+
     for (const model of models) {
       try {
         estimates[model] = this.calculateCost(model, inputTokens, outputTokens);
@@ -223,15 +223,25 @@ export class CostCalculator {
     const minCost = Math.min(...costs);
     const maxCost = Math.max(...costs);
 
-    const cheapest = Object.entries(estimates).find(([, est]) => est.totalCost === minCost)?.[0] || '';
-    const mostExpensive = Object.entries(estimates).find(([, est]) => est.totalCost === maxCost)?.[0] || '';
+    const cheapest =
+      Object.entries(estimates).find(
+        ([, est]) => est.totalCost === minCost
+      )?.[0] || '';
+    const mostExpensive =
+      Object.entries(estimates).find(
+        ([, est]) => est.totalCost === maxCost
+      )?.[0] || '';
 
     const savings = {
       absolute: maxCost - minCost,
       percentage: maxCost > 0 ? ((maxCost - minCost) / maxCost) * 100 : 0,
     };
 
-    const recommendations = this.generateCostRecommendations(estimates, inputTokens, outputTokens);
+    const recommendations = this.generateCostRecommendations(
+      estimates,
+      inputTokens,
+      outputTokens
+    );
 
     return {
       models: estimates,
@@ -258,10 +268,16 @@ export class CostCalculator {
     const costPerRequest = baseCost.totalCost;
 
     // Calculate optimization savings
-    const optimizedInputTokens = Math.round(avgInputTokens * (1 - tokenReductionPercentage / 100));
-    const optimizedCost = this.calculateCost(model, optimizedInputTokens, avgOutputTokens);
+    const optimizedInputTokens = Math.round(
+      avgInputTokens * (1 - tokenReductionPercentage / 100)
+    );
+    const optimizedCost = this.calculateCost(
+      model,
+      optimizedInputTokens,
+      avgOutputTokens
+    );
     const optimizedMonthlyCost = optimizedCost.totalCost * monthlyRequests;
-    
+
     const monthlySavings = monthlyCost - optimizedMonthlyCost;
     const annualSavings = monthlySavings * 12;
     const tokenReduction = avgInputTokens - optimizedInputTokens;
@@ -281,33 +297,45 @@ export class CostCalculator {
   /**
    * Find the most cost-effective model for given requirements
    */
-  findOptimalModel(
-    requirements: {
-      maxCostPerRequest?: number;
-      minContextWindow?: number;
-      requiredFeatures?: string[];
-      inputTokens: number;
-      outputTokens?: number;
-    }
-  ): {
+  findOptimalModel(requirements: {
+    maxCostPerRequest?: number;
+    minContextWindow?: number;
+    requiredFeatures?: string[];
+    inputTokens: number;
+    outputTokens?: number;
+  }): {
     recommended: string;
     alternatives: string[];
     reasoning: string[];
   } {
-    const { maxCostPerRequest, minContextWindow, requiredFeatures = [], inputTokens, outputTokens = 0 } = requirements;
-    
-    const candidates: Array<{ model: string; cost: number; contextWindow: number; features: string[] }> = [];
+    const {
+      maxCostPerRequest,
+      minContextWindow,
+      requiredFeatures = [],
+      inputTokens,
+      outputTokens = 0,
+    } = requirements;
 
-    for (const [modelName, pricingModel] of Object.entries(this.pricingModels)) {
+    const candidates: Array<{
+      model: string;
+      cost: number;
+      contextWindow: number;
+      features: string[];
+    }> = [];
+
+    for (const [modelName, pricingModel] of Object.entries(
+      this.pricingModels
+    )) {
       const cost = this.calculateCost(modelName, inputTokens, outputTokens);
       const features = this.getModelFeatures(pricingModel);
-      
+
       // Check basic requirements
       if (maxCostPerRequest && cost.totalCost > maxCostPerRequest) continue;
-      if (minContextWindow && pricingModel.contextWindow < minContextWindow) continue;
-      
+      if (minContextWindow && pricingModel.contextWindow < minContextWindow)
+        continue;
+
       // Check required features
-      const hasAllFeatures = requiredFeatures.every(feature => 
+      const hasAllFeatures = requiredFeatures.every(feature =>
         features.includes(feature.toLowerCase())
       );
       if (!hasAllFeatures) continue;
@@ -333,7 +361,7 @@ export class CostCalculator {
 
     const recommended = candidates[0].model;
     const alternatives = candidates.slice(1, 4).map(c => c.model);
-    
+
     const reasoning = [
       `${recommended} offers the lowest cost at $${candidates[0].cost.toFixed(6)} per request`,
       `Context window: ${candidates[0].contextWindow.toLocaleString()} tokens`,
@@ -364,14 +392,17 @@ export class CostCalculator {
     let tier = 'standard';
 
     // Simulated bulk pricing tiers
-    if (monthlyTokenUsage > 100000000) { // 100M tokens
-      discount = 0.20; // 20% discount
+    if (monthlyTokenUsage > 100000000) {
+      // 100M tokens
+      discount = 0.2; // 20% discount
       tier = 'enterprise';
-    } else if (monthlyTokenUsage > 10000000) { // 10M tokens
+    } else if (monthlyTokenUsage > 10000000) {
+      // 10M tokens
       discount = 0.15; // 15% discount
       tier = 'business';
-    } else if (monthlyTokenUsage > 1000000) { // 1M tokens
-      discount = 0.10; // 10% discount
+    } else if (monthlyTokenUsage > 1000000) {
+      // 1M tokens
+      discount = 0.1; // 10% discount
       tier = 'pro';
     }
 
@@ -396,13 +427,15 @@ export class CostCalculator {
     outputTokens: number
   ): string[] {
     const recommendations: string[] = [];
-    const sortedByPrice = Object.entries(estimates).sort((a, b) => a[1].totalCost - b[1].totalCost);
-    
+    const sortedByPrice = Object.entries(estimates).sort(
+      (a, b) => a[1].totalCost - b[1].totalCost
+    );
+
     if (sortedByPrice.length > 1) {
       const [cheapest, second] = sortedByPrice;
       const savings = second[1].totalCost - cheapest[1].totalCost;
       const percentage = (savings / second[1].totalCost) * 100;
-      
+
       recommendations.push(
         `Switch to ${cheapest[0]} to save $${savings.toFixed(6)} (${percentage.toFixed(1)}%) per request`
       );
@@ -410,19 +443,29 @@ export class CostCalculator {
 
     // Token-specific recommendations
     if (inputTokens > 10000) {
-      recommendations.push('Consider token reduction optimization for large prompts');
+      recommendations.push(
+        'Consider token reduction optimization for large prompts'
+      );
     }
 
     if (outputTokens === 0) {
-      recommendations.push('Estimate output tokens for more accurate cost calculations');
+      recommendations.push(
+        'Estimate output tokens for more accurate cost calculations'
+      );
     }
 
     // Model-specific recommendations
-    const hasGoogleModel = Object.keys(estimates).some(model => model.startsWith('gemini'));
-    const hasOpenAIModel = Object.keys(estimates).some(model => model.startsWith('gpt'));
-    
+    const hasGoogleModel = Object.keys(estimates).some(model =>
+      model.startsWith('gemini')
+    );
+    const hasOpenAIModel = Object.keys(estimates).some(model =>
+      model.startsWith('gpt')
+    );
+
     if (hasGoogleModel && hasOpenAIModel) {
-      recommendations.push('Google models often provide better value for large context windows');
+      recommendations.push(
+        'Google models often provide better value for large context windows'
+      );
     }
 
     return recommendations;
@@ -433,16 +476,18 @@ export class CostCalculator {
    */
   private getModelFeatures(pricingModel: PricingModel): string[] {
     const features: string[] = [pricingModel.provider];
-    
+
     if (pricingModel.specialFeatures?.multimodal) features.push('multimodal');
-    if (pricingModel.specialFeatures?.functionCalling) features.push('function calling');
+    if (pricingModel.specialFeatures?.functionCalling)
+      features.push('function calling');
     if (pricingModel.specialFeatures?.realtime) features.push('realtime');
-    
+
     // Context window categories
     if (pricingModel.contextWindow >= 1000000) features.push('large context');
-    else if (pricingModel.contextWindow >= 100000) features.push('medium context');
+    else if (pricingModel.contextWindow >= 100000)
+      features.push('medium context');
     else features.push('standard context');
-    
+
     return features;
   }
 

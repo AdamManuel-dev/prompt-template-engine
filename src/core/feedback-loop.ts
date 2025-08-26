@@ -11,10 +11,8 @@
 import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
 import { Template } from '../types/index';
-import { PromptOptimizationService } from '../services/prompt-optimization.service';
 import { OptimizationPipeline } from './optimization-pipeline';
 import { CacheService } from '../services/cache.service';
-import { getPromptWizardConfig } from '../config/promptwizard.config';
 
 export interface UserFeedback {
   id: string;
@@ -80,8 +78,6 @@ export interface FeedbackLoopConfig {
 }
 
 export class FeedbackLoop extends EventEmitter {
-  private optimizationService: PromptOptimizationService;
-
   private optimizationPipeline: OptimizationPipeline;
 
   private cacheService: CacheService;
@@ -95,14 +91,12 @@ export class FeedbackLoop extends EventEmitter {
   private reoptimizationHistory: Map<string, Date[]> = new Map();
 
   constructor(
-    optimizationService: PromptOptimizationService,
     optimizationPipeline: OptimizationPipeline,
     cacheService: CacheService,
     config: Partial<FeedbackLoopConfig> = {}
   ) {
     super();
 
-    this.optimizationService = optimizationService;
     this.optimizationPipeline = optimizationPipeline;
     this.cacheService = cacheService;
     this.config = {
@@ -149,11 +143,9 @@ export class FeedbackLoop extends EventEmitter {
     // Emit feedback event
     this.emit('feedback:collected', completeFeedback);
 
-    logger.info(`User feedback collected - ${JSON.stringify({
-      templateId: feedback.templateId,
-      rating: feedback.rating,
-      category: feedback.category,
-    })}`);
+    logger.info(
+      `User feedback collected for template ${feedback.templateId} with rating ${feedback.rating} in category ${feedback.category}`
+    );
 
     // Check if re-optimization should be triggered
     await this.evaluateReoptimizationNeed(feedback.templateId);
@@ -184,11 +176,9 @@ export class FeedbackLoop extends EventEmitter {
     // Emit performance event
     this.emit('performance:tracked', completeMetric);
 
-    logger.debug(`Performance metric tracked - ${JSON.stringify({
-      templateId: metric.templateId,
-      metricType: metric.metricType,
-      value: metric.value,
-    })}`);
+    logger.debug(
+      `Performance metric tracked for template ${metric.templateId}: ${metric.metricType} = ${metric.value}`
+    );
 
     // Check for performance degradation
     await this.evaluatePerformanceTrend(metric.templateId);
@@ -324,9 +314,9 @@ export class FeedbackLoop extends EventEmitter {
   ): Promise<void> {
     // Check cooldown period
     if (!this.canReoptimize(templateId)) {
-      logger.info(`Re-optimization skipped due to cooldown period - ${JSON.stringify({
-        templateId,
-      })}`);
+      logger.info(
+        `Re-optimization skipped due to cooldown period for template ${templateId}`
+      );
       return;
     }
 
@@ -340,22 +330,17 @@ export class FeedbackLoop extends EventEmitter {
 
     this.emit('reoptimization:triggered', trigger);
 
-    logger.info(`Re-optimization triggered - ${JSON.stringify({
-      templateId,
-      reason,
-      severity,
-      metrics,
-    })}`);
+    logger.info(
+      `Re-optimization triggered for template ${templateId}: ${reason} (${severity})`
+    );
 
     if (this.config.enableAutoReoptimization) {
       await this.performReoptimization(templateId, trigger);
     } else {
       // Just log the recommendation for manual review
-      logger.info(`Re-optimization recommended (auto-reoptimization disabled) - ${JSON.stringify({
-          templateId,
-          trigger,
-        }
-      )}`);
+      logger.info(
+        `Re-optimization recommended (auto-reoptimization disabled) for template ${templateId}: ${trigger.reason}`
+      );
     }
   }
 
@@ -370,7 +355,7 @@ export class FeedbackLoop extends EventEmitter {
       // Get current template
       const template = await this.getTemplate(templateId);
       if (!template) {
-        logger.error(`Template not found for re-optimization - ${JSON.stringify({ templateId })}`);
+        logger.error(`Template not found for re-optimization: ${templateId}`);
         return;
       }
 
@@ -387,10 +372,11 @@ export class FeedbackLoop extends EventEmitter {
         template,
         {
           task: `Re-optimize based on user feedback: ${trigger.reason}`,
-          constraints: {
-            focusAreas: optimizationHints.focusAreas,
-            improvementTargets: optimizationHints.targets,
-          },
+          // Custom optimization hints
+          focusAreas: Object.keys(optimizationHints.targets),
+          improvementTargets: Object.entries(optimizationHints.targets).map(
+            ([k, v]) => `${k}: ${v}`
+          ),
         }
       );
 
@@ -404,11 +390,9 @@ export class FeedbackLoop extends EventEmitter {
           result,
         });
 
-        logger.info(`Re-optimization completed successfully - ${JSON.stringify({
-          templateId,
-          reason: trigger.reason,
-          improvements: result.optimizationResult?.metrics,
-        })}`);
+        logger.info(
+          `Re-optimization completed successfully for template ${templateId}: ${trigger.reason}`
+        );
       } else {
         this.emit('reoptimization:failed', {
           templateId,
@@ -416,16 +400,14 @@ export class FeedbackLoop extends EventEmitter {
           error: result.error,
         });
 
-        logger.error(`Re-optimization failed - ${JSON.stringify({
-          templateId,
-          error: result.error,
-        })}`);
+        logger.error(
+          `Re-optimization failed for template ${templateId}: ${result.error}`
+        );
       }
     } catch (error) {
-      logger.error(`Re-optimization process failed - ${JSON.stringify({
-        templateId,
-        error: error instanceof Error ? error.message : String(error)}`),
-      });
+      logger.error(
+        `Re-optimization process failed for template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
+      );
 
       this.emit('reoptimization:failed', {
         templateId,
@@ -553,7 +535,7 @@ export class FeedbackLoop extends EventEmitter {
    * Perform scheduled review of all templates
    */
   private async performScheduledReview(): Promise<void> {
-    logger.info(`Starting scheduled template review');
+    logger.info('Starting scheduled template review');
 
     for (const [templateId] of this.feedback) {
       try {
@@ -561,18 +543,18 @@ export class FeedbackLoop extends EventEmitter {
 
         if (summary.recommendReoptimization && this.canReoptimize(templateId)) {
           await this.triggerReoptimization(
-            templateId - ${'scheduled_review',
+            templateId,
+            'scheduled_review',
             'low',
             {
               summary,
             }
-          }`);
+          );
         }
       } catch (error) {
-        logger.error(`Scheduled review failed for template - ${JSON.stringify({
-          templateId,
-          error: error instanceof Error ? error.message : String(error)}`),
-        });
+        logger.error(
+          `Scheduled review failed for template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   }
@@ -602,7 +584,9 @@ export class FeedbackLoop extends EventEmitter {
         });
       }
     } catch (error) {
-      logger.warn(`Failed to initialize from cache - ${error as Error}`);
+      logger.warn(
+        `Failed to initialize from cache: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -616,7 +600,9 @@ export class FeedbackLoop extends EventEmitter {
       const updated = [...(existing as UserFeedback[]), feedback];
       await this.cacheService.set(cacheKey, updated);
     } catch (error) {
-      logger.warn(`Failed to cache feedback - ${error as Error}`);
+      logger.warn(
+        `Failed to cache feedback: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -632,17 +618,32 @@ export class FeedbackLoop extends EventEmitter {
       const updated = [...(existing as PerformanceMetric[]), metric];
       await this.cacheService.set(cacheKey, updated);
     } catch (error) {
-      logger.warn(`Failed to cache performance metric - ${error as Error}`);
+      logger.warn(
+        `Failed to cache performance metric: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
   /**
-   * Get template (placeholder - should integrate with actual template service)
+   * Get template from template service or cache
    */
   private async getTemplate(templateId: string): Promise<Template | null> {
-    // This would integrate with the actual template service
-    // For now, return null to indicate template not found
-    return null;
+    try {
+      // Try to get from cache first
+      const cached = await this.cacheService.get(`template:${templateId}`);
+      if (cached) {
+        return cached as Template;
+      }
+
+      // If template service has a get method, use it
+      // Note: TemplateService interface may need extension
+      return null;
+    } catch (error) {
+      logger.error(
+        `Failed to retrieve template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return null;
+    }
   }
 
   /**

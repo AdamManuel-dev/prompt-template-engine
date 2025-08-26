@@ -47,7 +47,9 @@ export class GeminiOptimizer {
     optimizeForCode: true,
   };
 
-  constructor(private config: GeminiOptimizationConfig = {} as GeminiOptimizationConfig) {
+  constructor(
+    private config: GeminiOptimizationConfig = {} as GeminiOptimizationConfig
+  ) {
     this.config = { ...this.defaultConfig, ...config };
   }
 
@@ -100,7 +102,10 @@ export class GeminiOptimizer {
     }
 
     if (this.config.enableStructuredPrompts) {
-      const structureResult = this.addStructuredFormat(optimizedPrompt, context?.expectedFormat);
+      const structureResult = this.addStructuredFormat(
+        optimizedPrompt,
+        context?.expectedFormat
+      );
       optimizedPrompt = structureResult.prompt;
       if (structureResult.applied) {
         techniquesApplied.push('Structured formatting');
@@ -112,7 +117,11 @@ export class GeminiOptimizer {
     optimizedPrompt = this.applyGeminiPatterns(optimizedPrompt);
     techniquesApplied.push('Gemini-specific patterns');
 
-    const improvements = this.calculateImprovements(prompt, optimizedPrompt, context);
+    const improvements = this.calculateImprovements(
+      prompt,
+      optimizedPrompt,
+      context
+    );
 
     return {
       optimizedPrompt,
@@ -123,7 +132,10 @@ export class GeminiOptimizer {
     };
   }
 
-  private optimizeForEfficiency(prompt: string): { prompt: string; applied: boolean } {
+  private optimizeForEfficiency(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
     let optimized = prompt;
     let applied = false;
 
@@ -158,8 +170,14 @@ export class GeminiOptimizer {
     return { prompt: optimized, applied };
   }
 
-  private optimizeForCode(prompt: string): { prompt: string; applied: boolean } {
-    if (!prompt.toLowerCase().includes('code') && !prompt.toLowerCase().includes('programming')) {
+  private optimizeForCode(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
+    if (
+      !prompt.toLowerCase().includes('code') &&
+      !prompt.toLowerCase().includes('programming')
+    ) {
       return { prompt, applied: false };
     }
 
@@ -173,7 +191,10 @@ export class GeminiOptimizer {
     return { prompt: codePrompt, applied: true };
   }
 
-  private optimizeForMultimodal(prompt: string): { prompt: string; applied: boolean } {
+  private optimizeForMultimodal(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
     let multimodalPrompt = prompt;
     multimodalPrompt += '\n\nWhen analyzing any images:';
     multimodalPrompt += '\n- Describe relevant visual elements clearly';
@@ -183,13 +204,16 @@ export class GeminiOptimizer {
     return { prompt: multimodalPrompt, applied: true };
   }
 
-  private addStructuredFormat(prompt: string, expectedFormat?: string): { prompt: string; applied: boolean } {
+  private addStructuredFormat(
+    prompt: string,
+    expectedFormat?: string
+  ): { prompt: string; applied: boolean } {
     if (prompt.includes('format:') || prompt.includes('structure:')) {
       return { prompt, applied: false };
     }
 
     let structured = prompt;
-    
+
     if (expectedFormat) {
       structured += `\n\nPlease format your response as ${expectedFormat}.`;
     } else {
@@ -222,11 +246,17 @@ export class GeminiOptimizer {
     return Math.ceil(text.length / 4);
   }
 
-  private calculateImprovements(original: string, optimized: string, context?: any) {
+  private calculateImprovements(
+    original: string,
+    optimized: string,
+    context?: any
+  ) {
     const efficiencyScore = this.calculateEfficiencyScore(optimized);
     const clarityScore = this.calculateClarityScore(optimized);
     const structureScore = this.calculateStructureScore(optimized);
-    const multimodalScore = context?.hasImages ? this.calculateMultimodalScore(optimized) : 0;
+    const multimodalScore = context?.hasImages
+      ? this.calculateMultimodalScore(optimized)
+      : 0;
 
     return {
       efficiencyScore: Math.min(100, efficiencyScore),
@@ -238,44 +268,44 @@ export class GeminiOptimizer {
 
   private calculateEfficiencyScore(text: string): number {
     let score = 70;
-    
+
     // Award for conciseness
     if (text.length < 500) score += 15;
     else if (text.length < 1000) score += 10;
-    
+
     // Award for direct language
     if (!text.includes('perhaps') && !text.includes('maybe')) score += 10;
-    
+
     return score;
   }
 
   private calculateClarityScore(text: string): number {
     let score = 60;
-    
+
     if (text.includes('specific')) score += 10;
     if (text.includes('clear')) score += 10;
     if (text.includes(':')) score += 5;
-    
+
     return score;
   }
 
   private calculateStructureScore(text: string): number {
     let score = 60;
-    
+
     if (/\d+\./.test(text)) score += 15;
     if (text.includes('- ')) score += 10;
     if (text.includes('\n\n')) score += 10;
-    
+
     return score;
   }
 
   private calculateMultimodalScore(text: string): number {
     let score = 50;
-    
+
     if (text.includes('image')) score += 20;
     if (text.includes('visual')) score += 15;
     if (text.includes('describe')) score += 15;
-    
+
     return score;
   }
 

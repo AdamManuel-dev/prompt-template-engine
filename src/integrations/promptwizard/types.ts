@@ -42,6 +42,21 @@ export interface OptimizationConfig {
     version?: string;
     author?: string;
   };
+
+  /** Focus areas for optimization */
+  focusAreas?: string[];
+
+  /** Improvement targets */
+  improvementTargets?: string[];
+
+  /** Constraints for optimization */
+  constraints?: {
+    maxLength?: number;
+    preserveVariables?: boolean;
+    maintainStructure?: boolean;
+    focusAreas?: string[];
+    [key: string]: any;
+  };
 }
 
 export interface OptimizedResult {
@@ -83,6 +98,15 @@ export interface OptimizedResult {
 
   /** Reasoning chain if generated */
   reasoning?: string[];
+
+  /** The optimized template */
+  optimizedTemplate?: string;
+
+  /** Quality score of optimization */
+  qualityScore?: number;
+
+  /** Comparison data */
+  comparison?: any;
 
   /** Error information if failed */
   error?: {
@@ -333,6 +357,24 @@ export interface OptimizationResponse {
   /** Error message if failed */
   error?: string;
 
+  /** Confidence score */
+  confidence?: number;
+
+  /** Performance metrics */
+  metrics?: {
+    accuracyImprovement: number;
+    tokenReduction: number;
+    costReduction: number;
+    processingTime: number;
+    apiCallsUsed: number;
+  };
+
+  /** Original prompt */
+  originalPrompt?: string;
+
+  /** Optimized prompt */
+  optimizedPrompt?: string;
+
   /** Response metadata */
   metadata?: {
     processingTime: number;
@@ -401,6 +443,9 @@ export interface PipelineResult {
 
   /** Pipeline result data */
   data?: OptimizationResult;
+
+  /** Optimization result - alias for backwards compatibility */
+  optimizationResult?: OptimizationResult;
 
   /** Pipeline error */
   error?: {

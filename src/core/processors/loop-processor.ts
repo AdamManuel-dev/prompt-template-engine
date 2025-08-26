@@ -1,11 +1,13 @@
 /**
- * @fileoverview Loop processor for template engine
- * @lastmodified 2025-08-22T21:30:00Z
+ * @fileoverview Loop processor for template engine - handles {{#each}} block iteration
+ * @lastmodified 2025-08-26T11:10:32Z
  *
- * Features: Each/loop block processing with iteration context
- * Main APIs: processEachBlocks(), processSingleEachBlock()
- * Constraints: Handles nested loops with proper context isolation
- * Patterns: Iterator pattern with context enhancement
+ * Features: Each/loop block processing with enhanced iteration context and nested loop support
+ * Main APIs: processEachBlocks(), findOutermostEachBlocks()
+ * Constraints: Maximum nesting depth of 10 levels, proper context isolation between iterations
+ * Patterns: Iterator pattern with recursive processing and context enhancement for loop variables
+ * Performance: O(n*m*d) where n=template length, m=collection size, d=nesting depth
+ * Error Handling: Graceful degradation on invalid collections, depth limit protection
  */
 
 import { TemplateContext } from '../../types';
@@ -13,11 +15,43 @@ import { logger } from '../../utils/logger';
 import { ConditionalProcessor } from './conditional-processor';
 import { VariableProcessor } from './variable-processor';
 
+/**
+ * Loop processor handles {{#each collection}} blocks in templates.
+ * Provides iteration context with special variables (@index, @first, @last, etc.)
+ * and supports nested loops with proper context isolation.
+ *
+ * @example
+ * ```typescript
+ * const template = `
+ *   {{#each users}}
+ *     {{@index}}: {{name}} ({{@first ? 'First' : 'Not first'}})
+ *     {{#each hobbies}}
+ *       - {{.}} {{@last ? '(last)' : ''}}
+ *     {{/each}}
+ *   {{/each}}
+ * `;
+ *
+ * const context = {
+ *   variables: {
+ *     users: [
+ *       { name: "Alice", hobbies: ["reading", "coding"] },
+ *       { name: "Bob", hobbies: ["gaming"] }
+ *     ]
+ *   }
+ * };
+ * ```
+ */
 export class LoopProcessor {
   private conditionalProcessor: ConditionalProcessor;
 
   private variableProcessor: VariableProcessor;
 
+  /**
+   * Creates a new LoopProcessor with required dependencies.
+   *
+   * @param conditionalProcessor - Processor for handling conditional blocks within loops
+   * @param variableProcessor - Processor for resolving variables within loop contexts
+   */
   constructor(
     conditionalProcessor: ConditionalProcessor,
     variableProcessor: VariableProcessor
@@ -27,7 +61,29 @@ export class LoopProcessor {
   }
 
   /**
-   * Process each blocks in template
+   * Processes all {{#each}} blocks in a template, handling nested loops recursively.
+   * Each iteration creates an enhanced context with special variables for loop control.
+   *
+   * @param template - Template string containing {{#each}} blocks
+   * @param context - Template context with variables and metadata
+   * @param depth - Current nesting depth (used to prevent infinite recursion)
+   * @returns Processed template with all each blocks rendered
+   *
+   * @example
+   * ```typescript
+   * const template = "{{#each items}}{{name}}: {{value}}\n{{/each}}";
+   * const context = {
+   *   variables: {
+   *     items: [{name: "A", value: 1}, {name: "B", value: 2}]
+   *   }
+   * };
+   * const result = processor.processEachBlocks(template, context);
+   * // Returns: "A: 1\nB: 2\n"
+   * ```
+   *
+   * @throws {Error} When maximum nesting depth (10) is exceeded
+   * @see {@link processSingleEachBlock} for individual block processing
+   * @see {@link findOutermostEachBlocks} for block detection
    */
   public processEachBlocks(
     template: string,
@@ -60,7 +116,26 @@ export class LoopProcessor {
   }
 
   /**
-   * Process single each block
+   * Processes a single {{#each}} block by iterating over the specified collection.
+   * Creates enhanced context for each iteration with special variables and item access.
+   *
+   * @param block - Parsed each block containing collection name and content
+   * @param context - Template context for variable resolution
+   * @param depth - Current nesting depth for recursive processing
+   * @returns Rendered content from all iterations joined together
+   *
+   * @example
+   * ```typescript
+   * const block = {
+   *   fullMatch: "{{#each users}}{{name}}{{/each}}",
+   *   collection: "users",
+   *   content: "{{name}}"
+   * };
+   * // Creates context with: item, _index, _first, _last, _odd, _even, _total
+   * ```
+   *
+   * @private
+   * @see {@link processEachBlocks} for the main processing entry point
    */
   private processSingleEachBlock(
     block: {
@@ -126,7 +201,22 @@ export class LoopProcessor {
   }
 
   /**
-   * Find outermost each blocks
+   * Finds and parses all outermost {{#each}} blocks in a template.
+   * Uses depth tracking to properly match opening and closing tags for nested blocks.
+   * Only returns top-level blocks to enable proper inside-out processing.
+   *
+   * @param template - Template string to search for each blocks
+   * @returns Array of parsed each blocks with collection name and content
+   *
+   * @example
+   * ```typescript
+   * const template = "{{#each outer}}{{#each inner}}{{.}}{{/each}}{{/each}}";
+   * const blocks = findOutermostEachBlocks(template);
+   * // Returns: [{ fullMatch: full template, collection: "outer", content: "{{#each inner}}..." }]
+   * ```
+   *
+   * @private
+   * @see {@link processEachBlocks} for usage of detected blocks
    */
   private findOutermostEachBlocks(template: string): Array<{
     fullMatch: string;

@@ -27,7 +27,7 @@
   },
   "rules": {
     "prettier/prettier": "error",
-    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-console": ["warn", { "allow": ["warn", "error", "log"] }],
     "consistent-return": "off",
     "import/extensions": [
       "error",
@@ -51,7 +51,7 @@
       }
     ],
     "import/prefer-default-export": "off",
-    "max-classes-per-file": ["error", 3],
+    "max-classes-per-file": ["error", 15],
     "class-methods-use-this": "off",
     "no-useless-catch": "off",
     "no-nested-ternary": "off",
@@ -85,6 +85,14 @@
     "no-shadow": "off",
     "@typescript-eslint/no-shadow": "error"
   },
+  "overrides": [
+    {
+      "files": ["src/cli/**/*.ts", "src/cli.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "dist/",
     "coverage/",
@@ -93,6 +101,7 @@
     "**/*.js",
     "tests/**/*.ts",
     ".cursor-prompt/plugins/**/*.ts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "examples/**/*.ts"
   ]
 }

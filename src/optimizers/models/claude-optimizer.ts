@@ -3,7 +3,7 @@
  * @lastmodified 2025-08-26T14:10:00Z
  *
  * Features: Claude-optimized prompt patterns, constitutional AI principles, reasoning
- * Main APIs: ClaudeOptimizer class with Anthropic-specific optimization strategies  
+ * Main APIs: ClaudeOptimizer class with Anthropic-specific optimization strategies
  * Constraints: Optimized for Claude's constitutional AI and helpfulness principles
  * Patterns: Strategy pattern, constitutional AI alignment, ethical reasoning
  */
@@ -13,22 +13,22 @@ import { logger } from '../../utils/logger';
 export interface ClaudeOptimizationConfig {
   /** Maximum tokens for Claude (varies by model: Claude-3 has 200k context) */
   maxTokens: number;
-  
+
   /** Claude model variant */
   model: 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku' | 'claude-2';
-  
+
   /** Enable constitutional AI principles */
   enableConstitutionalAI: boolean;
-  
+
   /** Optimize for helpfulness, harmlessness, honesty */
   optimizeForHHH: boolean;
-  
+
   /** Enable XML-style structured reasoning */
   enableStructuredReasoning: boolean;
-  
+
   /** Optimize for long-form reasoning */
   optimizeForLongForm: boolean;
-  
+
   /** Enable Claude's thinking process */
   enableThinkingProcess: boolean;
 }
@@ -36,13 +36,13 @@ export interface ClaudeOptimizationConfig {
 export interface ClaudeOptimizationResult {
   /** Optimized prompt */
   optimizedPrompt: string;
-  
+
   /** Optimization techniques applied */
   techniquesApplied: string[];
-  
+
   /** Estimated token usage */
   estimatedTokens: number;
-  
+
   /** Performance improvements */
   improvements: {
     helpfulnessScore: number;
@@ -50,7 +50,7 @@ export interface ClaudeOptimizationResult {
     structureScore: number;
     reasoningScore: number;
   };
-  
+
   /** Claude-specific enhancements */
   claudeEnhancements: {
     constitutionalPrinciplesAdded: boolean;
@@ -71,7 +71,9 @@ export class ClaudeOptimizer {
     enableThinkingProcess: true,
   };
 
-  constructor(private config: ClaudeOptimizationConfig = {} as ClaudeOptimizationConfig) {
+  constructor(
+    private config: ClaudeOptimizationConfig = {} as ClaudeOptimizationConfig
+  ) {
     this.config = { ...this.defaultConfig, ...config };
   }
 
@@ -88,7 +90,7 @@ export class ClaudeOptimizer {
       ethicalConsiderations?: boolean;
     }
   ): Promise<ClaudeOptimizationResult> {
-    logger.info('Optimizing prompt for Claude\'s constitutional AI principles');
+    logger.info("Optimizing prompt for Claude's constitutional AI principles");
 
     let optimizedPrompt = prompt;
     const techniquesApplied: string[] = [];
@@ -101,7 +103,10 @@ export class ClaudeOptimizer {
 
     // Apply Claude-specific optimizations
     if (this.config.enableConstitutionalAI) {
-      const constitutionalResult = this.addConstitutionalPrinciples(optimizedPrompt, context);
+      const constitutionalResult = this.addConstitutionalPrinciples(
+        optimizedPrompt,
+        context
+      );
       optimizedPrompt = constitutionalResult.prompt;
       if (constitutionalResult.applied) {
         techniquesApplied.push('Constitutional AI principles');
@@ -113,7 +118,9 @@ export class ClaudeOptimizer {
       const hhhResult = this.optimizeForHHH(optimizedPrompt, task);
       optimizedPrompt = hhhResult.prompt;
       if (hhhResult.applied) {
-        techniquesApplied.push('Helpfulness, Harmlessness, Honesty optimization');
+        techniquesApplied.push(
+          'Helpfulness, Harmlessness, Honesty optimization'
+        );
         claudeEnhancements.hhhOptimized = true;
       }
     }
@@ -148,11 +155,17 @@ export class ClaudeOptimizer {
     const tokenOptimizedResult = this.optimizeTokenUsage(optimizedPrompt);
     optimizedPrompt = tokenOptimizedResult.prompt;
     if (tokenOptimizedResult.tokensReduced > 0) {
-      techniquesApplied.push(`Token optimization (-${tokenOptimizedResult.tokensReduced} tokens)`);
+      techniquesApplied.push(
+        `Token optimization (-${tokenOptimizedResult.tokensReduced} tokens)`
+      );
     }
 
     // Calculate improvements
-    const improvements = this.calculateImprovements(prompt, optimizedPrompt, context);
+    const improvements = this.calculateImprovements(
+      prompt,
+      optimizedPrompt,
+      context
+    );
 
     const result: ClaudeOptimizationResult = {
       optimizedPrompt,
@@ -162,7 +175,9 @@ export class ClaudeOptimizer {
       claudeEnhancements,
     };
 
-    logger.info(`Claude optimization completed: ${techniquesApplied.length} techniques applied`);
+    logger.info(
+      `Claude optimization completed: ${techniquesApplied.length} techniques applied`
+    );
     return result;
   }
 
@@ -174,7 +189,10 @@ export class ClaudeOptimizer {
     context?: { ethicalConsiderations?: boolean; domain?: string }
   ): { prompt: string; applied: boolean } {
     // Check if constitutional principles already mentioned
-    if (prompt.toLowerCase().includes('helpful') || prompt.toLowerCase().includes('harmless')) {
+    if (
+      prompt.toLowerCase().includes('helpful') ||
+      prompt.toLowerCase().includes('harmless')
+    ) {
       return { prompt, applied: false };
     }
 
@@ -190,11 +208,14 @@ export class ClaudeOptimizer {
 
     // Add domain-specific constitutional considerations
     if (context?.domain === 'medical') {
-      constitutionalPrompt += '\n\nNote: This should not be considered medical advice. Please consult healthcare professionals for medical decisions.';
+      constitutionalPrompt +=
+        '\n\nNote: This should not be considered medical advice. Please consult healthcare professionals for medical decisions.';
     } else if (context?.domain === 'legal') {
-      constitutionalPrompt += '\n\nNote: This should not be considered legal advice. Please consult qualified legal professionals for legal matters.';
+      constitutionalPrompt +=
+        '\n\nNote: This should not be considered legal advice. Please consult qualified legal professionals for legal matters.';
     } else if (context?.domain === 'financial') {
-      constitutionalPrompt += '\n\nNote: This should not be considered financial advice. Please consult financial advisors for investment decisions.';
+      constitutionalPrompt +=
+        '\n\nNote: This should not be considered financial advice. Please consult financial advisors for investment decisions.';
     }
 
     return { prompt: constitutionalPrompt, applied: true };
@@ -211,21 +232,38 @@ export class ClaudeOptimizer {
     let applied = false;
 
     // Enhance helpfulness
-    if (!prompt.toLowerCase().includes('specific') && !prompt.toLowerCase().includes('detailed')) {
-      hhhPrompt += '\n\nPlease be specific and thorough in your response to be as helpful as possible.';
+    if (
+      !prompt.toLowerCase().includes('specific') &&
+      !prompt.toLowerCase().includes('detailed')
+    ) {
+      hhhPrompt +=
+        '\n\nPlease be specific and thorough in your response to be as helpful as possible.';
       applied = true;
     }
 
     // Enhance honesty/accuracy
-    if (task.toLowerCase().includes('fact') || task.toLowerCase().includes('information')) {
-      hhhPrompt += '\n\nIf you\'re uncertain about any facts, please indicate this clearly and suggest where to verify the information.';
+    if (
+      task.toLowerCase().includes('fact') ||
+      task.toLowerCase().includes('information')
+    ) {
+      hhhPrompt +=
+        "\n\nIf you're uncertain about any facts, please indicate this clearly and suggest where to verify the information.";
       applied = true;
     }
 
     // Enhance harmlessness for sensitive topics
-    const sensitiveTriggers = ['harm', 'danger', 'risk', 'illegal', 'unethical'];
-    if (sensitiveTriggers.some(trigger => prompt.toLowerCase().includes(trigger))) {
-      hhhPrompt += '\n\nPlease ensure your response promotes safety and well-being, and avoid any potentially harmful advice.';
+    const sensitiveTriggers = [
+      'harm',
+      'danger',
+      'risk',
+      'illegal',
+      'unethical',
+    ];
+    if (
+      sensitiveTriggers.some(trigger => prompt.toLowerCase().includes(trigger))
+    ) {
+      hhhPrompt +=
+        '\n\nPlease ensure your response promotes safety and well-being, and avoid any potentially harmful advice.';
       applied = true;
     }
 
@@ -247,12 +285,17 @@ export class ClaudeOptimizer {
     let xmlPrompt = prompt;
 
     // Add XML structuring based on reasoning complexity
-    if (context?.reasoning === 'complex' || context?.reasoning === 'analytical') {
-      xmlPrompt += '\n\nPlease structure your response using the following format:';
+    if (
+      context?.reasoning === 'complex' ||
+      context?.reasoning === 'analytical'
+    ) {
+      xmlPrompt +=
+        '\n\nPlease structure your response using the following format:';
       xmlPrompt += '\n<analysis>';
       xmlPrompt += '\n<problem>Identify the key problem or question</problem>';
       xmlPrompt += '\n<approach>Describe your analytical approach</approach>';
-      xmlPrompt += '\n<reasoning>Work through the reasoning step by step</reasoning>';
+      xmlPrompt +=
+        '\n<reasoning>Work through the reasoning step by step</reasoning>';
       xmlPrompt += '\n<conclusion>Provide your final conclusion</conclusion>';
       xmlPrompt += '\n</analysis>';
     } else if (context?.reasoning === 'simple') {
@@ -265,7 +308,8 @@ export class ClaudeOptimizer {
 
     // Add format-specific XML
     if (context?.expectedFormat === 'xml') {
-      xmlPrompt += '\n\nPlease use appropriate XML tags to structure your content clearly.';
+      xmlPrompt +=
+        '\n\nPlease use appropriate XML tags to structure your content clearly.';
     }
 
     return { prompt: xmlPrompt, applied: xmlPrompt !== prompt };
@@ -279,7 +323,10 @@ export class ClaudeOptimizer {
     context?: { reasoning?: string; domain?: string }
   ): { prompt: string; applied: boolean } {
     // Check if thinking process already present
-    if (prompt.includes('think') && (prompt.includes('step') || prompt.includes('process'))) {
+    if (
+      prompt.includes('think') &&
+      (prompt.includes('step') || prompt.includes('process'))
+    ) {
       return { prompt, applied: false };
     }
 
@@ -300,7 +347,8 @@ export class ClaudeOptimizer {
       thinkingPrompt += '\n- Identify key insights and implications';
       thinkingPrompt += '\n- Draw well-reasoned conclusions';
     } else {
-      thinkingPrompt += '\n\nPlease think through this carefully and explain your reasoning.';
+      thinkingPrompt +=
+        '\n\nPlease think through this carefully and explain your reasoning.';
     }
 
     return { prompt: thinkingPrompt, applied: true };
@@ -327,7 +375,10 @@ export class ClaudeOptimizer {
 
     // Claude excels with clear expectations
     if (!patterned.includes('I need') && !patterned.includes('help me')) {
-      patterned = patterned.replace(/\?$/, '? Please help me understand this clearly.');
+      patterned = patterned.replace(
+        /\?$/,
+        '? Please help me understand this clearly.'
+      );
     }
 
     // Add conversational elements that Claude responds well to
@@ -350,7 +401,7 @@ export class ClaudeOptimizer {
 
     // Add collaborative framing
     if (!styled.includes('we') && !styled.includes('together')) {
-      styled = styled.replace(/\bI want\b/gi, 'I\'d like us to work on');
+      styled = styled.replace(/\bI want\b/gi, "I'd like us to work on");
     }
 
     // Ensure respectful tone
@@ -363,9 +414,12 @@ export class ClaudeOptimizer {
   /**
    * Optimize token usage for Claude models
    */
-  private optimizeTokenUsage(prompt: string): { prompt: string; tokensReduced: number } {
+  private optimizeTokenUsage(prompt: string): {
+    prompt: string;
+    tokensReduced: number;
+  } {
     const originalTokens = this.estimateTokens(prompt);
-    
+
     if (originalTokens <= this.config.maxTokens) {
       return { prompt, tokensReduced: 0 };
     }
@@ -417,13 +471,13 @@ export class ClaudeOptimizer {
   ) {
     // Helpfulness score based on Claude's helpfulness patterns
     const helpfulnessScore = this.calculateHelpfulnessScore(optimized);
-    
+
     // Clarity score with Claude's preference for clear communication
     const clarityScore = this.calculateClarityScore(optimized);
-    
+
     // Structure score considering XML and organized thinking
     const structureScore = this.calculateStructureScore(optimized);
-    
+
     // Reasoning score for analytical thinking
     const reasoningScore = this.calculateReasoningScore(optimized, context);
 
@@ -437,7 +491,7 @@ export class ClaudeOptimizer {
 
   private calculateHelpfulnessScore(text: string): number {
     let score = 60; // Base score
-    
+
     // Award points for helpfulness indicators
     if (text.toLowerCase().includes('please')) score += 10;
     if (text.toLowerCase().includes('help')) score += 10;
@@ -445,51 +499,54 @@ export class ClaudeOptimizer {
     if (text.toLowerCase().includes('detailed')) score += 5;
     if (text.toLowerCase().includes('thorough')) score += 5;
     if (text.toLowerCase().includes('clear')) score += 5;
-    
+
     return score;
   }
 
   private calculateClarityScore(text: string): number {
     let score = 60; // Base score
-    
+
     // Award points for clarity
     if (text.includes('\n\n')) score += 10; // Clear paragraphs
     if (text.includes(':')) score += 5; // Structure
     if (text.includes('example')) score += 5;
     if (text.includes('specifically')) score += 5;
-    
+
     // Deduct for unclear patterns
     if (text.includes('...')) score -= 5;
     if (text.length > 3000 && !text.includes('<')) score -= 10; // Too verbose without structure
-    
+
     return score;
   }
 
   private calculateStructureScore(text: string): number {
     let score = 60; // Base score
-    
+
     // Award points for structure
     if (text.includes('<') && text.includes('>')) score += 20; // XML structure
     if (/\d+\./.test(text)) score += 10; // Numbered lists
     if (text.includes('- ')) score += 5; // Bullet points
     if (text.includes('\n\n')) score += 10; // Proper spacing
-    
+
     return score;
   }
 
-  private calculateReasoningScore(text: string, context?: { reasoning?: string }): number {
+  private calculateReasoningScore(
+    text: string,
+    context?: { reasoning?: string }
+  ): number {
     let score = 50; // Base score
-    
+
     // Award points for reasoning patterns
     if (text.toLowerCase().includes('because')) score += 10;
     if (text.toLowerCase().includes('therefore')) score += 10;
     if (text.toLowerCase().includes('analysis')) score += 10;
     if (text.toLowerCase().includes('consider')) score += 10;
     if (text.toLowerCase().includes('reasoning')) score += 15;
-    
+
     // Bonus for complex reasoning structure
     if (context?.reasoning === 'complex' && text.includes('<')) score += 15;
-    
+
     return score;
   }
 
@@ -530,21 +587,30 @@ export class ClaudeOptimizer {
   /**
    * Get model-specific configuration recommendations
    */
-  getModelSpecificRecommendations(): Record<string, {
-    contextWindow: number;
-    strengths: string[];
-    bestUseCase: string;
-  }> {
+  getModelSpecificRecommendations(): Record<
+    string,
+    {
+      contextWindow: number;
+      strengths: string[];
+      bestUseCase: string;
+    }
+  > {
     return {
       'claude-3-opus': {
         contextWindow: 200000,
-        strengths: ['Complex reasoning', 'Long-form analysis', 'Creative tasks'],
-        bestUseCase: 'High-complexity analytical tasks requiring deep reasoning',
+        strengths: [
+          'Complex reasoning',
+          'Long-form analysis',
+          'Creative tasks',
+        ],
+        bestUseCase:
+          'High-complexity analytical tasks requiring deep reasoning',
       },
       'claude-3-sonnet': {
         contextWindow: 200000,
         strengths: ['Balanced performance', 'Good reasoning', 'Efficiency'],
-        bestUseCase: 'General-purpose tasks with good balance of speed and capability',
+        bestUseCase:
+          'General-purpose tasks with good balance of speed and capability',
       },
       'claude-3-haiku': {
         contextWindow: 200000,

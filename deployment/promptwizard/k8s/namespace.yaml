@@ -1,0 +1,164 @@
+/**
+ * @fileoverview Kubernetes namespace configuration for PromptWizard deployment
+ * @lastmodified 2024-08-26T15:35:00Z
+ * 
+ * Features: Isolated namespace with resource quotas and network policies
+ * Main APIs: Kubernetes API resources for namespace management
+ * Constraints: Requires cluster admin privileges for creation
+ * Patterns: Resource isolation, security boundaries, resource quotas
+ */
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: promptwizard
+  labels:
+    app: promptwizard
+    version: v1
+    environment: production
+    managed-by: kubernetes
+  annotations:
+    description: "PromptWizard service deployment namespace"
+    contact: "promptwizard-team@company.com"
+    version: "1.0.0"
+
+---
+# Resource Quota for the namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: promptwizard-quota
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: quota
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    
+    # Storage resources
+    requests.storage: 100Gi
+    persistentvolumeclaims: "10"
+    
+    # Object count limits
+    pods: "50"
+    services: "20"
+    secrets: "20"
+    configmaps: "20"
+    
+    # Service-specific limits
+    services.loadbalancers: "5"
+    services.nodeports: "10"
+
+---
+# Limit Range for default resource constraints
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: promptwizard-limits
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: limits
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+    max:
+      cpu: 2000m
+      memory: 4Gi
+    min:
+      cpu: 50m
+      memory: 64Mi
+  - type: PersistentVolumeClaim
+    max:
+      storage: 50Gi
+    min:
+      storage: 1Gi
+
+---
+# Network Policy for security isolation
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: promptwizard-network-policy
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: promptwizard
+  policyTypes:
+  - Ingress
+  - Egress
+  
+  ingress:
+  # Allow ingress from nginx-ingress namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nginx-ingress
+    ports:
+    - protocol: TCP
+      port: 8000
+    - protocol: TCP
+      port: 50051
+    - protocol: TCP
+      port: 8080
+  
+  # Allow monitoring namespace access
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  
+  # Allow intra-namespace communication
+  - from:
+    - podSelector:
+        matchLabels:
+          app: promptwizard
+  
+  egress:
+  # Allow external API calls (OpenAI, Anthropic, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+  
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Allow Redis communication within namespace
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 26379

@@ -386,12 +386,16 @@ export function getPromptWizardConfig(): PromptWizardConfig {
     // Validate configuration
     const validation = validatePromptWizardConfig(config);
     if (!validation.valid) {
-      logger.warn(`Invalid PromptWizard configuration: ${validation.errors.join(', ')}`);
+      logger.warn(
+        `Invalid PromptWizard configuration: ${validation.errors.join(', ')}`
+      );
     }
 
     return config;
   } catch (error) {
-    logger.error(`Failed to load PromptWizard configuration, using defaults: ${(error as Error).message}`);
+    logger.error(
+      `Failed to load PromptWizard configuration, using defaults: ${(error as Error).message}`
+    );
     return DEFAULT_PROMPTWIZARD_CONFIG;
   }
 }
@@ -517,7 +521,9 @@ export function updatePromptWizardConfig(
     configManager.set(key, value, 'runtime');
   });
 
-  logger.info(`PromptWizard configuration updated: ${Object.keys(flatUpdates).join(', ')}`);
+  logger.info(
+    `PromptWizard configuration updated: ${Object.keys(flatUpdates).join(', ')}`
+  );
 }
 
 /**

@@ -1,0 +1,340 @@
+/**
+ * @fileoverview Kubernetes Horizontal Pod Autoscaler for PromptWizard service
+ * @lastmodified 2024-08-26T15:45:00Z
+ * 
+ * Features: CPU/memory-based scaling, custom metrics, predictive scaling
+ * Main APIs: Kubernetes metrics API, custom metrics API integration
+ * Constraints: Requires metrics-server, custom metrics adapter if using custom metrics
+ * Patterns: Reactive and predictive scaling, cost optimization, performance management
+ */
+
+# Main HPA for CPU and memory-based scaling
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: promptwizard-hpa
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: hpa
+    version: v1
+  annotations:
+    description: "Main HPA for PromptWizard service scaling"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: promptwizard-service
+  
+  # Scaling boundaries
+  minReplicas: 3    # Always maintain at least 3 replicas for HA
+  maxReplicas: 20   # Scale up to 20 replicas under high load
+  
+  # Scaling behavior configuration
+  behavior:
+    scaleUp:
+      # Aggressive scale-up for handling traffic spikes
+      stabilizationWindowSeconds: 60  # Wait 1 minute before scaling up again
+      policies:
+      - type: Percent
+        value: 100   # Double the replicas
+        periodSeconds: 60
+      - type: Pods
+        value: 4     # Or add 4 pods
+        periodSeconds: 60
+      selectPolicy: Max  # Use the more aggressive policy
+    
+    scaleDown:
+      # Conservative scale-down to prevent thrashing
+      stabilizationWindowSeconds: 300  # Wait 5 minutes before scaling down
+      policies:
+      - type: Percent
+        value: 25    # Remove 25% of replicas
+        periodSeconds: 60
+      - type: Pods
+        value: 2     # Or remove 2 pods maximum
+        periodSeconds: 60
+      selectPolicy: Min  # Use the more conservative policy
+  
+  # Scaling metrics
+  metrics:
+  # CPU utilization target
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70  # Scale when average CPU > 70%
+  
+  # Memory utilization target
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80  # Scale when average memory > 80%
+  
+  # Custom metrics for application-specific scaling
+  - type: Pods
+    pods:
+      metric:
+        name: active_connections
+      target:
+        type: AverageValue
+        averageValue: "50"  # Scale when average connections per pod > 50
+  
+  - type: Pods
+    pods:
+      metric:
+        name: request_queue_length
+      target:
+        type: AverageValue
+        averageValue: "10"  # Scale when average queue length > 10
+  
+  - type: Pods
+    pods:
+      metric:
+        name: response_time_p95
+      target:
+        type: AverageValue
+        averageValue: "1000m"  # Scale when 95th percentile response time > 1s
+
+---
+# Vertical Pod Autoscaler for right-sizing (optional)
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: promptwizard-vpa
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: vpa
+    version: v1
+  annotations:
+    description: "VPA for right-sizing PromptWizard pods"
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: promptwizard-service
+  
+  # VPA mode: Off (recommendations only), Initial, Auto
+  updatePolicy:
+    updateMode: "Off"  # Only provide recommendations, don't auto-update
+  
+  # Resource policy
+  resourcePolicy:
+    containerPolicies:
+    - containerName: promptwizard-service
+      minAllowed:
+        cpu: 100m
+        memory: 128Mi
+      maxAllowed:
+        cpu: 4000m
+        memory: 8Gi
+      controlledResources: ["cpu", "memory"]
+      controlledValues: RequestsAndLimits
+
+---
+# PodDisruptionBudget to work with HPA
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: promptwizard-pdb
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: pdb
+spec:
+  # Ensure we always have enough pods running during disruptions
+  minAvailable: 50%  # At least 50% of pods must be available
+  selector:
+    matchLabels:
+      app: promptwizard
+      component: service
+
+---
+# Custom metrics configuration for application-specific scaling
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-metrics-config
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: metrics-config
+data:
+  # Prometheus adapter configuration for custom metrics
+  adapter-config.yaml: |
+    rules:
+    # Active connections metric
+    - seriesQuery: 'active_connections{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "active_connections"
+        as: "active_connections"
+      metricsQuery: 'avg_over_time(<<.Series>>[2m])'
+    
+    # Request queue length metric
+    - seriesQuery: 'request_queue_length{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "request_queue_length"
+        as: "request_queue_length"
+      metricsQuery: 'avg_over_time(<<.Series>>[2m])'
+    
+    # Response time 95th percentile
+    - seriesQuery: 'http_request_duration_seconds{namespace!="",pod!="",quantile="0.95"}'
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "http_request_duration_seconds"
+        as: "response_time_p95"
+      metricsQuery: 'avg_over_time(<<.Series>>[2m]) * 1000'  # Convert to milliseconds
+    
+    # Request rate metric
+    - seriesQuery: 'http_requests_per_second{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "http_requests_per_second"
+        as: "requests_per_second"
+      metricsQuery: 'avg_over_time(<<.Series>>[2m])'
+
+---
+# ServiceMonitor for HPA metrics collection
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: promptwizard-hpa-metrics
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: hpa-metrics
+spec:
+  selector:
+    matchLabels:
+      app: promptwizard
+      component: service
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 15s  # More frequent collection for HPA
+    scrapeTimeout: 10s
+    honorLabels: true
+
+---
+# KEDA ScaledObject for event-driven autoscaling (alternative/complement to HPA)
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: promptwizard-keda-scaler
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: keda-scaler
+  annotations:
+    description: "KEDA-based autoscaling for event-driven scaling"
+spec:
+  scaleTargetRef:
+    name: promptwizard-service
+  
+  # Polling interval for checking metrics
+  pollingInterval: 30
+  
+  # Cooldown period after scaling
+  cooldownPeriod: 300
+  
+  # Idle replica count
+  idleReplicaCount: 3
+  
+  # Min/max replicas
+  minReplicaCount: 3
+  maxReplicaCount: 50
+  
+  triggers:
+  # Redis queue-based scaling
+  - type: redis
+    metadata:
+      address: "redis-master:6379"
+      listName: "optimization_queue"
+      listLength: "10"  # Scale when queue has > 10 items
+      passwordFromEnv: "REDIS_PASSWORD"
+    
+  # Prometheus-based scaling
+  - type: prometheus
+    metadata:
+      serverAddress: "http://prometheus:9090"
+      metricName: "active_optimizations"
+      threshold: "5"
+      query: "sum(active_optimizations{namespace='promptwizard'})"
+    
+  # External HTTP endpoint scaling
+  - type: external
+    metadata:
+      scalerAddress: "http://custom-scaler:8080"
+      metric: "pending_requests"
+      threshold: "20"
+
+---
+# Advanced scaling policy with machine learning predictions (conceptual)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: predictive-scaling-config
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: predictive-scaling
+data:
+  config.yaml: |
+    # Predictive scaling configuration
+    predictive_scaling:
+      enabled: true
+      
+      # Time series forecasting settings
+      forecasting:
+        model: "arima"  # ARIMA, LSTM, or Prophet
+        prediction_horizon: "1h"
+        training_data_window: "7d"
+        retrain_interval: "1d"
+      
+      # Scaling triggers
+      triggers:
+        - metric: "cpu_utilization"
+          threshold: 0.7
+          prediction_confidence: 0.8
+          scale_ahead_time: "5m"
+        
+        - metric: "request_rate"
+          threshold: 100
+          prediction_confidence: 0.75
+          scale_ahead_time: "3m"
+      
+      # External data sources for better predictions
+      external_signals:
+        - name: "business_calendar"
+          url: "http://business-calendar-api/events"
+          weight: 0.3
+        
+        - name: "marketing_campaigns"
+          url: "http://marketing-api/active-campaigns"
+          weight: 0.2

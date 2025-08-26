@@ -42,7 +42,11 @@ export interface GoogleRequest {
 }
 
 export interface GoogleAdapterConfig {
-  model: 'gemini-pro' | 'gemini-pro-vision' | 'gemini-1.5-pro' | 'gemini-1.5-flash';
+  model:
+    | 'gemini-pro'
+    | 'gemini-pro-vision'
+    | 'gemini-1.5-pro'
+    | 'gemini-1.5-flash';
   maxOutputTokens: number;
   temperature: number;
   topK: number;
@@ -109,14 +113,18 @@ export class GoogleAdapter {
 
     // Add conversation history if available
     if (context?.conversationHistory) {
-      const historyContents = this.formatConversationHistory(context.conversationHistory);
+      const historyContents = this.formatConversationHistory(
+        context.conversationHistory
+      );
       contents.push(...historyContents);
-      adaptationNotes.push(`Added ${historyContents.length} conversation history entries`);
+      adaptationNotes.push(
+        `Added ${historyContents.length} conversation history entries`
+      );
     }
 
     // Process the main prompt
-    let processedPrompt = this.processPromptForGoogle(optimizedPrompt);
-    
+    const processedPrompt = this.processPromptForGoogle(optimizedPrompt);
+
     // Create main user content
     const userContent: GoogleContent = {
       parts: [{ text: processedPrompt }],
@@ -137,9 +145,12 @@ export class GoogleAdapter {
     // Check token limits
     const totalTokens = this.estimateTokens(contents);
     const modelLimit = this.modelLimits[this.config.model];
-    
-    if (totalTokens > modelLimit * 0.8) { // Leave room for response
-      warnings.push(`Prompt approaching model limit (${totalTokens}/${modelLimit} tokens)`);
+
+    if (totalTokens > modelLimit * 0.8) {
+      // Leave room for response
+      warnings.push(
+        `Prompt approaching model limit (${totalTokens}/${modelLimit} tokens)`
+      );
     }
 
     // Build the request
@@ -156,7 +167,9 @@ export class GoogleAdapter {
 
     // Add system instruction if available
     if (context?.systemMessage) {
-      const systemInstruction = this.formatSystemInstruction(context.systemMessage);
+      const systemInstruction = this.formatSystemInstruction(
+        context.systemMessage
+      );
       request.systemInstruction = systemInstruction;
       adaptationNotes.push('System instruction formatted for Google AI');
     }
@@ -172,7 +185,10 @@ export class GoogleAdapter {
       tokenEstimate: totalTokens,
       adaptationNotes,
       warnings,
-      multimodalFeatures: Object.keys(multimodalFeatures).length > 0 ? multimodalFeatures : undefined,
+      multimodalFeatures:
+        Object.keys(multimodalFeatures).length > 0
+          ? multimodalFeatures
+          : undefined,
     };
   }
 
@@ -187,7 +203,7 @@ export class GoogleAdapter {
       processed = processed.replace(/please note that/gi, '');
       processed = processed.replace(/it is important to understand that/gi, '');
       processed = processed.replace(/you should know that/gi, '');
-      
+
       // Simplify complex phrases
       processed = processed.replace(/in order to/gi, 'to');
       processed = processed.replace(/for the purpose of/gi, 'to');
@@ -282,7 +298,7 @@ export class GoogleAdapter {
           added = true;
         }
       }
-      
+
       if (features.fileSupport) {
         notes.push(`Added ${context.files.length} files`);
       }
@@ -294,18 +310,22 @@ export class GoogleAdapter {
   /**
    * Format system instruction for Google AI
    */
-  private formatSystemInstruction(systemMessage: string): { parts: Array<{ text: string }> } {
+  private formatSystemInstruction(systemMessage: string): {
+    parts: Array<{ text: string }>;
+  } {
     // Enhance system message for Google AI
     let enhanced = systemMessage;
-    
+
     // Add Google AI specific guidance
     if (!enhanced.includes('accurate') && !enhanced.includes('helpful')) {
-      enhanced += ' Provide accurate, helpful responses based on the given instructions.';
+      enhanced +=
+        ' Provide accurate, helpful responses based on the given instructions.';
     }
 
     // Add efficiency guidance for Gemini
     if (this.config.optimizeForEfficiency) {
-      enhanced += ' Be concise and direct in your responses while maintaining completeness.';
+      enhanced +=
+        ' Be concise and direct in your responses while maintaining completeness.';
     }
 
     return {
@@ -316,9 +336,11 @@ export class GoogleAdapter {
   /**
    * Create safety settings based on safety level
    */
-  private createSafetySettings(safetyLevel?: 'strict' | 'moderate' | 'permissive') {
+  private createSafetySettings(
+    safetyLevel?: 'strict' | 'moderate' | 'permissive'
+  ) {
     const level = safetyLevel || 'moderate';
-    
+
     const thresholds = {
       strict: 'BLOCK_LOW_AND_ABOVE',
       moderate: 'BLOCK_MEDIUM_AND_ABOVE',
@@ -351,7 +373,9 @@ export class GoogleAdapter {
    * Check if current model supports multimodal input
    */
   private supportsMultimodal(): boolean {
-    return this.config.model.includes('vision') || this.config.model.includes('1.5');
+    return (
+      this.config.model.includes('vision') || this.config.model.includes('1.5')
+    );
   }
 
   /**
@@ -360,7 +384,12 @@ export class GoogleAdapter {
   private normalizeRole(role: string): 'user' | 'model' | null {
     const normalizedRole = role.toLowerCase();
     if (normalizedRole === 'user' || normalizedRole === 'human') return 'user';
-    if (normalizedRole === 'assistant' || normalizedRole === 'ai' || normalizedRole === 'model') return 'model';
+    if (
+      normalizedRole === 'assistant' ||
+      normalizedRole === 'ai' ||
+      normalizedRole === 'model'
+    )
+      return 'model';
     return null;
   }
 
@@ -377,7 +406,10 @@ export class GoogleAdapter {
         lastRole = content.role;
       } else {
         // Combine with previous content of same role
-        if (result.length > 0 && result[result.length - 1].role === content.role) {
+        if (
+          result.length > 0 &&
+          result[result.length - 1].role === content.role
+        ) {
           const lastContent = result[result.length - 1];
           const newText = content.parts.map(p => p.text).join(' ');
           lastContent.parts[0].text += ` ${newText}`;
@@ -393,7 +425,7 @@ export class GoogleAdapter {
    */
   private estimateTokens(contents: GoogleContent[]): number {
     let totalTokens = 0;
-    
+
     for (const content of contents) {
       for (const part of content.parts) {
         if (part.text) {
@@ -406,7 +438,7 @@ export class GoogleAdapter {
         }
       }
     }
-    
+
     return totalTokens;
   }
 
@@ -437,7 +469,7 @@ export class GoogleAdapter {
         'Remove redundant words and phrases',
         'Use direct, imperative language',
         'Structure requests with clear objectives',
-        'Leverage Gemini\'s efficiency optimizations',
+        "Leverage Gemini's efficiency optimizations",
       ],
       modelSpecific: {
         'gemini-pro': [
@@ -467,7 +499,10 @@ export class GoogleAdapter {
   /**
    * Validate Google AI request format
    */
-  validateRequest(request: GoogleRequest): { valid: boolean; errors: string[] } {
+  validateRequest(request: GoogleRequest): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!request.model) {
@@ -502,8 +537,11 @@ export class GoogleAdapter {
 
     if (request.generationConfig) {
       const config = request.generationConfig;
-      
-      if (config.temperature && (config.temperature < 0 || config.temperature > 2)) {
+
+      if (
+        config.temperature &&
+        (config.temperature < 0 || config.temperature > 2)
+      ) {
         errors.push('Temperature must be between 0 and 2');
       }
 

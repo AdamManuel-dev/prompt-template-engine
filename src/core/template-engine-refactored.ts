@@ -1,11 +1,13 @@
 /**
- * @fileoverview Refactored template engine using composition pattern
- * @lastmodified 2025-08-22T21:30:00Z
+ * @fileoverview Refactored template engine using composition pattern - main orchestrator for template processing
+ * @lastmodified 2025-08-26T11:10:32Z
  *
- * Features: Template rendering with modular processors
- * Main APIs: render(), renderSync()
- * Constraints: Maintains backward compatibility
- * Patterns: Composition over inheritance, processor pipeline
+ * Features: Template rendering with modular processors, async includes, helpers, partials, and transforms
+ * Main APIs: render(), renderSync(), extractVariables(), isTruthy()
+ * Constraints: Maintains backward compatibility, deterministic processing order, error handling
+ * Patterns: Composition over inheritance, processor pipeline, dependency injection, async processing
+ * Performance: Pipeline optimization with minimal passes, async include processing
+ * Error Handling: Graceful degradation, detailed error logging, processor isolation
  */
 
 import { TemplateContext } from '../types';
@@ -18,6 +20,40 @@ import { TemplatePartials } from './template-partials';
 import { TemplateTransforms } from './template-transforms';
 import { logger } from '../utils/logger';
 
+/**
+ * Refactored template engine that orchestrates multiple processors in a deterministic pipeline.
+ * Uses composition pattern to combine variable resolution, conditionals, loops, includes, helpers, and transforms.
+ * Provides both async and synchronous rendering capabilities.
+ *
+ * @example
+ * ```typescript
+ * const engine = new TemplateEngineRefactored({
+ *   basePath: './templates',
+ *   helpers: customHelpers,
+ *   partials: customPartials
+ * });
+ *
+ * const template = `
+ *   {{>header}}
+ *   {{#if user}}
+ *     Welcome {{user.name}}!
+ *     {{#each user.notifications}}
+ *       <div class="{{type}}">{{message | capitalize}}</div>
+ *     {{/each}}
+ *   {{/if}}
+ *   {{>footer}}
+ * `;
+ *
+ * const result = await engine.render(template, {
+ *   variables: {
+ *     user: {
+ *       name: "Alice",
+ *       notifications: [{type: "info", message: "welcome back"}]
+ *     }
+ *   }
+ * });
+ * ```
+ */
 export class TemplateEngineRefactored {
   private variableProcessor: VariableProcessor;
 
@@ -33,6 +69,24 @@ export class TemplateEngineRefactored {
 
   private transforms: TemplateTransforms;
 
+  /**
+   * Creates a new template engine with configurable processors and options.
+   *
+   * @param options - Configuration options for the template engine
+   * @param options.basePath - Base path for template includes (default: current directory)
+   * @param options.helpers - Custom helper functions for template processing
+   * @param options.partials - Custom partial templates for reuse
+   * @param options.transforms - Custom value transformation functions
+   *
+   * @example
+   * ```typescript
+   * const engine = new TemplateEngineRefactored({
+   *   basePath: './src/templates',
+   *   helpers: new CustomHelpers(),
+   *   partials: new CustomPartials()
+   * });
+   * ```
+   */
   constructor(options?: {
     basePath?: string;
     helpers?: TemplateHelpers;
@@ -52,7 +106,37 @@ export class TemplateEngineRefactored {
   }
 
   /**
-   * Render a template string with variables
+   * Renders a template string asynchronously with full feature support including file includes.
+   * Processes template through a deterministic pipeline: includes → conditionals → loops → partials → helpers → transforms → variables.
+   *
+   * @param template - Template string to render
+   * @param context - Template context containing variables, metadata, and environment
+   * @returns Promise resolving to fully rendered template string
+   *
+   * @example
+   * ```typescript
+   * const template = `
+   *   {{include "header.hbs"}}
+   *   {{#if showContent}}
+   *     {{#each items}}
+   *       {{name | uppercase}} ({{@index}})
+   *     {{/each}}
+   *   {{/if}}
+   * `;
+   *
+   * const result = await engine.render(template, {
+   *   variables: {
+   *     showContent: true,
+   *     items: [{name: "apple"}, {name: "banana"}]
+   *   }
+   * });
+   * ```
+   *
+   * @throws {Error} When template processing fails or includes cannot be resolved
+   * @see {@link renderSync} for synchronous rendering without includes
+   * @see {@link processPartials} for partial template processing
+   * @see {@link processHelpers} for helper function processing
+   * @see {@link processTransforms} for value transformation processing
    */
   async render(template: string, context: TemplateContext): Promise<string> {
     try {
@@ -94,7 +178,24 @@ export class TemplateEngineRefactored {
   }
 
   /**
-   * Synchronous render (without includes)
+   * Renders a template string synchronously without file include support.
+   * Faster than async render but cannot process {{include}} directives.
+   * Uses the same pipeline as async render except for includes.
+   *
+   * @param template - Template string to render
+   * @param context - Template context containing variables, metadata, and environment
+   * @returns Fully rendered template string
+   *
+   * @example
+   * ```typescript
+   * const template = "{{#if user}}Hello {{user.name}}!{{/if}}";
+   * const result = engine.renderSync(template, {
+   *   variables: { user: { name: "World" } }
+   * });
+   * // Returns: "Hello World!"
+   * ```
+   *
+   * @see {@link render} for async rendering with include support
    */
   renderSync(template: string, context: TemplateContext): string {
     // Process conditionals
@@ -120,7 +221,22 @@ export class TemplateEngineRefactored {
   }
 
   /**
-   * Process partials in template
+   * Processes partial template inclusions using {{>partialName}} syntax.
+   * Partials are pre-registered template fragments that can be reused across templates.
+   *
+   * @param template - Template string containing partial references
+   * @param context - Template context for partial rendering
+   * @returns Template with partials expanded and rendered
+   *
+   * @example
+   * ```typescript
+   * // Template: "{{>userCard user}}"
+   * // Partial "userCard": "<div>{{name}} ({{email}})</div>"
+   * // Result: "<div>John (john@example.com)</div>"
+   * ```
+   *
+   * @private
+   * @see {@link render} for usage in the processing pipeline
    */
   private processPartials(template: string, context: TemplateContext): string {
     return this.partials.process(template, {
@@ -131,7 +247,24 @@ export class TemplateEngineRefactored {
   }
 
   /**
-   * Process helper functions
+   * Processes helper function calls using {{helperName(arg1, arg2, ...)}} syntax.
+   * Helpers are registered functions that can perform complex logic and formatting.
+   *
+   * @param template - Template string containing helper function calls
+   * @param context - Template context for argument resolution
+   * @returns Template with helper functions executed and replaced with results
+   *
+   * @example
+   * ```typescript
+   * // Template: "{{formatDate(user.createdAt, 'YYYY-MM-DD')}}"
+   * // Helper: formatDate(date, format) => moment(date).format(format)
+   * // Result: "2023-12-25"
+   * ```
+   *
+   * @throws {Error} When helper execution fails
+   * @private
+   * @see {@link parseHelperArgs} for argument parsing logic
+   * @see {@link render} for usage in the processing pipeline
    */
   private processHelpers(template: string, context: TemplateContext): string {
     const helperPattern = /\{\{(\w+)\s*\((.*?)\)\}\}/g;
@@ -155,7 +288,22 @@ export class TemplateEngineRefactored {
   }
 
   /**
-   * Process variable transforms
+   * Processes variable transformations using {{variable | transform1 | transform2}} syntax.
+   * Transforms are chainable functions that modify variable values during rendering.
+   *
+   * @param template - Template string containing variable transformations
+   * @param context - Template context for variable resolution
+   * @returns Template with transformations applied to variables
+   *
+   * @example
+   * ```typescript
+   * // Template: "{{user.name | lowercase | capitalize}}"
+   * // Transforms: lowercase("JOHN") => "john", capitalize("john") => "John"
+   * // Result: "John"
+   * ```
+   *
+   * @private
+   * @see {@link render} for usage in the processing pipeline
    */
   private processTransforms(
     template: string,
@@ -181,7 +329,27 @@ export class TemplateEngineRefactored {
   }
 
   /**
-   * Parse helper arguments
+   * Parses helper function arguments from string format to typed values.
+   * Supports string literals, numbers, booleans, and variable references.
+   *
+   * @param argsString - Comma-separated argument string from helper call
+   * @param context - Template context for variable resolution
+   * @returns Array of parsed and resolved argument values
+   *
+   * @example
+   * ```typescript
+   * // Input: '"hello", 42, true, user.name'
+   * // Output: ["hello", 42, true, "John"]
+   *
+   * // Handles various types:
+   * // - String literals: "text" or 'text'
+   * // - Numbers: 42, 3.14
+   * // - Booleans: true, false
+   * // - Variables: user.name, items[0]
+   * ```
+   *
+   * @private
+   * @see {@link processHelpers} for usage in helper execution
    */
   private parseHelperArgs(argsString: string, context: TemplateContext): any[] {
     if (!argsString.trim()) return [];
@@ -214,14 +382,43 @@ export class TemplateEngineRefactored {
   }
 
   /**
-   * Check if value is truthy (exposed for compatibility)
+   * Checks if a value should be considered truthy in template conditions.
+   * Delegates to the conditional processor for consistent truthiness evaluation.
+   * Exposed as public API for external usage and backward compatibility.
+   *
+   * @param value - Value to evaluate for truthiness
+   * @returns True if value should be considered truthy, false otherwise
+   *
+   * @example
+   * ```typescript
+   * engine.isTruthy("hello")    // true
+   * engine.isTruthy([])         // false (empty array)
+   * engine.isTruthy({})         // false (empty object)
+   * engine.isTruthy(0)          // false
+   * ```
+   *
+   * @see {@link ConditionalProcessor.isTruthy} for implementation details
    */
   isTruthy(value: unknown): boolean {
     return this.conditionalProcessor.isTruthy(value);
   }
 
   /**
-   * Extract variables from template (exposed for compatibility)
+   * Extracts all variable names from a template string for analysis or validation.
+   * Delegates to the variable processor to maintain consistency.
+   * Exposed as public API for external usage and backward compatibility.
+   *
+   * @param template - Template string to analyze
+   * @returns Array of unique variable names found in the template
+   *
+   * @example
+   * ```typescript
+   * const template = "Hello {{user.name}}, you have {{count}} messages";
+   * const variables = engine.extractVariables(template);
+   * // Returns: ["user.name", "count"]
+   * ```
+   *
+   * @see {@link VariableProcessor.extractSimpleVariables} for implementation details
    */
   extractVariables(template: string): string[] {
     return this.variableProcessor.extractSimpleVariables(template);

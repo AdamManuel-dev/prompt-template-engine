@@ -28,7 +28,11 @@ export interface AnthropicRequest {
 }
 
 export interface AnthropicAdapterConfig {
-  model: 'claude-3-opus-20240229' | 'claude-3-sonnet-20240229' | 'claude-3-haiku-20240307' | 'claude-3-5-sonnet-20241022';
+  model:
+    | 'claude-3-opus-20240229'
+    | 'claude-3-sonnet-20240229'
+    | 'claude-3-haiku-20240307'
+    | 'claude-3-5-sonnet-20241022';
   maxTokens: number;
   temperature: number;
   enableSystemMessage: boolean;
@@ -65,7 +69,9 @@ export class AnthropicAdapter {
     'claude-3-5-sonnet-20241022': 200000,
   };
 
-  constructor(private config: AnthropicAdapterConfig = {} as AnthropicAdapterConfig) {
+  constructor(
+    private config: AnthropicAdapterConfig = {} as AnthropicAdapterConfig
+  ) {
     this.config = { ...this.defaultConfig, ...config };
   }
 
@@ -91,22 +97,31 @@ export class AnthropicAdapter {
     // Extract and format system message
     let systemMessage = '';
     if (this.config.enableSystemMessage) {
-      systemMessage = this.extractSystemMessage(optimizedPrompt, context?.systemMessage);
+      systemMessage = this.extractSystemMessage(
+        optimizedPrompt,
+        context?.systemMessage
+      );
       if (systemMessage) {
-        adaptationNotes.push('System message extracted and formatted for Anthropic');
+        adaptationNotes.push(
+          'System message extracted and formatted for Anthropic'
+        );
       }
     }
 
     // Add conversation history if available
     if (context?.conversationHistory) {
-      const historyMessages = this.formatConversationHistory(context.conversationHistory);
+      const historyMessages = this.formatConversationHistory(
+        context.conversationHistory
+      );
       messages.push(...historyMessages);
-      adaptationNotes.push(`Added ${historyMessages.length} conversation history messages`);
+      adaptationNotes.push(
+        `Added ${historyMessages.length} conversation history messages`
+      );
     }
 
     // Process and structure the main prompt
     let processedPrompt = this.removeSystemMessageFromPrompt(optimizedPrompt);
-    
+
     // Apply XML structuring if enabled
     if (this.config.enableXMLStructuring) {
       const xmlResult = this.addXMLStructuring(processedPrompt, context);
@@ -119,7 +134,10 @@ export class AnthropicAdapter {
 
     // Apply constitutional AI principles if enabled
     if (this.config.enableConstitutionalAI) {
-      const constitutionalResult = this.applyConstitutionalAI(processedPrompt, systemMessage);
+      const constitutionalResult = this.applyConstitutionalAI(
+        processedPrompt,
+        systemMessage
+      );
       processedPrompt = constitutionalResult.prompt;
       systemMessage = constitutionalResult.systemMessage;
       if (constitutionalResult.applied) {
@@ -134,11 +152,16 @@ export class AnthropicAdapter {
     });
 
     // Check token limits
-    const totalTokens = this.estimateTokens(systemMessage) + this.estimateTokens(messages.map(m => m.content).join(''));
+    const totalTokens =
+      this.estimateTokens(systemMessage) +
+      this.estimateTokens(messages.map(m => m.content).join(''));
     const modelLimit = this.modelLimits[this.config.model];
-    
-    if (totalTokens > modelLimit * 0.8) { // Leave room for response
-      warnings.push(`Prompt approaching model limit (${totalTokens}/${modelLimit} tokens)`);
+
+    if (totalTokens > modelLimit * 0.8) {
+      // Leave room for response
+      warnings.push(
+        `Prompt approaching model limit (${totalTokens}/${modelLimit} tokens)`
+      );
     }
 
     const request: AnthropicRequest = {
@@ -170,7 +193,10 @@ export class AnthropicAdapter {
   /**
    * Extract system message optimized for Claude
    */
-  private extractSystemMessage(prompt: string, explicitSystemMessage?: string): string {
+  private extractSystemMessage(
+    prompt: string,
+    explicitSystemMessage?: string
+  ): string {
     if (explicitSystemMessage) {
       return this.enhanceSystemMessageForClaude(explicitSystemMessage);
     }
@@ -190,14 +216,27 @@ export class AnthropicAdapter {
     }
 
     // Create Claude-optimized system message based on prompt content
-    let baseMessage = 'You are Claude, a helpful, harmless, and honest AI assistant created by Anthropic.';
-    
-    if (prompt.toLowerCase().includes('code') || prompt.toLowerCase().includes('programming')) {
-      baseMessage += ' You excel at code analysis, debugging, and providing well-structured programming solutions with clear explanations.';
-    } else if (prompt.toLowerCase().includes('analysis') || prompt.toLowerCase().includes('research')) {
-      baseMessage += ' You excel at analytical thinking, research, and providing thorough, evidence-based insights with clear reasoning.';
-    } else if (prompt.toLowerCase().includes('creative') || prompt.toLowerCase().includes('writing')) {
-      baseMessage += ' You excel at creative tasks and help produce engaging, well-structured content while maintaining accuracy.';
+    let baseMessage =
+      'You are Claude, a helpful, harmless, and honest AI assistant created by Anthropic.';
+
+    if (
+      prompt.toLowerCase().includes('code') ||
+      prompt.toLowerCase().includes('programming')
+    ) {
+      baseMessage +=
+        ' You excel at code analysis, debugging, and providing well-structured programming solutions with clear explanations.';
+    } else if (
+      prompt.toLowerCase().includes('analysis') ||
+      prompt.toLowerCase().includes('research')
+    ) {
+      baseMessage +=
+        ' You excel at analytical thinking, research, and providing thorough, evidence-based insights with clear reasoning.';
+    } else if (
+      prompt.toLowerCase().includes('creative') ||
+      prompt.toLowerCase().includes('writing')
+    ) {
+      baseMessage +=
+        ' You excel at creative tasks and help produce engaging, well-structured content while maintaining accuracy.';
     }
 
     return baseMessage;
@@ -210,13 +249,19 @@ export class AnthropicAdapter {
     let enhanced = systemMessage;
 
     // Add constitutional AI principles if not present
-    if (!enhanced.toLowerCase().includes('helpful') || !enhanced.toLowerCase().includes('harmless') || !enhanced.toLowerCase().includes('honest')) {
-      enhanced += ' Always strive to be helpful, harmless, and honest in your responses.';
+    if (
+      !enhanced.toLowerCase().includes('helpful') ||
+      !enhanced.toLowerCase().includes('harmless') ||
+      !enhanced.toLowerCase().includes('honest')
+    ) {
+      enhanced +=
+        ' Always strive to be helpful, harmless, and honest in your responses.';
     }
 
     // Add XML reasoning guidance
     if (!enhanced.includes('thinking')) {
-      enhanced += ' When tackling complex problems, you may use <thinking> tags to show your reasoning process.';
+      enhanced +=
+        ' When tackling complex problems, you may use <thinking> tags to show your reasoning process.';
     }
 
     return enhanced;
@@ -225,9 +270,11 @@ export class AnthropicAdapter {
   /**
    * Format conversation history for Anthropic
    */
-  private formatConversationHistory(history: Array<{ role: string; content: string }>): AnthropicMessage[] {
+  private formatConversationHistory(
+    history: Array<{ role: string; content: string }>
+  ): AnthropicMessage[] {
     const messages: AnthropicMessage[] = [];
-    
+
     for (const msg of history) {
       const role = this.normalizeRole(msg.role);
       if (role) {
@@ -279,14 +326,21 @@ export class AnthropicAdapter {
     }
 
     // Add reasoning structure for analytical tasks
-    if (prompt.toLowerCase().includes('analysis') || prompt.toLowerCase().includes('evaluate')) {
+    if (
+      prompt.toLowerCase().includes('analysis') ||
+      prompt.toLowerCase().includes('evaluate')
+    ) {
       if (!prompt.includes('<analysis>')) {
-        structuredPrompt += '\n\nPlease structure your analysis using <analysis></analysis> tags and break down your reasoning clearly.';
+        structuredPrompt +=
+          '\n\nPlease structure your analysis using <analysis></analysis> tags and break down your reasoning clearly.';
         structure.reasoningSteps.push('analysis');
       }
     }
 
-    structure.applied = structure.thinkingEnabled || structure.structuredSections.length > 0 || structure.reasoningSteps.length > 0;
+    structure.applied =
+      structure.thinkingEnabled ||
+      structure.structuredSections.length > 0 ||
+      structure.reasoningSteps.length > 0;
 
     return {
       prompt: structuredPrompt,
@@ -298,7 +352,10 @@ export class AnthropicAdapter {
   /**
    * Apply constitutional AI principles
    */
-  private applyConstitutionalAI(prompt: string, systemMessage: string): {
+  private applyConstitutionalAI(
+    prompt: string,
+    systemMessage: string
+  ): {
     prompt: string;
     systemMessage: string;
     applied: boolean;
@@ -313,22 +370,29 @@ export class AnthropicAdapter {
       /\b(hack|exploit|manipulate|deceive)\b/i,
     ];
 
-    const isHarmfulRequest = harmfulPatterns.some(pattern => pattern.test(prompt));
-    
+    const isHarmfulRequest = harmfulPatterns.some(pattern =>
+      pattern.test(prompt)
+    );
+
     if (isHarmfulRequest) {
       enhancedPrompt = `${enhancedPrompt}\n\nPlease note: If this request involves anything harmful, illegal, or unethical, please decline politely and suggest constructive alternatives.`;
       applied = true;
     }
 
     // Add accuracy reminders for factual requests
-    if (prompt.toLowerCase().includes('fact') || prompt.toLowerCase().includes('information') || prompt.toLowerCase().includes('research')) {
+    if (
+      prompt.toLowerCase().includes('fact') ||
+      prompt.toLowerCase().includes('information') ||
+      prompt.toLowerCase().includes('research')
+    ) {
       enhancedPrompt = `${enhancedPrompt}\n\nPlease ensure all factual claims are accurate and cite uncertainty when appropriate.`;
       applied = true;
     }
 
     // Enhance system message with constitutional principles
     if (!systemMessage.includes('constitutional')) {
-      enhancedSystemMessage += ' Follow constitutional AI principles: be helpful while avoiding harmful outputs, be honest about limitations and uncertainties, and prioritize human wellbeing.';
+      enhancedSystemMessage +=
+        ' Follow constitutional AI principles: be helpful while avoiding harmful outputs, be honest about limitations and uncertainties, and prioritize human wellbeing.';
       applied = true;
     }
 
@@ -394,14 +458,21 @@ export class AnthropicAdapter {
   private normalizeRole(role: string): 'user' | 'assistant' | null {
     const normalizedRole = role.toLowerCase();
     if (normalizedRole === 'user' || normalizedRole === 'human') return 'user';
-    if (normalizedRole === 'assistant' || normalizedRole === 'ai' || normalizedRole === 'claude') return 'assistant';
+    if (
+      normalizedRole === 'assistant' ||
+      normalizedRole === 'ai' ||
+      normalizedRole === 'claude'
+    )
+      return 'assistant';
     return null; // System messages are handled separately
   }
 
   /**
    * Ensure alternating user/assistant pattern required by Anthropic
    */
-  private ensureAlternatingPattern(messages: AnthropicMessage[]): AnthropicMessage[] {
+  private ensureAlternatingPattern(
+    messages: AnthropicMessage[]
+  ): AnthropicMessage[] {
     const result: AnthropicMessage[] = [];
     let lastRole: string | null = null;
 
@@ -411,7 +482,10 @@ export class AnthropicAdapter {
         lastRole = message.role;
       } else {
         // Combine with previous message of same role
-        if (result.length > 0 && result[result.length - 1].role === message.role) {
+        if (
+          result.length > 0 &&
+          result[result.length - 1].role === message.role
+        ) {
           result[result.length - 1].content += `\n\n${message.content}`;
         }
       }
@@ -480,7 +554,10 @@ export class AnthropicAdapter {
   /**
    * Validate Anthropic request format
    */
-  validateRequest(request: AnthropicRequest): { valid: boolean; errors: string[] } {
+  validateRequest(request: AnthropicRequest): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!request.model) {
@@ -499,7 +576,9 @@ export class AnthropicAdapter {
       // Check alternating pattern
       for (let i = 1; i < request.messages.length; i++) {
         if (request.messages[i].role === request.messages[i - 1].role) {
-          errors.push('Messages must alternate between user and assistant roles');
+          errors.push(
+            'Messages must alternate between user and assistant roles'
+          );
           break;
         }
       }
@@ -517,7 +596,10 @@ export class AnthropicAdapter {
       }
     }
 
-    if (request.temperature && (request.temperature < 0 || request.temperature > 1)) {
+    if (
+      request.temperature &&
+      (request.temperature < 0 || request.temperature > 1)
+    ) {
       errors.push('Temperature must be between 0 and 1');
     }
 

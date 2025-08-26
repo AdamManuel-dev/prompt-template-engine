@@ -22,10 +22,15 @@ export type TemplateType =
  * Template file definition
  */
 export interface TemplateFile {
+  path: string;
   source: string;
   destination: string;
   transform?: boolean;
   condition?: string;
+  content?: string;
+  name?: string;
+  encoding?: string;
+  mode?: string;
   permissions?: string;
 }
 
@@ -36,9 +41,19 @@ export interface TemplateVariable {
   type: 'string' | 'number' | 'boolean' | 'choice';
   description: string;
   default?: unknown;
+  defaultValue?: unknown;
   required?: boolean;
   choices?: string[];
   validation?: string;
+}
+
+/**
+ * Template command definition
+ */
+export interface TemplateCommand {
+  command: string;
+  description?: string;
+  when?: string;
 }
 
 /**
@@ -706,10 +721,12 @@ export interface Template {
   author?: string;
   tags?: string[];
   content?: string;
+  basePath?: string;
   variables?: Record<string, unknown>;
-  commands?: Record<string, string>;
+  commands?: Record<string, string> | TemplateCommand[];
   requirements?: string[];
   examples?: string[];
+  reasoning?: string;
   filePatterns?: string[];
   contextFiles?: string[];
   references?: string[];
@@ -719,11 +736,42 @@ export interface Template {
   language?: string;
   domain?: string;
   useCase?: string;
-  files?: Array<{
-    source: string;
-    destination: string;
-    transform?: boolean;
-    condition?: string;
+  path?: string;
+  files?:
+    | Array<{
+        source: string;
+        destination: string;
+        transform?: boolean;
+        condition?: string;
+      }>
+    | TemplateFile[];
+  metadata?: {
+    author?: string;
+    tags?: string[];
+    created?: string;
+    updated?: string;
+    category?: string;
+    [key: string]: any;
+  };
+  // Optimization tracking fields
+  isOptimized?: boolean;
+  optimizationLevel?: 'none' | 'basic' | 'advanced' | 'aggressive';
+  originalTemplateId?: string;
+  // A/B testing support
+  abTestVariants?: Array<{
+    name: string;
+    version: string;
+    content: string;
+    files?: TemplateFile[];
+    weight?: number;
+  }>;
+  activeVariant?: string;
+  // Version comparison
+  parentVersions?: Array<{
+    version: string;
+    templateId: string;
+    optimizationId?: string;
+    relationship: 'original' | 'optimized' | 'variant';
   }>;
 }
 

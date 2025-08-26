@@ -10,13 +10,17 @@
 
 import chalk from 'chalk';
 import ora from 'ora';
+// Note: @types/diff is in devDependencies for development purposes only
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { diffLines } from 'diff';
 import { BaseCommand } from '../base-command';
 import { CommandOption } from '../command-registry';
 import { logger } from '../../utils/logger';
 import { TemplateService } from '../../services/template.service';
-import { PromptWizardClient, createDefaultConfig } from '../../integrations/promptwizard';
-import { Template } from '../../types';
+import {
+  PromptWizardClient,
+  createDefaultConfig,
+} from '../../integrations/promptwizard';
 
 interface CompareOptions {
   original?: string;
@@ -69,15 +73,18 @@ export class CompareCommand extends BaseCommand {
   ];
 
   private templateService!: TemplateService;
+
   private client!: PromptWizardClient;
 
-  async execute(args: unknown, options: CompareOptions): Promise<void> {
+  async execute(_args: unknown, options: CompareOptions): Promise<void> {
     await this.initializeServices();
 
     // Check service health
     const isHealthy = await this.checkServiceHealth();
     if (!isHealthy) {
-      this.error('PromptWizard service is not available. Please check your configuration.');
+      this.error(
+        'PromptWizard service is not available. Please check your configuration.'
+      );
       process.exit(1);
     }
 
@@ -93,7 +100,9 @@ export class CompareCommand extends BaseCommand {
       this.client = new PromptWizardClient(config);
       this.templateService = new TemplateService();
     } catch (error) {
-      this.error(`Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`);
+      this.error(
+        `Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`
+      );
       process.exit(1);
     }
   }
@@ -106,7 +115,9 @@ export class CompareCommand extends BaseCommand {
       const isHealthy = await this.client.healthCheck();
       return isHealthy;
     } catch (error) {
-      logger.error(`Health check failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `Health check failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       return false;
     }
   }
@@ -120,7 +131,9 @@ export class CompareCommand extends BaseCommand {
 
     // Get original prompt
     if (!originalText) {
-      originalText = await this.prompt('Enter original prompt or template name');
+      originalText = await this.prompt(
+        'Enter original prompt or template name'
+      );
       if (!originalText) {
         this.error('Original prompt is required');
         return;
@@ -129,14 +142,18 @@ export class CompareCommand extends BaseCommand {
 
     // Get optimized prompt
     if (!optimizedText) {
-      optimizedText = await this.prompt('Enter optimized prompt or template name');
+      optimizedText = await this.prompt(
+        'Enter optimized prompt or template name'
+      );
       if (!optimizedText) {
         this.error('Optimized prompt is required');
         return;
       }
     }
 
-    const spinner = ora('Resolving prompts and performing comparison...').start();
+    const spinner = ora(
+      'Resolving prompts and performing comparison...'
+    ).start();
 
     try {
       // Resolve prompt texts (could be template names or direct text)
@@ -160,10 +177,19 @@ export class CompareCommand extends BaseCommand {
           this.displayJsonComparison(comparison);
           break;
         case 'markdown':
-          this.displayMarkdownComparison(comparison, originalPrompt, optimizedPrompt);
+          this.displayMarkdownComparison(
+            comparison,
+            originalPrompt,
+            optimizedPrompt
+          );
           break;
         default:
-          this.displayTableComparison(comparison, originalPrompt, optimizedPrompt, options);
+          this.displayTableComparison(
+            comparison,
+            originalPrompt,
+            optimizedPrompt,
+            options
+          );
       }
 
       // Show diff if requested
@@ -173,10 +199,17 @@ export class CompareCommand extends BaseCommand {
 
       // Save report if output path provided
       if (options.output) {
-        await this.saveComparisonReport(comparison, originalPrompt, optimizedPrompt, options);
+        await this.saveComparisonReport(
+          comparison,
+          originalPrompt,
+          optimizedPrompt,
+          options
+        );
       }
     } catch (error) {
-      spinner.fail(`Comparison failed: ${error instanceof Error ? error.message : String(error)}`);
+      spinner.fail(
+        `Comparison failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -189,14 +222,20 @@ export class CompareCommand extends BaseCommand {
       try {
         const templatePath = await this.templateService.findTemplate(input);
         if (templatePath) {
-          const template = await this.templateService.loadTemplate(templatePath);
-          const renderedTemplate = await this.templateService.renderTemplate(template, {});
-          const templateContent = renderedTemplate.files.map(f => f.content).join('\n');
+          const template =
+            await this.templateService.loadTemplate(templatePath);
+          const renderedTemplate = await this.templateService.renderTemplate(
+            template,
+            {}
+          );
+          const templateContent = renderedTemplate.files
+            .map(f => f.content)
+            .join('\n');
           if (templateContent) {
             return templateContent;
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Not a template, treat as direct text
       }
     }
@@ -208,68 +247,111 @@ export class CompareCommand extends BaseCommand {
    */
   private displayTableComparison(
     comparison: any,
-    originalPrompt: string,
-    optimizedPrompt: string,
+    _originalPrompt: string,
+    _optimizedPrompt: string,
     options: CompareOptions
   ): void {
-    console.log('\n' + chalk.blue.bold('📊 Prompt Comparison Results'));
+    console.log(`\n${chalk.blue.bold('📊 Prompt Comparison Results')}`);
     console.log(chalk.cyan('═'.repeat(60)));
 
     // Basic metrics comparison
-    console.log('\n' + chalk.yellow.bold('📈 Quality Metrics'));
-    console.log('┌─────────────────────┬─────────────┬─────────────┬─────────────┐');
-    console.log('│ Metric              │ Original    │ Optimized   │ Improvement │');
-    console.log('├─────────────────────┼─────────────┼─────────────┼─────────────┤');
-    
+    console.log(`\n${chalk.yellow.bold('📈 Quality Metrics')}`);
+    console.log(
+      '┌─────────────────────┬─────────────┬─────────────┬─────────────┐'
+    );
+    console.log(
+      '│ Metric              │ Original    │ Optimized   │ Improvement │'
+    );
+    console.log(
+      '├─────────────────────┼─────────────┼─────────────┼─────────────┤'
+    );
+
     const metrics = [
-      ['Overall Score', comparison.original.score.overall, comparison.optimized.score.overall],
-      ['Clarity', comparison.original.score.metrics.clarity, comparison.optimized.score.metrics.clarity],
-      ['Task Alignment', comparison.original.score.metrics.taskAlignment, comparison.optimized.score.metrics.taskAlignment],
-      ['Token Efficiency', comparison.original.score.metrics.tokenEfficiency, comparison.optimized.score.metrics.tokenEfficiency],
-      ['Estimated Tokens', comparison.original.estimatedTokens, comparison.optimized.estimatedTokens],
-      ['Estimated Cost', comparison.original.estimatedCost.toFixed(4), comparison.optimized.estimatedCost.toFixed(4)],
+      [
+        'Overall Score',
+        comparison.original.score.overall,
+        comparison.optimized.score.overall,
+      ],
+      [
+        'Clarity',
+        comparison.original.score.metrics.clarity,
+        comparison.optimized.score.metrics.clarity,
+      ],
+      [
+        'Task Alignment',
+        comparison.original.score.metrics.taskAlignment,
+        comparison.optimized.score.metrics.taskAlignment,
+      ],
+      [
+        'Token Efficiency',
+        comparison.original.score.metrics.tokenEfficiency,
+        comparison.optimized.score.metrics.tokenEfficiency,
+      ],
+      [
+        'Estimated Tokens',
+        comparison.original.estimatedTokens,
+        comparison.optimized.estimatedTokens,
+      ],
+      [
+        'Estimated Cost',
+        comparison.original.estimatedCost.toFixed(4),
+        comparison.optimized.estimatedCost.toFixed(4),
+      ],
     ];
 
     metrics.forEach(([metric, original, optimized]) => {
-      const improvement = typeof original === 'number' && typeof optimized === 'number'
-        ? ((optimized - original) / original * 100).toFixed(1) + '%'
-        : 'N/A';
-      
-      const improvementColor = improvement.startsWith('-') ? chalk.red : chalk.green;
-      
-      console.log(`│ ${metric.padEnd(19)} │ ${String(original).padEnd(11)} │ ${String(optimized).padEnd(11)} │ ${improvementColor(String(improvement).padEnd(11))} │`);
+      const improvement =
+        typeof original === 'number' && typeof optimized === 'number'
+          ? `${(((optimized - original) / original) * 100).toFixed(1)}%`
+          : 'N/A';
+
+      const improvementColor = improvement.startsWith('-')
+        ? chalk.red
+        : chalk.green;
+
+      console.log(
+        `│ ${metric.padEnd(19)} │ ${String(original).padEnd(11)} │ ${String(optimized).padEnd(11)} │ ${improvementColor(String(improvement).padEnd(11))} │`
+      );
     });
-    
-    console.log('└─────────────────────┴─────────────┴─────────────┴─────────────┘');
+
+    console.log(
+      '└─────────────────────┴─────────────┴─────────────┴─────────────┘'
+    );
 
     // Improvements summary
     if (comparison.improvements) {
-      console.log('\n' + chalk.green.bold('🚀 Optimization Improvements'));
-      console.log(`${chalk.blue('Quality Improvement:')} ${comparison.improvements.qualityImprovement.toFixed(1)}%`);
-      console.log(`${chalk.blue('Token Reduction:')} ${comparison.improvements.tokenReduction.toFixed(1)}%`);
-      console.log(`${chalk.blue('Cost Savings:')} ${comparison.improvements.costSavings.toFixed(1)}%`);
+      console.log(`\n${chalk.green.bold('🚀 Optimization Improvements')}`);
+      console.log(
+        `${chalk.blue('Quality Improvement:')} ${comparison.improvements.qualityImprovement.toFixed(1)}%`
+      );
+      console.log(
+        `${chalk.blue('Token Reduction:')} ${comparison.improvements.tokenReduction.toFixed(1)}%`
+      );
+      console.log(
+        `${chalk.blue('Cost Savings:')} ${comparison.improvements.costSavings.toFixed(1)}%`
+      );
     }
 
     // Analysis insights
     if (comparison.analysis && options.detailed) {
-      console.log('\n' + chalk.magenta.bold('🔍 Detailed Analysis'));
-      
+      console.log(`\n${chalk.magenta.bold('🔍 Detailed Analysis')}`);
+
       if (comparison.analysis.strengthsGained.length > 0) {
-        console.log('\n' + chalk.green('✅ Strengths Gained:'));
+        console.log(`\n${chalk.green('✅ Strengths Gained:')}`);
         comparison.analysis.strengthsGained.forEach((strength: string) => {
           console.log(`  • ${strength}`);
         });
       }
-      
+
       if (comparison.analysis.potentialRisks.length > 0) {
-        console.log('\n' + chalk.red('⚠️  Potential Risks:'));
+        console.log(`\n${chalk.red('⚠️  Potential Risks:')}`);
         comparison.analysis.potentialRisks.forEach((risk: string) => {
           console.log(`  • ${risk}`);
         });
       }
-      
+
       if (comparison.analysis.recommendations.length > 0) {
-        console.log('\n' + chalk.yellow('💡 Recommendations:'));
+        console.log(`\n${chalk.yellow('💡 Recommendations:')}`);
         comparison.analysis.recommendations.forEach((rec: string) => {
           console.log(`  • ${rec}`);
         });
@@ -281,10 +363,10 @@ export class CompareCommand extends BaseCommand {
       ...comparison.original.score.suggestions,
       ...comparison.optimized.score.suggestions,
     ];
-    
+
     if (allSuggestions.length > 0 && options.detailed) {
-      console.log('\n' + chalk.cyan.bold('💭 Additional Suggestions'));
-      const uniqueSuggestions = [...new Set(allSuggestions)];
+      console.log(`\n${chalk.cyan.bold('💭 Additional Suggestions')}`);
+      const uniqueSuggestions = Array.from(new Set(allSuggestions));
       uniqueSuggestions.forEach((suggestion: string, index: number) => {
         console.log(`${chalk.gray(`${index + 1}.`)} ${suggestion}`);
       });
@@ -309,39 +391,53 @@ export class CompareCommand extends BaseCommand {
     console.log('# Prompt Comparison Report\n');
     console.log(`**Comparison ID:** ${comparison.comparisonId}\n`);
     console.log(`**Generated:** ${new Date().toISOString()}\n`);
-    
+
     console.log('## Quality Metrics\n');
     console.log('| Metric | Original | Optimized | Improvement |');
     console.log('|--------|----------|-----------|-------------|');
-    console.log(`| Overall Score | ${comparison.original.score.overall}/100 | ${comparison.optimized.score.overall}/100 | ${((comparison.optimized.score.overall - comparison.original.score.overall) / comparison.original.score.overall * 100).toFixed(1)}% |`);
-    console.log(`| Clarity | ${comparison.original.score.metrics.clarity}/100 | ${comparison.optimized.score.metrics.clarity}/100 | ${((comparison.optimized.score.metrics.clarity - comparison.original.score.metrics.clarity) / comparison.original.score.metrics.clarity * 100).toFixed(1)}% |`);
-    console.log(`| Task Alignment | ${comparison.original.score.metrics.taskAlignment}/100 | ${comparison.optimized.score.metrics.taskAlignment}/100 | ${((comparison.optimized.score.metrics.taskAlignment - comparison.original.score.metrics.taskAlignment) / comparison.original.score.metrics.taskAlignment * 100).toFixed(1)}% |`);
-    console.log(`| Token Efficiency | ${comparison.original.score.metrics.tokenEfficiency}/100 | ${comparison.optimized.score.metrics.tokenEfficiency}/100 | ${((comparison.optimized.score.metrics.tokenEfficiency - comparison.original.score.metrics.tokenEfficiency) / comparison.original.score.metrics.tokenEfficiency * 100).toFixed(1)}% |`);
-    
+    console.log(
+      `| Overall Score | ${comparison.original.score.overall}/100 | ${comparison.optimized.score.overall}/100 | ${(((comparison.optimized.score.overall - comparison.original.score.overall) / comparison.original.score.overall) * 100).toFixed(1)}% |`
+    );
+    console.log(
+      `| Clarity | ${comparison.original.score.metrics.clarity}/100 | ${comparison.optimized.score.metrics.clarity}/100 | ${(((comparison.optimized.score.metrics.clarity - comparison.original.score.metrics.clarity) / comparison.original.score.metrics.clarity) * 100).toFixed(1)}% |`
+    );
+    console.log(
+      `| Task Alignment | ${comparison.original.score.metrics.taskAlignment}/100 | ${comparison.optimized.score.metrics.taskAlignment}/100 | ${(((comparison.optimized.score.metrics.taskAlignment - comparison.original.score.metrics.taskAlignment) / comparison.original.score.metrics.taskAlignment) * 100).toFixed(1)}% |`
+    );
+    console.log(
+      `| Token Efficiency | ${comparison.original.score.metrics.tokenEfficiency}/100 | ${comparison.optimized.score.metrics.tokenEfficiency}/100 | ${(((comparison.optimized.score.metrics.tokenEfficiency - comparison.original.score.metrics.tokenEfficiency) / comparison.original.score.metrics.tokenEfficiency) * 100).toFixed(1)}% |`
+    );
+
     if (comparison.improvements) {
       console.log('\n## Optimization Summary\n');
-      console.log(`- **Quality Improvement:** ${comparison.improvements.qualityImprovement.toFixed(1)}%`);
-      console.log(`- **Token Reduction:** ${comparison.improvements.tokenReduction.toFixed(1)}%`);
-      console.log(`- **Cost Savings:** ${comparison.improvements.costSavings.toFixed(1)}%`);
+      console.log(
+        `- **Quality Improvement:** ${comparison.improvements.qualityImprovement.toFixed(1)}%`
+      );
+      console.log(
+        `- **Token Reduction:** ${comparison.improvements.tokenReduction.toFixed(1)}%`
+      );
+      console.log(
+        `- **Cost Savings:** ${comparison.improvements.costSavings.toFixed(1)}%`
+      );
     }
-    
+
     if (comparison.analysis) {
       console.log('\n## Analysis\n');
-      
+
       if (comparison.analysis.strengthsGained.length > 0) {
         console.log('### Strengths Gained\n');
         comparison.analysis.strengthsGained.forEach((strength: string) => {
           console.log(`- ${strength}`);
         });
       }
-      
+
       if (comparison.analysis.potentialRisks.length > 0) {
         console.log('\n### Potential Risks\n');
         comparison.analysis.potentialRisks.forEach((risk: string) => {
           console.log(`- ${risk}`);
         });
       }
-      
+
       if (comparison.analysis.recommendations.length > 0) {
         console.log('\n### Recommendations\n');
         comparison.analysis.recommendations.forEach((rec: string) => {
@@ -349,7 +445,7 @@ export class CompareCommand extends BaseCommand {
         });
       }
     }
-    
+
     console.log('\n## Prompt Content\n');
     console.log('### Original Prompt\n');
     console.log('```');
@@ -365,20 +461,22 @@ export class CompareCommand extends BaseCommand {
    * Display diff between prompts
    */
   private displayDiff(originalPrompt: string, optimizedPrompt: string): void {
-    console.log('\n' + chalk.blue.bold('📝 Content Diff'));
+    console.log(`\n${chalk.blue.bold('📝 Content Diff')}`);
     console.log(chalk.cyan('═'.repeat(60)));
 
     const diff = diffLines(originalPrompt, optimizedPrompt);
-    
-    diff.forEach((part) => {
-      if (part.removed) {
-        process.stdout.write(chalk.red('- ' + part.value));
-      } else if (part.added) {
-        process.stdout.write(chalk.green('+ ' + part.value));
-      } else {
-        process.stdout.write(chalk.gray('  ' + part.value));
+
+    diff.forEach(
+      (part: { added?: boolean; removed?: boolean; value: string }) => {
+        if (part.removed) {
+          process.stdout.write(chalk.red(`- ${part.value}`));
+        } else if (part.added) {
+          process.stdout.write(chalk.green(`+ ${part.value}`));
+        } else {
+          process.stdout.write(chalk.gray(`  ${part.value}`));
+        }
       }
-    });
+    );
 
     console.log(''); // Add final newline
   }
@@ -395,7 +493,7 @@ export class CompareCommand extends BaseCommand {
     try {
       const fs = await import('fs');
       const path = await import('path');
-      
+
       const outputDir = path.dirname(options.output!);
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
@@ -428,7 +526,9 @@ export class CompareCommand extends BaseCommand {
 
       this.success(`Comparison report saved to: ${options.output}`);
     } catch (error) {
-      this.error(`Failed to save comparison report: ${error instanceof Error ? error.message : String(error)}`);
+      this.error(
+        `Failed to save comparison report: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 }

@@ -14,7 +14,10 @@ import { BaseCommand } from '../base-command';
 import { CommandOption } from '../command-registry';
 import { logger } from '../../utils/logger';
 import { TemplateService } from '../../services/template.service';
-import { PromptWizardClient, createDefaultConfig } from '../../integrations/promptwizard';
+import {
+  PromptWizardClient,
+  createDefaultConfig,
+} from '../../integrations/promptwizard';
 
 interface ScoreOptions {
   prompt?: string;
@@ -73,15 +76,18 @@ export class ScoreCommand extends BaseCommand {
   ];
 
   private templateService!: TemplateService;
+
   private client!: PromptWizardClient;
 
-  async execute(args: unknown, options: ScoreOptions): Promise<void> {
+  async execute(_args: unknown, options: ScoreOptions): Promise<void> {
     await this.initializeServices();
 
     // Check service health
     const isHealthy = await this.checkServiceHealth();
     if (!isHealthy) {
-      this.error('PromptWizard service is not available. Please check your configuration.');
+      this.error(
+        'PromptWizard service is not available. Please check your configuration.'
+      );
       process.exit(1);
     }
 
@@ -101,7 +107,9 @@ export class ScoreCommand extends BaseCommand {
       this.client = new PromptWizardClient(config);
       this.templateService = new TemplateService();
     } catch (error) {
-      this.error(`Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`);
+      this.error(
+        `Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`
+      );
       process.exit(1);
     }
   }
@@ -114,7 +122,9 @@ export class ScoreCommand extends BaseCommand {
       const isHealthy = await this.client.healthCheck();
       return isHealthy;
     } catch (error) {
-      logger.error(`Health check failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `Health check failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       return false;
     }
   }
@@ -128,7 +138,9 @@ export class ScoreCommand extends BaseCommand {
 
     // Determine what to score
     if (!promptText && !templateName) {
-      const choice = await this.prompt('Score (p)rompt text or (t)emplate? [p/t]');
+      const choice = await this.prompt(
+        'Score (p)rompt text or (t)emplate? [p/t]'
+      );
       if (choice.toLowerCase() === 't') {
         templateName = await this.prompt('Enter template name');
       } else {
@@ -144,13 +156,17 @@ export class ScoreCommand extends BaseCommand {
       let sourceName = 'prompt';
 
       if (templateName) {
-        const templatePath = await this.templateService.findTemplate(templateName);
+        const templatePath =
+          await this.templateService.findTemplate(templateName);
         if (!templatePath) {
           spinner.fail(`Template not found: ${templateName}`);
           return;
         }
         const template = await this.templateService.loadTemplate(templatePath);
-        const renderedTemplate = await this.templateService.renderTemplate(template, {});
+        const renderedTemplate = await this.templateService.renderTemplate(
+          template,
+          {}
+        );
         finalPromptText = renderedTemplate.files.map(f => f.content).join('\n');
         sourceName = template.name;
       }
@@ -163,11 +179,13 @@ export class ScoreCommand extends BaseCommand {
       spinner.text = 'Analyzing prompt quality...';
 
       // Get task description if not provided
-      let task = options.task;
+      let { task } = options;
       if (!task && templateName) {
-        const templatePath = await this.templateService.findTemplate(templateName);
+        const templatePath =
+          await this.templateService.findTemplate(templateName);
         if (templatePath) {
-          const template = await this.templateService.loadTemplate(templatePath);
+          const template =
+            await this.templateService.loadTemplate(templatePath);
           task = template?.description || '';
         }
       }
@@ -201,7 +219,9 @@ export class ScoreCommand extends BaseCommand {
         await this.saveScoreReport(score, finalPromptText, sourceName, options);
       }
     } catch (error) {
-      spinner.fail(`Scoring failed: ${error instanceof Error ? error.message : String(error)}`);
+      spinner.fail(
+        `Scoring failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -214,16 +234,20 @@ export class ScoreCommand extends BaseCommand {
     try {
       const templateList = await this.templateService.listTemplates();
       const templates = [];
-      
+
       for (const templateInfo of templateList) {
         try {
-          const template = await this.templateService.loadTemplate(templateInfo.path);
+          const template = await this.templateService.loadTemplate(
+            templateInfo.path
+          );
           templates.push(template);
         } catch (error) {
-          logger.warn(`Failed to load template ${templateInfo.name}: ${error instanceof Error ? error.message : String(error)}`);
+          logger.warn(
+            `Failed to load template ${templateInfo.name}: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
       }
-      
+
       if (templates.length === 0) {
         spinner.fail('No templates found for batch scoring');
         return;
@@ -233,15 +257,23 @@ export class ScoreCommand extends BaseCommand {
 
       const results = [];
       const threshold = parseInt(options.threshold?.toString() || '70', 10);
-      
+
       for (const template of templates) {
         try {
           spinner.text = `Scoring: ${template.name}`;
+          const renderedTemplate = await this.templateService.renderTemplate(
+            template,
+            {}
+          );
+          const templateContent = renderedTemplate.files
+            .map(f => f.content)
+            .join('\n');
+
           const score = await this.client.scorePrompt(
-            template.content || '', 
+            templateContent,
             template.description
           );
-          
+
           results.push({
             template: template.name,
             score,
@@ -266,7 +298,9 @@ export class ScoreCommand extends BaseCommand {
         await this.saveBatchReport(results, options);
       }
     } catch (error) {
-      spinner.fail(`Batch scoring failed: ${error instanceof Error ? error.message : String(error)}`);
+      spinner.fail(
+        `Batch scoring failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -279,21 +313,23 @@ export class ScoreCommand extends BaseCommand {
     sourceName: string,
     options: ScoreOptions
   ): void {
-    console.log('\n' + chalk.blue.bold('📊 Prompt Quality Score'));
+    console.log(`\n${chalk.blue.bold('📊 Prompt Quality Score')}`);
     console.log(chalk.cyan('═'.repeat(50)));
     console.log(`${chalk.blue('Source:')} ${sourceName}`);
     console.log(`${chalk.blue('Confidence:')} ${score.confidence.toFixed(1)}%`);
 
     // Overall score with color coding
     const overallColor = this.getScoreColor(score.overall);
-    console.log(`${chalk.blue('Overall Score:')} ${overallColor(`${score.overall}/100`)} ${this.getScoreLabel(score.overall)}`);
+    console.log(
+      `${chalk.blue('Overall Score:')} ${overallColor(`${score.overall}/100`)} ${this.getScoreLabel(score.overall)}`
+    );
 
     // Detailed metrics
-    console.log('\n' + chalk.yellow.bold('📈 Quality Metrics'));
+    console.log(`\n${chalk.yellow.bold('📈 Quality Metrics')}`);
     console.log('┌─────────────────────┬─────────────┬───────────────┐');
     console.log('│ Metric              │ Score       │ Rating        │');
     console.log('├─────────────────────┼─────────────┼───────────────┤');
-    
+
     const metrics = [
       ['Clarity', score.metrics.clarity],
       ['Task Alignment', score.metrics.taskAlignment],
@@ -307,14 +343,16 @@ export class ScoreCommand extends BaseCommand {
     metrics.forEach(([metric, value]) => {
       const color = this.getScoreColor(value);
       const label = this.getScoreLabel(value);
-      console.log(`│ ${metric.padEnd(19)} │ ${color(`${value}/100`.padEnd(11))} │ ${color(label.padEnd(13))} │`);
+      console.log(
+        `│ ${metric.padEnd(19)} │ ${color(`${value}/100`.padEnd(11))} │ ${color(label.padEnd(13))} │`
+      );
     });
-    
+
     console.log('└─────────────────────┴─────────────┴───────────────┘');
 
     // Suggestions
     if (score.suggestions.length > 0 && options.detailed) {
-      console.log('\n' + chalk.magenta.bold('💡 Improvement Suggestions'));
+      console.log(`\n${chalk.magenta.bold('💡 Improvement Suggestions')}`);
       score.suggestions.forEach((suggestion: string, index: number) => {
         console.log(`${chalk.gray(`${index + 1}.`)} ${suggestion}`);
       });
@@ -322,12 +360,14 @@ export class ScoreCommand extends BaseCommand {
 
     // Show prompt content if detailed
     if (options.detailed && promptText.length < 500) {
-      console.log('\n' + chalk.gray.bold('📝 Prompt Content'));
+      console.log(`\n${chalk.gray.bold('📝 Prompt Content')}`);
       console.log(chalk.gray('─'.repeat(50)));
       console.log(promptText);
       console.log(chalk.gray('─'.repeat(50)));
     } else if (options.detailed) {
-      console.log(`\n${chalk.gray('📝 Prompt Content:')} ${promptText.length} characters (truncated for display)`);
+      console.log(
+        `\n${chalk.gray('📝 Prompt Content:')} ${promptText.length} characters (truncated for display)`
+      );
     }
   }
 
@@ -346,31 +386,45 @@ export class ScoreCommand extends BaseCommand {
   /**
    * Display score in markdown format
    */
-  private displayMarkdownScore(score: any, promptText: string, sourceName: string): void {
+  private displayMarkdownScore(
+    score: any,
+    promptText: string,
+    sourceName: string
+  ): void {
     console.log('# Prompt Quality Report\n');
     console.log(`**Source:** ${sourceName}\n`);
     console.log(`**Generated:** ${new Date().toISOString()}\n`);
-    console.log(`**Overall Score:** ${score.overall}/100 (${this.getScoreLabel(score.overall)})\n`);
+    console.log(
+      `**Overall Score:** ${score.overall}/100 (${this.getScoreLabel(score.overall)})\n`
+    );
     console.log(`**Confidence:** ${score.confidence.toFixed(1)}%\n`);
-    
+
     console.log('## Quality Metrics\n');
     console.log('| Metric | Score | Rating |');
     console.log('|--------|--------|---------|');
-    console.log(`| Clarity | ${score.metrics.clarity}/100 | ${this.getScoreLabel(score.metrics.clarity)} |`);
-    console.log(`| Task Alignment | ${score.metrics.taskAlignment}/100 | ${this.getScoreLabel(score.metrics.taskAlignment)} |`);
-    console.log(`| Token Efficiency | ${score.metrics.tokenEfficiency}/100 | ${this.getScoreLabel(score.metrics.tokenEfficiency)} |`);
-    
+    console.log(
+      `| Clarity | ${score.metrics.clarity}/100 | ${this.getScoreLabel(score.metrics.clarity)} |`
+    );
+    console.log(
+      `| Task Alignment | ${score.metrics.taskAlignment}/100 | ${this.getScoreLabel(score.metrics.taskAlignment)} |`
+    );
+    console.log(
+      `| Token Efficiency | ${score.metrics.tokenEfficiency}/100 | ${this.getScoreLabel(score.metrics.tokenEfficiency)} |`
+    );
+
     if (score.metrics.exampleQuality !== undefined) {
-      console.log(`| Example Quality | ${score.metrics.exampleQuality}/100 | ${this.getScoreLabel(score.metrics.exampleQuality)} |`);
+      console.log(
+        `| Example Quality | ${score.metrics.exampleQuality}/100 | ${this.getScoreLabel(score.metrics.exampleQuality)} |`
+      );
     }
-    
+
     if (score.suggestions.length > 0) {
       console.log('\n## Improvement Suggestions\n');
       score.suggestions.forEach((suggestion: string, index: number) => {
         console.log(`${index + 1}. ${suggestion}`);
       });
     }
-    
+
     console.log('\n## Prompt Content\n');
     console.log('```');
     console.log(promptText);
@@ -383,8 +437,9 @@ export class ScoreCommand extends BaseCommand {
   private displayBadgeScore(score: any, sourceName: string): void {
     const color = this.getScoreColor(score.overall);
     const label = this.getScoreLabel(score.overall);
-    
-    console.log(color(`
+
+    console.log(
+      color(`
 ╔══════════════════════════════════╗
 ║          QUALITY SCORE           ║
 ║                                  ║
@@ -395,40 +450,61 @@ export class ScoreCommand extends BaseCommand {
 ║                                  ║
 ║  Confidence: ${`${score.confidence.toFixed(1)}%`.padEnd(18)} ║
 ╚══════════════════════════════════╝
-    `));
+    `)
+    );
   }
 
   /**
    * Display batch scoring results
    */
-  private displayBatchResults(results: any[], threshold: number, options: ScoreOptions): void {
-    console.log('\n' + chalk.blue.bold('📊 Batch Quality Scoring Results'));
+  private displayBatchResults(
+    results: any[],
+    threshold: number,
+    options: ScoreOptions
+  ): void {
+    console.log(`\n${chalk.blue.bold('📊 Batch Quality Scoring Results')}`);
     console.log(chalk.cyan('═'.repeat(60)));
 
     const passed = results.filter(r => r.passed && !r.error).length;
     const failed = results.filter(r => !r.passed || r.error).length;
 
-    console.log(`${chalk.green('Passed:')} ${passed}/${results.length} (threshold: ${threshold})`);
+    console.log(
+      `${chalk.green('Passed:')} ${passed}/${results.length} (threshold: ${threshold})`
+    );
     console.log(`${chalk.red('Failed:')} ${failed}/${results.length}`);
 
     if (options.format === 'table') {
-      console.log('\n┌─────────────────────────────────┬─────────────┬─────────────┐');
-      console.log('│ Template                        │ Score       │ Status      │');
-      console.log('├─────────────────────────────────┼─────────────┼─────────────┤');
-      
+      console.log(
+        '\n┌─────────────────────────────────┬─────────────┬─────────────┐'
+      );
+      console.log(
+        '│ Template                        │ Score       │ Status      │'
+      );
+      console.log(
+        '├─────────────────────────────────┼─────────────┼─────────────┤'
+      );
+
       results.forEach(result => {
         const name = result.template.padEnd(31).substring(0, 31);
         if (result.error) {
-          console.log(`│ ${name} │ ${chalk.red('ERROR'.padEnd(11))} │ ${chalk.red('FAILED'.padEnd(11))} │`);
+          console.log(
+            `│ ${name} │ ${chalk.red('ERROR'.padEnd(11))} │ ${chalk.red('FAILED'.padEnd(11))} │`
+          );
         } else {
           const scoreStr = `${result.score.overall}/100`;
           const scoreColor = this.getScoreColor(result.score.overall);
-          const status = result.passed ? chalk.green('PASSED') : chalk.red('FAILED');
-          console.log(`│ ${name} │ ${scoreColor(scoreStr.padEnd(11))} │ ${status.padEnd(21)} │`);
+          const status = result.passed
+            ? chalk.green('PASSED')
+            : chalk.red('FAILED');
+          console.log(
+            `│ ${name} │ ${scoreColor(scoreStr.padEnd(11))} │ ${status.padEnd(21)} │`
+          );
         }
       });
-      
-      console.log('└─────────────────────────────────┴─────────────┴─────────────┘');
+
+      console.log(
+        '└─────────────────────────────────┴─────────────┴─────────────┘'
+      );
     }
 
     // Summary statistics
@@ -439,7 +515,7 @@ export class ScoreCommand extends BaseCommand {
       const minScore = Math.min(...scores);
       const maxScore = Math.max(...scores);
 
-      console.log('\n' + chalk.yellow.bold('📈 Summary Statistics'));
+      console.log(`\n${chalk.yellow.bold('📈 Summary Statistics')}`);
       console.log(`${chalk.blue('Average Score:')} ${avgScore.toFixed(1)}/100`);
       console.log(`${chalk.blue('Highest Score:')} ${maxScore}/100`);
       console.log(`${chalk.blue('Lowest Score:')} ${minScore}/100`);
@@ -448,7 +524,7 @@ export class ScoreCommand extends BaseCommand {
     // Show errors
     const errorResults = results.filter(r => r.error);
     if (errorResults.length > 0) {
-      console.log('\n' + chalk.red.bold('❌ Errors'));
+      console.log(`\n${chalk.red.bold('❌ Errors')}`);
       errorResults.forEach(result => {
         console.log(`${chalk.red('•')} ${result.template}: ${result.error}`);
       });
@@ -460,9 +536,13 @@ export class ScoreCommand extends BaseCommand {
    */
   private checkThreshold(score: any, threshold: number): void {
     if (score.overall >= threshold) {
-      this.success(`Quality score meets threshold (${score.overall} >= ${threshold})`);
+      this.success(
+        `Quality score meets threshold (${score.overall} >= ${threshold})`
+      );
     } else {
-      this.warn(`Quality score below threshold (${score.overall} < ${threshold})`);
+      this.warn(
+        `Quality score below threshold (${score.overall} < ${threshold})`
+      );
     }
   }
 
@@ -500,7 +580,7 @@ export class ScoreCommand extends BaseCommand {
     try {
       const fs = await import('fs');
       const path = await import('path');
-      
+
       const outputDir = path.dirname(options.output!);
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
@@ -523,18 +603,23 @@ export class ScoreCommand extends BaseCommand {
       fs.writeFileSync(options.output!, JSON.stringify(report, null, 2));
       this.success(`Score report saved to: ${options.output}`);
     } catch (error) {
-      this.error(`Failed to save score report: ${error instanceof Error ? error.message : String(error)}`);
+      this.error(
+        `Failed to save score report: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
   /**
    * Save batch scoring report
    */
-  private async saveBatchReport(results: any[], options: ScoreOptions): Promise<void> {
+  private async saveBatchReport(
+    results: any[],
+    options: ScoreOptions
+  ): Promise<void> {
     try {
       const fs = await import('fs');
       const path = await import('path');
-      
+
       const outputDir = path.dirname(options.output!);
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
@@ -542,7 +627,7 @@ export class ScoreCommand extends BaseCommand {
 
       const validResults = results.filter(r => !r.error && r.score);
       const scores = validResults.map(r => r.score.overall);
-      
+
       const report = {
         metadata: {
           timestamp: new Date().toISOString(),
@@ -553,7 +638,10 @@ export class ScoreCommand extends BaseCommand {
           passed: results.filter(r => r.passed).length,
           failed: results.filter(r => !r.passed).length,
           errors: results.filter(r => r.error).length,
-          avgScore: scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0,
+          avgScore:
+            scores.length > 0
+              ? scores.reduce((a, b) => a + b, 0) / scores.length
+              : 0,
           minScore: scores.length > 0 ? Math.min(...scores) : 0,
           maxScore: scores.length > 0 ? Math.max(...scores) : 0,
         },
@@ -563,7 +651,9 @@ export class ScoreCommand extends BaseCommand {
       fs.writeFileSync(options.output!, JSON.stringify(report, null, 2));
       this.success(`Batch score report saved to: ${options.output}`);
     } catch (error) {
-      this.error(`Failed to save batch report: ${error instanceof Error ? error.message : String(error)}`);
+      this.error(
+        `Failed to save batch report: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 }

@@ -12,12 +12,26 @@ import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
 import { OptimizationPipeline } from '../core/optimization-pipeline';
 import { OptimizationCacheService } from '../services/optimization-cache.service';
+import { getPromptWizardConfig } from '../config/promptwizard.config';
 import { Template } from '../types/index';
 import {
   OptimizationRequest,
   OptimizationResult,
   PipelineResult,
 } from '../integrations/promptwizard/types';
+
+// Optional Bull Queue support for Redis-backed job queues
+let Queue: any;
+let Job: any;
+try {
+  const bullModule = require('bull');
+  Queue = bullModule.default || bullModule.Queue || bullModule;
+  Job = bullModule.Job;
+} catch (error) {
+  // Bull not available - fallback to in-memory queue
+  Queue = null;
+  Job = null;
+}
 
 export type JobStatus =
   | 'pending'
@@ -67,6 +81,19 @@ export interface QueueConfig {
   jobTimeout: number; // milliseconds
   cleanupInterval: number; // milliseconds
   maxJobHistory: number;
+  // Bull queue configuration
+  useBull?: boolean;
+  redisUrl?: string;
+  queueName?: string;
+  bullOptions?: {
+    removeOnComplete?: number;
+    removeOnFail?: number;
+    attempts?: number;
+    backoff?: {
+      type: 'fixed' | 'exponential';
+      delay: number;
+    };
+  };
 }
 
 export class OptimizationQueue extends EventEmitter {
@@ -88,6 +115,11 @@ export class OptimizationQueue extends EventEmitter {
 
   private cleanupTimer?: NodeJS.Timeout;
 
+  // Bull queue integration
+  private bullQueue?: any;
+
+  private useBull = false;
+
   constructor(
     optimizationPipeline: OptimizationPipeline,
     cacheService: OptimizationCacheService,
@@ -97,6 +129,10 @@ export class OptimizationQueue extends EventEmitter {
 
     this.optimizationPipeline = optimizationPipeline;
     this.cacheService = cacheService;
+
+    // Get PromptWizard configuration for Redis settings
+    const promptwizardConfig = getPromptWizardConfig();
+
     this.config = {
       maxConcurrency: 3,
       defaultPriority: 'normal',
@@ -105,16 +141,35 @@ export class OptimizationQueue extends EventEmitter {
       jobTimeout: 10 * 60 * 1000, // 10 minutes
       cleanupInterval: 60 * 60 * 1000, // 1 hour
       maxJobHistory: 1000,
+      // Bull configuration from PromptWizard config
+      useBull: Queue !== null && promptwizardConfig.cache.redis?.enabled,
+      redisUrl: promptwizardConfig.cache.redis?.url,
+      queueName: 'optimization-jobs',
+      bullOptions: {
+        removeOnComplete: 100,
+        removeOnFail: 50,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      },
       ...config,
     };
+
+    // Initialize Bull queue if available and configured
+    this.initializeBullQueue();
 
     // Setup periodic cleanup
     this.setupPeriodicCleanup();
 
-    logger.info(`Optimization queue initialized - ${JSON.stringify({
-      maxConcurrency: this.config.maxConcurrency,
-      maxRetries: this.config.maxRetries,
-    })}`);
+    logger.info(
+      `Optimization queue initialized - ${JSON.stringify({
+        maxConcurrency: this.config.maxConcurrency,
+        maxRetries: this.config.maxRetries,
+        useBull: this.useBull,
+      })}`
+    );
   }
 
   /**
@@ -131,7 +186,7 @@ export class OptimizationQueue extends EventEmitter {
     } = {}
   ): Promise<OptimizationJob> {
     const job: OptimizationJob = {
-      id: this.generateJobId(),
+      jobId: this.generateJobId(),
       templateId,
       template,
       request,
@@ -147,21 +202,62 @@ export class OptimizationQueue extends EventEmitter {
     // Store job
     this.jobs.set(job.jobId, job);
 
-    // Add to pending queue with priority ordering
-    this.insertJobByPriority(job);
+    if (this.useBull && this.bullQueue) {
+      // Use Bull queue for Redis-backed processing
+      const bullPriority = this.mapPriorityToBull(job.priority);
 
-    logger.info(`Optimization job added to queue - ${JSON.stringify({
-      jobId: job.jobId,
-      templateId,
-      priority: job.priority,
-      queueLength: this.pendingQueue.length,
-    })}`);
+      try {
+        const bullJob = await this.bullQueue.add(
+          'optimize',
+          {
+            templateId,
+            template,
+            request,
+            options,
+            jobId: job.jobId,
+          },
+          {
+            priority: bullPriority,
+            attempts: job.maxRetries,
+            delay: 0,
+            jobId: job.jobId,
+          }
+        );
+
+        logger.info(
+          `Optimization job added to Bull queue - ${JSON.stringify({
+            jobId: job.jobId,
+            bullJobId: bullJob.id,
+            templateId,
+            priority: job.priority,
+          })}`
+        );
+      } catch (error) {
+        logger.warn(
+          `Failed to add job to Bull queue, using in-memory fallback: ${error}`
+        );
+        // Fall back to in-memory queue
+        this.insertJobByPriority(job);
+        this.startProcessing();
+      }
+    } else {
+      // Use in-memory queue
+      this.insertJobByPriority(job);
+
+      logger.info(
+        `Optimization job added to queue - ${JSON.stringify({
+          jobId: job.jobId,
+          templateId,
+          priority: job.priority,
+          queueLength: this.pendingQueue.length,
+        })}`
+      );
+
+      // Start processing if not already running
+      this.startProcessing();
+    }
 
     this.emit('job:added', job);
-
-    // Start processing if not already running
-    this.startProcessing();
-
     return job;
   }
 
@@ -278,10 +374,12 @@ export class OptimizationQueue extends EventEmitter {
     });
 
     if (jobsToRemove.length > 0) {
-      logger.info(`Queue cleanup completed - ${JSON.stringify({
-        jobsRemoved: jobsToRemove.length,
-        totalJobs: this.jobs.size,
-      })}`);
+      logger.info(
+        `Queue cleanup completed - ${JSON.stringify({
+          jobsRemoved: jobsToRemove.length,
+          totalJobs: this.jobs.size,
+        })}`
+      );
     }
   }
 
@@ -375,12 +473,14 @@ export class OptimizationQueue extends EventEmitter {
       job.progress = 0;
       this.processingJobs.add(job.jobId);
 
-      logger.info(`Processing optimization job - ${JSON.stringify({
-        jobId: job.jobId,
-        workerId,
-        templateId: job.templateId,
-        priority: job.priority,
-      })}`);
+      logger.info(
+        `Processing optimization job - ${JSON.stringify({
+          jobId: job.jobId,
+          workerId,
+          templateId: job.templateId,
+          priority: job.priority,
+        })}`
+      );
 
       this.emit('job:started', job);
 
@@ -416,11 +516,14 @@ export class OptimizationQueue extends EventEmitter {
         job.progress = 100;
         job.completedAt = new Date();
 
-        logger.info(`Optimization job completed - ${JSON.stringify({
-          jobId: job.jobId,
-          templateId: job.templateId,
-          processingTime: job.completedAt.getTime()}`) - job.startedAt!.getTime(),
-        });
+        logger.info(
+          `Optimization job completed - ${JSON.stringify({
+            jobId: job.jobId,
+            templateId: job.templateId,
+            processingTime:
+              job.completedAt.getTime() - job.startedAt!.getTime(),
+          })}`
+        );
 
         this.emit('job:completed', job);
       } else {
@@ -447,12 +550,14 @@ export class OptimizationQueue extends EventEmitter {
     job.error = error.message;
     job.retryCount++;
 
-    logger.warn(`Optimization job failed - ${JSON.stringify({
-      jobId: job.jobId,
-      error: error.message,
-      retryCount: job.retryCount,
-      maxRetries: job.maxRetries,
-    })}`);
+    logger.warn(
+      `Optimization job failed - ${JSON.stringify({
+        jobId: job.jobId,
+        error: error.message,
+        retryCount: job.retryCount,
+        maxRetries: job.maxRetries,
+      })}`
+    );
 
     if (job.retryCount < job.maxRetries) {
       // Retry job after delay
@@ -460,11 +565,13 @@ export class OptimizationQueue extends EventEmitter {
       job.progress = 0;
       job.currentStep = undefined;
 
-      logger.info(`Retrying optimization job - ${JSON.stringify({
-        jobId: job.jobId,
-        retryCount: job.retryCount,
-        delay: this.config.retryDelay,
-      })}`);
+      logger.info(
+        `Retrying optimization job - ${JSON.stringify({
+          jobId: job.jobId,
+          retryCount: job.retryCount,
+          delay: this.config.retryDelay,
+        })}`
+      );
 
       // Add back to queue after delay
       setTimeout(() => {
@@ -478,11 +585,13 @@ export class OptimizationQueue extends EventEmitter {
       job.status = 'failed';
       job.completedAt = new Date();
 
-      logger.error(`Optimization job failed permanently - ${JSON.stringify({
-        jobId: job.jobId,
-        error: error.message,
-        retryCount: job.retryCount,
-      })}`);
+      logger.error(
+        `Optimization job failed permanently - ${JSON.stringify({
+          jobId: job.jobId,
+          error: error.message,
+          retryCount: job.retryCount,
+        })}`
+      );
 
       this.emit('job:failed', job);
     }
@@ -542,12 +651,111 @@ export class OptimizationQueue extends EventEmitter {
   }
 
   /**
+   * Initialize Bull queue if available
+   */
+  private initializeBullQueue(): void {
+    if (!this.config.useBull || !Queue || !this.config.redisUrl) {
+      this.useBull = false;
+      logger.info(
+        'Using in-memory job queue (Bull not available or not configured)'
+      );
+      return;
+    }
+
+    try {
+      this.bullQueue = new Queue(this.config.queueName, this.config.redisUrl, {
+        defaultJobOptions: {
+          removeOnComplete: this.config.bullOptions?.removeOnComplete || 100,
+          removeOnFail: this.config.bullOptions?.removeOnFail || 50,
+          attempts: this.config.bullOptions?.attempts || this.config.maxRetries,
+          backoff: this.config.bullOptions?.backoff || {
+            type: 'exponential',
+            delay: 2000,
+          },
+        },
+      });
+
+      this.useBull = true;
+
+      // Set up Bull event listeners
+      this.bullQueue.on('completed', (job: any, result: any) => {
+        logger.debug(`Bull job completed: ${job.id}`);
+        this.emit('job:completed', { jobId: job.id, result });
+      });
+
+      this.bullQueue.on('failed', (job: any, err: Error) => {
+        logger.warn(`Bull job failed: ${job.id} - ${err.message}`);
+        this.emit('job:failed', { jobId: job.id, error: err.message });
+      });
+
+      this.bullQueue.on('progress', (job: any, progress: number) => {
+        this.emit('job:progress', { jobId: job.id, progress });
+      });
+
+      // Process jobs with Bull
+      this.bullQueue.process(this.config.maxConcurrency, async (job: any) =>
+        this.processBullJob(job)
+      );
+
+      logger.info('Bull queue initialized successfully');
+    } catch (error) {
+      logger.warn(
+        `Failed to initialize Bull queue, falling back to in-memory: ${error}`
+      );
+      this.useBull = false;
+      this.bullQueue = undefined;
+    }
+  }
+
+  /**
+   * Process a Bull job
+   */
+  private async processBullJob(bullJob: any): Promise<any> {
+    const { templateId, template, request, options } = bullJob.data;
+
+    try {
+      // Update job progress
+      await bullJob.progress(10);
+
+      // Process optimization
+      const result = await this.optimizationPipeline.process(
+        templateId,
+        template,
+        request
+      );
+
+      await bullJob.progress(100);
+
+      if (result.success && result.optimizationResult) {
+        return result.optimizationResult;
+      }
+      throw new Error(result.error || 'Pipeline processing failed');
+    } catch (error) {
+      logger.error(`Bull job processing failed: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
    * Setup periodic cleanup
    */
   private setupPeriodicCleanup(): void {
     this.cleanupTimer = setInterval(() => {
       this.cleanup();
     }, this.config.cleanupInterval);
+  }
+
+  /**
+   * Map job priority to Bull priority (higher number = higher priority in Bull)
+   */
+  private mapPriorityToBull(priority: JobPriority): number {
+    const priorityMap: Record<JobPriority, number> = {
+      urgent: 10,
+      high: 5,
+      normal: 0,
+      low: -5,
+    };
+    return priorityMap[priority];
   }
 
   /**
@@ -575,11 +783,21 @@ export class OptimizationQueue extends EventEmitter {
    * Cleanup resources
    */
   async shutdown(): Promise<void> {
-    logger.info(`Shutting down optimization queue');
+    logger.info(`Shutting down optimization queue`);
 
     // Clear cleanup timer
     if (this.cleanupTimer) {
       clearTimeout(this.cleanupTimer);
+    }
+
+    // Shutdown Bull queue if using it
+    if (this.useBull && this.bullQueue) {
+      try {
+        await this.bullQueue.close();
+        logger.info('Bull queue closed successfully');
+      } catch (error) {
+        logger.warn(`Error closing Bull queue: ${error}`);
+      }
     }
 
     // Wait for all workers to complete
@@ -589,7 +807,7 @@ export class OptimizationQueue extends EventEmitter {
     for (const job of this.pendingQueue) {
       job.status = 'cancelled';
       job.completedAt = new Date();
-      this.emit('job:cancelled - ${job}`);
+      this.emit('job:cancelled', job);
     }
 
     this.pendingQueue = [];

@@ -170,6 +170,15 @@ export class ConfigManager implements IConfigManager {
             default: 'http://localhost:8000',
             description: 'PromptWizard Python service URL',
           },
+          apiKey: {
+            type: 'string',
+            description: 'API authentication token',
+          },
+          verifySSL: {
+            type: 'boolean',
+            default: true,
+            description: 'Enable SSL/TLS verification',
+          },
           timeout: {
             type: 'number',
             default: 120000,
@@ -220,6 +229,89 @@ export class ConfigManager implements IConfigManager {
             default: true,
             description: 'Generate reasoning chains in optimized prompts',
           },
+          maxPromptLength: {
+            type: 'number',
+            default: 10000,
+            min: 1000,
+            description: 'Maximum prompt length for optimization',
+          },
+          minConfidence: {
+            type: 'number',
+            default: 0.7,
+            min: 0,
+            max: 1,
+            description: 'Minimum confidence threshold for results',
+          },
+          grpc: {
+            type: 'object',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                default: false,
+                description: 'Enable gRPC protocol support',
+              },
+              serviceUrl: {
+                type: 'string',
+                default: 'localhost:50051',
+                description: 'gRPC service URL',
+              },
+              secure: {
+                type: 'boolean',
+                default: false,
+                description: 'Use secure connection (TLS)',
+              },
+              keepAlive: {
+                type: 'boolean',
+                default: true,
+                description: 'Enable keep-alive',
+              },
+              maxReceiveMessageLength: {
+                type: 'number',
+                default: 4194304,
+                min: 1024,
+                description: 'Max receive message size in bytes',
+              },
+              maxSendMessageLength: {
+                type: 'number',
+                default: 4194304,
+                min: 1024,
+                description: 'Max send message size in bytes',
+              },
+            },
+          },
+          websocket: {
+            type: 'object',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                default: false,
+                description: 'Enable WebSocket streaming',
+              },
+              serviceUrl: {
+                type: 'string',
+                default: 'ws://localhost:8001/ws/optimize',
+                description: 'WebSocket service URL',
+              },
+              reconnectInterval: {
+                type: 'number',
+                default: 5000,
+                min: 1000,
+                description: 'Reconnection interval in milliseconds',
+              },
+              maxReconnectAttempts: {
+                type: 'number',
+                default: 10,
+                min: 0,
+                description: 'Maximum reconnection attempts',
+              },
+              heartbeatInterval: {
+                type: 'number',
+                default: 30000,
+                min: 5000,
+                description: 'Heartbeat interval in milliseconds',
+              },
+            },
+          },
           cache: {
             type: 'object',
             properties: {
@@ -240,6 +332,26 @@ export class ConfigManager implements IConfigManager {
                 min: 10,
                 description: 'Maximum cache entries',
               },
+              redis: {
+                type: 'object',
+                properties: {
+                  enabled: {
+                    type: 'boolean',
+                    default: false,
+                    description: 'Enable Redis distributed caching',
+                  },
+                  url: {
+                    type: 'string',
+                    default: 'redis://localhost:6379',
+                    description: 'Redis connection URL',
+                  },
+                  keyPrefix: {
+                    type: 'string',
+                    default: 'promptwizard:',
+                    description: 'Redis key prefix',
+                  },
+                },
+              },
             },
           },
           rateLimiting: {
@@ -256,6 +368,38 @@ export class ConfigManager implements IConfigManager {
                 default: 3600000,
                 min: 60000,
                 description: 'Rate limiting window in milliseconds',
+              },
+              skipCached: {
+                type: 'boolean',
+                default: true,
+                description: 'Skip rate limiting for cached results',
+              },
+            },
+          },
+          analytics: {
+            type: 'object',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                default: true,
+                description: 'Enable analytics tracking',
+              },
+              trackUsage: {
+                type: 'boolean',
+                default: true,
+                description: 'Track usage metrics',
+              },
+              reportInterval: {
+                type: 'number',
+                default: 3600,
+                min: 300,
+                description: 'Report interval in seconds',
+              },
+              backend: {
+                type: 'string',
+                enum: ['memory', 'redis', 'file'],
+                default: 'memory',
+                description: 'Analytics storage backend',
               },
             },
           },

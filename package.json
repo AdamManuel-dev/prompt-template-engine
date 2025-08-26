@@ -16,12 +16,14 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc --project tsconfig.build.json",
+    "build": "npm run proto:generate && tsc --project tsconfig.build.json",
     "build:strict": "tsc --noEmit --strict",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "type-check:strict": "tsc --noEmit --strict --noUnusedLocals --noUnusedParameters --exactOptionalPropertyTypes --noUncheckedIndexedAccess --noImplicitOverride --noPropertyAccessFromIndexSignature",
+    "type-check:strict": "tsc --noEmit --strict --noUnusedLocals --noUnusedParameters --exactOptionalPropertyTypes --noUnusedIndexedAccess --noImplicitOverride --noPropertyAccessFromIndexSignature",
     "type-check:tests": "tsc --project tsconfig.test.json --noEmit",
+    "proto:generate": "mkdir -p src/generated && node scripts/generate-proto-stubs.js",
+    "proto:clean": "rm -rf src/generated",
     "test": "NODE_OPTIONS=\"--max-old-space-size=4096\" jest --detectOpenHandles",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -29,7 +31,7 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\"",
-    "clean": "rm -rf dist coverage",
+    "clean": "rm -rf dist coverage && npm run proto:clean",
     "prepare": "husky",
     "ci:check": "npm run type-check:strict && npm run lint && npm run test:coverage",
     "precommit": "npm run type-check && npm run lint && npm run test",
@@ -57,6 +59,8 @@
     "url": "https://github.com/AdamManuel-dev/cursor-prompt-template-engine"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.12.2",
+    "@grpc/proto-loader": "^0.7.15",
     "@types/ws": "^8.18.1",
     "chalk": "^4.1.2",
     "chokidar": "^4.0.3",
@@ -75,6 +79,7 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
+    "@types/diff": "^7.0.2",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
     "@types/minimatch": "^5.1.2",

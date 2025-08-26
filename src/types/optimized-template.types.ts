@@ -1,11 +1,11 @@
 /**
  * @fileoverview TypeScript interfaces for optimized templates with performance metrics
- * @lastmodified 2025-08-26T16:20:00Z
+ * @lastmodified 2025-08-26T16:55:00Z
  *
- * Features: Template optimization metadata, performance metrics, version comparison
- * Main APIs: OptimizedTemplate, OptimizationHistory, ComparisonResult
- * Constraints: Compatible with existing Template interface
- * Patterns: Extension types, metadata enrichment, version tracking
+ * Features: Template optimization metadata, performance metrics, version comparison, A/B testing
+ * Main APIs: OptimizedTemplate, OptimizationHistory, TemplateComparison, OptimizationJob
+ * Constraints: Compatible with existing Template interface, backward compatibility maintained
+ * Patterns: Extension types, metadata enrichment, version tracking, service integration
  */
 
 import { Template } from './index';
@@ -46,13 +46,25 @@ export interface OptimizationMetrics {
 }
 
 export interface OptimizationContext {
+  /** Template ID being optimized */
+  templateId?: string;
+
   /** Target AI model for optimization */
   targetModel: string;
 
   /** Task description for the optimization */
   task: string;
 
-  /** Optimization constraints and preferences */
+  /** Optimization preferences */
+  preferences?: {
+    maxLength?: number;
+    preserveVariables?: boolean;
+    maintainStructure?: boolean;
+    focusAreas?: string[];
+    [key: string]: any;
+  };
+
+  /** Optimization constraints and preferences - alias for compatibility */
   constraints?: {
     maxLength?: number;
     preserveVariables?: boolean;
@@ -119,6 +131,12 @@ export interface OptimizedTemplate extends Template {
   /** Current optimization context */
   optimizationContext: OptimizationContext;
 
+  /** Optimization level applied */
+  optimizationLevel: 'basic' | 'advanced' | 'aggressive';
+
+  /** Current optimization metrics - alias for compatibility */
+  currentOptimizationMetrics: OptimizationMetrics;
+
   /** Auto-optimization settings */
   autoOptimization?: {
     enabled: boolean;
@@ -155,12 +173,28 @@ export interface OptimizedTemplate extends Template {
   };
 }
 
+/** Template comparison result interface */
 export interface TemplateComparison {
   /** Original template being compared */
   original: Template;
 
   /** Optimized template being compared */
   optimized: OptimizedTemplate;
+
+  /** Comparison improvements summary */
+  improvements?: {
+    tokenReduction: number;
+    costSavings: number;
+    qualityImprovement: number;
+    complexityReduction: number;
+  };
+
+  /** Analysis breakdown */
+  analysis?: {
+    contentChanges: string[];
+    structuralChanges: string[];
+    variableChanges: string[];
+  };
 
   /** Comparison metrics */
   comparison: {
@@ -364,6 +398,7 @@ export interface OptimizationSettings {
     defaultModel: string;
     autoOptimizeNewTemplates: boolean;
     optimizationSchedule?: string; // Cron expression
+    maxOptimizationAge?: number;
   };
 
   /** Per-category settings */
@@ -389,6 +424,18 @@ export interface OptimizationSettings {
     enableFeedbackLoop: boolean;
     reoptimizationThreshold: number; // Rating threshold for re-optimization
     feedbackWeight: number; // How much to weight user feedback vs. metrics
+  };
+
+  /** Performance settings */
+  performance?: {
+    targetTokenReduction: number;
+    targetQualityImprovement: number;
+  };
+
+  /** Feedback loop settings - alias for compatibility */
+  feedback?: {
+    enableAutoReoptimization: boolean;
+    reoptimizationThreshold: number;
   };
 
   /** Advanced settings */

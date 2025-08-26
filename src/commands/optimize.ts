@@ -294,18 +294,23 @@ function createBatchCommand(): Command {
         spinner.update('Loading templates...');
 
         // Load all templates
-        const templates = await templateService.listTemplates();
+        const templateList = await templateService.listTemplates();
 
         spinner.update(
-          `Found ${templates.length} templates. Starting optimization...`
+          `Found ${templateList.length} templates. Starting optimization...`
+        );
+
+        // Load full templates
+        const templates = await Promise.all(
+          templateList.map(async t => ({
+            id: t.name,
+            template: await templateService.loadTemplate(t.path),
+          }))
         );
 
         // Batch optimize
         const result = await optimizationService.batchOptimize({
-          templates: templates.map(t => ({
-            id: t.name,
-            template: t,
-          })),
+          templates,
           options: {
             priority: 'normal',
           },
@@ -403,7 +408,12 @@ async function handleSingleOptimization(
 
   // Save optimized template if not dry-run
   if (!options.dryRun && options.output) {
-    await fs.writeFile(options.output, result.optimizedTemplate.content || '');
+    await fs.writeFile(
+      options.output,
+      result.optimizedTemplate?.content ||
+        result.optimizedTemplate?.files?.[0]?.content ||
+        ''
+    );
     console.log(
       chalk.green(`✅ Optimized template saved to: ${options.output}`)
     );
@@ -417,18 +427,23 @@ async function handleBatchOptimization(
   options: any
 ): Promise<void> {
   // Load all templates from directory
-  const templates = await templateService.listTemplates();
+  const templateList = await templateService.listTemplates();
 
   console.log(
-    chalk.cyan(`Found ${templates.length} templates for optimization`)
+    chalk.cyan(`Found ${templateList.length} templates for optimization`)
+  );
+
+  // Load full templates
+  const templates = await Promise.all(
+    templateList.map(async t => ({
+      id: t.name,
+      template: await templateService.loadTemplate(t.path),
+    }))
   );
 
   // Batch optimize
   const result = await service.batchOptimize({
-    templates: templates.map(t => ({
-      id: t.name,
-      template: t,
-    })),
+    templates,
     options: {
       skipCache: options.noCache,
     },

@@ -118,7 +118,9 @@ export class TokenReductionOptimizer {
     [/subsequently/gi, 'then'],
   ];
 
-  constructor(private config: TokenReductionConfig = {} as TokenReductionConfig) {
+  constructor(
+    private config: TokenReductionConfig = {} as TokenReductionConfig
+  ) {
     this.config = { ...this.defaultConfig, ...config };
   }
 
@@ -126,7 +128,9 @@ export class TokenReductionOptimizer {
    * Optimize prompt for token reduction
    */
   async optimizeTokens(prompt: string): Promise<TokenReductionResult> {
-    logger.info(`Starting token reduction optimization with ${this.config.targetReduction}% target`);
+    logger.info(
+      `Starting token reduction optimization with ${this.config.targetReduction}% target`
+    );
 
     const originalTokens = this.estimateTokens(prompt);
     let optimizedPrompt = prompt;
@@ -137,22 +141,26 @@ export class TokenReductionOptimizer {
     if (this.config.preserveSemanticMeaning) {
       // Conservative approaches first
       optimizedPrompt = this.removeRedundantPhrases(optimizedPrompt);
-      if (optimizedPrompt !== prompt) techniquesApplied.push('Redundant phrase removal');
+      if (optimizedPrompt !== prompt)
+        techniquesApplied.push('Redundant phrase removal');
 
       optimizedPrompt = this.simplifyVerboseExpressions(optimizedPrompt);
-      if (optimizedPrompt !== prompt) techniquesApplied.push('Verbose expression simplification');
+      if (optimizedPrompt !== prompt)
+        techniquesApplied.push('Verbose expression simplification');
 
       if (this.config.enableSynonymReplacement) {
         const synonymResult = this.applySynonymReplacements(optimizedPrompt);
         optimizedPrompt = synonymResult.prompt;
-        if (synonymResult.applied) techniquesApplied.push('Synonym replacement');
+        if (synonymResult.applied)
+          techniquesApplied.push('Synonym replacement');
       }
     }
 
     // Whitespace and formatting optimization (always safe)
     const whitespaceResult = this.optimizeWhitespace(optimizedPrompt);
     optimizedPrompt = whitespaceResult.prompt;
-    if (whitespaceResult.applied) techniquesApplied.push('Whitespace optimization');
+    if (whitespaceResult.applied)
+      techniquesApplied.push('Whitespace optimization');
 
     // More aggressive techniques if enabled
     if (this.config.aggressiveReduction) {
@@ -185,13 +193,20 @@ export class TokenReductionOptimizer {
     }
 
     const optimizedTokens = this.estimateTokens(optimizedPrompt);
-    const reductionPercentage = ((originalTokens - optimizedTokens) / originalTokens) * 100;
+    const reductionPercentage =
+      ((originalTokens - optimizedTokens) / originalTokens) * 100;
 
     // Calculate semantic preservation score
-    const semanticScore = this.calculateSemanticPreservation(prompt, optimizedPrompt);
+    const semanticScore = this.calculateSemanticPreservation(
+      prompt,
+      optimizedPrompt
+    );
 
     // Estimate cost savings
-    const costSavings = this.calculateCostSavings(originalTokens, optimizedTokens);
+    const costSavings = this.calculateCostSavings(
+      originalTokens,
+      optimizedTokens
+    );
 
     return {
       originalPrompt: prompt,
@@ -213,11 +228,11 @@ export class TokenReductionOptimizer {
    */
   private removeRedundantPhrases(prompt: string): string {
     let optimized = prompt;
-    
+
     for (const [pattern, replacement] of this.redundantPhrases) {
       optimized = optimized.replace(pattern as RegExp, replacement);
     }
-    
+
     return optimized;
   }
 
@@ -226,48 +241,54 @@ export class TokenReductionOptimizer {
    */
   private simplifyVerboseExpressions(prompt: string): string {
     let optimized = prompt;
-    
+
     for (const [pattern, replacement] of this.verboseExpressions) {
       optimized = optimized.replace(pattern as RegExp, replacement);
     }
-    
+
     return optimized;
   }
 
   /**
    * Apply synonym replacements for shorter words
    */
-  private applySynonymReplacements(prompt: string): { prompt: string; applied: boolean } {
+  private applySynonymReplacements(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
     let optimized = prompt;
     let applied = false;
-    
+
     for (const [pattern, replacement] of this.synonymReplacements) {
       const original = optimized;
       optimized = optimized.replace(pattern as RegExp, replacement);
       if (optimized !== original) applied = true;
     }
-    
+
     return { prompt: optimized, applied };
   }
 
   /**
    * Optimize whitespace and formatting
    */
-  private optimizeWhitespace(prompt: string): { prompt: string; applied: boolean } {
+  private optimizeWhitespace(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
     const original = prompt;
-    
+
     // Remove extra spaces
     let optimized = prompt.replace(/\s+/g, ' ');
-    
+
     // Remove excessive line breaks
     optimized = optimized.replace(/\n\s*\n\s*\n/g, '\n\n');
-    
+
     // Remove leading/trailing whitespace
     optimized = optimized.trim();
-    
+
     // Remove spaces around punctuation where appropriate
     optimized = optimized.replace(/\s+([.,;:!?])/g, '$1');
-    
+
     return { prompt: optimized, applied: optimized !== original };
   }
 
@@ -329,16 +350,19 @@ export class TokenReductionOptimizer {
   /**
    * Apply technical abbreviations
    */
-  private applyAbbreviations(prompt: string): { prompt: string; applied: boolean } {
+  private applyAbbreviations(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
     let optimized = prompt;
     let applied = false;
-    
+
     for (const [pattern, replacement] of this.abbreviations) {
       const original = optimized;
       optimized = optimized.replace(pattern as RegExp, replacement);
       if (optimized !== original) applied = true;
     }
-    
+
     return { prompt: optimized, applied };
   }
 
@@ -391,25 +415,31 @@ export class TokenReductionOptimizer {
   /**
    * Calculate semantic preservation score
    */
-  private calculateSemanticPreservation(original: string, optimized: string): number {
+  private calculateSemanticPreservation(
+    original: string,
+    optimized: string
+  ): number {
     // Simple heuristic based on content preservation
     let score = 100;
 
     // Check for significant length reduction
-    const lengthReduction = (original.length - optimized.length) / original.length;
+    const lengthReduction =
+      (original.length - optimized.length) / original.length;
     if (lengthReduction > 0.5) score -= 20;
     else if (lengthReduction > 0.3) score -= 10;
 
     // Check for key concept preservation
     const originalWords = original.toLowerCase().match(/\b\w+\b/g) || [];
     const optimizedWords = optimized.toLowerCase().match(/\b\w+\b/g) || [];
-    
+
     const uniqueOriginal = new Set(originalWords);
     const uniqueOptimized = new Set(optimizedWords);
-    
-    const preservedConcepts = [...uniqueOriginal].filter(word => uniqueOptimized.has(word));
+
+    const preservedConcepts = [...uniqueOriginal].filter(word =>
+      uniqueOptimized.has(word)
+    );
     const conceptPreservation = preservedConcepts.length / uniqueOriginal.size;
-    
+
     score = Math.min(score, conceptPreservation * 100);
 
     // Deduct for aggressive techniques
@@ -422,18 +452,21 @@ export class TokenReductionOptimizer {
   /**
    * Calculate estimated cost savings
    */
-  private calculateCostSavings(originalTokens: number, optimizedTokens: number): {
+  private calculateCostSavings(
+    originalTokens: number,
+    optimizedTokens: number
+  ): {
     estimated: number;
     percentage: number;
   } {
     const tokenReduction = originalTokens - optimizedTokens;
     const reductionPercentage = (tokenReduction / originalTokens) * 100;
-    
+
     // Rough cost estimation (varies by provider)
     // Using approximate GPT-4 pricing as baseline
     const costPerToken = 0.00003; // $0.03 per 1K tokens
     const estimatedSavings = tokenReduction * costPerToken;
-    
+
     return {
       estimated: estimatedSavings,
       percentage: reductionPercentage,
@@ -452,11 +485,11 @@ export class TokenReductionOptimizer {
     };
 
     const results: Record<string, CostCalculation> = {};
-    
+
     for (const [platform, pricing] of Object.entries(platforms)) {
       const inputCost = (tokenCount / 1000) * pricing.input;
       const outputCost = (tokenCount / 1000) * pricing.output; // Assuming similar output
-      
+
       results[platform] = {
         inputTokens: tokenCount,
         outputTokens: tokenCount, // Estimate
@@ -465,7 +498,7 @@ export class TokenReductionOptimizer {
         model: platform.split('-')[1],
       };
     }
-    
+
     return results;
   }
 
@@ -495,7 +528,8 @@ export class TokenReductionOptimizer {
         risks: ['Minimal semantic impact'],
         alternatives: ['Focus on whitespace and redundancy removal'],
       };
-    } else if (targetReduction <= 40) {
+    }
+    if (targetReduction <= 40) {
       return {
         techniques: [
           'All conservative techniques',
@@ -504,28 +538,30 @@ export class TokenReductionOptimizer {
           'Filler word removal',
         ],
         risks: ['Slight reduction in readability', 'Potential tone changes'],
-        alternatives: ['Consider multiple shorter prompts', 'Use more specific instructions'],
-      };
-    } else {
-      return {
-        techniques: [
-          'All available techniques',
-          'Aggressive reduction',
-          'Structure optimization',
-          'Courtesy removal',
-        ],
-        risks: [
-          'Significant semantic changes',
-          'Reduced clarity',
-          'Potential misunderstanding',
-        ],
         alternatives: [
-          'Break into multiple shorter prompts',
-          'Use bullet points instead of paragraphs',
-          'Consider different model with larger context',
+          'Consider multiple shorter prompts',
+          'Use more specific instructions',
         ],
       };
     }
+    return {
+      techniques: [
+        'All available techniques',
+        'Aggressive reduction',
+        'Structure optimization',
+        'Courtesy removal',
+      ],
+      risks: [
+        'Significant semantic changes',
+        'Reduced clarity',
+        'Potential misunderstanding',
+      ],
+      alternatives: [
+        'Break into multiple shorter prompts',
+        'Use bullet points instead of paragraphs',
+        'Consider different model with larger context',
+      ],
+    };
   }
 }
 

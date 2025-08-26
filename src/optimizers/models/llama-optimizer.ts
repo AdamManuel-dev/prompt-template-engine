@@ -12,7 +12,13 @@ import { logger } from '../../utils/logger';
 
 export interface LlamaOptimizationConfig {
   maxTokens: number;
-  model: 'llama-2-7b' | 'llama-2-13b' | 'llama-2-70b' | 'codellama' | 'mistral' | 'custom';
+  model:
+    | 'llama-2-7b'
+    | 'llama-2-13b'
+    | 'llama-2-70b'
+    | 'codellama'
+    | 'mistral'
+    | 'custom';
   enableInstructionTuning: boolean;
   optimizeForEfficiency: boolean;
   enableFewShotPrompting: boolean;
@@ -50,7 +56,9 @@ export class LlamaOptimizer {
     enableFewShotPrompting: true,
   };
 
-  constructor(private config: LlamaOptimizationConfig = {} as LlamaOptimizationConfig) {
+  constructor(
+    private config: LlamaOptimizationConfig = {} as LlamaOptimizationConfig
+  ) {
     this.config = { ...this.defaultConfig, ...config };
   }
 
@@ -76,7 +84,10 @@ export class LlamaOptimizer {
 
     // Apply instruction format optimization
     if (this.config.enableInstructionTuning) {
-      const instructionResult = this.optimizeInstructionFormat(optimizedPrompt, task);
+      const instructionResult = this.optimizeInstructionFormat(
+        optimizedPrompt,
+        task
+      );
       optimizedPrompt = instructionResult.prompt;
       if (instructionResult.applied) {
         techniquesApplied.push('Instruction format optimization');
@@ -86,7 +97,10 @@ export class LlamaOptimizer {
 
     // Add few-shot examples if available
     if (this.config.enableFewShotPrompting && context?.examples) {
-      const fewShotResult = this.addFewShotExamples(optimizedPrompt, context.examples);
+      const fewShotResult = this.addFewShotExamples(
+        optimizedPrompt,
+        context.examples
+      );
       optimizedPrompt = fewShotResult.prompt;
       if (fewShotResult.applied) {
         techniquesApplied.push('Few-shot example integration');
@@ -116,7 +130,11 @@ export class LlamaOptimizer {
     optimizedPrompt = this.applyOpenSourcePatterns(optimizedPrompt);
     techniquesApplied.push('Open-source model patterns');
 
-    const improvements = this.calculateImprovements(prompt, optimizedPrompt, context);
+    const improvements = this.calculateImprovements(
+      prompt,
+      optimizedPrompt,
+      context
+    );
 
     return {
       optimizedPrompt,
@@ -127,7 +145,10 @@ export class LlamaOptimizer {
     };
   }
 
-  private optimizeInstructionFormat(prompt: string, task: string): { prompt: string; applied: boolean } {
+  private optimizeInstructionFormat(
+    prompt: string,
+    task: string
+  ): { prompt: string; applied: boolean } {
     // Check if instruction format already present
     if (this.hasInstructionFormat(prompt)) {
       return { prompt, applied: false };
@@ -175,8 +196,11 @@ export class LlamaOptimizer {
           exampleSection += `Input: ${example.input}\n`;
           exampleSection += `Output: ${example.output}\n\n`;
         });
-        
-        fewShotPrompt = prompt.slice(0, instructionIndex) + exampleSection + prompt.slice(instructionIndex);
+
+        fewShotPrompt =
+          prompt.slice(0, instructionIndex) +
+          exampleSection +
+          prompt.slice(instructionIndex);
       }
     } else {
       // Add examples at the beginning
@@ -186,14 +210,17 @@ export class LlamaOptimizer {
         exampleSection += `Input: ${example.input}\n`;
         exampleSection += `Output: ${example.output}\n\n`;
       });
-      
+
       fewShotPrompt = exampleSection + prompt;
     }
 
     return { prompt: fewShotPrompt, applied: true };
   }
 
-  private optimizeForEfficiency(prompt: string): { prompt: string; applied: boolean } {
+  private optimizeForEfficiency(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
     let optimized = prompt;
     let applied = false;
 
@@ -234,19 +261,25 @@ export class LlamaOptimizer {
     return { prompt: optimized, applied };
   }
 
-  private applyModelSpecificTuning(prompt: string): { prompt: string; applied: boolean } {
+  private applyModelSpecificTuning(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
     let tuned = prompt;
     let applied = false;
 
     // Model-specific optimizations
     switch (this.config.model) {
       case 'codellama':
-        if (prompt.toLowerCase().includes('code') || prompt.toLowerCase().includes('programming')) {
+        if (
+          prompt.toLowerCase().includes('code') ||
+          prompt.toLowerCase().includes('programming')
+        ) {
           tuned += '\n\nProvide complete, working code with comments.';
           applied = true;
         }
         break;
-      
+
       case 'llama-2-70b':
         // Leverage larger model's reasoning capabilities
         if (!prompt.includes('step-by-step') && !prompt.includes('reasoning')) {
@@ -254,18 +287,21 @@ export class LlamaOptimizer {
           applied = true;
         }
         break;
-      
+
       case 'mistral':
         // Mistral works well with direct, concise instructions
         tuned = tuned.replace(/could you please/gi, '');
         tuned = tuned.replace(/if possible/gi, '');
         applied = true;
         break;
-      
+
       case 'custom':
         if (this.config.customModelConfig?.instructionFormat) {
           // Apply custom instruction format if specified
-          tuned = this.config.customModelConfig.instructionFormat.replace('{prompt}', tuned);
+          tuned = this.config.customModelConfig.instructionFormat.replace(
+            '{prompt}',
+            tuned
+          );
           applied = true;
         }
         break;
@@ -308,7 +344,11 @@ export class LlamaOptimizer {
     return Math.ceil(text.length / 3.5);
   }
 
-  private calculateImprovements(original: string, optimized: string, context?: any) {
+  private calculateImprovements(
+    original: string,
+    optimized: string,
+    context?: any
+  ) {
     const efficiencyScore = this.calculateEfficiencyScore(optimized);
     const clarityScore = this.calculateClarityScore(optimized);
     const instructionScore = this.calculateInstructionScore(optimized);
@@ -324,47 +364,47 @@ export class LlamaOptimizer {
 
   private calculateEfficiencyScore(text: string): number {
     let score = 60;
-    
+
     // Award for conciseness
     if (text.length < 300) score += 20;
     else if (text.length < 600) score += 10;
-    
+
     // Award for direct language
     if (!text.includes('perhaps') && !text.includes('maybe')) score += 15;
-    
+
     return score;
   }
 
   private calculateClarityScore(text: string): number {
     let score = 60;
-    
+
     if (text.includes('clear')) score += 10;
     if (text.includes('specific')) score += 10;
     if (text.includes(':')) score += 5;
     if (text.includes('\n')) score += 5;
-    
+
     return score;
   }
 
   private calculateInstructionScore(text: string): number {
     let score = 50;
-    
+
     if (this.hasInstructionFormat(text)) score += 20;
     if (text.includes('Example')) score += 15;
     if (text.includes('step-by-step')) score += 10;
     if (text.includes('Response:')) score += 5;
-    
+
     return score;
   }
 
   private calculateCompatibilityScore(text: string): number {
     let score = 70;
-    
+
     // Award for open-source model compatibility
     if (text.includes('### Instruction:')) score += 15;
     if (text.includes('[INST]')) score += 15;
     if (!text.includes('maybe') && !text.includes('perhaps')) score += 10;
-    
+
     return score;
   }
 
@@ -392,12 +432,12 @@ export class LlamaOptimizer {
           'Can handle more complex, multi-part instructions',
           'Benefits from detailed context and examples',
         ],
-        'codellama': [
+        codellama: [
           'Specify programming language clearly',
           'Request complete, working code examples',
           'Include relevant context about code requirements',
         ],
-        'mistral': [
+        mistral: [
           'Use [INST] instruction format for best results',
           'Keep instructions clear and concise',
           'Works well with direct, imperative statements',

@@ -398,18 +398,28 @@ program
   .option('--task <description>', 'Task description for optimization')
   .option('-m, --model <model>', 'Target model for optimization', 'gpt-4')
   .option('-i, --iterations <number>', 'Number of refinement iterations', '3')
-  .option('-e, --examples <number>', 'Number of few-shot examples to generate', '5')
+  .option(
+    '-e, --examples <number>',
+    'Number of few-shot examples to generate',
+    '5'
+  )
   .option('--reasoning', 'Generate reasoning steps in optimized prompt', true)
   .option('--batch', 'Batch optimize multiple templates')
   .option('-o, --output <path>', 'Output path for optimized template(s)')
   .option('--skip-cache', 'Skip cache and force fresh optimization')
-  .option('--priority <level>', 'Optimization priority (low, normal, high, critical)', 'normal')
-  .action(async (options) => {
+  .option(
+    '--priority <level>',
+    'Optimization priority (low, normal, high, critical)',
+    'normal'
+  )
+  .action(async options => {
     try {
       const command = new OptimizeCommand();
       await command.action([], options);
     } catch (error) {
-      logger.error(`Optimize command failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `Optimize command failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       process.exit(1);
     }
   });
@@ -421,17 +431,26 @@ program
   .description('Compare original and optimized prompts with detailed metrics')
   .option('-o, --original <prompt>', 'Original prompt text or template name')
   .option('-p, --optimized <prompt>', 'Optimized prompt text or template name')
-  .option('--task <description>', 'Task description for context-aware comparison')
-  .option('-f, --format <type>', 'Output format (table, json, markdown)', 'table')
+  .option(
+    '--task <description>',
+    'Task description for context-aware comparison'
+  )
+  .option(
+    '-f, --format <type>',
+    'Output format (table, json, markdown)',
+    'table'
+  )
   .option('--output <path>', 'Save comparison report to file')
   .option('--detailed', 'Show detailed analysis and recommendations')
   .option('--show-diff', 'Show line-by-line diff of prompts', true)
-  .action(async (options) => {
+  .action(async options => {
     try {
       const command = new CompareCommand();
       await command.action([], options);
     } catch (error) {
-      logger.error(`Compare command failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `Compare command failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       process.exit(1);
     }
   });
@@ -444,17 +463,27 @@ program
   .option('-p, --prompt <text>', 'Prompt text to score')
   .option('-t, --template <name>', 'Template name to score')
   .option('--task <description>', 'Task description for context-aware scoring')
-  .option('-f, --format <type>', 'Output format (table, json, markdown, badge)', 'table')
+  .option(
+    '-f, --format <type>',
+    'Output format (table, json, markdown, badge)',
+    'table'
+  )
   .option('--output <path>', 'Save scoring report to file')
-  .option('--threshold <number>', 'Quality threshold (0-100) for pass/fail reporting', '70')
+  .option(
+    '--threshold <number>',
+    'Quality threshold (0-100) for pass/fail reporting',
+    '70'
+  )
   .option('--detailed', 'Show detailed breakdown and suggestions', true)
   .option('--batch', 'Score all templates in batch')
-  .action(async (options) => {
+  .action(async options => {
     try {
       const command = new ScoreCommand();
       await command.action([], options);
     } catch (error) {
-      logger.error(`Score command failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `Score command failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       process.exit(1);
     }
   });
@@ -463,16 +492,24 @@ program
 program
   .command('prompt:wizard')
   .aliases(['wizard', 'guide'])
-  .description('Interactive optimization wizard with guided step-by-step refinement')
+  .description(
+    'Interactive optimization wizard with guided step-by-step refinement'
+  )
   .option('-t, --template <name>', 'Start with specific template')
   .option('--skip-intro', 'Skip introductory explanation')
-  .option('-m, --mode <type>', 'Wizard mode (beginner, advanced, expert)', 'beginner')
-  .action(async (options) => {
+  .option(
+    '-m, --mode <type>',
+    'Wizard mode (beginner, advanced, expert)',
+    'beginner'
+  )
+  .action(async options => {
     try {
       const command = new OptimizationWizardCommand();
       await command.action([], options);
     } catch (error) {
-      logger.error(`Wizard command failed: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `Wizard command failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       process.exit(1);
     }
   });

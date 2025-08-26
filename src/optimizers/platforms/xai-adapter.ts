@@ -115,16 +115,20 @@ export class xAIAdapter {
 
     // Add conversation history if available
     if (context?.conversationHistory) {
-      const historyMessages = this.formatConversationHistory(context.conversationHistory);
+      const historyMessages = this.formatConversationHistory(
+        context.conversationHistory
+      );
       messages.push(...historyMessages);
-      adaptationNotes.push(`Added ${historyMessages.length} conversation history messages`);
+      adaptationNotes.push(
+        `Added ${historyMessages.length} conversation history messages`
+      );
     }
 
     // Process the main prompt for xAI optimization
     let processedPrompt = this.optimizePromptForXAI(optimizedPrompt, context);
-    
+
     // Add real-time context if enabled
-    if (this.config.enableRealtimeData && (context?.enableRealtime !== false)) {
+    if (this.config.enableRealtimeData && context?.enableRealtime !== false) {
       const realtimeResult = this.addRealtimeContext(processedPrompt);
       processedPrompt = realtimeResult.prompt;
       if (realtimeResult.applied) {
@@ -162,9 +166,12 @@ export class xAIAdapter {
     // Check token limits
     const totalTokens = this.estimateTokens(messages);
     const modelLimit = this.modelLimits[this.config.model];
-    
-    if (totalTokens > modelLimit * 0.8) { // Leave room for response
-      warnings.push(`Prompt approaching model limit (${totalTokens}/${modelLimit} tokens)`);
+
+    if (totalTokens > modelLimit * 0.8) {
+      // Leave room for response
+      warnings.push(
+        `Prompt approaching model limit (${totalTokens}/${modelLimit} tokens)`
+      );
     }
 
     // Build the request
@@ -193,14 +200,19 @@ export class xAIAdapter {
       tokenEstimate: totalTokens,
       adaptationNotes,
       warnings,
-      xaiFeatures: Object.values(xaiFeatures).some(Boolean) ? xaiFeatures : undefined,
+      xaiFeatures: Object.values(xaiFeatures).some(Boolean)
+        ? xaiFeatures
+        : undefined,
     };
   }
 
   /**
    * Create xAI-optimized system message
    */
-  private createSystemMessage(prompt: string, context?: { systemMessage?: string; personality?: string }): string {
+  private createSystemMessage(
+    prompt: string,
+    context?: { systemMessage?: string; personality?: string }
+  ): string {
     let systemMessage = context?.systemMessage || '';
 
     // Extract existing system message from prompt if not provided
@@ -226,26 +238,32 @@ export class xAIAdapter {
     }
 
     // Enhance with xAI-specific characteristics
-    systemMessage += ' You have access to real-time information and excel at providing current, relevant responses.';
-    
+    systemMessage +=
+      ' You have access to real-time information and excel at providing current, relevant responses.';
+
     // Add personality-specific enhancements
     switch (context?.personality) {
       case 'witty':
-        systemMessage += ' You have a witty, engaging personality and can use appropriate humor in your responses.';
+        systemMessage +=
+          ' You have a witty, engaging personality and can use appropriate humor in your responses.';
         break;
       case 'serious':
-        systemMessage += ' You maintain a professional, serious tone focused on accuracy and thoroughness.';
+        systemMessage +=
+          ' You maintain a professional, serious tone focused on accuracy and thoroughness.';
         break;
       case 'technical':
-        systemMessage += ' You excel at technical explanations and detailed analysis with precision and clarity.';
+        systemMessage +=
+          ' You excel at technical explanations and detailed analysis with precision and clarity.';
         break;
       default:
-        systemMessage += ' You are helpful, informative, and engaging while maintaining accuracy.';
+        systemMessage +=
+          ' You are helpful, informative, and engaging while maintaining accuracy.';
     }
 
     // Add reasoning guidance
     if (this.config.enableReasoningOptimization) {
-      systemMessage += ' When tackling complex problems, show your reasoning process clearly.';
+      systemMessage +=
+        ' When tackling complex problems, show your reasoning process clearly.';
     }
 
     return systemMessage;
@@ -254,7 +272,9 @@ export class xAIAdapter {
   /**
    * Format conversation history for xAI
    */
-  private formatConversationHistory(history: Array<{ role: string; content: string }>): xAIMessage[] {
+  private formatConversationHistory(
+    history: Array<{ role: string; content: string }>
+  ): xAIMessage[] {
     return history.map(msg => ({
       role: this.normalizeRole(msg.role),
       content: msg.content,
@@ -264,7 +284,10 @@ export class xAIAdapter {
   /**
    * Optimize prompt specifically for xAI/Grok
    */
-  private optimizePromptForXAI(prompt: string, context?: { personality?: string }): string {
+  private optimizePromptForXAI(
+    prompt: string,
+    context?: { personality?: string }
+  ): string {
     let optimized = prompt;
 
     // Remove system message content if it was extracted
@@ -285,7 +308,10 @@ export class xAIAdapter {
 
     // Add specificity for better results
     optimized = optimized.replace(/some information/gi, 'detailed information');
-    optimized = optimized.replace(/a bit about/gi, 'comprehensive details about');
+    optimized = optimized.replace(
+      /a bit about/gi,
+      'comprehensive details about'
+    );
 
     return optimized.trim();
   }
@@ -293,7 +319,10 @@ export class xAIAdapter {
   /**
    * Add real-time data context
    */
-  private addRealtimeContext(prompt: string): { prompt: string; applied: boolean } {
+  private addRealtimeContext(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
     // Check if the prompt would benefit from real-time data
     const realtimeIndicators = [
       /current/i,
@@ -304,8 +333,10 @@ export class xAIAdapter {
       /up.to.date/i,
     ];
 
-    const needsRealtime = realtimeIndicators.some(pattern => pattern.test(prompt));
-    
+    const needsRealtime = realtimeIndicators.some(pattern =>
+      pattern.test(prompt)
+    );
+
     if (needsRealtime) {
       const realtimePrompt = `${prompt}\n\nPlease use the most current and up-to-date information available to you.`;
       return { prompt: realtimePrompt, applied: true };
@@ -317,7 +348,10 @@ export class xAIAdapter {
   /**
    * Optimize for reasoning capabilities
    */
-  private optimizeForReasoning(prompt: string): { prompt: string; applied: boolean } {
+  private optimizeForReasoning(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
     // Check if prompt involves complex reasoning
     const reasoningIndicators = [
       /analyze/i,
@@ -329,8 +363,10 @@ export class xAIAdapter {
       /step.by.step/i,
     ];
 
-    const needsReasoning = reasoningIndicators.some(pattern => pattern.test(prompt));
-    
+    const needsReasoning = reasoningIndicators.some(pattern =>
+      pattern.test(prompt)
+    );
+
     if (needsReasoning && !prompt.includes('reasoning')) {
       const reasoningPrompt = `${prompt}\n\nPlease show your reasoning process and explain your thought process clearly.`;
       return { prompt: reasoningPrompt, applied: true };
@@ -342,7 +378,10 @@ export class xAIAdapter {
   /**
    * Add humor optimization (Grok's specialty)
    */
-  private addHumorOptimization(prompt: string): { prompt: string; applied: boolean } {
+  private addHumorOptimization(prompt: string): {
+    prompt: string;
+    applied: boolean;
+  } {
     // Check if humor would be appropriate
     const seriousTopics = [
       /medical/i,
@@ -354,8 +393,12 @@ export class xAIAdapter {
     ];
 
     const isSeriousTopic = seriousTopics.some(pattern => pattern.test(prompt));
-    
-    if (!isSeriousTopic && !prompt.includes('humor') && !prompt.includes('funny')) {
+
+    if (
+      !isSeriousTopic &&
+      !prompt.includes('humor') &&
+      !prompt.includes('funny')
+    ) {
       const humorPrompt = `${prompt}\n\nFeel free to add appropriate wit or humor to make your response engaging, while maintaining accuracy.`;
       return { prompt: humorPrompt, applied: true };
     }
@@ -366,7 +409,9 @@ export class xAIAdapter {
   /**
    * Format tools for xAI function calling
    */
-  private formatTools(tools: Array<{ name: string; description: string; parameters: object }>) {
+  private formatTools(
+    tools: Array<{ name: string; description: string; parameters: object }>
+  ) {
     return tools.map(tool => ({
       type: 'function' as const,
       function: {
@@ -383,7 +428,12 @@ export class xAIAdapter {
   private normalizeRole(role: string): 'system' | 'user' | 'assistant' {
     const normalizedRole = role.toLowerCase();
     if (normalizedRole === 'system') return 'system';
-    if (normalizedRole === 'assistant' || normalizedRole === 'ai' || normalizedRole === 'grok') return 'assistant';
+    if (
+      normalizedRole === 'assistant' ||
+      normalizedRole === 'ai' ||
+      normalizedRole === 'grok'
+    )
+      return 'assistant';
     return 'user';
   }
 
@@ -392,13 +442,13 @@ export class xAIAdapter {
    */
   private estimateTokens(messages: xAIMessage[]): number {
     let totalTokens = 0;
-    
+
     for (const message of messages) {
       // xAI tokenization approximation (similar to OpenAI)
       totalTokens += Math.ceil(message.content.length / 4);
       totalTokens += 4; // Overhead per message
     }
-    
+
     return totalTokens;
   }
 
@@ -415,7 +465,7 @@ export class xAIAdapter {
       bestPractices: [
         'Leverage real-time data capabilities for current information',
         'Use clear, direct instructions for best results',
-        'Take advantage of Grok\'s reasoning capabilities',
+        "Take advantage of Grok's reasoning capabilities",
         'Consider personality settings for appropriate tone',
         'Use function calling for complex workflows',
       ],
@@ -481,11 +531,17 @@ export class xAIAdapter {
       }
     }
 
-    if (request.max_tokens && (request.max_tokens < 1 || request.max_tokens > 32768)) {
+    if (
+      request.max_tokens &&
+      (request.max_tokens < 1 || request.max_tokens > 32768)
+    ) {
       errors.push('max_tokens must be between 1 and 32768');
     }
 
-    if (request.temperature && (request.temperature < 0 || request.temperature > 2)) {
+    if (
+      request.temperature &&
+      (request.temperature < 0 || request.temperature > 2)
+    ) {
       errors.push('Temperature must be between 0 and 2');
     }
 

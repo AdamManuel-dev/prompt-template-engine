@@ -1,0 +1,435 @@
+version: '3.8'
+
+services:
+  # PromptWizard main service
+  promptwizard-service:
+    build:
+      context: ../../../
+      dockerfile: deployment/promptwizard/docker/Dockerfile.production
+    image: promptwizard-service:${VERSION:-latest}
+    container_name: promptwizard-service
+    restart: unless-stopped
+    deploy:
+      replicas: ${REPLICAS:-3}
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    environment:
+      - ENVIRONMENT=production
+      - PORT=8000
+      - WORKERS=${WORKERS:-4}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # Redis configuration
+      - REDIS_URL=redis://redis-master:6379
+      - REDIS_SENTINEL_URLS=redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
+      - REDIS_MASTER_NAME=mymaster
+      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+      - JOB_QUEUE_URL=redis://redis-master:6379/1
+
+      # Security
+      - SECRET_KEY_FILE=/run/secrets/secret_key
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - API_KEY_FILE=/run/secrets/api_key
+
+      # External services
+      - OPENAI_API_KEY_FILE=/run/secrets/openai_api_key
+      - ANTHROPIC_API_KEY_FILE=/run/secrets/anthropic_api_key
+
+      # Monitoring
+      - METRICS_ENABLED=true
+      - METRICS_PORT=9090
+      - JAEGER_AGENT_HOST=jaeger-agent
+      - JAEGER_AGENT_PORT=6831
+
+      # Performance
+      - POOL_SIZE=${DB_POOL_SIZE:-20}
+      - MAX_OVERFLOW=${DB_MAX_OVERFLOW:-30}
+      - CACHE_TTL=${CACHE_TTL:-3600}
+
+    secrets:
+      - redis_password
+      - secret_key
+      - jwt_secret
+      - api_key
+      - openai_api_key
+      - anthropic_api_key
+
+    ports:
+      - '${HTTP_PORT:-8000}:8000'
+      - '${GRPC_PORT:-50051}:50051'
+      - '${WS_PORT:-8080}:8080'
+      - '${METRICS_PORT:-9090}:9090'
+
+    volumes:
+      - app_logs:/app/logs
+      - app_data:/app/data
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+    networks:
+      - promptwizard-network
+      - monitoring-network
+
+    depends_on:
+      redis-master:
+        condition: service_healthy
+      jaeger-agent:
+        condition: service_started
+
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/api/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '100m'
+        max-file: '5'
+        labels: 'service,version,environment'
+        env: 'ENVIRONMENT,VERSION'
+
+  # Redis Master-Slave with Sentinel
+  redis-master:
+    image: redis:7-alpine
+    container_name: redis-master
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    command: >
+      redis-server
+      --requirepass "${REDIS_PASSWORD}"
+      --appendonly yes
+      --appendfsync everysec
+      --auto-aof-rewrite-percentage 100
+      --auto-aof-rewrite-min-size 64mb
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --timeout 300
+      --tcp-keepalive 300
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    volumes:
+      - redis_master_data:/data
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    networks:
+      - promptwizard-network
+    ports:
+      - '6379'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'redis-cli',
+          '--no-auth-warning',
+          '-a',
+          '${REDIS_PASSWORD}',
+          'ping',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+
+  redis-slave:
+    image: redis:7-alpine
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    environment:
+      - REDIS_REPLICATION_MODE=slave
+    command: >
+      redis-server
+      --slaveof redis-master 6379
+      --requirepass "${REDIS_PASSWORD}"
+      --masterauth "${REDIS_PASSWORD}"
+      --appendonly yes
+      --readonly yes
+      --slave-read-only yes
+    volumes:
+      - redis_slave_data:/data
+    networks:
+      - promptwizard-network
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'redis-cli',
+          '--no-auth-warning',
+          '-a',
+          '${REDIS_PASSWORD}',
+          'ping',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+
+  # Redis Sentinel for high availability
+  redis-sentinel:
+    image: redis:7-alpine
+    restart: unless-stopped
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    command: >
+      redis-sentinel /etc/redis/sentinel.conf
+    volumes:
+      - ./redis/sentinel.conf:/etc/redis/sentinel.conf:ro
+      - sentinel_data:/data
+    networks:
+      - promptwizard-network
+    depends_on:
+      - redis-master
+    ports:
+      - '26379'
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.40.0
+    container_name: prometheus
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring-network
+    ports:
+      - '9091:9090'
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:9.3.0
+    container_name: grafana
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_admin_password
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=${SMTP_HOST:-localhost:587}
+      - GF_SMTP_FROM_ADDRESS=${SMTP_FROM:-alerts@company.com}
+    secrets:
+      - grafana_admin_password
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - monitoring-network
+    ports:
+      - '3000:3000'
+    depends_on:
+      - prometheus
+
+  # Jaeger for distributed tracing
+  jaeger-agent:
+    image: jaegertracing/jaeger-agent:1.40.0
+    container_name: jaeger-agent
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+    command:
+      - '--reporter.grpc.host-port=jaeger-collector:14250'
+      - '--reporter.grpc.retry.max=3'
+    networks:
+      - monitoring-network
+      - promptwizard-network
+    ports:
+      - '6831:6831/udp'
+      - '6832:6832/udp'
+      - '5778:5778'
+    depends_on:
+      - jaeger-collector
+
+  jaeger-collector:
+    image: jaegertracing/jaeger-collector:1.40.0
+    container_name: jaeger-collector
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+    networks:
+      - monitoring-network
+    ports:
+      - '14269:14269'
+      - '14250:14250'
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:1.24-alpine
+    container_name: nginx-lb
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - promptwizard-network
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      - promptwizard-service
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Docker secrets for sensitive data
+secrets:
+  redis_password:
+    external: true
+  secret_key:
+    external: true
+  jwt_secret:
+    external: true
+  api_key:
+    external: true
+  openai_api_key:
+    external: true
+  anthropic_api_key:
+    external: true
+  grafana_admin_password:
+    external: true
+
+# Persistent volumes
+volumes:
+  app_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/log/promptwizard
+  app_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/lib/promptwizard
+  redis_master_data:
+    driver: local
+  redis_slave_data:
+    driver: local
+  sentinel_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  nginx_cache:
+    driver: local
+
+# Networks
+networks:
+  promptwizard-network:
+    driver: overlay
+    driver_opts:
+      encrypted: 'true'
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+  monitoring-network:
+    driver: overlay
+    driver_opts:
+      encrypted: 'true'
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16

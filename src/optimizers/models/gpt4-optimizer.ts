@@ -13,19 +13,19 @@ import { logger } from '../../utils/logger';
 export interface GPT4OptimizationConfig {
   /** Maximum tokens to use (GPT-4 has 128k context) */
   maxTokens: number;
-  
+
   /** Temperature for optimization requests */
   temperature: number;
-  
+
   /** Enable chain-of-thought optimization */
   enableChainOfThought: boolean;
-  
+
   /** Use GPT-4's advanced reasoning capabilities */
   enableAdvancedReasoning: boolean;
-  
+
   /** Optimize for structured outputs */
   optimizeForStructuredOutput: boolean;
-  
+
   /** Enable system message optimization */
   optimizeSystemMessages: boolean;
 }
@@ -33,13 +33,13 @@ export interface GPT4OptimizationConfig {
 export interface GPT4OptimizationResult {
   /** Optimized prompt */
   optimizedPrompt: string;
-  
+
   /** Optimization techniques applied */
   techniquesApplied: string[];
-  
+
   /** Estimated token usage */
   estimatedTokens: number;
-  
+
   /** Performance improvements */
   improvements: {
     clarityScore: number;
@@ -47,7 +47,7 @@ export interface GPT4OptimizationResult {
     structureScore: number;
     efficiencyScore: number;
   };
-  
+
   /** GPT-4 specific enhancements */
   gpt4Enhancements: {
     chainOfThoughtAdded: boolean;
@@ -67,7 +67,9 @@ export class GPT4Optimizer {
     optimizeSystemMessages: true,
   };
 
-  constructor(private config: GPT4OptimizationConfig = {} as GPT4OptimizationConfig) {
+  constructor(
+    private config: GPT4OptimizationConfig = {} as GPT4OptimizationConfig
+  ) {
     this.config = { ...this.defaultConfig, ...config };
   }
 
@@ -115,7 +117,10 @@ export class GPT4Optimizer {
     }
 
     if (this.config.optimizeForStructuredOutput && context?.expectedFormat) {
-      const structureResult = this.addStructuredOutput(optimizedPrompt, context.expectedFormat);
+      const structureResult = this.addStructuredOutput(
+        optimizedPrompt,
+        context.expectedFormat
+      );
       optimizedPrompt = structureResult.prompt;
       if (structureResult.applied) {
         techniquesApplied.push('Structured output formatting');
@@ -139,7 +144,9 @@ export class GPT4Optimizer {
     const tokenOptimizedResult = this.optimizeTokenUsage(optimizedPrompt);
     optimizedPrompt = tokenOptimizedResult.prompt;
     if (tokenOptimizedResult.tokensReduced > 0) {
-      techniquesApplied.push(`Token optimization (-${tokenOptimizedResult.tokensReduced} tokens)`);
+      techniquesApplied.push(
+        `Token optimization (-${tokenOptimizedResult.tokensReduced} tokens)`
+      );
     }
 
     // Calculate improvements
@@ -153,7 +160,9 @@ export class GPT4Optimizer {
       gpt4Enhancements,
     };
 
-    logger.info(`GPT-4 optimization completed: ${techniquesApplied.length} techniques applied`);
+    logger.info(
+      `GPT-4 optimization completed: ${techniquesApplied.length} techniques applied`
+    );
     return result;
   }
 
@@ -174,15 +183,16 @@ export class GPT4Optimizer {
 
     // Add appropriate CoT based on complexity
     if (context?.complexity === 'complex') {
-      cotPrompt += '\n\nLet\'s approach this step-by-step:\n';
+      cotPrompt += "\n\nLet's approach this step-by-step:\n";
       cotPrompt += '1. First, analyze the key requirements\n';
       cotPrompt += '2. Break down the problem into components\n';
       cotPrompt += '3. Consider potential challenges and solutions\n';
       cotPrompt += '4. Synthesize a comprehensive response\n';
-      cotPrompt += '\nPlease work through each step explicitly before providing your final answer.';
+      cotPrompt +=
+        '\nPlease work through each step explicitly before providing your final answer.';
       stepsAdded = 4;
     } else if (context?.complexity === 'medium') {
-      cotPrompt += '\n\nLet\'s think through this systematically:\n';
+      cotPrompt += "\n\nLet's think through this systematically:\n";
       cotPrompt += '1. Identify the main objective\n';
       cotPrompt += '2. Consider the key factors involved\n';
       cotPrompt += '3. Formulate the best approach\n';
@@ -209,18 +219,32 @@ export class GPT4Optimizer {
     }
 
     // Add optimized system message for GPT-4
-    let systemMessage = 'You are an expert assistant designed to provide accurate, helpful, and comprehensive responses. ';
-    
+    let systemMessage =
+      'You are an expert assistant designed to provide accurate, helpful, and comprehensive responses. ';
+
     // Customize based on task
-    if (task.toLowerCase().includes('code') || task.toLowerCase().includes('programming')) {
-      systemMessage += 'You excel at code analysis, debugging, and software development guidance. ';
-    } else if (task.toLowerCase().includes('analysis') || task.toLowerCase().includes('research')) {
-      systemMessage += 'You excel at analytical thinking, research, and providing well-reasoned insights. ';
-    } else if (task.toLowerCase().includes('creative') || task.toLowerCase().includes('writing')) {
-      systemMessage += 'You excel at creative thinking and effective communication. ';
+    if (
+      task.toLowerCase().includes('code') ||
+      task.toLowerCase().includes('programming')
+    ) {
+      systemMessage +=
+        'You excel at code analysis, debugging, and software development guidance. ';
+    } else if (
+      task.toLowerCase().includes('analysis') ||
+      task.toLowerCase().includes('research')
+    ) {
+      systemMessage +=
+        'You excel at analytical thinking, research, and providing well-reasoned insights. ';
+    } else if (
+      task.toLowerCase().includes('creative') ||
+      task.toLowerCase().includes('writing')
+    ) {
+      systemMessage +=
+        'You excel at creative thinking and effective communication. ';
     }
 
-    systemMessage += 'Always strive for clarity, accuracy, and usefulness in your responses.';
+    systemMessage +=
+      'Always strive for clarity, accuracy, and usefulness in your responses.';
 
     const optimizedPrompt = `${systemMessage}\n\n${prompt}`;
     return { prompt: optimizedPrompt, applied: true };
@@ -234,7 +258,10 @@ export class GPT4Optimizer {
     format: 'json' | 'markdown' | 'code' | 'text'
   ): { prompt: string; applied: boolean } {
     // Check if structured output already specified
-    if (prompt.toLowerCase().includes('format') && prompt.toLowerCase().includes(format)) {
+    if (
+      prompt.toLowerCase().includes('format') &&
+      prompt.toLowerCase().includes(format)
+    ) {
       return { prompt, applied: false };
     }
 
@@ -242,16 +269,20 @@ export class GPT4Optimizer {
 
     switch (format) {
       case 'json':
-        structurePrompt += '\n\nPlease provide your response in valid JSON format with appropriate structure and field names.';
+        structurePrompt +=
+          '\n\nPlease provide your response in valid JSON format with appropriate structure and field names.';
         break;
       case 'markdown':
-        structurePrompt += '\n\nPlease format your response using Markdown with appropriate headers, lists, and formatting for clarity.';
+        structurePrompt +=
+          '\n\nPlease format your response using Markdown with appropriate headers, lists, and formatting for clarity.';
         break;
       case 'code':
-        structurePrompt += '\n\nPlease provide code examples with appropriate syntax highlighting and clear explanations.';
+        structurePrompt +=
+          '\n\nPlease provide code examples with appropriate syntax highlighting and clear explanations.';
         break;
       default:
-        structurePrompt += '\n\nPlease structure your response clearly with logical organization and appropriate formatting.';
+        structurePrompt +=
+          '\n\nPlease structure your response clearly with logical organization and appropriate formatting.';
     }
 
     return { prompt: structurePrompt, applied: true };
@@ -298,17 +329,19 @@ export class GPT4Optimizer {
 
     // Add GPT-4 specific instruction clarity
     if (!patterned.includes('Please') && !patterned.includes('I need')) {
-      patterned = 'Please ' + patterned.charAt(0).toLowerCase() + patterned.slice(1);
+      patterned = `Please ${patterned.charAt(0).toLowerCase()}${patterned.slice(1)}`;
     }
 
     // Optimize for GPT-4's instruction following
-    patterned = patterned.replace(/\b(do|make|create|write|generate)\b/gi, (match) => {
-      return `please ${match.toLowerCase()}`;
-    });
+    patterned = patterned.replace(
+      /\b(do|make|create|write|generate)\b/gi,
+      match => `please ${match.toLowerCase()}`
+    );
 
     // Add context preservation for long conversations
     if (patterned.length > 1000) {
-      patterned += '\n\n(Please maintain context from this entire prompt when responding.)';
+      patterned +=
+        '\n\n(Please maintain context from this entire prompt when responding.)';
     }
 
     return patterned;
@@ -317,9 +350,12 @@ export class GPT4Optimizer {
   /**
    * Optimize token usage for GPT-4's context window
    */
-  private optimizeTokenUsage(prompt: string): { prompt: string; tokensReduced: number } {
+  private optimizeTokenUsage(prompt: string): {
+    prompt: string;
+    tokensReduced: number;
+  } {
     const originalTokens = this.estimateTokens(prompt);
-    
+
     if (originalTokens <= this.config.maxTokens) {
       return { prompt, tokensReduced: 0 };
     }
@@ -382,18 +418,21 @@ export class GPT4Optimizer {
     // This is a simplified scoring system - in production, you'd want more sophisticated metrics
     const originalLength = original.length;
     const optimizedLength = optimized.length;
-    
+
     // Structure score based on formatting and organization
     const structureScore = this.calculateStructureScore(optimized);
-    
+
     // Clarity score based on specific phrases and patterns
     const clarityScore = this.calculateClarityScore(optimized);
-    
+
     // Reasoning score based on CoT and reasoning patterns
     const reasoningScore = this.calculateReasoningScore(optimized);
-    
+
     // Efficiency score based on token usage
-    const efficiencyScore = Math.max(0, 100 - ((optimizedLength - originalLength) / originalLength * 100));
+    const efficiencyScore = Math.max(
+      0,
+      100 - ((optimizedLength - originalLength) / originalLength) * 100
+    );
 
     return {
       clarityScore: Math.min(100, clarityScore),
@@ -405,42 +444,42 @@ export class GPT4Optimizer {
 
   private calculateStructureScore(text: string): number {
     let score = 60; // Base score
-    
+
     // Award points for good structure
     if (text.includes('\n\n')) score += 10; // Paragraphs
     if (/\d+\./.test(text)) score += 10; // Numbered lists
     if (/[-*]/.test(text)) score += 5; // Bullet points
     if (text.includes(':')) score += 5; // Colons for structure
-    
+
     return score;
   }
 
   private calculateClarityScore(text: string): number {
     let score = 60; // Base score
-    
+
     // Award points for clarity indicators
     if (text.toLowerCase().includes('please')) score += 5;
     if (text.toLowerCase().includes('specific')) score += 5;
     if (text.toLowerCase().includes('clear')) score += 5;
     if (text.toLowerCase().includes('detailed')) score += 5;
-    
+
     // Deduct for unclear patterns
     if (text.includes('...')) score -= 5;
     if (text.length > 2000) score -= 10; // Too verbose
-    
+
     return score;
   }
 
   private calculateReasoningScore(text: string): number {
     let score = 50; // Base score
-    
+
     // Award points for reasoning patterns
     if (text.toLowerCase().includes('step')) score += 15;
     if (text.toLowerCase().includes('because')) score += 10;
     if (text.toLowerCase().includes('therefore')) score += 10;
     if (text.toLowerCase().includes('consider')) score += 10;
     if (text.toLowerCase().includes('analyze')) score += 10;
-    
+
     return score;
   }
 
@@ -463,9 +502,9 @@ export class GPT4Optimizer {
       ],
       avoidances: [
         'Avoid overly verbose or redundant instructions',
-        'Don\'t use ambiguous language or unclear references',
+        "Don't use ambiguous language or unclear references",
         'Avoid assuming GPT-4 knows your specific context without explaining',
-        'Don\'t overload with too many simultaneous requests',
+        "Don't overload with too many simultaneous requests",
       ],
       tips: [
         'GPT-4 excels at following structured, step-by-step instructions',

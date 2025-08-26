@@ -28,3 +28,6 @@ export type {
   BatchOptimizationRequest,
   BatchOptimizationResult,
 } from './prompt-optimization.service';
+
+export { OptimizedTemplateService } from './optimized-template.service';
+export type { OptimizedTemplateServiceConfig } from './optimized-template.service';

@@ -1,0 +1,420 @@
+/**
+ * @fileoverview Kubernetes Deployment configuration for PromptWizard service
+ * @lastmodified 2024-08-26T15:40:00Z
+ * 
+ * Features: High availability, rolling updates, health checks, resource management
+ * Main APIs: PromptWizard HTTP/gRPC/WebSocket servers with auto-scaling
+ * Constraints: Requires secrets, configmaps, persistent volumes
+ * Patterns: Zero-downtime deployment, health checks, resource limits
+ */
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promptwizard-service
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: service
+    version: v1
+  annotations:
+    description: "Main PromptWizard service deployment"
+    deployment.kubernetes.io/revision: "1"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero-downtime deployment
+  selector:
+    matchLabels:
+      app: promptwizard
+      component: service
+  template:
+    metadata:
+      labels:
+        app: promptwizard
+        component: service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+        # Force pod restart on configmap/secret changes
+        checksum/config: "{{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}"
+        checksum/secret: "{{ include (print $.Template.BasePath \"/secrets.yaml\") . | sha256sum }}"
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      
+      # Service account for RBAC
+      serviceAccountName: promptwizard-service
+      
+      # Image pull secrets for private registry
+      imagePullSecrets:
+        - name: promptwizard-registry
+      
+      # Anti-affinity for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - promptwizard
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 50
+            preference:
+              matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                - compute-optimized
+      
+      # Tolerations for dedicated nodes
+      tolerations:
+      - key: "promptwizard.io/dedicated"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      
+      # Init container for database migrations and setup
+      initContainers:
+      - name: migration
+        image: promptwizard-service:latest
+        imagePullPolicy: IfNotPresent
+        command: 
+        - python
+        - -c
+        - |
+          import asyncio
+          from app.database import init_database, run_migrations
+          
+          async def main():
+              await init_database()
+              await run_migrations()
+              print("Database initialization completed")
+          
+          asyncio.run(main())
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        envFrom:
+        - configMapRef:
+            name: promptwizard-config
+        - secretRef:
+            name: promptwizard-secrets
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+        - name: app-logs
+          mountPath: /app/logs
+      
+      containers:
+      # Main application container
+      - name: promptwizard-service
+        image: promptwizard-service:latest
+        imagePullPolicy: IfNotPresent
+        
+        # Security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE  # Allow binding to ports < 1024 if needed
+        
+        # Environment variables
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        
+        # Environment from ConfigMap and Secrets
+        envFrom:
+        - configMapRef:
+            name: promptwizard-config
+        - secretRef:
+            name: promptwizard-secrets
+        
+        # Container ports
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: grpc
+          containerPort: 50051
+          protocol: TCP
+        - name: websocket
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        
+        # Resource limits and requests
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+            ephemeral-storage: 5Gi
+        
+        # Liveness probe
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        
+        # Readiness probe
+        readinessProbe:
+          httpGet:
+            path: /api/v1/ready
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        
+        # Startup probe for slow-starting applications
+        startupProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10  # Allow up to 100 seconds for startup
+        
+        # Volume mounts
+        volumeMounts:
+        - name: app-logs
+          mountPath: /app/logs
+        - name: app-data
+          mountPath: /app/data
+        - name: tmp-volume
+          mountPath: /tmp
+        - name: cache-volume
+          mountPath: /app/cache
+        - name: logging-config
+          mountPath: /app/logging.conf
+          subPath: logging.conf
+          readOnly: true
+        - name: tls-certs
+          mountPath: /app/certs
+          readOnly: true
+        
+        # Lifecycle hooks
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - |
+                echo "Gracefully shutting down PromptWizard service..."
+                # Send SIGTERM to allow graceful shutdown
+                kill -TERM 1
+                # Wait for graceful shutdown (up to 25 seconds)
+                sleep 25
+      
+      # Sidecar container for log collection (optional)
+      - name: log-collector
+        image: fluent/fluent-bit:2.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: FLUENTD_CONF
+          value: fluent-bit.conf
+        - name: FLUENT_ELASTICSEARCH_HOST
+          value: "elasticsearch"
+        - name: FLUENT_ELASTICSEARCH_PORT
+          value: "9200"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: app-logs
+          mountPath: /app/logs
+          readOnly: true
+        - name: fluent-bit-config
+          mountPath: /fluent-bit/etc/
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+      
+      # Volumes
+      volumes:
+      - name: app-logs
+        persistentVolumeClaim:
+          claimName: promptwizard-logs-pvc
+      - name: app-data
+        persistentVolumeClaim:
+          claimName: promptwizard-data-pvc
+      - name: tmp-volume
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: cache-volume
+        emptyDir:
+          sizeLimit: 2Gi
+      - name: logging-config
+        configMap:
+          name: promptwizard-logging-config
+      - name: tls-certs
+        secret:
+          secretName: promptwizard-tls
+          defaultMode: 0400
+      - name: fluent-bit-config
+        configMap:
+          name: fluent-bit-config
+      
+      # Grace period for shutdown
+      terminationGracePeriodSeconds: 30
+      
+      # DNS configuration
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+        - name: ndots
+          value: "2"
+        - name: edns0
+
+---
+# Service Account for the deployment
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promptwizard-service
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: service-account
+  annotations:
+    # AWS IAM role for service account (IRSA)
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT-ID:role/promptwizard-service-role
+
+---
+# RBAC ClusterRole for necessary permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: promptwizard-service-role
+  labels:
+    app: promptwizard
+    component: rbac
+rules:
+# Read access to nodes for node information
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list"]
+# Read access to pods for health checking
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+# Access to secrets for external integrations
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+# Access to configmaps for configuration updates
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+
+---
+# RBAC ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: promptwizard-service-binding
+  labels:
+    app: promptwizard
+    component: rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: promptwizard-service-role
+subjects:
+- kind: ServiceAccount
+  name: promptwizard-service
+  namespace: promptwizard
+
+---
+# PodDisruptionBudget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: promptwizard-pdb
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: pdb
+spec:
+  minAvailable: 2  # Always keep at least 2 pods running
+  selector:
+    matchLabels:
+      app: promptwizard
+      component: service

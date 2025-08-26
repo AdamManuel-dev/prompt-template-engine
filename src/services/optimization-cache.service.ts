@@ -13,6 +13,12 @@ import { logger } from '../utils/logger';
 import { CacheService } from './cache.service';
 import { getPromptWizardConfig } from '../config/promptwizard.config';
 import {
+  CacheError,
+  ErrorTracker,
+  RetryManager,
+} from '../utils/optimization-errors';
+import { optimizationMetrics } from '../utils/performance-monitor';
+import {
   OptimizationConfig,
   OptimizedResult,
 } from '../integrations/promptwizard/types';
@@ -180,6 +186,8 @@ export class OptimizationCacheService {
     expiredEntries: 0,
   };
 
+  private errorTracker = new ErrorTracker();
+
   constructor(customConfig: Partial<CacheConfig> = {}) {
     const promptwizardConfig = getPromptWizardConfig();
 
@@ -193,7 +201,7 @@ export class OptimizationCacheService {
       ...customConfig,
     };
 
-    this.memoryCache = new LRUCache<OptimizationResult>(this.config.maxSize);
+    this.memoryCache = new LRUCache<OptimizedResult>(this.config.maxSize);
 
     // Initialize Redis cache if enabled
     if (this.config.enableRedis) {
@@ -203,55 +211,93 @@ export class OptimizationCacheService {
     // Set up periodic cleanup
     this.setupPeriodicCleanup();
 
-    logger.info(`Optimization cache service initialized - ${JSON.stringify({
+    logger.info('Optimization cache service initialized -', {
       maxSize: this.config.maxSize,
       defaultTTL: this.config.defaultTTL,
       redisEnabled: this.config.enableRedis,
-    })}`);
+    });
   }
 
   /**
    * Get optimization result from cache
    */
   async get(request: OptimizationConfig): Promise<OptimizedResult | null> {
-    this.stats.totalRequests += 1;
+    return optimizationMetrics.trackCacheOperation(
+      'get',
+      this.generateCacheKey(request),
+      async () => {
+        this.stats.totalRequests += 1;
 
-    const cacheKey = this.generateCacheKey(request);
+        const cacheKey = this.generateCacheKey(request);
 
-    // Try memory cache first
-    const result = this.memoryCache.get(cacheKey);
+        // Try memory cache first
+        try {
+          const result = this.memoryCache.get(cacheKey);
 
-    if (result) {
-      this.stats.cacheHits++;
-      logger.debug(`Cache hit (memory) - ${JSON.stringify({ cacheKey })}`);
-      return result;
-    }
-
-    // Try Redis cache if enabled
-    if (this.redisCache) {
-      try {
-        const redisResult = await this.redisCache.get(cacheKey);
-        if (redisResult) {
-          // Store in memory cache for faster access
-          this.memoryCache.set(
+          if (result) {
+            this.stats.cacheHits++;
+            logger.debug('Cache hit (memory) -', { cacheKey });
+            return result;
+          }
+        } catch (error) {
+          const cacheError = new CacheError('Memory cache read failed', {
             cacheKey,
-            redisResult as OptimizationResult,
-            this.config.defaultTTL,
-            { source: 'redis' }
-          );
-
-          this.stats.cacheHits++;
-          logger.debug(`Cache hit (Redis) - ${JSON.stringify({ cacheKey })}`);
-          return redisResult as OptimizationResult;
+            error,
+          });
+          this.errorTracker.track(cacheError);
+          logger.warn('Memory cache error:', {
+            message: cacheError.message,
+            context: cacheError.context,
+          });
         }
-      } catch (error) {
-        logger.warn(`Redis cache read failed - ${JSON.stringify({ cacheKey, error })}`);
-      }
-    }
 
-    this.stats.cacheMisses++;
-    logger.debug(`Cache miss - ${JSON.stringify({ cacheKey })}`);
-    return null;
+        // Try Redis cache if enabled
+        if (this.redisCache) {
+          try {
+            const redisResult = await RetryManager.retry(
+              () => this.redisCache!.get(cacheKey),
+              { maxRetries: 2, initialDelay: 100 },
+              this.errorTracker
+            );
+
+            if (redisResult) {
+              // Store in memory cache for faster access
+              try {
+                this.memoryCache.set(
+                  cacheKey,
+                  redisResult as OptimizedResult,
+                  this.config.defaultTTL,
+                  { source: 'redis' }
+                );
+              } catch (memError) {
+                logger.warn(
+                  'Failed to populate memory cache from Redis:',
+                  memError
+                );
+              }
+
+              this.stats.cacheHits++;
+              logger.debug('Cache hit (Redis) -', { cacheKey });
+              return redisResult as OptimizedResult;
+            }
+          } catch (error) {
+            const cacheError = new CacheError('Redis cache read failed', {
+              cacheKey,
+              error,
+            });
+            this.errorTracker.track(cacheError);
+            logger.warn('Redis cache error:', {
+              message: cacheError.message,
+              context: cacheError.context,
+            });
+          }
+        }
+
+        this.stats.cacheMisses++;
+        logger.debug('Cache miss -', { cacheKey });
+        return null;
+      }
+    );
   }
 
   /**
@@ -279,16 +325,16 @@ export class OptimizationCacheService {
           result,
           Math.floor(effectiveTTL / 1000)
         ); // Redis TTL in seconds
-        logger.debug(`Result cached in Redis - ${JSON.stringify({ cacheKey })}`);
+        logger.debug('Result cached in Redis -', { cacheKey });
       } catch (error) {
-        logger.warn(`Redis cache write failed - ${JSON.stringify({ cacheKey, error })}`);
+        logger.warn('Redis cache write failed -', { cacheKey, error });
       }
     }
 
-    logger.debug(`Optimization result cached - ${JSON.stringify({
+    logger.debug('Optimization result cached -', {
       cacheKey,
       ttl: effectiveTTL,
-      memorySize: this.memoryCache.size()}`),
+      memorySize: this.memoryCache.size(),
     });
   }
 
@@ -318,14 +364,14 @@ export class OptimizationCacheService {
           await this.redisCache.delete(key);
         }
       } catch (error) {
-        logger.warn(`Redis cache invalidation failed - ${JSON.stringify({ templateId, error })}`);
+        logger.warn('Redis cache invalidation failed -', { templateId, error });
       }
     }
 
-    logger.info(`Template cache invalidated - ${JSON.stringify({
+    logger.info('Template cache invalidated -', {
       templateId,
       keysRemoved: keysToRemove.length,
-    })}`);
+    });
   }
 
   /**
@@ -355,7 +401,7 @@ export class OptimizationCacheService {
   /**
    * Get cache statistics
    */
-  getStats(): CacheStats {
+  getStats(): CacheStats & { errorStats?: any } {
     const hitRate =
       this.stats.totalRequests > 0
         ? this.stats.cacheHits / this.stats.totalRequests
@@ -370,6 +416,7 @@ export class OptimizationCacheService {
       cacheMisses: this.stats.cacheMisses,
       expiredEntries: this.stats.expiredEntries,
       redisConnected: this.redisCache !== undefined,
+      errorStats: this.errorTracker.getStats(),
     };
   }
 
@@ -382,9 +429,9 @@ export class OptimizationCacheService {
     if (this.redisCache) {
       try {
         // In a real implementation, this would use Redis FLUSHDB or SCAN/DEL pattern
-        logger.info(`Redis cache clear operation would be performed here');
+        logger.info('Redis cache clear operation would be performed here');
       } catch (error) {
-        logger.warn('Redis cache clear failed - ${error}`);
+        logger.warn('Redis cache clear failed -', error);
       }
     }
 
@@ -396,7 +443,7 @@ export class OptimizationCacheService {
       expiredEntries: 0,
     };
 
-    logger.info(`Optimization cache cleared');
+    logger.info('Optimization cache cleared');
   }
 
   /**
@@ -416,11 +463,11 @@ export class OptimizationCacheService {
     this.stats.expiredEntries += cleanedEntries;
 
     if (cleanedEntries > 0) {
-      logger.info('Cache maintenance completed - ${JSON.stringify({
+      logger.info('Cache maintenance completed -', {
         entriesCleaned: cleanedEntries,
         currentSize: afterSize,
         maxSize: this.config.maxSize,
-      })}`);
+      });
     }
   }
 
@@ -429,14 +476,16 @@ export class OptimizationCacheService {
    */
   private async initializeRedisCache(): Promise<void> {
     try {
-      this.redisCache = new CacheService();
-      await this.redisCache.initialize();
-      logger.info(`Redis cache initialized for optimization service');
+      this.redisCache = new CacheService({
+        maxSize: this.config.maxSize,
+        ttl: this.config.defaultTTL,
+      });
+      logger.info('Redis cache initialized for optimization service');
     } catch (error) {
       logger.warn(
-        'Failed to initialize Redis cache - ${continuing with memory cache only',
+        'Failed to initialize Redis cache - continuing with memory cache only',
         error
-      }`);
+      );
       this.redisCache = undefined;
     }
   }

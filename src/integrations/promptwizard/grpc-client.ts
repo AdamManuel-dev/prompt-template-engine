@@ -20,7 +20,7 @@ import {
   ScoringResponse,
   ComparisonRequest,
   ComparisonResponse,
-} from './types';
+} from '../../generated';
 
 export interface GrpcClientConfig {
   serviceUrl: string;
