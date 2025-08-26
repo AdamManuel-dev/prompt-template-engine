@@ -351,10 +351,13 @@ export class TemplateEngineRefactored {
    * @private
    * @see {@link processHelpers} for usage in helper execution
    */
-  private parseHelperArgs(argsString: string, context: TemplateContext): any[] {
+  private parseHelperArgs(
+    argsString: string,
+    context: TemplateContext
+  ): unknown[] {
     if (!argsString.trim()) return [];
 
-    const args: any[] = [];
+    const args: unknown[] = [];
     const parts = argsString.split(',');
 
     for (const part of parts) {

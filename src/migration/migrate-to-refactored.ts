@@ -47,7 +47,12 @@ export class TemplateEngineAdapter extends TemplateEngine {
     return this.refactoredEngine.renderSync(template, context);
   }
 
-  findOutermostIfBlocks(_template: string): any[] {
+  findOutermostIfBlocks(_template: string): Array<{
+    fullMatch: string;
+    condition: string;
+    innerTemplate: string;
+    elseTemplate?: string;
+  }> {
     // This method is exposed for compatibility but uses new implementation internally
     logger.warn(
       'findOutermostIfBlocks called on adapter - consider updating to new API'
@@ -55,7 +60,15 @@ export class TemplateEngineAdapter extends TemplateEngine {
     return [];
   }
 
-  findOutermostConditionalBlocks(_template: string, _type: string): any[] {
+  findOutermostConditionalBlocks(
+    _template: string,
+    _type: string
+  ): Array<{
+    fullMatch: string;
+    condition: string;
+    innerTemplate: string;
+    elseTemplate?: string;
+  }> {
     logger.warn(
       'findOutermostConditionalBlocks called on adapter - consider updating to new API'
     );

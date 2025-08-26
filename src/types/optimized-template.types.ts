@@ -74,7 +74,7 @@ export interface OptimizationContext {
   };
 
   /** Additional metadata for optimization */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface OptimizationHistory {
@@ -276,7 +276,7 @@ export interface OptimizationJob {
   error?: string;
 
   /** Job metadata */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface OptimizationBatch {
@@ -408,7 +408,7 @@ export interface OptimizationSettings {
       enabled: boolean;
       targetModel: string;
       optimizationLevel: 'conservative' | 'balanced' | 'aggressive';
-      specificConstraints?: Record<string, any>;
+      specificConstraints?: Record<string, unknown>;
     }
   >;
 

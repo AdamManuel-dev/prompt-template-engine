@@ -222,7 +222,7 @@ export class OptimizationWizardCommand extends BaseCommand {
       this.error(
         'PromptWizard service is not available. Please check your configuration.'
       );
-      process.exit(1);
+      this.exit(1);
     }
 
     // Initialize wizard state
@@ -240,7 +240,7 @@ export class OptimizationWizardCommand extends BaseCommand {
       this.error(
         `Wizard failed: ${error instanceof Error ? error.message : String(error)}`
       );
-      process.exit(1);
+      this.exit(1);
     }
   }
 
@@ -269,7 +269,7 @@ export class OptimizationWizardCommand extends BaseCommand {
       this.error(
         `Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`
       );
-      process.exit(1);
+      this.exit(1);
     }
   }
 
@@ -371,7 +371,7 @@ export class OptimizationWizardCommand extends BaseCommand {
       console.log(
         chalk.yellow("Wizard cancelled. Come back when you're ready!")
       );
-      process.exit(0);
+      this.exit(0);
     }
   }
 

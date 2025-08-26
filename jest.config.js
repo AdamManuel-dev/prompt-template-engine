@@ -33,13 +33,15 @@ module.exports = {
     },
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup/test-setup.ts'],
-  testTimeout: 60000,
+  testTimeout: 30000, // Reduced timeout to catch hanging tests faster
   maxWorkers: 1, // Use single worker for E2E tests to reduce memory usage
-  workerIdleMemoryLimit: '1GB',
-  verbose: true,
+  workerIdleMemoryLimit: '512MB', // Reduced memory limit to prevent leaks
+  verbose: false, // Reduced verbosity to save memory
   clearMocks: true,
   restoreMocks: true,
   resetMocks: true,
+  forceExit: true, // Force exit to prevent hanging handles
+  detectOpenHandles: true, // Detect open handles that prevent exit
   moduleFileExtensions: ['ts', 'js', 'json'],
   extensionsToTreatAsEsm: [],
   transformIgnorePatterns: [

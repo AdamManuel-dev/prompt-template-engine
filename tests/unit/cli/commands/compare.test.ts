@@ -7,11 +7,10 @@
  * Patterns: Mocked dependencies, async testing, format testing
  */
 
-import { CompareCommand } from '../../../../src/cli/commands/compare';
-import { TemplateService } from '../../../../src/services/template.service';
-import { PromptWizardClient } from '../../../../src/integrations/promptwizard';
-import { Template } from '../../../../src/types';
 import { diffLines } from 'diff';
+
+// Import types first
+import { Template } from '../../../../src/types';
 
 // Mock external dependencies
 jest.mock('../../../../src/services/template.service');
@@ -33,16 +32,25 @@ jest.mock('chalk', () => ({
     bold: jest.fn(str => `[MAGENTA]${str}[/MAGENTA]`),
   },
 }));
-jest.mock('ora', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
-    start: jest.fn().mockReturnThis(),
-    stop: jest.fn().mockReturnThis(),
-    succeed: jest.fn().mockReturnThis(),
-    fail: jest.fn().mockReturnThis(),
-    text: '',
-  })),
-}));
+const mockSpinner = {
+  start: jest.fn().mockReturnThis(),
+  stop: jest.fn().mockReturnThis(),
+  succeed: jest.fn().mockReturnThis(),
+  fail: jest.fn().mockReturnThis(),
+  text: '',
+};
+
+jest.mock('ora', () => {
+  return {
+    __esModule: true,
+    default: jest.fn(() => mockSpinner),
+  };
+});
+
+// Import modules after mocks are set up
+import { CompareCommand } from '../../../../src/cli/commands/compare';
+import { TemplateService } from '../../../../src/services/template.service';
+import { PromptWizardClient } from '../../../../src/integrations/promptwizard';
 
 describe('CompareCommand', () => {
   let compareCommand: CompareCommand;
@@ -52,9 +60,6 @@ describe('CompareCommand', () => {
   // Mock console methods
   const mockLog = jest.spyOn(console, 'log').mockImplementation();
   const mockWrite = jest.spyOn(process.stdout, 'write').mockImplementation();
-  const mockExit = jest.spyOn(process, 'exit').mockImplementation((code?: number) => {
-    throw new Error(`Process exit called with code: ${code}`);
-  });
 
   const mockComparisonResult = {
     comparisonId: 'comp-123',
@@ -119,9 +124,11 @@ describe('CompareCommand', () => {
   });
 
   afterEach(() => {
+    jest.clearAllMocks();
+    jest.clearAllTimers();
+    jest.resetAllMocks();
     mockLog.mockRestore();
     mockWrite.mockRestore();
-    mockExit.mockRestore();
   });
 
   describe('command metadata', () => {
@@ -152,15 +159,23 @@ describe('CompareCommand', () => {
   describe('service initialization and health checks', () => {
     it('should exit with error if service health check fails', async () => {
       mockClient.healthCheck.mockResolvedValue(false);
+      const mockExit = jest.spyOn(compareCommand as any, 'exit').mockImplementation(((code: number) => {
+        throw new Error(`Process exit called with code: ${code}`);
+      }) as any);
 
       await expect(async () => {
         await compareCommand.execute([], {});
       }).rejects.toThrow('Process exit called with code: 1');
+      
+      expect(mockClient.healthCheck).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(1);
+      
+      mockExit.mockRestore();
     });
 
     it('should proceed if service health check passes', async () => {
       mockClient.healthCheck.mockResolvedValue(true);
-      compareCommand.prompt = jest.fn().mockResolvedValue('test prompt');
+      (compareCommand as any).prompt = jest.fn().mockResolvedValue('test prompt');
 
       await compareCommand.execute([], {});
       
@@ -170,8 +185,8 @@ describe('CompareCommand', () => {
 
   describe('prompt resolution', () => {
     beforeEach(() => {
-      compareCommand.prompt = jest.fn();
-      compareCommand.error = jest.fn();
+      (compareCommand as any).prompt = jest.fn();
+      (compareCommand as any).error = jest.fn();
     });
 
     it('should resolve template names to content', async () => {
@@ -183,17 +198,23 @@ describe('CompareCommand', () => {
         author: 'Test Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       };
 
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
-      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate);
+      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered template content' }],
+        id: 'test-template',
+        name: 'Test Template',
+        description: 'Template for testing',
+        content: 'Rendered template content',
+        author: 'Test Author',
+        version: '1.0.0',
+        tags: [],
+        variables: {},
         metadata: {},
-      });
+      } as any);
 
       await compareCommand.execute([], {
         original: 'test-template',
@@ -226,14 +247,14 @@ describe('CompareCommand', () => {
     });
 
     it('should prompt for missing prompts', async () => {
-      (compareCommand.prompt as jest.Mock)
+      ((compareCommand as any).prompt as jest.Mock)
         .mockResolvedValueOnce('original prompt text')
         .mockResolvedValueOnce('optimized prompt text');
 
       await compareCommand.execute([], {});
 
-      expect(compareCommand.prompt).toHaveBeenCalledWith('Enter original prompt or template name');
-      expect(compareCommand.prompt).toHaveBeenCalledWith('Enter optimized prompt or template name');
+      expect((compareCommand as any).prompt).toHaveBeenCalledWith('Enter original prompt or template name');
+      expect((compareCommand as any).prompt).toHaveBeenCalledWith('Enter optimized prompt or template name');
       expect(mockClient.comparePrompts).toHaveBeenCalledWith(
         'original prompt text',
         'optimized prompt text',
@@ -242,27 +263,27 @@ describe('CompareCommand', () => {
     });
 
     it('should handle missing original prompt', async () => {
-      (compareCommand.prompt as jest.Mock).mockResolvedValue('');
+      ((compareCommand as any).prompt as jest.Mock).mockResolvedValue('');
 
       await compareCommand.execute([], {});
 
-      expect(compareCommand.error).toHaveBeenCalledWith('Original prompt is required');
+      expect((compareCommand as any).error).toHaveBeenCalledWith('Original prompt is required');
     });
 
     it('should handle missing optimized prompt', async () => {
-      (compareCommand.prompt as jest.Mock)
+      ((compareCommand as any).prompt as jest.Mock)
         .mockResolvedValueOnce('original prompt')
         .mockResolvedValueOnce('');
 
       await compareCommand.execute([], {});
 
-      expect(compareCommand.error).toHaveBeenCalledWith('Optimized prompt is required');
+      expect((compareCommand as any).error).toHaveBeenCalledWith('Optimized prompt is required');
     });
   });
 
   describe('output formats', () => {
     beforeEach(() => {
-      compareCommand.prompt = jest.fn();
+      (compareCommand as any).prompt = jest.fn();
     });
 
     it('should display table format by default', async () => {
@@ -349,8 +370,8 @@ describe('CompareCommand', () => {
 
   describe('report saving', () => {
     beforeEach(() => {
-      compareCommand.success = jest.fn();
-      compareCommand.error = jest.fn();
+      (compareCommand as any).success = jest.fn();
+      (compareCommand as any).error = jest.fn();
     });
 
     it('should save JSON report when output path is provided', async () => {
@@ -361,6 +382,9 @@ describe('CompareCommand', () => {
       };
       
       jest.doMock('fs', () => mockFs, { virtual: true });
+      
+      // Ensure the fs module is properly mocked before use
+      jest.resetModules();
 
       await compareCommand.execute([], {
         original: 'Original prompt',
@@ -369,7 +393,7 @@ describe('CompareCommand', () => {
         format: 'json',
       });
 
-      expect(compareCommand.success).toHaveBeenCalledWith(
+      expect((compareCommand as any).success).toHaveBeenCalledWith(
         expect.stringContaining('Comparison report saved to:')
       );
     });
@@ -382,6 +406,9 @@ describe('CompareCommand', () => {
       };
       
       jest.doMock('fs', () => mockFs, { virtual: true });
+      
+      // Ensure the fs module is properly mocked before use
+      jest.resetModules();
 
       await compareCommand.execute([], {
         original: 'Original prompt',
@@ -390,7 +417,7 @@ describe('CompareCommand', () => {
         format: 'markdown',
       });
 
-      expect(compareCommand.success).toHaveBeenCalledWith(
+      expect((compareCommand as any).success).toHaveBeenCalledWith(
         expect.stringContaining('Comparison report saved to:')
       );
     });
@@ -407,6 +434,9 @@ describe('CompareCommand', () => {
       
       jest.doMock('fs', () => mockFs, { virtual: true });
       jest.doMock('path', () => mockPath, { virtual: true });
+      
+      // Ensure modules are properly mocked
+      jest.resetModules();
 
       await compareCommand.execute([], {
         original: 'Original prompt',
@@ -427,6 +457,9 @@ describe('CompareCommand', () => {
       };
       
       jest.doMock('fs', () => mockFs, { virtual: true });
+      
+      // Ensure the fs module is properly mocked
+      jest.resetModules();
 
       await compareCommand.execute([], {
         original: 'Original prompt',
@@ -434,7 +467,7 @@ describe('CompareCommand', () => {
         output: '/path/to/report.json',
       });
 
-      expect(compareCommand.error).toHaveBeenCalledWith(
+      expect((compareCommand as any).error).toHaveBeenCalledWith(
         expect.stringContaining('Failed to save comparison report:')
       );
     });
@@ -466,17 +499,23 @@ describe('CompareCommand', () => {
         author: 'Test Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       };
 
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
-      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate);
+      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered content' }],
+        id: 'test-template',
+        name: 'Test Template',
+        description: 'Template for product descriptions',
+        content: 'Rendered content',
+        author: 'Test Author',
+        version: '1.0.0',
+        tags: [],
+        variables: {},
         metadata: {},
-      });
+      } as any);
 
       await compareCommand.execute([], {
         original: 'test-template',
@@ -547,7 +586,7 @@ describe('CompareCommand', () => {
         },
       };
 
-      mockClient.comparePrompts.mockResolvedValue(negativeImprovementResult);
+      mockClient.comparePrompts.mockResolvedValue(negativeImprovementResult as any);
 
       await compareCommand.execute([], {
         original: 'Original prompt',

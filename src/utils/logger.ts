@@ -122,35 +122,35 @@ class Logger {
   /**
    * Log debug message
    */
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     this.log(LogLevel.DEBUG, 'DEBUG', message, chalk.gray, ...args);
   }
 
   /**
    * Log info message
    */
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     this.log(LogLevel.INFO, 'INFO', message, chalk.cyan, ...args);
   }
 
   /**
    * Log warning message
    */
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     this.log(LogLevel.WARN, 'WARN', message, chalk.yellow, ...args);
   }
 
   /**
    * Log error message
    */
-  error(message: string, ...args: any[]): void {
+  error(message: string, ...args: unknown[]): void {
     this.log(LogLevel.ERROR, 'ERROR', message, chalk.red, ...args);
   }
 
   /**
    * Log success message
    */
-  success(message: string, ...args: any[]): void {
+  success(message: string, ...args: unknown[]): void {
     this.log(LogLevel.INFO, 'SUCCESS', message, chalk.green, ...args);
   }
 
@@ -173,13 +173,13 @@ class Logger {
 export const logger = new Logger();
 
 // Export convenience functions bound to logger instance
-export const debug = (message: string, ...args: any[]): void =>
+export const debug = (message: string, ...args: unknown[]): void =>
   logger.debug(message, ...args);
-export const info = (message: string, ...args: any[]): void =>
+export const info = (message: string, ...args: unknown[]): void =>
   logger.info(message, ...args);
-export const warn = (message: string, ...args: any[]): void =>
+export const warn = (message: string, ...args: unknown[]): void =>
   logger.warn(message, ...args);
-export const error = (message: string, ...args: any[]): void =>
+export const error = (message: string, ...args: unknown[]): void =>
   logger.error(message, ...args);
-export const success = (message: string, ...args: any[]): void =>
+export const success = (message: string, ...args: unknown[]): void =>
   logger.success(message, ...args);

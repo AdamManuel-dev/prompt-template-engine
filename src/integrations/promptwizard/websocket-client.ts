@@ -156,7 +156,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
       return;
     }
 
-    this.reconnectAttempts++;
+    this.reconnectAttempts += 1;
     const delay =
       this.config.reconnectInterval * 1.5 ** (this.reconnectAttempts - 1);
 

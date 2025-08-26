@@ -566,7 +566,7 @@ export class CursorOptimizer {
           improvements: result.cursorSpecificImprovements,
         });
 
-        optimized++;
+        optimized += 1;
       } catch (error) {
         logger.error(
           `Failed to optimize template ${templateInfo.name}: ${error instanceof Error ? error.message : String(error)}`
@@ -578,7 +578,7 @@ export class CursorOptimizer {
           error: error instanceof Error ? error.message : String(error),
         });
 
-        failed++;
+        failed += 1;
       }
     }
 

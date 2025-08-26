@@ -36,7 +36,9 @@ const mockSpinner = {
 const spinnerManager = mockSpinner;
 
 // Helper function to convert TemplateService Template to types Template
-function convertTemplate(serviceTemplate: any): Template {
+function convertTemplate(
+  serviceTemplate: import('../services/template.service').Template
+): Template {
   return {
     name: serviceTemplate.name,
     version: serviceTemplate.version || '1.0.0',
@@ -67,7 +69,9 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-function displayOptimizationResult(result: any): void {
+function displayOptimizationResult(
+  result: import('../services/prompt-optimization.service').OptimizationResult
+): void {
   console.log(chalk.green('\n✨ Optimization Complete!\n'));
 
   const table = new Table({
@@ -140,7 +144,7 @@ function displayScore(scoreData: any): void {
     style: { head: ['cyan'] },
   });
 
-  const getRating = (scoreValue: number) => {
+  const getRating = (scoreValue: number): string => {
     if (scoreValue >= 90) return chalk.green('Excellent');
     if (scoreValue >= 75) return chalk.green('Good');
     if (scoreValue >= 60) return chalk.yellow('Fair');
@@ -166,7 +170,9 @@ function displayScore(scoreData: any): void {
   console.log(table.toString());
 }
 
-function displayBatchResults(result: any): void {
+function displayBatchResults(
+  result: import('../services/prompt-optimization.service').BatchOptimizationResult
+): void {
   console.log(chalk.green(`\n✨ Batch Optimization Complete!\n`));
 
   const table = new Table({
@@ -190,7 +196,7 @@ function displayBatchResults(result: any): void {
       style: { head: ['cyan'] },
     });
 
-    result.results.forEach((r: any) => {
+    result.results.forEach(r => {
       resultsTable.push([
         r.templateId,
         `${r.metrics.tokenReduction}%`,
@@ -204,13 +210,16 @@ function displayBatchResults(result: any): void {
 
   if (result.errors.length > 0) {
     console.log(chalk.red('\n❌ Failed Optimizations:\n'));
-    result.errors.forEach((e: any) => {
+    result.errors.forEach(e => {
       console.log(`  - ${e.templateId}: ${e.error}`);
     });
   }
 }
 
-async function saveBatchResults(result: any, outputDir: string): Promise<void> {
+async function saveBatchResults(
+  result: import('../services/prompt-optimization.service').BatchOptimizationResult,
+  outputDir: string
+): Promise<void> {
   await fs.mkdir(outputDir, { recursive: true });
 
   for (const optimization of result.results) {
@@ -218,14 +227,17 @@ async function saveBatchResults(result: any, outputDir: string): Promise<void> {
       outputDir,
       `${optimization.templateId}.optimized.yaml`
     );
-    await fs.writeFile(outputPath, optimization.optimizedTemplate.content);
+    await fs.writeFile(
+      outputPath,
+      optimization.optimizedTemplate.content || ''
+    );
   }
 
   console.log(chalk.green(`✅ Optimized templates saved to: ${outputDir}`));
 }
 
 async function generateOptimizationReport(
-  result: any,
+  result: import('../services/prompt-optimization.service').BatchOptimizationResult,
   directory: string
 ): Promise<void> {
   const reportPath = path.join(directory, 'optimization-report.md');
@@ -243,17 +255,17 @@ async function generateOptimizationReport(
     // Calculate averages
     const avgTokenReduction =
       result.results.reduce(
-        (acc: number, r: any) => acc + r.metrics.tokenReduction,
+        (acc: number, r) => acc + r.metrics.tokenReduction,
         0
       ) / result.results.length;
     const avgAccuracyGain =
       result.results.reduce(
-        (acc: number, r: any) => acc + r.metrics.accuracyImprovement,
+        (acc: number, r) => acc + r.metrics.accuracyImprovement,
         0
       ) / result.results.length;
     const avgQualityScore =
       result.results.reduce(
-        (acc: number, r: any) => acc + r.qualityScore.overall,
+        (acc: number, r) => acc + r.qualityScore.overall,
         0
       ) / result.results.length;
 
@@ -266,14 +278,14 @@ async function generateOptimizationReport(
     report += `| Template | Token Reduction | Accuracy Gain | Quality Score |\n`;
     report += `|----------|----------------|---------------|---------------|\n`;
 
-    result.results.forEach((r: any) => {
+    result.results.forEach(r => {
       report += `| ${r.templateId} | ${r.metrics.tokenReduction}% | +${r.metrics.accuracyImprovement}% | ${r.qualityScore.overall}/100 |\n`;
     });
   }
 
   if (result.errors.length > 0) {
     report += `\n## Failed Optimizations\n\n`;
-    result.errors.forEach((e: any) => {
+    result.errors.forEach(e => {
       report += `- **${e.templateId}**: ${e.error}\n`;
     });
   }
@@ -318,7 +330,7 @@ async function handleSingleOptimization(
   // Optimize template
   const result = await service.optimizeTemplate({
     templateId: template.name,
-    template: template as any,
+    template,
     config: {
       targetModel: options.model as
         | 'gpt-4'
@@ -349,12 +361,14 @@ async function handleSingleOptimization(
 
   // Save optimized template if not dry-run
   if (!options.dryRun && options.output) {
-    await fs.writeFile(
-      options.output,
-      (result.optimizedTemplate as any)?.content ||
-        (result.optimizedTemplate?.files?.[0] as any)?.content ||
-        ''
-    );
+    const content =
+      result.optimizedTemplate?.content ||
+      (result.optimizedTemplate?.files &&
+      result.optimizedTemplate.files.length > 0
+        ? (result.optimizedTemplate.files[0] as { content?: string })?.content
+        : undefined) ||
+      '';
+    await fs.writeFile(options.output, content);
     console.log(
       chalk.green(`✅ Optimized template saved to: ${options.output}`)
     );

@@ -68,7 +68,9 @@ export function createFeedbackLoop(
   const promptWizardClient = new PromptWizardClient(createDefaultConfig());
 
   // Create optimization service (available for other systems)
-  new PromptOptimizationService(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-expect-error - Intentionally unused for now but available for future extension
+  const _optimizationService = new PromptOptimizationService(
     promptWizardClient,
     templateService,
     cacheService

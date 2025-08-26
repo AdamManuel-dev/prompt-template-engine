@@ -455,7 +455,7 @@ export class CacheService<T extends object = any> {
    * console.log(cacheKey === sameKey); // true
    * ```
    */
-  static generateKey(...parts: any[]): string {
+  static generateKey(...parts: unknown[]): string {
     const combined = parts
       .map(p => (typeof p === 'object' ? JSON.stringify(p) : String(p)))
       .join(':');

@@ -13,6 +13,7 @@ import * as path from 'path';
 import * as chokidar from 'chokidar';
 import { TemplateToRulesConverter } from './template-to-rules-converter';
 import { ContextBridge } from './context-bridge';
+import { CursorRule } from '../../types';
 import { logger } from '../../utils/logger';
 
 export interface CursorIntegrationConfig {
@@ -136,7 +137,7 @@ export class CursorIntegration {
     try {
       // Try multiple template directories as fallbacks
       const templateDirs = ['.cursor/templates', './templates'];
-      let allRules: any[] = [];
+      let allRules: CursorRule[] = [];
 
       for (const templateDir of templateDirs) {
         try {

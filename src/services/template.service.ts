@@ -72,7 +72,7 @@ export interface Template {
     created?: string;
     updated?: string;
     category?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   // Optimization tracking fields
   isOptimized?: boolean;
@@ -883,7 +883,14 @@ export class TemplateService {
   /**
    * Get active A/B test variant
    */
-  getActiveAbTestVariant(template: Template): any | null {
+  getActiveAbTestVariant(template: Template): {
+    name: string;
+    version: string;
+    content: string;
+    files?: TemplateFile[];
+    metrics?: OptimizationMetrics;
+    weight?: number;
+  } | null {
     if (!template.abTestVariants || template.abTestVariants.length === 0) {
       return null;
     }
@@ -967,7 +974,7 @@ export class TemplateService {
   /**
    * Get cache statistics
    */
-  getCacheStats() {
+  getCacheStats(): { hits: number; misses: number; size: number } {
     return this.templateCache.getStats();
   }
 
@@ -975,7 +982,7 @@ export class TemplateService {
    * Parse variables from various formats
    */
   private static parseVariables(
-    variables: any
+    variables: Record<string, unknown>
   ): Record<string, VariableConfig> {
     if (Array.isArray(variables)) {
       // Handle array format from markdown frontmatter

@@ -92,6 +92,12 @@
       "rules": {
         "no-console": "off"
       }
+    },
+    {
+      "files": ["src/extension.ts", "src/integrations/cursor/**/*.ts"],
+      "rules": {
+        "import/no-extraneous-dependencies": "off"
+      }
     }
   ],
   "ignorePatterns": [

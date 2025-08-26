@@ -493,8 +493,8 @@ export function updatePromptWizardConfig(
   const flattenConfig = (
     obj: any,
     prefix = 'promptwizard'
-  ): Record<string, any> => {
-    const flattened: Record<string, any> = {};
+  ): Record<string, unknown> => {
+    const flattened: Record<string, unknown> = {};
 
     Object.keys(obj).forEach(key => {
       const value = obj[key];

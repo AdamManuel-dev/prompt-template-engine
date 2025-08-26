@@ -490,9 +490,8 @@ export class PromptOptimizationService extends EventEmitter {
 
       // Forward declaration
       let onCompleted: (completedJob: any) => void;
-      let onFailed: (failedJob: any) => void;
 
-      onFailed = (failedJob: any) => {
+      const onFailed = (failedJob: any) => {
         if (failedJob.jobId === job.jobId) {
           clearTimeout(timeout);
           this.optimizationQueue.off('job:completed', onCompleted);

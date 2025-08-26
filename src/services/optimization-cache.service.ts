@@ -28,7 +28,7 @@ export interface CacheEntry<T> {
   value: T;
   timestamp: number;
   ttl: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CacheStats {
@@ -87,7 +87,7 @@ class LRUCache<T> {
     key: string,
     value: T,
     ttl: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const entry: CacheEntry<T> = {
       key,
@@ -235,7 +235,7 @@ export class OptimizationCacheService {
           const result = this.memoryCache.get(cacheKey);
 
           if (result) {
-            this.stats.cacheHits++;
+            this.stats.cacheHits += 1;
             logger.debug('Cache hit (memory) -', { cacheKey });
             return result;
           }
@@ -276,7 +276,7 @@ export class OptimizationCacheService {
                 );
               }
 
-              this.stats.cacheHits++;
+              this.stats.cacheHits += 1;
               logger.debug('Cache hit (Redis) -', { cacheKey });
               return redisResult as OptimizedResult;
             }
@@ -293,7 +293,7 @@ export class OptimizationCacheService {
           }
         }
 
-        this.stats.cacheMisses++;
+        this.stats.cacheMisses += 1;
         logger.debug('Cache miss -', { cacheKey });
         return null;
       }

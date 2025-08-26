@@ -86,7 +86,7 @@ export class CompareCommand extends BaseCommand {
       this.error(
         'PromptWizard service is not available. Please check your configuration.'
       );
-      process.exit(1);
+      this.exit(1);
     }
 
     await this.comparePrompts(options);

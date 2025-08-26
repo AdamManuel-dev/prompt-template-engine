@@ -28,7 +28,7 @@ export interface UserFeedback {
     | 'completeness'
     | 'efficiency';
   comment?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PerformanceMetric {
@@ -42,7 +42,7 @@ export interface PerformanceMetric {
     | 'user_satisfaction'
     | 'error_rate';
   value: number;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface FeedbackSummary {
@@ -63,7 +63,7 @@ export interface ReoptimizationTrigger {
     | 'usage_pattern_change'
     | 'scheduled_review';
   severity: 'low' | 'medium' | 'high';
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -310,7 +310,7 @@ export class FeedbackLoop extends EventEmitter {
     templateId: string,
     reason: ReoptimizationTrigger['reason'],
     severity: ReoptimizationTrigger['severity'],
-    metrics: Record<string, any>
+    metrics: Record<string, unknown>
   ): Promise<void> {
     // Check cooldown period
     if (!this.canReoptimize(templateId)) {
@@ -441,10 +441,8 @@ export class FeedbackLoop extends EventEmitter {
     // Add performance-specific focus areas
     if (trigger.reason === 'performance_decline') {
       focusAreas.push('efficiency', 'accuracy');
-      targets.efficiency = Math.max(
-        trigger.metrics.performanceRatio + 0.2,
-        0.9
-      );
+      const performanceRatio = Number(trigger.metrics.performanceRatio) || 0;
+      targets.efficiency = Math.max(performanceRatio + 0.2, 0.9);
     }
 
     return { focusAreas, targets };

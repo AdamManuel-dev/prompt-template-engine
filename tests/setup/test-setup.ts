@@ -282,16 +282,24 @@ export { MockFactory };
 // Global setup and teardown for all tests
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.clearAllTimers();
+  jest.resetAllMocks();
 });
 
 afterEach(() => {
   jest.clearAllTimers();
   jest.useRealTimers();
+  jest.resetModules();
 });
 
 // Ensure all async operations complete
 afterEach(async () => {
   await TestUtils.flushPromises();
+  
+  // Force garbage collection if available
+  if (global.gc) {
+    global.gc();
+  }
 });
 
 export default {

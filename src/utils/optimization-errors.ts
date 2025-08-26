@@ -31,7 +31,7 @@ export class OptimizationError extends Error {
     this.retryable = retryable;
   }
 
-  toJSON() {
+  toJSON(): Record<string, unknown> {
     return {
       name: this.name,
       message: this.message,
@@ -45,7 +45,7 @@ export class OptimizationError extends Error {
 }
 
 export class CacheError extends OptimizationError {
-  constructor(message: string, context: Record<string, any> = {}) {
+  constructor(message: string, context: Record<string, unknown> = {}) {
     super(message, 'CACHE_ERROR', context, true);
     this.name = 'CacheError';
   }
@@ -66,7 +66,7 @@ export class PipelineError extends OptimizationError {
   constructor(
     message: string,
     stage: string,
-    context: Record<string, any> = {}
+    context: Record<string, unknown> = {}
   ) {
     super(message, 'PIPELINE_ERROR', { ...context, stage }, true);
     this.name = 'PipelineError';
@@ -74,7 +74,7 @@ export class PipelineError extends OptimizationError {
 }
 
 export class ConfigurationError extends OptimizationError {
-  constructor(message: string, context: Record<string, any> = {}) {
+  constructor(message: string, context: Record<string, unknown> = {}) {
     super(message, 'CONFIG_ERROR', context, false);
     this.name = 'ConfigurationError';
   }
@@ -91,7 +91,7 @@ export class TimeoutError extends OptimizationError {
   constructor(
     operation: string,
     timeoutMs: number,
-    context: Record<string, any> = {}
+    context: Record<string, unknown> = {}
   ) {
     super(
       `Operation '${operation}' timed out after ${timeoutMs}ms`,

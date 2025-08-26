@@ -241,7 +241,7 @@ export function createTypedValidator<T>(
 /**
  * Environment variable validation
  */
-export function validateEnv<T extends Record<string, any>>(
+export function validateEnv<T extends Record<string, unknown>>(
   schema: z.ZodSchema<T>
 ): T {
   const result = createValidator(schema)(process.env);

@@ -209,7 +209,7 @@ export class OptimizeCommand extends BaseCommand {
       this.error(
         'PromptWizard service is not available. Please check your configuration.'
       );
-      process.exit(1);
+      this.exit(1);
     }
 
     if (options.batch) {
@@ -244,7 +244,7 @@ export class OptimizeCommand extends BaseCommand {
       this.error(
         `Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`
       );
-      process.exit(1);
+      this.exit(1);
     }
   }
 

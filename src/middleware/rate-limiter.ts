@@ -516,7 +516,7 @@ export function withRateLimit(config: Partial<RateLimitConfig> = {}) {
   ) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       // Use 'this' context or first argument as identifier
       const identifier =
         this?.constructor?.name || args[0]?.toString() || 'anonymous';

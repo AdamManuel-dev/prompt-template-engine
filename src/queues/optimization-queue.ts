@@ -57,7 +57,7 @@ export interface OptimizationJob {
   completedAt?: Date;
   retryCount: number;
   maxRetries: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QueueStats {
@@ -182,7 +182,7 @@ export class OptimizationQueue extends EventEmitter {
     options: {
       priority?: JobPriority;
       maxRetries?: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     } = {}
   ): Promise<OptimizationJob> {
     const job: OptimizationJob = {

@@ -33,16 +33,19 @@ jest.mock('chalk', () => ({
     bold: jest.fn(str => `[MAGENTA]${str}[/MAGENTA]`),
   },
 }));
-jest.mock('ora', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+jest.mock('ora', () => {
+  const mockSpinner = {
     start: jest.fn().mockReturnThis(),
     stop: jest.fn().mockReturnThis(),
     succeed: jest.fn().mockReturnThis(),
     fail: jest.fn().mockReturnThis(),
     text: '',
-  })),
-}));
+  };
+  return {
+    __esModule: true,
+    default: jest.fn(() => mockSpinner),
+  };
+});
 
 describe('OptimizeCommand', () => {
   let optimizeCommand: OptimizeCommand;
@@ -53,9 +56,6 @@ describe('OptimizeCommand', () => {
   
   // Mock console methods
   const mockLog = jest.spyOn(console, 'log').mockImplementation();
-  const mockExit = jest.spyOn(process, 'exit').mockImplementation((code?: number) => {
-    throw new Error(`Process exit called with code: ${code}`);
-  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -90,8 +90,10 @@ describe('OptimizeCommand', () => {
   });
 
   afterEach(() => {
+    jest.clearAllMocks();
+    jest.clearAllTimers();
+    jest.resetAllMocks();
     mockLog.mockRestore();
-    mockExit.mockRestore();
   });
 
   describe('command metadata', () => {
@@ -125,18 +127,26 @@ describe('OptimizeCommand', () => {
   describe('service initialization', () => {
     it('should exit with error if service health check fails', async () => {
       mockClient.healthCheck.mockResolvedValue(false);
+      const mockExit = jest.spyOn(optimizeCommand as any, 'exit').mockImplementation(((code: number) => {
+        throw new Error(`Process exit called with code: ${code}`);
+      }) as any);
 
       await expect(async () => {
         await optimizeCommand.execute([], {});
       }).rejects.toThrow('Process exit called with code: 1');
+      
+      expect(mockClient.healthCheck).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(1);
+      
+      mockExit.mockRestore();
     });
 
     it('should proceed if service health check passes', async () => {
       mockClient.healthCheck.mockResolvedValue(true);
       
       // Mock prompt method to avoid hanging
-      optimizeCommand.prompt = jest.fn().mockResolvedValue('test-template');
-      optimizeCommand.error = jest.fn();
+      (optimizeCommand as any).prompt = jest.fn().mockResolvedValue('test-template');
+      (optimizeCommand as any).error = jest.fn();
       
       mockTemplateService.findTemplate.mockResolvedValue(null);
 
@@ -149,9 +159,9 @@ describe('OptimizeCommand', () => {
   describe('single template optimization', () => {
     beforeEach(() => {
       mockClient.healthCheck.mockResolvedValue(true);
-      optimizeCommand.prompt = jest.fn();
-      optimizeCommand.success = jest.fn();
-      optimizeCommand.error = jest.fn();
+      (optimizeCommand as any).prompt = jest.fn();
+      (optimizeCommand as any).success = jest.fn();
+      (optimizeCommand as any).error = jest.fn();
     });
 
     it('should optimize template when template option is provided', async () => {
@@ -163,9 +173,8 @@ describe('OptimizeCommand', () => {
         author: 'Test Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       };
 
       const mockOptimizationResult = {
@@ -193,12 +202,19 @@ describe('OptimizeCommand', () => {
       };
 
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
-      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate);
+      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered content' }],
+        id: 'test-template',
+        name: 'Test Template',
+        description: 'Template for testing',
+        content: 'Rendered content',
+        author: 'Test Author',
+        version: '1.0.0',
+        tags: [],
+        variables: {},
         metadata: {},
-      });
-      mockOptimizationService.optimizeTemplate.mockResolvedValue(mockOptimizationResult);
+      } as any);
+      mockOptimizationService.optimizeTemplate.mockResolvedValue(mockOptimizationResult as any);
 
       await optimizeCommand.execute([], { template: 'test-template' });
 
@@ -219,16 +235,16 @@ describe('OptimizeCommand', () => {
 
       await optimizeCommand.execute([], { template: 'nonexistent-template' });
 
-      expect(optimizeCommand.error).not.toHaveBeenCalled(); // Should display fail message via spinner
+      expect((optimizeCommand as any).error).not.toHaveBeenCalled(); // Should display fail message via spinner
     });
 
     it('should prompt for template name if not provided', async () => {
-      (optimizeCommand.prompt as jest.Mock).mockResolvedValue('prompted-template');
+      ((optimizeCommand as any).prompt as jest.Mock).mockResolvedValue('prompted-template');
       mockTemplateService.findTemplate.mockResolvedValue(null);
 
       await optimizeCommand.execute([], {});
 
-      expect(optimizeCommand.prompt).toHaveBeenCalledWith('Enter template name or path');
+      expect((optimizeCommand as any).prompt).toHaveBeenCalledWith('Enter template name or path');
     });
 
     it('should handle optimization service errors gracefully', async () => {
@@ -240,17 +256,23 @@ describe('OptimizeCommand', () => {
         author: 'Test Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       };
 
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
-      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate);
+      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered content' }],
+        id: 'test-template',
+        name: 'Test Template',
+        description: 'Template for testing',
+        content: 'Rendered content',
+        author: 'Test Author',
+        version: '1.0.0',
+        tags: [],
+        variables: {},
         metadata: {},
-      });
+      } as any);
       mockOptimizationService.optimizeTemplate.mockRejectedValue(new Error('Optimization failed'));
 
       await optimizeCommand.execute([], { template: 'test-template' });
@@ -263,8 +285,8 @@ describe('OptimizeCommand', () => {
   describe('batch optimization', () => {
     beforeEach(() => {
       mockClient.healthCheck.mockResolvedValue(true);
-      optimizeCommand.confirm = jest.fn();
-      optimizeCommand.info = jest.fn();
+      (optimizeCommand as any).confirm = jest.fn();
+      (optimizeCommand as any).info = jest.fn();
     });
 
     it('should perform batch optimization on multiple templates', async () => {
@@ -277,9 +299,8 @@ describe('OptimizeCommand', () => {
           author: 'Author',
           version: '1.0.0',
           tags: [],
-          variables: [],
+          variables: {},
           metadata: {},
-          outputConfig: { files: [] },
         },
         {
           id: 'template2',
@@ -289,9 +310,8 @@ describe('OptimizeCommand', () => {
           author: 'Author',
           version: '1.0.0',
           tags: [],
-          variables: [],
+          variables: {},
           metadata: {},
-          outputConfig: { files: [] },
         },
       ];
 
@@ -314,15 +334,15 @@ describe('OptimizeCommand', () => {
       };
 
       mockTemplateService.listTemplates.mockResolvedValue([
-        { name: 'template1', path: '/path/to/template1.json', metadata: {} },
-        { name: 'template2', path: '/path/to/template2.json', metadata: {} },
+        { name: 'template1', path: '/path/to/template1.json' },
+        { name: 'template2', path: '/path/to/template2.json' },
       ]);
       mockTemplateService.loadTemplate.mockImplementation((path) => {
         const index = path.includes('template1') ? 0 : 1;
         return Promise.resolve(mockTemplates[index]);
       });
-      (optimizeCommand.confirm as jest.Mock).mockResolvedValue(true);
-      mockOptimizationService.batchOptimize.mockResolvedValue(mockBatchResult);
+      ((optimizeCommand as any).confirm as jest.Mock).mockResolvedValue(true);
+      mockOptimizationService.batchOptimize.mockResolvedValue(mockBatchResult as any);
 
       await optimizeCommand.execute([], { batch: true });
 
@@ -348,25 +368,22 @@ describe('OptimizeCommand', () => {
 
     it('should cancel batch optimization if user declines', async () => {
       mockTemplateService.listTemplates.mockResolvedValue([
-        { name: 'template1', path: '/path/to/template1.json', metadata: {} },
+        { name: 'template1', path: '/path/to/template1.json' },
       ]);
       mockTemplateService.loadTemplate.mockResolvedValue({
-        id: 'template1',
         name: 'Template 1',
-        content: 'Content',
         author: 'Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       });
-      (optimizeCommand.confirm as jest.Mock).mockResolvedValue(false);
+      ((optimizeCommand as any).confirm as jest.Mock).mockResolvedValue(false);
 
       await optimizeCommand.execute([], { batch: true });
 
-      expect(optimizeCommand.confirm).toHaveBeenCalled();
-      expect(optimizeCommand.info).toHaveBeenCalledWith('Batch optimization cancelled');
+      expect((optimizeCommand as any).confirm).toHaveBeenCalled();
+      expect((optimizeCommand as any).info).toHaveBeenCalledWith('Batch optimization cancelled');
       expect(mockOptimizationService.batchOptimize).not.toHaveBeenCalled();
     });
   });
@@ -374,7 +391,7 @@ describe('OptimizeCommand', () => {
   describe('configuration handling', () => {
     beforeEach(() => {
       mockClient.healthCheck.mockResolvedValue(true);
-      optimizeCommand.prompt = jest.fn().mockResolvedValue('test-template');
+      (optimizeCommand as any).prompt = jest.fn().mockResolvedValue('test-template');
       mockTemplateService.findTemplate.mockResolvedValue(null);
     });
 
@@ -397,27 +414,24 @@ describe('OptimizeCommand', () => {
     it('should respect custom configuration values', async () => {
       const options = {
         model: 'claude-3-opus',
-        iterations: '5',
-        examples: '8',
+        iterations: 5,
+        examples: 8,
         reasoning: false,
-        priority: 'high',
+        priority: 'high' as any,
         skipCache: true,
       };
 
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
       mockTemplateService.loadTemplate.mockResolvedValue({
-        id: 'test',
         name: 'Test',
-        content: 'Content',
         author: 'Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       });
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered' }],
+        files: [{ path: 'output.txt', content: 'Rendered', source: 'template.txt', destination: 'output.txt' }],
         metadata: {},
       });
 
@@ -433,7 +447,7 @@ describe('OptimizeCommand', () => {
           }),
           options: expect.objectContaining({
             skipCache: true,
-            priority: 'high',
+            priority: 'high' as any,
           }),
         })
       );
@@ -443,8 +457,8 @@ describe('OptimizeCommand', () => {
   describe('output saving', () => {
     beforeEach(() => {
       mockClient.healthCheck.mockResolvedValue(true);
-      optimizeCommand.success = jest.fn();
-      optimizeCommand.error = jest.fn();
+      (optimizeCommand as any).success = jest.fn();
+      (optimizeCommand as any).error = jest.fn();
     });
 
     it('should save optimized template when output path is provided', async () => {
@@ -456,32 +470,32 @@ describe('OptimizeCommand', () => {
       
       // Mock dynamic import of fs
       jest.doMock('fs', () => mockFs, { virtual: true });
+      
+      // Ensure the fs module is properly reset
+      jest.resetModules();
 
       const mockTemplate: Template = {
-        id: 'test',
         name: 'Test',
-        content: 'Content',
         author: 'Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       };
 
       const mockResult = {
         templateId: 'test',
         requestId: 'req-123',
-        optimizedTemplate: { content: 'Optimized content' },
+        optimizedTemplate: { content: 'Optimized content' } as any,
         metrics: { tokenReduction: 10 },
         qualityScore: { overall: 85 },
         timestamp: new Date().toISOString(),
       };
 
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
-      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate);
+      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered' }],
+        files: [{ path: 'output.txt', content: 'Rendered', source: 'template.txt', destination: 'output.txt' }],
         metadata: {},
       });
       mockOptimizationService.optimizeTemplate.mockResolvedValue(mockResult);
@@ -491,7 +505,7 @@ describe('OptimizeCommand', () => {
         output: '/path/to/output.json',
       });
 
-      expect(optimizeCommand.success).toHaveBeenCalledWith(
+      expect((optimizeCommand as any).success).toHaveBeenCalledWith(
         expect.stringContaining('Optimized template saved to:')
       );
     });
@@ -504,21 +518,18 @@ describe('OptimizeCommand', () => {
 
     it('should set up optimization event listeners', async () => {
       const mockTemplate: Template = {
-        id: 'test',
         name: 'Test',
-        content: 'Content',
         author: 'Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       };
 
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
-      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate);
+      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered' }],
+        files: [{ path: 'output.txt', content: 'Rendered', source: 'template.txt', destination: 'output.txt' }],
         metadata: {},
       });
 

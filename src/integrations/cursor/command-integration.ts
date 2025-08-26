@@ -26,7 +26,7 @@ export interface CommandOptions {
 export interface CommandHandler {
   id: string;
   title: string;
-  handler: (...args: any[]) => Promise<void>;
+  handler: (...args: unknown[]) => Promise<void>;
   keybinding?: string;
   when?: string;
 }

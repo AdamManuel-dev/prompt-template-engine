@@ -12,7 +12,7 @@ import { TemplateService } from '../../../../src/services/template.service';
 import { CacheService } from '../../../../src/services/cache.service';
 import { PromptOptimizationService } from '../../../../src/services/prompt-optimization.service';
 import { PromptWizardClient } from '../../../../src/integrations/promptwizard';
-import { Template } from '../../../../src/types';
+// Template types are imported in service mocks
 
 // Mock external dependencies
 jest.mock('../../../../src/services/template.service');
@@ -39,16 +39,19 @@ jest.mock('chalk', () => ({
     bold: jest.fn(str => `[MAGENTA]${str}[/MAGENTA]`),
   },
 }));
-jest.mock('ora', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+jest.mock('ora', () => {
+  const mockSpinner = {
     start: jest.fn().mockReturnThis(),
     stop: jest.fn().mockReturnThis(),
     succeed: jest.fn().mockReturnThis(),
     fail: jest.fn().mockReturnThis(),
     text: '',
-  })),
-}));
+  };
+  return {
+    __esModule: true,
+    default: jest.fn(() => mockSpinner),
+  };
+});
 
 // Mock console.clear to avoid clearing test output
 jest.spyOn(console, 'clear').mockImplementation(() => {});
@@ -62,21 +65,23 @@ describe('OptimizationWizardCommand', () => {
   
   // Mock console methods
   const mockLog = jest.spyOn(console, 'log').mockImplementation();
-  const mockExit = jest.spyOn(process, 'exit').mockImplementation((code?: number) => {
-    throw new Error(`Process exit called with code: ${code}`);
-  });
 
-  const mockTemplate: Template = {
-    id: 'test-template',
+  const mockTemplate = {
     name: 'Test Template',
     description: 'Template for testing wizard',
-    content: 'Test prompt content',
-    author: 'Test Author',
     version: '1.0.0',
-    tags: [],
-    variables: [],
-    metadata: {},
-    outputConfig: { files: [] },
+    files: [{
+      path: 'content.txt',
+      source: 'content.txt',
+      destination: 'content.txt',
+      content: 'Test prompt content',
+      name: 'content'
+    }],
+    variables: {},
+    metadata: {
+      author: 'Test Author',
+      tags: []
+    }
   };
 
   const mockScoreResult = {
@@ -171,8 +176,10 @@ describe('OptimizationWizardCommand', () => {
   });
 
   afterEach(() => {
+    jest.clearAllMocks();
+    jest.clearAllTimers();
+    jest.resetAllMocks();
     mockLog.mockRestore();
-    mockExit.mockRestore();
   });
 
   describe('command metadata', () => {
@@ -199,16 +206,25 @@ describe('OptimizationWizardCommand', () => {
   describe('service initialization and health checks', () => {
     it('should exit with error if service health check fails', async () => {
       mockClient.healthCheck.mockResolvedValue(false);
+      const mockExit = jest.spyOn(wizardCommand as any, 'exit').mockImplementation(((code: number) => {
+        throw new Error(`Process exit called with code: ${code}`);
+      }) as any);
 
       await expect(async () => {
         await wizardCommand.execute([], {});
       }).rejects.toThrow('Process exit called with code: 1');
+      
+      expect(mockClient.healthCheck).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(1);
+      
+      mockExit.mockRestore();
     });
 
     it('should proceed if service health check passes', async () => {
-      wizardCommand.confirm = jest.fn().mockResolvedValue(true);
-      wizardCommand.prompt = jest.fn().mockResolvedValue('test prompt');
-      wizardCommand.confirm = jest.fn().mockResolvedValue(false); // Skip save at end
+      mockClient.healthCheck.mockResolvedValue(true);
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(true);
+      (wizardCommand as any).prompt = jest.fn().mockResolvedValue('test prompt');
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false); // Skip save at end
 
       await wizardCommand.execute([], { skipIntro: true });
       
@@ -218,41 +234,47 @@ describe('OptimizationWizardCommand', () => {
 
   describe('wizard introduction', () => {
     it('should show introduction by default', async () => {
-      wizardCommand.confirm = jest.fn()
+      (wizardCommand as any).confirm = jest.fn()
         .mockResolvedValueOnce(true) // Continue with wizard
         .mockResolvedValueOnce(false); // Don't save at end
-      wizardCommand.prompt = jest.fn().mockResolvedValue('test prompt');
+      (wizardCommand as any).prompt = jest.fn().mockResolvedValue('test prompt');
 
       await wizardCommand.execute([], {});
 
-      expect(wizardCommand.confirm).toHaveBeenCalledWith('Ready to start optimizing your prompts?');
+      expect((wizardCommand as any).confirm).toHaveBeenCalledWith('Ready to start optimizing your prompts?');
       expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('🧙 PromptWizard Optimization Wizard'));
     });
 
     it('should skip introduction when requested', async () => {
-      wizardCommand.prompt = jest.fn().mockResolvedValue('test prompt');
-      wizardCommand.confirm = jest.fn().mockResolvedValue(false); // Don't save at end
+      (wizardCommand as any).prompt = jest.fn().mockResolvedValue('test prompt');
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false); // Don't save at end
 
       await wizardCommand.execute([], { skipIntro: true });
 
-      expect(wizardCommand.confirm).not.toHaveBeenCalledWith('Ready to start optimizing your prompts?');
+      expect((wizardCommand as any).confirm).not.toHaveBeenCalledWith('Ready to start optimizing your prompts?');
     });
 
     it('should exit when user declines to continue', async () => {
-      wizardCommand.confirm = jest.fn().mockResolvedValue(false);
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false);
+      const mockExit = jest.spyOn(wizardCommand as any, 'exit').mockImplementation(((code: number) => {
+        throw new Error(`Process exit called with code: ${code}`);
+      }) as any);
 
       await expect(async () => {
         await wizardCommand.execute([], {});
       }).rejects.toThrow('Process exit called with code: 0');
 
       expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('Wizard cancelled'));
+      expect(mockExit).toHaveBeenCalledWith(0);
+      
+      mockExit.mockRestore();
     });
   });
 
   describe('wizard modes and step configuration', () => {
     it('should configure correct steps for beginner mode', async () => {
-      wizardCommand.prompt = jest.fn().mockResolvedValue('test prompt');
-      wizardCommand.confirm = jest.fn().mockResolvedValue(false);
+      (wizardCommand as any).prompt = jest.fn().mockResolvedValue('test prompt');
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false);
 
       await wizardCommand.execute([], { skipIntro: true, mode: 'beginner' });
 
@@ -261,8 +283,8 @@ describe('OptimizationWizardCommand', () => {
     });
 
     it('should configure correct steps for advanced mode', async () => {
-      wizardCommand.prompt = jest.fn().mockResolvedValue('test prompt');
-      wizardCommand.confirm = jest.fn().mockResolvedValue(false);
+      (wizardCommand as any).prompt = jest.fn().mockResolvedValue('test prompt');
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false);
 
       await wizardCommand.execute([], { skipIntro: true, mode: 'advanced' });
 
@@ -271,8 +293,8 @@ describe('OptimizationWizardCommand', () => {
     });
 
     it('should configure correct steps for expert mode', async () => {
-      wizardCommand.prompt = jest.fn().mockResolvedValue('test prompt');
-      wizardCommand.confirm = jest.fn().mockResolvedValue(false);
+      (wizardCommand as any).prompt = jest.fn().mockResolvedValue('test prompt');
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false);
 
       await wizardCommand.execute([], { skipIntro: true, mode: 'expert' });
 
@@ -283,16 +305,23 @@ describe('OptimizationWizardCommand', () => {
 
   describe('step 1: prompt selection', () => {
     beforeEach(() => {
-      wizardCommand.prompt = jest.fn();
-      wizardCommand.error = jest.fn();
-      wizardCommand.confirm = jest.fn().mockResolvedValue(false); // Don't save at end
+      (wizardCommand as any).prompt = jest.fn();
+      (wizardCommand as any).error = jest.fn();
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false); // Don't save at end
     });
 
     it('should use provided template', async () => {
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
       mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered template content' }],
+        name: 'Test Template Rendered',
+        files: [{ 
+          path: 'output.txt', 
+          source: 'output.txt',
+          destination: 'output.txt', 
+          content: 'Rendered template content',
+          name: 'output'
+        }],
         metadata: {},
       });
 
@@ -308,18 +337,18 @@ describe('OptimizationWizardCommand', () => {
 
     it('should handle template not found', async () => {
       mockTemplateService.findTemplate.mockResolvedValue(null);
-      (wizardCommand.prompt as jest.Mock).mockResolvedValue('Direct prompt text');
+      ((wizardCommand as any).prompt as jest.Mock).mockResolvedValue('Direct prompt text');
 
       await wizardCommand.execute([], {
         skipIntro: true,
         template: 'nonexistent-template',
       });
 
-      expect(wizardCommand.error).toHaveBeenCalledWith('Template not found: nonexistent-template');
+      expect((wizardCommand as any).error).toHaveBeenCalledWith('Template not found: nonexistent-template');
     });
 
     it('should prompt for template when user chooses template option', async () => {
-      (wizardCommand.prompt as jest.Mock)
+      ((wizardCommand as any).prompt as jest.Mock)
         .mockResolvedValueOnce('Press Enter to continue') // Step 1 continue
         .mockResolvedValueOnce('Press Enter to continue') // Step 2 continue
         .mockResolvedValueOnce('Press Enter to start optimization') // Step 3 continue
@@ -334,18 +363,25 @@ describe('OptimizationWizardCommand', () => {
         name: 'User Template',
       });
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'User template content' }],
+        name: 'User Template Rendered',
+        files: [{ 
+          path: 'output.txt', 
+          source: 'output.txt',
+          destination: 'output.txt',
+          content: 'User template content',
+          name: 'output'
+        }],
         metadata: {},
       });
 
       await wizardCommand.execute([], { skipIntro: true });
 
-      expect(wizardCommand.prompt).toHaveBeenCalledWith('Enter (t)emplate name or (p)rompt text directly? [t/p]');
-      expect(wizardCommand.prompt).toHaveBeenCalledWith('Template name');
+      expect((wizardCommand as any).prompt).toHaveBeenCalledWith('Enter (t)emplate name or (p)rompt text directly? [t/p]');
+      expect((wizardCommand as any).prompt).toHaveBeenCalledWith('Template name');
     });
 
     it('should accept direct prompt text', async () => {
-      (wizardCommand.prompt as jest.Mock)
+      ((wizardCommand as any).prompt as jest.Mock)
         .mockResolvedValueOnce('Press Enter to continue') // Step 1 continue
         .mockResolvedValueOnce('Press Enter to continue') // Step 2 continue
         .mockResolvedValueOnce('Press Enter to start optimization') // Step 3 continue
@@ -357,12 +393,12 @@ describe('OptimizationWizardCommand', () => {
 
       await wizardCommand.execute([], { skipIntro: true });
 
-      expect(wizardCommand.prompt).toHaveBeenCalledWith('Prompt text');
-      expect(wizardCommand.prompt).toHaveBeenCalledWith('Task description');
+      expect((wizardCommand as any).prompt).toHaveBeenCalledWith('Prompt text');
+      expect((wizardCommand as any).prompt).toHaveBeenCalledWith('Task description');
     });
 
     it('should throw error if no prompt content provided', async () => {
-      (wizardCommand.prompt as jest.Mock)
+      ((wizardCommand as any).prompt as jest.Mock)
         .mockResolvedValueOnce('p') // Choose prompt text
         .mockResolvedValueOnce(''); // Empty prompt
 
@@ -374,8 +410,8 @@ describe('OptimizationWizardCommand', () => {
 
   describe('step 2: quality analysis', () => {
     beforeEach(() => {
-      wizardCommand.prompt = jest.fn().mockResolvedValue('Press Enter to continue');
-      wizardCommand.confirm = jest.fn().mockResolvedValue(false);
+      (wizardCommand as any).prompt = jest.fn().mockResolvedValue('Press Enter to continue');
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false);
     });
 
     it('should analyze prompt quality and display results', async () => {
@@ -420,11 +456,11 @@ describe('OptimizationWizardCommand', () => {
 
   describe('step 3: configuration', () => {
     beforeEach(() => {
-      wizardCommand.prompt = jest.fn()
+      (wizardCommand as any).prompt = jest.fn()
         .mockResolvedValueOnce('Press Enter to continue') // Step 1
         .mockResolvedValueOnce('Press Enter to continue') // Step 2
         .mockResolvedValueOnce('Press Enter to start optimization'); // Step 3
-      wizardCommand.confirm = jest.fn().mockResolvedValue(false);
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false);
     });
 
     it('should use recommended settings for beginner mode', async () => {
@@ -439,7 +475,7 @@ describe('OptimizationWizardCommand', () => {
     });
 
     it('should allow custom configuration for advanced mode', async () => {
-      (wizardCommand.prompt as jest.Mock)
+      ((wizardCommand as any).prompt as jest.Mock)
         .mockResolvedValueOnce('Press Enter to continue') // Step 1
         .mockResolvedValueOnce('Press Enter to continue') // Step 2
         .mockResolvedValueOnce('claude-3-opus') // Model choice
@@ -463,12 +499,12 @@ describe('OptimizationWizardCommand', () => {
 
   describe('step 4: optimization execution', () => {
     beforeEach(() => {
-      wizardCommand.prompt = jest.fn()
+      (wizardCommand as any).prompt = jest.fn()
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to start optimization')
         .mockResolvedValueOnce('Press Enter to see detailed comparison');
-      wizardCommand.confirm = jest.fn().mockResolvedValue(false);
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false);
     });
 
     it('should run optimization and display results', async () => {
@@ -498,13 +534,13 @@ describe('OptimizationWizardCommand', () => {
 
   describe('step 5: results comparison', () => {
     beforeEach(() => {
-      wizardCommand.prompt = jest.fn()
+      (wizardCommand as any).prompt = jest.fn()
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to start optimization')
         .mockResolvedValueOnce('Press Enter to see detailed comparison')
         .mockResolvedValueOnce('Press Enter to continue');
-      wizardCommand.confirm = jest.fn()
+      (wizardCommand as any).confirm = jest.fn()
         .mockResolvedValueOnce(true) // Satisfied with results
         .mockResolvedValueOnce(false); // Don't save
     });
@@ -519,11 +555,11 @@ describe('OptimizationWizardCommand', () => {
       expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('📊 Before vs After'));
       expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('🎯 Key Improvements:'));
       expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('✨ Optimized Content:'));
-      expect(wizardCommand.confirm).toHaveBeenCalledWith('Are you satisfied with these results?');
+      expect((wizardCommand as any).confirm).toHaveBeenCalledWith('Are you satisfied with these results?');
     });
 
     it('should allow refinement when user is not satisfied', async () => {
-      wizardCommand.confirm = jest.fn()
+      (wizardCommand as any).confirm = jest.fn()
         .mockResolvedValueOnce(false) // Not satisfied with results
         .mockResolvedValueOnce(false); // Don't save (after re-optimization)
 
@@ -549,18 +585,18 @@ describe('OptimizationWizardCommand', () => {
 
   describe('completion and saving', () => {
     beforeEach(() => {
-      wizardCommand.prompt = jest.fn()
+      (wizardCommand as any).prompt = jest.fn()
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to start optimization')
         .mockResolvedValueOnce('Press Enter to see detailed comparison')
         .mockResolvedValueOnce('Press Enter to continue');
-      wizardCommand.success = jest.fn();
-      wizardCommand.error = jest.fn();
+      (wizardCommand as any).success = jest.fn();
+      (wizardCommand as any).error = jest.fn();
     });
 
     it('should show completion summary', async () => {
-      wizardCommand.confirm = jest.fn()
+      (wizardCommand as any).confirm = jest.fn()
         .mockResolvedValueOnce(true) // Satisfied with results
         .mockResolvedValueOnce(false); // Don't save
 
@@ -582,12 +618,15 @@ describe('OptimizationWizardCommand', () => {
       };
       
       jest.doMock('fs', () => mockFs, { virtual: true });
+      
+      // Ensure the fs module is properly reset
+      jest.resetModules();
 
-      wizardCommand.confirm = jest.fn()
+      (wizardCommand as any).confirm = jest.fn()
         .mockResolvedValueOnce(true) // Satisfied with results
         .mockResolvedValueOnce(true); // Save prompt
 
-      (wizardCommand.prompt as jest.Mock)
+      ((wizardCommand as any).prompt as jest.Mock)
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to start optimization')
@@ -600,9 +639,9 @@ describe('OptimizationWizardCommand', () => {
         template: 'test-template',
       });
 
-      expect(wizardCommand.confirm).toHaveBeenCalledWith('Would you like to save the optimized prompt?');
-      expect(wizardCommand.prompt).toHaveBeenCalledWith('Output file path', 'optimized-prompt.json');
-      expect(wizardCommand.success).toHaveBeenCalledWith(expect.stringContaining('Optimized prompt saved to:'));
+      expect((wizardCommand as any).confirm).toHaveBeenCalledWith('Would you like to save the optimized prompt?');
+      expect((wizardCommand as any).prompt).toHaveBeenCalledWith('Output file path', 'optimized-prompt.json');
+      expect((wizardCommand as any).success).toHaveBeenCalledWith(expect.stringContaining('Optimized prompt saved to:'));
     });
 
     it('should handle save errors gracefully', async () => {
@@ -613,12 +652,15 @@ describe('OptimizationWizardCommand', () => {
       };
       
       jest.doMock('fs', () => mockFs, { virtual: true });
+      
+      // Ensure the fs module is properly reset
+      jest.resetModules();
 
-      wizardCommand.confirm = jest.fn()
+      (wizardCommand as any).confirm = jest.fn()
         .mockResolvedValueOnce(true) // Satisfied with results
         .mockResolvedValueOnce(true); // Save prompt
 
-      (wizardCommand.prompt as jest.Mock)
+      ((wizardCommand as any).prompt as jest.Mock)
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to start optimization')
@@ -631,14 +673,14 @@ describe('OptimizationWizardCommand', () => {
         template: 'test-template',
       });
 
-      expect(wizardCommand.error).toHaveBeenCalledWith(expect.stringContaining('Failed to save optimized prompt:'));
+      expect((wizardCommand as any).error).toHaveBeenCalledWith(expect.stringContaining('Failed to save optimized prompt:'));
     });
   });
 
   describe('advanced and expert steps', () => {
     beforeEach(() => {
-      wizardCommand.prompt = jest.fn().mockResolvedValue('Press Enter to continue');
-      wizardCommand.confirm = jest.fn()
+      (wizardCommand as any).prompt = jest.fn().mockResolvedValue('Press Enter to continue');
+      (wizardCommand as any).confirm = jest.fn()
         .mockResolvedValueOnce(true) // Satisfied with results
         .mockResolvedValueOnce(false); // Don't save
     });
@@ -680,7 +722,7 @@ describe('OptimizationWizardCommand', () => {
     });
 
     it('should handle wizard execution errors gracefully', async () => {
-      wizardCommand.prompt = jest.fn().mockRejectedValue(new Error('Prompt failed'));
+      (wizardCommand as any).prompt = jest.fn().mockRejectedValue(new Error('Prompt failed'));
 
       await expect(async () => {
         await wizardCommand.execute([], { skipIntro: true });
@@ -690,13 +732,13 @@ describe('OptimizationWizardCommand', () => {
 
   describe('state management', () => {
     it('should maintain wizard state throughout execution', async () => {
-      wizardCommand.prompt = jest.fn()
+      (wizardCommand as any).prompt = jest.fn()
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to continue')
         .mockResolvedValueOnce('Press Enter to start optimization')
         .mockResolvedValueOnce('Press Enter to see detailed comparison')
         .mockResolvedValueOnce('Press Enter to continue');
-      wizardCommand.confirm = jest.fn()
+      (wizardCommand as any).confirm = jest.fn()
         .mockResolvedValueOnce(true)
         .mockResolvedValueOnce(false);
 

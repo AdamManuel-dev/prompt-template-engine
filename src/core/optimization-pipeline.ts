@@ -30,7 +30,7 @@ export interface TemplateMetadata {
   name: string;
   category: string;
   complexity: number;
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
   dependencies: string[];
   estimatedTokens: number;
   language?: string;
@@ -54,10 +54,10 @@ export interface OptimizationPipelineConfig {
 export interface PipelineStageResult {
   stage: string;
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   duration: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class OptimizationPipeline extends EventEmitter {
@@ -161,10 +161,11 @@ export class OptimizationPipeline extends EventEmitter {
       const examples = examplesResult.success ? examplesResult.data : [];
 
       // Stage 5: Build optimization request
+      const examplesArray = Array.isArray(examples) ? examples : [];
       const optimizationRequestFinal = this.buildOptimizationRequest(
         template,
         preprocessedContext,
-        examples,
+        examplesArray,
         optimizationRequest
       );
 
@@ -257,7 +258,7 @@ export class OptimizationPipeline extends EventEmitter {
             acc[result.stage] = result.data;
             return acc;
           },
-          {} as Record<string, any>
+          {} as Record<string, unknown>
         ),
       };
 
@@ -287,7 +288,7 @@ export class OptimizationPipeline extends EventEmitter {
             acc[result.stage] = result.data;
             return acc;
           },
-          {} as Record<string, any>
+          {} as Record<string, unknown>
         ),
       };
 

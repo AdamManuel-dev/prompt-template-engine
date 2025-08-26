@@ -462,7 +462,7 @@ export interface PipelineResult {
   };
 
   /** Stage results */
-  stageResults: Record<string, any>;
+  stageResults: Record<string, unknown>;
 }
 
 // Additional types needed for gRPC client
@@ -476,7 +476,7 @@ export interface ScoringResponse {
   overallScore: number;
   componentScores: Record<string, number>;
   suggestions: string[];
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
 }
 
 export interface ComparisonRequest {
@@ -489,5 +489,5 @@ export interface ComparisonResponse {
   improvementScore: number;
   improvements: string[];
   potentialIssues: string[];
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
 }

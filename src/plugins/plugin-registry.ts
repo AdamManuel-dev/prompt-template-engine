@@ -92,7 +92,7 @@ export interface PluginMetadata {
   };
 
   /** User preferences */
-  userPreferences?: Record<string, any>;
+  userPreferences?: Record<string, unknown>;
 
   /** Plugin tags */
   tags?: string[];
@@ -133,7 +133,7 @@ export interface PluginRegistration {
   capabilities: PluginCapability[];
 
   /** Plugin configuration schema */
-  configSchema?: Record<string, any>;
+  configSchema?: Record<string, unknown>;
 
   /** Plugin dependencies */
   dependencies: PluginDependency[];

@@ -18,7 +18,7 @@ export interface PerformanceMetrics {
   operation: string;
   success: boolean;
   error?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AggregatedMetrics {
@@ -50,7 +50,7 @@ export class PerformanceMonitor extends EventEmitter {
   startTimer(
     timerId: string,
     operation: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     this.timers.set(timerId, {
       start: Date.now(),
@@ -355,7 +355,7 @@ export interface HealthCheckResult {
   message: string;
   timestamp: Date;
   responseTime?: number;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export class HealthChecker {

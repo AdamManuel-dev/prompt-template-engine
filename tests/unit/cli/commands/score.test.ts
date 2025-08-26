@@ -33,16 +33,19 @@ jest.mock('chalk', () => ({
   },
   white: jest.fn(str => `[WHITE]${str}[/WHITE]`),
 }));
-jest.mock('ora', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+jest.mock('ora', () => {
+  const mockSpinner = {
     start: jest.fn().mockReturnThis(),
     stop: jest.fn().mockReturnThis(),
     succeed: jest.fn().mockReturnThis(),
     fail: jest.fn().mockReturnThis(),
     text: '',
-  })),
-}));
+  };
+  return {
+    __esModule: true,
+    default: jest.fn(() => mockSpinner),
+  };
+});
 
 describe('ScoreCommand', () => {
   let scoreCommand: ScoreCommand;
@@ -51,9 +54,6 @@ describe('ScoreCommand', () => {
   
   // Mock console methods
   const mockLog = jest.spyOn(console, 'log').mockImplementation();
-  const mockExit = jest.spyOn(process, 'exit').mockImplementation((code?: number) => {
-    throw new Error(`Process exit called with code: ${code}`);
-  });
 
   const mockScoreResult = {
     overall: 85,
@@ -95,8 +95,10 @@ describe('ScoreCommand', () => {
   });
 
   afterEach(() => {
+    jest.clearAllMocks();
+    jest.clearAllTimers();
+    jest.resetAllMocks();
     mockLog.mockRestore();
-    mockExit.mockRestore();
   });
 
   describe('command metadata', () => {
@@ -128,15 +130,23 @@ describe('ScoreCommand', () => {
   describe('service initialization and health checks', () => {
     it('should exit with error if service health check fails', async () => {
       mockClient.healthCheck.mockResolvedValue(false);
+      const mockExit = jest.spyOn(scoreCommand as any, 'exit').mockImplementation(((code: number) => {
+        throw new Error(`Process exit called with code: ${code}`);
+      }) as any);
 
       await expect(async () => {
         await scoreCommand.execute([], {});
       }).rejects.toThrow('Process exit called with code: 1');
+      
+      expect(mockClient.healthCheck).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(1);
+      
+      mockExit.mockRestore();
     });
 
     it('should proceed if service health check passes', async () => {
       mockClient.healthCheck.mockResolvedValue(true);
-      scoreCommand.prompt = jest.fn().mockResolvedValue('p');
+      (scoreCommand as any).prompt = jest.fn().mockResolvedValue('p');
 
       await scoreCommand.execute([], {});
       
@@ -146,9 +156,9 @@ describe('ScoreCommand', () => {
 
   describe('single prompt scoring', () => {
     beforeEach(() => {
-      scoreCommand.prompt = jest.fn();
-      scoreCommand.success = jest.fn();
-      scoreCommand.warn = jest.fn();
+      (scoreCommand as any).prompt = jest.fn();
+      (scoreCommand as any).success = jest.fn();
+      (scoreCommand as any).warn = jest.fn();
     });
 
     it('should score direct prompt text', async () => {
@@ -170,17 +180,23 @@ describe('ScoreCommand', () => {
         author: 'Test Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       };
 
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
-      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate);
+      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered template content' }],
+        id: 'test-template',
+        name: 'Test Template',
+        description: 'Template for testing',
+        content: 'Rendered template content',
+        author: 'Test Author',
+        version: '1.0.0',
+        tags: [],
+        variables: {},
         metadata: {},
-      });
+      } as any);
 
       await scoreCommand.execute([], {
         template: 'test-template',
@@ -192,7 +208,7 @@ describe('ScoreCommand', () => {
     });
 
     it('should handle template not found', async () => {
-      scoreCommand.error = jest.fn();
+      (scoreCommand as any).error = jest.fn();
       mockTemplateService.findTemplate.mockResolvedValue(null);
 
       await scoreCommand.execute([], {
@@ -204,14 +220,14 @@ describe('ScoreCommand', () => {
     });
 
     it('should prompt user for input when neither prompt nor template provided', async () => {
-      (scoreCommand.prompt as jest.Mock)
+      ((scoreCommand as any).prompt as jest.Mock)
         .mockResolvedValueOnce('p') // Choose prompt text
         .mockResolvedValueOnce('Test prompt text');
 
       await scoreCommand.execute([], {});
 
-      expect(scoreCommand.prompt).toHaveBeenCalledWith('Score (p)rompt text or (t)emplate? [p/t]');
-      expect(scoreCommand.prompt).toHaveBeenCalledWith('Enter prompt text');
+      expect((scoreCommand as any).prompt).toHaveBeenCalledWith('Score (p)rompt text or (t)emplate? [p/t]');
+      expect((scoreCommand as any).prompt).toHaveBeenCalledWith('Enter prompt text');
       expect(mockClient.scorePrompt).toHaveBeenCalledWith('Test prompt text', undefined);
     });
 
@@ -224,25 +240,31 @@ describe('ScoreCommand', () => {
         author: 'User',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       };
 
-      (scoreCommand.prompt as jest.Mock)
+      ((scoreCommand as any).prompt as jest.Mock)
         .mockResolvedValueOnce('t') // Choose template
         .mockResolvedValueOnce('user-template');
 
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/user-template.json');
-      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate);
+      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered user template' }],
+        id: 'user-template',
+        name: 'User Template',
+        description: 'User selected template',
+        content: 'Rendered user template',
+        author: 'User',
+        version: '1.0.0',
+        tags: [],
+        variables: {},
         metadata: {},
-      });
+      } as any);
 
       await scoreCommand.execute([], {});
 
-      expect(scoreCommand.prompt).toHaveBeenCalledWith('Enter template name');
+      expect((scoreCommand as any).prompt).toHaveBeenCalledWith('Enter template name');
       expect(mockClient.scorePrompt).toHaveBeenCalledWith('Rendered user template', 'User selected template');
     });
   });
@@ -251,8 +273,8 @@ describe('ScoreCommand', () => {
     const promptText = 'Test prompt for format testing';
 
     beforeEach(() => {
-      scoreCommand.success = jest.fn();
-      scoreCommand.warn = jest.fn();
+      (scoreCommand as any).success = jest.fn();
+      (scoreCommand as any).warn = jest.fn();
     });
 
     it('should display table format by default', async () => {
@@ -330,17 +352,17 @@ describe('ScoreCommand', () => {
 
   describe('threshold checking', () => {
     beforeEach(() => {
-      scoreCommand.success = jest.fn();
-      scoreCommand.warn = jest.fn();
+      (scoreCommand as any).success = jest.fn();
+      (scoreCommand as any).warn = jest.fn();
     });
 
     it('should report success when score meets threshold', async () => {
       await scoreCommand.execute([], {
         prompt: 'Test prompt',
-        threshold: '80', // Score is 85, should pass
+        threshold: 80, // Score is 85, should pass
       });
 
-      expect(scoreCommand.success).toHaveBeenCalledWith(
+      expect((scoreCommand as any).success).toHaveBeenCalledWith(
         expect.stringContaining('Quality score meets threshold (85 >= 80)')
       );
     });
@@ -348,10 +370,10 @@ describe('ScoreCommand', () => {
     it('should report warning when score is below threshold', async () => {
       await scoreCommand.execute([], {
         prompt: 'Test prompt',
-        threshold: '90', // Score is 85, should fail
+        threshold: 90, // Score is 85, should fail
       });
 
-      expect(scoreCommand.warn).toHaveBeenCalledWith(
+      expect((scoreCommand as any).warn).toHaveBeenCalledWith(
         expect.stringContaining('Quality score below threshold (85 < 90)')
       );
     });
@@ -366,7 +388,7 @@ describe('ScoreCommand', () => {
         prompt: 'Test prompt',
       });
 
-      expect(scoreCommand.success).toHaveBeenCalledWith(
+      expect((scoreCommand as any).success).toHaveBeenCalledWith(
         expect.stringContaining('75 >= 70')
       );
     });
@@ -382,9 +404,8 @@ describe('ScoreCommand', () => {
         author: 'Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       },
       {
         id: 'template2',
@@ -394,26 +415,25 @@ describe('ScoreCommand', () => {
         author: 'Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       },
     ];
 
     beforeEach(() => {
-      scoreCommand.success = jest.fn();
-      scoreCommand.error = jest.fn();
+      (scoreCommand as any).success = jest.fn();
+      (scoreCommand as any).error = jest.fn();
     });
 
     it('should perform batch scoring on all templates', async () => {
       mockTemplateService.listTemplates.mockResolvedValue([
-        { name: 'template1', path: '/path/to/template1.json', metadata: {} },
-        { name: 'template2', path: '/path/to/template2.json', metadata: {} },
+        { name: 'template1', path: '/path/to/template1.json' },
+        { name: 'template2', path: '/path/to/template2.json' },
       ]);
       
       mockTemplateService.loadTemplate.mockImplementation((path) => {
         const index = path.includes('template1') ? 0 : 1;
-        return Promise.resolve(mockTemplates[index]);
+        return Promise.resolve(mockTemplates[index] as any);
       });
 
       mockClient.scorePrompt
@@ -422,7 +442,7 @@ describe('ScoreCommand', () => {
 
       await scoreCommand.execute([], {
         batch: true,
-        threshold: '70',
+        threshold: 70,
       });
 
       expect(mockTemplateService.listTemplates).toHaveBeenCalled();
@@ -442,13 +462,13 @@ describe('ScoreCommand', () => {
 
     it('should handle individual template scoring errors in batch', async () => {
       mockTemplateService.listTemplates.mockResolvedValue([
-        { name: 'template1', path: '/path/to/template1.json', metadata: {} },
-        { name: 'template2', path: '/path/to/template2.json', metadata: {} },
+        { name: 'template1', path: '/path/to/template1.json' },
+        { name: 'template2', path: '/path/to/template2.json' },
       ]);
       
       mockTemplateService.loadTemplate.mockImplementation((path) => {
         const index = path.includes('template1') ? 0 : 1;
-        return Promise.resolve(mockTemplates[index]);
+        return Promise.resolve(mockTemplates[index] as any);
       });
 
       mockClient.scorePrompt
@@ -457,7 +477,7 @@ describe('ScoreCommand', () => {
 
       await scoreCommand.execute([], {
         batch: true,
-        threshold: '70',
+        threshold: 70,
       });
 
       expect(mockClient.scorePrompt).toHaveBeenCalledTimes(2);
@@ -466,13 +486,13 @@ describe('ScoreCommand', () => {
 
     it('should display batch results summary', async () => {
       mockTemplateService.listTemplates.mockResolvedValue([
-        { name: 'template1', path: '/path/to/template1.json', metadata: {} },
-        { name: 'template2', path: '/path/to/template2.json', metadata: {} },
+        { name: 'template1', path: '/path/to/template1.json' },
+        { name: 'template2', path: '/path/to/template2.json' },
       ]);
       
       mockTemplateService.loadTemplate.mockImplementation((path) => {
         const index = path.includes('template1') ? 0 : 1;
-        return Promise.resolve(mockTemplates[index]);
+        return Promise.resolve(mockTemplates[index] as any);
       });
 
       mockClient.scorePrompt
@@ -481,7 +501,7 @@ describe('ScoreCommand', () => {
 
       await scoreCommand.execute([], {
         batch: true,
-        threshold: '70',
+        threshold: 70,
         format: 'table',
       });
 
@@ -521,8 +541,8 @@ describe('ScoreCommand', () => {
 
   describe('report saving', () => {
     beforeEach(() => {
-      scoreCommand.success = jest.fn();
-      scoreCommand.error = jest.fn();
+      (scoreCommand as any).success = jest.fn();
+      (scoreCommand as any).error = jest.fn();
     });
 
     it('should save single score report', async () => {
@@ -533,13 +553,16 @@ describe('ScoreCommand', () => {
       };
       
       jest.doMock('fs', () => mockFs, { virtual: true });
+      
+      // Ensure the fs module is properly reset
+      jest.resetModules();
 
       await scoreCommand.execute([], {
         prompt: 'Test prompt',
         output: '/path/to/score-report.json',
       });
 
-      expect(scoreCommand.success).toHaveBeenCalledWith(
+      expect((scoreCommand as any).success).toHaveBeenCalledWith(
         expect.stringContaining('Score report saved to:')
       );
     });
@@ -552,18 +575,30 @@ describe('ScoreCommand', () => {
       };
       
       jest.doMock('fs', () => mockFs, { virtual: true });
+      
+      // Ensure the fs module is properly reset
+      jest.resetModules();
 
       mockTemplateService.listTemplates.mockResolvedValue([
-        { name: 'template1', path: '/path/to/template1.json', metadata: {} },
+        { name: 'template1', path: '/path/to/template1.json' },
       ]);
-      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplates[0]);
+      mockTemplateService.loadTemplate.mockResolvedValue({
+        id: 'template1',
+        name: 'Template 1',
+        description: 'First template',
+        author: 'Author',
+        version: '1.0.0',
+        tags: [],
+        variables: {},
+        metadata: {},
+      } as any);
 
       await scoreCommand.execute([], {
         batch: true,
         output: '/path/to/batch-report.json',
       });
 
-      expect(scoreCommand.success).toHaveBeenCalledWith(
+      expect((scoreCommand as any).success).toHaveBeenCalledWith(
         expect.stringContaining('Batch score report saved to:')
       );
     });
@@ -578,13 +613,16 @@ describe('ScoreCommand', () => {
       };
       
       jest.doMock('fs', () => mockFs, { virtual: true });
+      
+      // Ensure the fs module is properly reset
+      jest.resetModules();
 
       await scoreCommand.execute([], {
         prompt: 'Test prompt',
         output: '/path/to/report.json',
       });
 
-      expect(scoreCommand.error).toHaveBeenCalledWith(
+      expect((scoreCommand as any).error).toHaveBeenCalledWith(
         expect.stringContaining('Failed to save score report:')
       );
     });
@@ -611,17 +649,23 @@ describe('ScoreCommand', () => {
         author: 'Test Author',
         version: '1.0.0',
         tags: [],
-        variables: [],
+        variables: {},
         metadata: {},
-        outputConfig: { files: [] },
       };
 
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
-      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate);
+      mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        files: [{ path: 'output.txt', content: 'Rendered content' }],
+        id: 'test-template',
+        name: 'Test Template',
+        description: 'Template for product descriptions',
+        content: 'Rendered content',
+        author: 'Test Author',
+        version: '1.0.0',
+        tags: [],
+        variables: {},
         metadata: {},
-      });
+      } as any);
 
       await scoreCommand.execute([], {
         template: 'test-template',
