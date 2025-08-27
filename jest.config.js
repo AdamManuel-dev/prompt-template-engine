@@ -33,9 +33,9 @@ module.exports = {
     },
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup/test-setup.ts'],
-  testTimeout: 15000, // Reduced timeout to catch hanging tests faster
-  maxWorkers: 1, // Use single worker for E2E tests to reduce memory usage
-  workerIdleMemoryLimit: '256MB', // Further reduced memory limit to prevent leaks
+  testTimeout: 10000, // Reduced timeout for faster feedback
+  maxWorkers: '50%', // Use half available CPUs for better performance
+  workerIdleMemoryLimit: '512MB', // Increased memory limit for stability
   verbose: false, // Reduced verbosity to save memory
   // Additional memory optimizations
   logHeapUsage: false, // Disable heap logging to save memory
@@ -46,6 +46,9 @@ module.exports = {
   // Enable automatic mocking from __mocks__ directory
   moduleNameMapper: {
     '^ora$': '<rootDir>/tests/__mocks__/ora.js',
+    // Mock slow external modules
+    '^chokidar$': '<rootDir>/tests/__mocks__/chokidar.js',
+    '^clipboardy$': '<rootDir>/tests/__mocks__/clipboardy.js',
   },
   forceExit: true, // Force exit to prevent hanging handles
   detectOpenHandles: true, // Detect open handles that prevent exit

@@ -28,6 +28,7 @@ import type {
   OptimizationContext,
   OptimizationSettings,
   OptimizationBatch,
+  TemplateFile,
   TemplateComparison,
   // OptimizationJob as TypesOptimizationJob, // Commented out as unused
   OptimizationMetrics,
@@ -81,7 +82,11 @@ export class OptimizedTemplateService extends EventEmitter {
     this.templateService = new TemplateService({});
     // Note: OptimizationPipeline needs proper service instances - simplified for now
     // this.optimizationPipeline = new OptimizationPipeline(promptService, this.templateService, {});
-    this.optimizationQueue = new OptimizationQueue({} as any, {} as any);
+    // TODO: Properly initialize OptimizationQueue with correct service instances
+    this.optimizationQueue = new OptimizationQueue(
+      {} as unknown as ConstructorParameters<typeof OptimizationQueue>[0],
+      {} as unknown as ConstructorParameters<typeof OptimizationQueue>[1]
+    );
 
     // Initialize cache
     this.optimizedTemplateCache = new CacheService<OptimizedTemplate>({
@@ -148,7 +153,7 @@ export class OptimizedTemplateService extends EventEmitter {
       const job = await this.optimizationQueue.addJob(
         templateId,
         template,
-        optimizationContext as any,
+        optimizationContext,
         {
           priority: options.priority || 'normal',
         }
@@ -165,7 +170,7 @@ export class OptimizedTemplateService extends EventEmitter {
     const result = await this.optimizationPipeline.process(
       templateId,
       template,
-      optimizationContext as any
+      optimizationContext
     );
 
     if (result.success && result.data) {
@@ -271,8 +276,8 @@ export class OptimizedTemplateService extends EventEmitter {
       batchId,
       templateIds,
       status: jobs.length > 0 ? 'processing' : 'failed',
-      jobs: jobs.map(j => j.jobId) as any,
-      config: {} as any,
+      jobs: jobs.map(j => j.jobId) as string[],
+      config: {} as Record<string, unknown>,
       createdAt: new Date(),
       // settings commented out as not in OptimizationBatch interface
       // settings: {
@@ -353,7 +358,9 @@ export class OptimizedTemplateService extends EventEmitter {
       context,
       metrics: result.metrics,
       originalContent:
-        (original.files?.[0] as any)?.content || original.description || '',
+        (original.files?.[0] as TemplateFile)?.content ||
+        original.description ||
+        '',
       optimizedContent: result.optimizedPrompt,
       method: 'promptwizard',
       success: true,
@@ -381,7 +388,7 @@ export class OptimizedTemplateService extends EventEmitter {
                 destination: `${original.name}.optimized.md`,
                 content: result.optimizedPrompt,
                 name: original.name,
-              } as any,
+              } as TemplateFile,
             ],
     };
 
@@ -440,9 +447,13 @@ export class OptimizedTemplateService extends EventEmitter {
     optimized: OptimizedTemplate
   ): TemplateComparison {
     const originalContent =
-      (original.files?.[0] as any)?.content || original.description || '';
+      (original.files?.[0] as TemplateFile)?.content ||
+      original.description ||
+      '';
     const optimizedContent =
-      (optimized.files?.[0] as any)?.content || optimized.description || '';
+      (optimized.files?.[0] as TemplateFile)?.content ||
+      optimized.description ||
+      '';
 
     const comparison: TemplateComparison = {
       original,

@@ -88,6 +88,7 @@ describe('ScoreCommand', () => {
   beforeEach(() => {
     // Clear mock call history
     mockLog.mockClear();
+    jest.clearAllMocks();
     
     // Manually setup chalk mock functions
     (chalk.blue as any) = jest.fn((str: string) => `[BLUE]${str}[/BLUE]`);
@@ -121,6 +122,17 @@ describe('ScoreCommand', () => {
     (PromptWizardClient as jest.MockedClass<typeof PromptWizardClient>).mockImplementation(() => mockClient);
 
     scoreCommand = new ScoreCommand();
+    
+    // Mock all interactive methods to prevent hanging
+    (scoreCommand as any).prompt = jest.fn().mockResolvedValue('p');
+    (scoreCommand as any).promptText = jest.fn().mockResolvedValue('test prompt');
+    (scoreCommand as any).promptSelect = jest.fn().mockResolvedValue('template1');
+    (scoreCommand as any).success = jest.fn();
+    (scoreCommand as any).warn = jest.fn();
+    (scoreCommand as any).error = jest.fn();
+    (scoreCommand as any).exit = jest.fn().mockImplementation(() => {
+      throw new Error('Process exit called');
+    });
   });
 
   afterEach(() => {
@@ -158,27 +170,24 @@ describe('ScoreCommand', () => {
   describe('service initialization and health checks', () => {
     it('should exit with error if service health check fails', async () => {
       mockClient.healthCheck.mockResolvedValue(false);
-      const mockExit = jest.spyOn(scoreCommand as any, 'exit').mockImplementation(((code: number) => {
-        throw new Error(`Process exit called with code: ${code}`);
-      }) as any);
 
       await expect(async () => {
         await scoreCommand.execute([], {});
-      }).rejects.toThrow('Process exit called with code: 1');
+      }).rejects.toThrow('Process exit called');
       
       expect(mockClient.healthCheck).toHaveBeenCalled();
-      expect(mockExit).toHaveBeenCalledWith(1);
-      
-      mockExit.mockRestore();
+      expect((scoreCommand as any).exit).toHaveBeenCalledWith(1);
     });
 
     it('should proceed if service health check passes', async () => {
       mockClient.healthCheck.mockResolvedValue(true);
       (scoreCommand as any).prompt = jest.fn().mockResolvedValue('p');
+      (scoreCommand as any).promptText = jest.fn().mockResolvedValue('test prompt');
 
       await scoreCommand.execute([], {});
       
       expect(mockClient.healthCheck).toHaveBeenCalled();
+      expect(mockClient.scorePrompt).toHaveBeenCalledWith('test prompt', undefined);
     });
   });
 

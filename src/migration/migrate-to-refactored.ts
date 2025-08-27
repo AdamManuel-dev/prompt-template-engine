@@ -11,7 +11,15 @@
 import { TemplateEngine } from '../core/template-engine';
 import { TemplateEngineRefactored } from '../core/template-engine-refactored';
 import { MarketplaceRefactoredService } from '../marketplace/core/marketplace-refactored.service';
-import type { TemplateReview } from '../marketplace/models/template.model';
+import type {
+  TemplateReview,
+  TemplateSearchQuery,
+  TemplateModel,
+  InstallationResult,
+  UpdateResult,
+  UpdateCheckResult,
+  UserPreferences,
+} from '../marketplace/models/template.model';
 import { logger } from '../utils/logger';
 
 /**
@@ -20,16 +28,19 @@ import { logger } from '../utils/logger';
 export class TemplateEngineAdapter extends TemplateEngine {
   private refactoredEngine: TemplateEngineRefactored;
 
-  constructor(options?: any) {
+  constructor(options?: Record<string, unknown>) {
     super();
     this.refactoredEngine = new TemplateEngineRefactored(options);
   }
 
-  async render(template: string, context: any): Promise<string> {
+  async render(
+    template: string,
+    context: Record<string, unknown>
+  ): Promise<string> {
     return this.refactoredEngine.render(template, context);
   }
 
-  renderSync(template: string, context: any): string {
+  renderSync(template: string, context: Record<string, unknown>): string {
     return this.refactoredEngine.renderSync(template, context);
   }
 
@@ -42,7 +53,11 @@ export class TemplateEngineAdapter extends TemplateEngine {
   }
 
   // Override other methods to use refactored implementation
-  processConditionalBlocks(template: string, context: any, _depth = 0): string {
+  processConditionalBlocks(
+    template: string,
+    context: Record<string, unknown>,
+    _depth = 0
+  ): string {
     // Use refactored engine's renderSync which includes conditional processing
     return this.refactoredEngine.renderSync(template, context);
   }
@@ -86,19 +101,25 @@ export class MarketplaceServiceAdapter {
     this.refactoredService = new MarketplaceRefactoredService();
   }
 
-  async search(query: any): Promise<any> {
+  async search(query: TemplateSearchQuery): Promise<TemplateModel[]> {
     return this.refactoredService.search(query);
   }
 
-  async getTemplate(templateId: string): Promise<any> {
+  async getTemplate(templateId: string): Promise<TemplateModel | null> {
     return this.refactoredService.getTemplate(templateId);
   }
 
-  async install(templateId: string, options?: any): Promise<any> {
+  async install(
+    templateId: string,
+    options?: Record<string, unknown>
+  ): Promise<InstallationResult> {
     return this.refactoredService.install(templateId, options);
   }
 
-  async update(templateId: string, options?: any): Promise<any> {
+  async update(
+    templateId: string,
+    options?: Record<string, unknown>
+  ): Promise<UpdateResult> {
     return this.refactoredService.update(templateId, options);
   }
 
@@ -114,23 +135,26 @@ export class MarketplaceServiceAdapter {
     await this.refactoredService.rate(templateId, rating, review);
   }
 
-  async checkUpdates(): Promise<any> {
+  async checkUpdates(): Promise<UpdateCheckResult[]> {
     return this.refactoredService.checkUpdates();
   }
 
-  async quickInstall(templateId: string): Promise<any> {
+  async quickInstall(templateId: string): Promise<InstallationResult> {
     return this.refactoredService.quickInstall(templateId);
   }
 
-  async batchInstall(templateIds: string[], options?: any): Promise<any> {
+  async batchInstall(
+    templateIds: string[],
+    options?: Record<string, unknown>
+  ): Promise<InstallationResult[]> {
     return this.refactoredService.batchInstall(templateIds, options);
   }
 
-  async getInstalled(): Promise<any> {
+  async getInstalled(): Promise<TemplateModel[]> {
     return this.refactoredService.getInstalled();
   }
 
-  async updatePreferences(preferences: any): Promise<any> {
+  async updatePreferences(preferences: UserPreferences): Promise<void> {
     return this.refactoredService.updatePreferences(preferences);
   }
 }

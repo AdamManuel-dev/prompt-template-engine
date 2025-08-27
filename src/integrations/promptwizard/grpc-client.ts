@@ -46,8 +46,67 @@ export interface StreamOptimizationUpdate {
   error?: string;
 }
 
+interface GrpcStreamClient {
+  on: (
+    event: 'data' | 'end' | 'error',
+    listener: (data?: unknown) => void
+  ) => void;
+  cancel: () => void;
+}
+
+interface GrpcClient {
+  healthCheck: (
+    request: unknown,
+    options: { deadline: Date },
+    callback: (error: unknown, response: { healthy: boolean }) => void
+  ) => void;
+  optimizePrompt: (
+    request: OptimizationRequest,
+    options: { deadline: Date },
+    callback: (error: unknown, response: unknown) => void
+  ) => void;
+  scorePrompt: (
+    request: ScoringRequest,
+    options: { deadline: Date },
+    callback: (error: unknown, response: unknown) => void
+  ) => void;
+  comparePrompts: (
+    request: ComparisonRequest,
+    options: { deadline: Date },
+    callback: (error: unknown, response: unknown) => void
+  ) => void;
+  getJobStatus: (
+    request: { job_id: string },
+    options: { deadline: Date },
+    callback: (error: unknown, response: unknown) => void
+  ) => void;
+  cancelJob: (
+    request: { job_id: string },
+    options: { deadline: Date },
+    callback: (error: unknown, response: unknown) => void
+  ) => void;
+  streamOptimization: (
+    request: OptimizationRequest,
+    options: { deadline: Date }
+  ) => GrpcStreamClient;
+}
+
+interface GrpcError {
+  code: number;
+  details?: string;
+  message: string;
+}
+
+interface GrpcStreamUpdate {
+  job_id: string;
+  progress_percentage: number;
+  current_step: string;
+  status: string;
+  partial_result?: unknown;
+}
+
 export class PromptWizardGrpcClient extends EventEmitter {
-  private client: any;
+  private client: GrpcClient | null = null;
 
   private config: GrpcClientConfig;
 
@@ -79,9 +138,15 @@ export class PromptWizardGrpcClient extends EventEmitter {
         }
       );
 
-      const protoDescriptor = grpc.loadPackageDefinition(
-        packageDefinition
-      ) as any;
+      const protoDescriptor = grpc.loadPackageDefinition(packageDefinition) as {
+        promptwizard: {
+          PromptOptimizationService: new (
+            url: string,
+            credentials: grpc.ChannelCredentials,
+            options: Record<string, unknown>
+          ) => GrpcClient;
+        };
+      };
       const promptwizardProto = protoDescriptor.promptwizard;
 
       // Create client with credentials
@@ -128,14 +193,18 @@ export class PromptWizardGrpcClient extends EventEmitter {
       const deadline = new Date();
       deadline.setSeconds(deadline.getSeconds() + 5);
 
-      this.client.healthCheck({}, { deadline }, (error: any, response: any) => {
-        if (error) {
-          logger.error('gRPC health check failed', error);
-          resolve(false);
-        } else {
-          resolve(response.healthy === true);
+      this.client.healthCheck(
+        {},
+        { deadline },
+        (error: unknown, response: { healthy: boolean }) => {
+          if (error) {
+            logger.error('gRPC health check failed', error);
+            resolve(false);
+          } else {
+            resolve(response.healthy === true);
+          }
         }
-      });
+      );
     });
   }
 
@@ -181,7 +250,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
 
       const stream = this.client.streamOptimization(request, { deadline });
 
-      stream.on('data', (update: any) => {
+      stream.on('data', (update: GrpcStreamUpdate) => {
         const typedUpdate: StreamOptimizationUpdate = {
           jobId: update.job_id,
           progress: update.progress_percentage,
@@ -204,15 +273,17 @@ export class PromptWizardGrpcClient extends EventEmitter {
         streamEmitter.emit('end');
       });
 
-      stream.on('error', (error: any) => {
+      stream.on('error', (error: GrpcError) => {
         logger.error('gRPC stream error', error);
         streamEmitter.emit('error', this.parseGrpcError(error));
       });
 
       // Add cancel method
-      (streamEmitter as any).cancel = () => {
-        stream.cancel();
-      };
+      Object.defineProperty(streamEmitter, 'cancel', {
+        value: () => stream.cancel(),
+        enumerable: false,
+        writable: false,
+      });
     } catch (error) {
       logger.error('Failed to start gRPC stream', error as Error);
       streamEmitter.emit('error', error);
@@ -224,7 +295,9 @@ export class PromptWizardGrpcClient extends EventEmitter {
   /**
    * Get job status via gRPC
    */
-  async getJobStatus(jobId: string): Promise<any> {
+  async getJobStatus(
+    jobId: string
+  ): Promise<{ status: string; progress?: number; error?: string }> {
     return this.executeWithRetry('getJobStatus', { job_id: jobId });
   }
 
@@ -242,9 +315,19 @@ export class PromptWizardGrpcClient extends EventEmitter {
    */
   private async executeWithRetry(
     method: string,
-    request: any,
+    request:
+      | OptimizationRequest
+      | ScoringRequest
+      | ComparisonRequest
+      | { job_id: string },
     retryCount: number = 0
-  ): Promise<any> {
+  ): Promise<
+    | OptimizationResponse
+    | ScoringResponse
+    | ComparisonResponse
+    | { status: string; progress?: number; error?: string }
+    | { cancelled: boolean; message: string }
+  > {
     return new Promise((resolve, reject) => {
       if (!this.client) {
         reject(new Error('gRPC client not initialized'));
@@ -257,7 +340,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
       this.client[method](
         request,
         { deadline },
-        (error: any, response: any) => {
+        (error: unknown, response: unknown) => {
           if (error) {
             const grpcError = this.parseGrpcError(error);
 
@@ -309,7 +392,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
       typeof error === 'object' &&
       error !== null &&
       'code' in error &&
-      retryableCodes.includes((error as any).code)
+      retryableCodes.includes((error as GrpcError).code)
     );
   }
 
@@ -318,10 +401,10 @@ export class PromptWizardGrpcClient extends EventEmitter {
    */
   private parseGrpcError(error: unknown): Error {
     if (typeof error === 'object' && error !== null && 'code' in error) {
-      const grpcError = error as any;
+      const grpcError = error as GrpcError;
       const statusText =
         Object.keys(grpc.status).find(
-          key => (grpc.status as any)[key] === grpcError.code
+          key => (grpc.status as Record<string, number>)[key] === grpcError.code
         ) || 'UNKNOWN';
 
       return new Error(
@@ -335,7 +418,15 @@ export class PromptWizardGrpcClient extends EventEmitter {
   /**
    * Convert gRPC response to TypeScript types
    */
-  private convertGrpcResponse(method: string, response: any): any {
+  private convertGrpcResponse(
+    method: string,
+    response: unknown
+  ):
+    | OptimizationResponse
+    | ScoringResponse
+    | ComparisonResponse
+    | { status: string; progress?: number; error?: string }
+    | { cancelled: boolean; message: string } {
     switch (method) {
       case 'optimizePrompt':
         return this.convertGrpcOptimizationResponse(response);
@@ -346,27 +437,49 @@ export class PromptWizardGrpcClient extends EventEmitter {
       case 'getJobStatus':
         return this.convertGrpcJobStatusResponse(response);
       default:
-        return response;
+        return response as
+          | OptimizationResponse
+          | ScoringResponse
+          | ComparisonResponse
+          | { status: string; progress?: number; error?: string }
+          | { cancelled: boolean; message: string };
     }
   }
 
   /**
    * Convert gRPC optimization response
    */
-  private convertGrpcOptimizationResponse(response: any): OptimizationResponse {
+  private convertGrpcOptimizationResponse(
+    response: unknown
+  ): OptimizationResponse {
+    const grpcResponse = response as {
+      job_id?: string;
+      status?: string;
+      original_prompt?: string;
+      optimized_prompt?: string;
+      metrics?: {
+        accuracy_improvement?: number;
+        token_reduction?: number;
+        cost_reduction?: number;
+        processing_time?: number;
+        api_calls_used?: number;
+      };
+      error_message?: string;
+    };
+
     const converted = {
-      jobId: response.job_id,
-      status: response.status,
-      originalPrompt: response.original_prompt,
-      optimizedPrompt: response.optimized_prompt,
+      jobId: grpcResponse.job_id || '',
+      status: grpcResponse.status || 'failed',
+      originalPrompt: grpcResponse.original_prompt || '',
+      optimizedPrompt: grpcResponse.optimized_prompt || '',
       metrics: {
-        accuracyImprovement: response.metrics?.accuracy_improvement || 0,
-        tokenReduction: response.metrics?.token_reduction || 0,
-        costReduction: response.metrics?.cost_reduction || 0,
-        processingTime: response.metrics?.processing_time || 0,
-        apiCallsUsed: response.metrics?.api_calls_used || 0,
+        accuracyImprovement: grpcResponse.metrics?.accuracy_improvement || 0,
+        tokenReduction: grpcResponse.metrics?.token_reduction || 0,
+        costReduction: grpcResponse.metrics?.cost_reduction || 0,
+        processingTime: grpcResponse.metrics?.processing_time || 0,
+        apiCallsUsed: grpcResponse.metrics?.api_calls_used || 0,
       } as OptimizationMetrics,
-      error: response.error_message,
+      error: grpcResponse.error_message,
     };
 
     // Validate converted response with Zod schema
@@ -377,7 +490,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
         validationResult.error.issues
       );
       throw new Error(
-        `Invalid gRPC response: ${validationResult.error.issues.map((i: any) => i.message).join(', ')}`
+        `Invalid gRPC response: ${validationResult.error.issues.map((i: { message: string }) => i.message).join(', ')}`
       );
     }
 
@@ -387,23 +500,30 @@ export class PromptWizardGrpcClient extends EventEmitter {
   /**
    * Convert gRPC scoring response
    */
-  private convertGrpcScoringResponse(response: any): ScoringResponse {
+  private convertGrpcScoringResponse(response: unknown): ScoringResponse {
+    const grpcResponse = response as {
+      overall_score?: number;
+      component_scores?: Record<string, unknown>;
+      suggestions?: string[];
+      metrics?: Record<string, unknown>;
+    };
+
     // Ensure componentScores is properly typed
     const componentScores: Record<string, number> = {};
     if (
-      response.component_scores &&
-      typeof response.component_scores === 'object'
+      grpcResponse.component_scores &&
+      typeof grpcResponse.component_scores === 'object'
     ) {
-      Object.entries(response.component_scores).forEach(([key, value]) => {
+      Object.entries(grpcResponse.component_scores).forEach(([key, value]) => {
         componentScores[key] = typeof value === 'number' ? value : 0;
       });
     }
 
     const converted = {
-      overallScore: response.overall_score,
+      overallScore: grpcResponse.overall_score || 0,
       componentScores,
-      suggestions: response.suggestions || [],
-      metrics: response.metrics || {},
+      suggestions: grpcResponse.suggestions || [],
+      metrics: grpcResponse.metrics || {},
     };
 
     // Validate converted response with Zod schema
@@ -420,12 +540,19 @@ export class PromptWizardGrpcClient extends EventEmitter {
   /**
    * Convert gRPC comparison response
    */
-  private convertGrpcComparisonResponse(response: any): ComparisonResponse {
+  private convertGrpcComparisonResponse(response: unknown): ComparisonResponse {
+    const grpcResponse = response as {
+      improvement_score?: number;
+      improvements?: string[];
+      potential_issues?: string[];
+      metrics?: Record<string, unknown>;
+    };
+
     const converted = {
-      improvementScore: response.improvement_score,
-      improvements: response.improvements || [],
-      potentialIssues: response.potential_issues || [],
-      metrics: response.metrics || {},
+      improvementScore: grpcResponse.improvement_score || 0,
+      improvements: grpcResponse.improvements || [],
+      potentialIssues: grpcResponse.potential_issues || [],
+      metrics: grpcResponse.metrics || {},
     };
 
     // Validate converted response with Zod schema
@@ -442,16 +569,32 @@ export class PromptWizardGrpcClient extends EventEmitter {
   /**
    * Convert gRPC job status response
    */
-  private convertGrpcJobStatusResponse(response: any): any {
+  private convertGrpcJobStatusResponse(response: unknown): {
+    jobId: string;
+    status: string;
+    progressPercentage?: number;
+    currentStep?: string;
+    result?: OptimizationResponse | null;
+    error?: string;
+  } {
+    const grpcResponse = response as {
+      job_id?: string;
+      status?: string;
+      progress_percentage?: number;
+      current_step?: string;
+      result?: unknown;
+      error_message?: string;
+    };
+
     return {
-      jobId: response.job_id,
-      status: response.status,
-      progressPercentage: response.progress_percentage,
-      currentStep: response.current_step,
-      result: response.result
-        ? this.convertGrpcOptimizationResponse(response.result)
+      jobId: grpcResponse.job_id || '',
+      status: grpcResponse.status || 'unknown',
+      progressPercentage: grpcResponse.progress_percentage,
+      currentStep: grpcResponse.current_step,
+      result: grpcResponse.result
+        ? this.convertGrpcOptimizationResponse(grpcResponse.result)
         : null,
-      error: response.error_message,
+      error: grpcResponse.error_message,
     };
   }
 
@@ -460,7 +603,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
    */
   async close(): Promise<void> {
     if (this.client) {
-      this.client.close();
+      (this.client as unknown as { close: () => void }).close();
       this.isConnected = false;
       logger.info('gRPC client closed');
     }

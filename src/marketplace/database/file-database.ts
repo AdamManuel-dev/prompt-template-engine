@@ -21,7 +21,12 @@ import {
   QueryFilter,
   QueryOptions,
 } from './database.interface';
-import { TemplateModel, TemplateManifest } from '../models/template.model';
+import {
+  TemplateModel,
+  TemplateManifest,
+  TemplateVersion,
+  TemplateReview,
+} from '../models/template.model';
 import { logger } from '../../utils/logger';
 
 /**
@@ -237,7 +242,10 @@ class FileTemplateRepository implements ITemplateRepository {
     });
   }
 
-  async createVersion(templateId: string, version: any): Promise<void> {
+  async createVersion(
+    templateId: string,
+    version: TemplateVersion
+  ): Promise<void> {
     // For simplicity, versions are embedded in the template
     const template = await this.findById(templateId);
     if (template) {
@@ -247,12 +255,12 @@ class FileTemplateRepository implements ITemplateRepository {
     }
   }
 
-  async getVersions(templateId: string): Promise<any[]> {
+  async getVersions(templateId: string): Promise<TemplateVersion[]> {
     const template = await this.findById(templateId);
     return template?.versions || [];
   }
 
-  async getLatestVersion(templateId: string): Promise<any | null> {
+  async getLatestVersion(templateId: string): Promise<TemplateVersion | null> {
     const versions = await this.getVersions(templateId);
     return versions.length > 0 ? versions[versions.length - 1] : null;
   }
@@ -294,14 +302,17 @@ class FileTemplateRepository implements ITemplateRepository {
     });
   }
 
-  private getNestedValue(obj: any, propertyPath: string): any {
+  private getNestedValue(
+    obj: Record<string, unknown>,
+    propertyPath: string
+  ): unknown {
     return propertyPath.split('.').reduce((curr, key) => curr?.[key], obj);
   }
 
   private matchesFilter(
-    value: any,
+    value: unknown,
     operator: string,
-    filterValue: any
+    filterValue: unknown
   ): boolean {
     switch (operator) {
       case 'eq':
@@ -355,18 +366,18 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
     // Simplified implementations for now - can be expanded
     this.authors = new FileRepository(
       path.join(dataDir, 'authors.json')
-    ) as any;
+    ) as IAuthorRepository;
     this.reviews = new FileReviewRepository(path.join(dataDir, 'reviews.json'));
     this.installations = new FileRepository(
       path.join(dataDir, 'installations.json')
-    ) as any;
+    ) as IInstallationRepository;
   }
 
   async connect(): Promise<void> {
     try {
       await fs.mkdir(path.dirname(this.manifestPath), { recursive: true });
       await this.templates.init();
-      await (this.reviews as any).init();
+      await this.reviews.init();
       this.isConnectedFlag = true;
       logger.info('File database connected successfully');
     } catch (error) {
@@ -547,7 +558,7 @@ class FileRepository<T extends { id: string }> {
  * File-based review repository with template filtering
  */
 class FileReviewRepository
-  extends FileRepository<any>
+  extends FileRepository<TemplateReview>
   implements IReviewRepository
 {
   constructor(filePath: string) {
@@ -561,7 +572,7 @@ class FileReviewRepository
   async findByTemplate(
     templateId: string,
     options?: QueryOptions
-  ): Promise<any[]> {
+  ): Promise<TemplateReview[]> {
     await this.init();
     const allReviews = await this.findMany();
     const reviews = allReviews.filter(
@@ -596,7 +607,7 @@ class FileReviewRepository
   async findByAuthor(
     authorId: string,
     _options?: QueryOptions
-  ): Promise<any[]> {
+  ): Promise<TemplateReview[]> {
     await this.init();
     const allReviews = await this.findMany();
     return allReviews.filter(review => review.userId === authorId);
@@ -634,7 +645,7 @@ class FileReviewRepository
     return reviews.length;
   }
 
-  private getFieldValue(obj: any, field: string): any {
+  private getFieldValue(obj: Record<string, unknown>, field: string): unknown {
     return field.split('.').reduce((o, key) => o?.[key], obj);
   }
 }

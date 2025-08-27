@@ -15,10 +15,15 @@ import { logger } from '../utils/logger';
  */
 export type ServiceLifetime = 'singleton' | 'transient' | 'scoped';
 
+// Forward declaration for ServiceContainer
+interface IServiceContainer {
+  resolve<T>(serviceId: string): T;
+}
+
 /**
  * Service factory function
  */
-export type ServiceFactory<T> = (container: ServiceContainer) => T;
+export type ServiceFactory<T> = (container: IServiceContainer) => T;
 
 /**
  * Service registration descriptor
@@ -71,18 +76,18 @@ export interface DisposableService {
  * - Clear dependency graphs
  * - Automatic lifecycle management
  */
-export class ServiceContainer {
+export class ServiceContainer implements IServiceContainer {
   private services = new Map<string, ServiceDescriptor>();
 
   private singletonInstances = new Map<string, unknown>();
 
   private scopedInstances = new Map<string, unknown>();
 
-  private parentContainer?: ServiceContainer;
+  private parentContainer?: IServiceContainer;
 
   private isDisposed = false;
 
-  constructor(parent?: ServiceContainer) {
+  constructor(parent?: IServiceContainer) {
     this.parentContainer = parent;
   }
 
@@ -204,7 +209,7 @@ export class ServiceContainer {
     if (this.parentContainer) {
       try {
         return this.parentContainer.resolve<T>(serviceId);
-      } catch (parentError) {
+      } catch (_parentError) {
         // Continue with our own error
       }
     }
@@ -422,7 +427,7 @@ export class ServiceContainer {
     return (
       obj !== null &&
       typeof obj === 'object' &&
-      typeof (obj as any).dispose === 'function'
+      typeof (obj as { dispose?: unknown }).dispose === 'function'
     );
   }
 

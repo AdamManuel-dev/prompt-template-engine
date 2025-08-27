@@ -54,6 +54,90 @@ jest.mock('../../src/marketplace/api/marketplace.api', () => {
   };
 });
 
+// Mock PromptWizard Client to prevent real network calls
+jest.mock('../../src/integrations/promptwizard/client', () => {
+  return {
+    PromptWizardClient: jest.fn().mockImplementation(() => ({
+      healthCheck: jest.fn().mockResolvedValue(true),
+      scorePrompt: jest.fn().mockResolvedValue({
+        overall: 85,
+        confidence: 92.5,
+        metrics: {
+          clarity: 88,
+          taskAlignment: 82,
+          tokenEfficiency: 85,
+          exampleQuality: 90,
+        },
+        suggestions: [
+          'Consider adding more specific examples',
+          'Improve task alignment with clearer instructions',
+          'Optimize token usage for better efficiency',
+        ],
+      }),
+      optimizePrompt: jest.fn().mockResolvedValue({
+        optimized: 'Optimized prompt content',
+        score: 95,
+        improvements: ['Better structure', 'Clearer instructions'],
+      }),
+      comparePrompts: jest.fn().mockResolvedValue({
+        winner: 'prompt1',
+        confidence: 85.5,
+        comparison: {
+          prompt1: { score: 90, strengths: ['Clear'], weaknesses: [] },
+          prompt2: { score: 80, strengths: [], weaknesses: ['Unclear'] },
+        },
+      }),
+      isHealthy: jest.fn().mockResolvedValue(true),
+      disconnect: jest.fn().mockResolvedValue(undefined),
+    })),
+    createDefaultConfig: jest.fn().mockReturnValue({
+      serviceUrl: 'http://localhost:8080',
+      timeout: 10000,
+      retries: 3,
+    }),
+  };
+});
+
+// Mock PromptWizard index module
+jest.mock('../../src/integrations/promptwizard', () => {
+  return {
+    PromptWizardClient: jest.fn().mockImplementation(() => ({
+      healthCheck: jest.fn().mockResolvedValue(true),
+      scorePrompt: jest.fn().mockResolvedValue({
+        overall: 85,
+        confidence: 92.5,
+        metrics: {
+          clarity: 88,
+          taskAlignment: 82,
+          tokenEfficiency: 85,
+          exampleQuality: 90,
+        },
+        suggestions: [],
+      }),
+      optimizePrompt: jest.fn().mockResolvedValue({
+        optimized: 'Optimized prompt content',
+        score: 95,
+        improvements: [],
+      }),
+      comparePrompts: jest.fn().mockResolvedValue({
+        winner: 'prompt1',
+        confidence: 85.5,
+        comparison: {
+          prompt1: { score: 90, strengths: [], weaknesses: [] },
+          prompt2: { score: 80, strengths: [], weaknesses: [] },
+        },
+      }),
+      isHealthy: jest.fn().mockResolvedValue(true),
+      disconnect: jest.fn().mockResolvedValue(undefined),
+    })),
+    createDefaultConfig: jest.fn().mockReturnValue({
+      serviceUrl: 'http://localhost:8080',
+      timeout: 10000,
+      retries: 3,
+    }),
+  };
+});
+
 // Ensure integrations that open sockets/intervals are disabled in tests
 process.env.CURSOR_PROMPT_CURSOR_INTEGRATION = 'false';
 process.env.CURSOR_PROMPT_PLUGINS_ENABLED = 'false';
@@ -81,8 +165,20 @@ jest.mock('../../src/integrations/cursor-extension-bridge', () => ({
   },
 }));
 
-// Set test timeout
-jest.setTimeout(30000);
+// Set test timeout - reduced for faster feedback
+jest.setTimeout(10000);
+
+// Mock timers for faster test execution
+jest.useFakeTimers({
+  advanceTimers: true,
+  doNotFake: ['nextTick', 'setImmediate'],
+});
+
+// Disable real network calls in tests
+process.env.NODE_ENV = 'test';
+process.env.DISABLE_NETWORK = 'true';
+process.env.PROMPTWIZARD_SERVICE_URL = 'http://localhost:8080/test';
+process.env.PROMPTWIZARD_ENABLED = 'false';
 
 // Test environment configuration
 export class TestEnvironment {
@@ -288,7 +384,6 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.clearAllTimers();
-  jest.useRealTimers();
   jest.resetModules();
 });
 
@@ -300,6 +395,12 @@ afterEach(async () => {
   if (global.gc) {
     global.gc();
   }
+});
+
+// Global test cleanup
+afterAll(() => {
+  jest.useRealTimers();
+  jest.restoreAllMocks();
 });
 
 export default {

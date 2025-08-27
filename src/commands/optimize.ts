@@ -9,10 +9,10 @@
  */
 
 import { Command } from 'commander';
-import chalk from 'chalk';
+import * as chalk from 'chalk';
 import Table from 'cli-table3';
-import path from 'path';
-import fs from 'fs/promises';
+import * as path from 'path';
+import { promises as fs } from 'fs';
 import {
   // PromptWizardClient,
   createDefaultConfig,
@@ -375,50 +375,88 @@ async function handleSingleOptimization(
   if (options.json) {
     console.log(JSON.stringify(result, null, 2));
   } else {
-    const displayResult = {
-      requestId: result.jobId,
-      templateId: result.jobId,
-      originalTemplate: {
-        name: template.name,
-        version: template.version,
-        content: template.content,
-        metadata: {},
-        variables: template.variables,
-        commands: template.commands,
-        requirements: template.requirements,
-        examples: template.examples,
-        filePatterns: template.filePatterns,
-        contextFiles: template.contextFiles,
-        references: template.references,
-        priority: template.priority,
-        alwaysApply: template.alwaysApply,
-      },
-      optimizedTemplate: {
-        name: template.name,
-        version: template.version,
-        content: result.result?.optimizedPrompt || template.content,
-        metadata: {},
-        variables: template.variables,
-        commands: template.commands,
-        requirements: template.requirements,
-        examples: template.examples,
-        filePatterns: template.filePatterns,
-        contextFiles: template.contextFiles,
-        references: template.references,
-        priority: template.priority,
-        alwaysApply: template.alwaysApply,
-      },
-      metrics: {
-        tokenReduction: result.result?.metrics?.tokenReduction || 0,
-        qualityScore: result.result?.metrics?.accuracyImprovement || 0,
-        processingTime: result.result?.metrics?.processingTime || 0,
-        costReduction: result.result?.metrics?.costReduction || 0,
-      },
-      qualityScore: result.result?.metrics?.accuracyImprovement || 0,
-      timestamp: new Date(),
-      comparison: undefined,
-      error: result.error || undefined,
-    };
+    const displayResult: import('../services/prompt-optimization.service').OptimizationResult =
+      {
+        requestId: result.jobId,
+        templateId: result.jobId,
+        originalTemplate: {
+          name: template.name,
+          version: template.version,
+          content: template.content,
+          metadata: {},
+          variables: template.variables,
+          commands: template.commands,
+          requirements: template.requirements,
+          examples: template.examples,
+          filePatterns: template.filePatterns,
+          contextFiles: template.contextFiles,
+          references: template.references,
+          priority: template.priority,
+          alwaysApply: template.alwaysApply,
+        },
+        optimizedTemplate: {
+          name: template.name,
+          version: template.version,
+          content: result.result?.optimizedPrompt || template.content,
+          metadata: {},
+          variables: template.variables,
+          commands: template.commands,
+          requirements: template.requirements,
+          examples: template.examples,
+          filePatterns: template.filePatterns,
+          contextFiles: template.contextFiles,
+          references: template.references,
+          priority: template.priority,
+          alwaysApply: template.alwaysApply,
+        },
+        metrics: {
+          tokenReduction: result.result?.metrics?.tokenReduction || 0,
+          accuracyImprovement: result.result?.metrics?.accuracyImprovement || 0,
+          optimizationTime: result.result?.metrics?.processingTime || 0,
+          apiCalls: result.result?.metrics?.apiCallsUsed || 0,
+        },
+        qualityScore: {
+          overall: result.result?.qualityScore || 0,
+          metrics: {
+            clarity: 0,
+            taskAlignment: 0,
+            tokenEfficiency: 0,
+          },
+          suggestions: [],
+          confidence: 0,
+        },
+        comparison: {
+          comparisonId: `comp-${Date.now()}`,
+          original: {
+            prompt: template.content || '',
+            score: {
+              overall: 0,
+              metrics: { clarity: 0, taskAlignment: 0, tokenEfficiency: 0 },
+              suggestions: [],
+              confidence: 0,
+            },
+            estimatedTokens: 0,
+            estimatedCost: 0,
+          },
+          optimized: {
+            prompt: result.result?.optimizedPrompt || template.content || '',
+            score: {
+              overall: result.result?.qualityScore || 0,
+              metrics: { clarity: 0, taskAlignment: 0, tokenEfficiency: 0 },
+              suggestions: [],
+              confidence: 0,
+            },
+            estimatedTokens: 0,
+            estimatedCost: 0,
+          },
+          analysis: {
+            strengthsGained: [],
+            potentialRisks: [],
+            recommendations: [],
+          },
+        },
+        timestamp: new Date(),
+      };
     displayOptimizationResult(displayResult);
   }
 
@@ -459,38 +497,109 @@ async function handleBatchOptimization(
   );
 
   // Batch optimize
-  const templatePaths = templates.map(t => t.path);
+  const templatePaths = templates.map(t => t.template.files?.[0]?.path || t.id);
   const result = await service.batchOptimize(templatePaths, {
-    skipCache: options.noCache,
+    // Note: skipCache is handled at the service level
   });
 
   // Display results
-  const batchResult = {
-    batchId: `batch-${Date.now()}`,
-    total: result.length,
-    successful: result.filter(r => r.status === 'completed').length,
-    failed: result.filter(r => r.status === 'failed').length,
-    results: result.map(r => ({
-      requestId: r.jobId,
-      templateId: r.jobId,
-      originalTemplate: { content: '', metadata: {} },
-      optimizedTemplate: { content: '', metadata: {} },
-      metrics: {
-        tokenReduction: 0,
-        qualityScore: 0,
-        processingTime: 0,
-        costReduction: 0,
-      },
-      qualityScore: 0,
+  const batchResult: import('../services/prompt-optimization.service').BatchOptimizationResult =
+    {
+      batchId: `batch-${Date.now()}`,
+      total: result.length,
+      successful: result.filter(r => r.status === 'completed').length,
+      failed: result.filter(r => r.status === 'failed').length,
+      results: result
+        .filter(r => r.status === 'completed')
+        .map(r => ({
+          requestId: r.jobId,
+          templateId: r.jobId,
+          originalTemplate: {
+            name: '',
+            version: '1.0.0',
+            content: r.result?.originalPrompt || '',
+            metadata: {},
+            variables: {},
+            commands: {},
+            requirements: [],
+            examples: [],
+            filePatterns: [],
+            contextFiles: [],
+            references: [],
+            priority: 'medium' as const,
+            alwaysApply: false,
+          },
+          optimizedTemplate: {
+            name: '',
+            version: '1.0.0',
+            content: r.result?.optimizedPrompt || '',
+            metadata: {},
+            variables: {},
+            commands: {},
+            requirements: [],
+            examples: [],
+            filePatterns: [],
+            contextFiles: [],
+            references: [],
+            priority: 'medium' as const,
+            alwaysApply: false,
+          },
+          metrics: {
+            tokenReduction: r.result?.metrics?.tokenReduction || 0,
+            accuracyImprovement: r.result?.metrics?.accuracyImprovement || 0,
+            optimizationTime: r.result?.metrics?.processingTime || 0,
+            apiCalls: r.result?.metrics?.apiCallsUsed || 0,
+          },
+          qualityScore: {
+            overall: r.result?.qualityScore || 0,
+            metrics: {
+              clarity: 0,
+              taskAlignment: 0,
+              tokenEfficiency: 0,
+            },
+            suggestions: [],
+            confidence: 0,
+          },
+          comparison: {
+            comparisonId: `comp-${Date.now()}`,
+            original: {
+              prompt: r.result?.originalPrompt || '',
+              score: {
+                overall: 0,
+                metrics: { clarity: 0, taskAlignment: 0, tokenEfficiency: 0 },
+                suggestions: [],
+                confidence: 0,
+              },
+              estimatedTokens: 0,
+              estimatedCost: 0,
+            },
+            optimized: {
+              prompt: r.result?.optimizedPrompt || '',
+              score: {
+                overall: r.result?.qualityScore || 0,
+                metrics: { clarity: 0, taskAlignment: 0, tokenEfficiency: 0 },
+                suggestions: [],
+                confidence: 0,
+              },
+              estimatedTokens: 0,
+              estimatedCost: 0,
+            },
+            analysis: {
+              strengthsGained: [],
+              potentialRisks: [],
+              recommendations: [],
+            },
+          },
+          timestamp: new Date(),
+        })),
+      errors: result
+        .filter(r => r.error)
+        .map(r => ({
+          templateId: r.jobId,
+          error: r.error!,
+        })),
       timestamp: new Date(),
-      comparison: undefined,
-      error: r.error || undefined,
-    })),
-    errors: result.filter(r => r.error).map(r => r.error!),
-    timestamp: new Date(),
-    duration: 0,
-    averageImprovement: 0,
-  };
+    };
   displayBatchResults(batchResult);
 
   // Save optimized templates if output specified
@@ -545,19 +654,51 @@ function createCompareCommand(): Command {
       try {
         spinner.start();
 
-        const _pwConfig = createDefaultConfig();
-        // const _client = new PromptWizardClient(pwConfig);
+        // createDefaultConfig() is unused here but may be needed later
+        // const client = new PromptWizardClient(createDefaultConfig());
 
         // Read templates
         const originalContent = await fs.readFile(originalPath, 'utf-8');
         const optimizedContent = await fs.readFile(optimizedPath, 'utf-8');
 
         // Compare prompts (placeholder - client not available)
-        const comparison = {
-          original: { content: originalContent, score: 0 },
-          optimized: { content: optimizedContent, score: 0 },
-          improvement: 0,
-          suggestions: [],
+        const comparison: PromptComparison = {
+          comparisonId: `comp-${Date.now()}`,
+          original: {
+            prompt: originalContent,
+            score: {
+              overall: 0,
+              metrics: {
+                clarity: 0,
+                taskAlignment: 0,
+                tokenEfficiency: 0,
+              },
+              suggestions: [],
+              confidence: 0,
+            },
+            estimatedTokens: 0,
+            estimatedCost: 0,
+          },
+          optimized: {
+            prompt: optimizedContent,
+            score: {
+              overall: 0,
+              metrics: {
+                clarity: 0,
+                taskAlignment: 0,
+                tokenEfficiency: 0,
+              },
+              suggestions: [],
+              confidence: 0,
+            },
+            estimatedTokens: 0,
+            estimatedCost: 0,
+          },
+          analysis: {
+            strengthsGained: [],
+            potentialRisks: [],
+            recommendations: [],
+          },
         };
 
         spinner.stop();
@@ -596,26 +737,28 @@ function createScoreCommand(): Command {
         spinner.start();
 
         const config = await loadConfig();
-        const _pwConfig = createDefaultConfig();
-        // const _client = new PromptWizardClient(pwConfig);
+        // const client = new PromptWizardClient(createDefaultConfig());
 
         // Load template content
-        let content: string;
         if (await fileExists(templateArg)) {
-          content = await fs.readFile(templateArg, 'utf-8');
+          await fs.readFile(templateArg, 'utf-8');
         } else {
           const templateService = new TemplateService({
             templatePaths: config.templatePaths || ['./templates'],
           });
-          const template = await templateService.loadTemplate(templateArg);
-          const _content = template.files?.[0]?.content || '';
+          await templateService.loadTemplate(templateArg);
         }
 
         // Score prompt (placeholder - client not available)
-        const promptScore = {
-          score: 75,
-          metrics: { clarity: 75, completeness: 75 },
+        const promptScore: QualityScore = {
+          overall: 75,
+          metrics: {
+            clarity: 75,
+            taskAlignment: 75,
+            tokenEfficiency: 75,
+          },
           suggestions: ['Consider adding more specific examples'],
+          confidence: 80,
         };
 
         spinner.stop();
@@ -663,10 +806,10 @@ function createBatchCommand(): Command {
         spinner.start();
 
         await loadConfig(); // Ensure config is loaded for any environment variables
-        const _pwConfig = createDefaultConfig();
+        const pwConfig = createDefaultConfig();
 
         // Initialize services
-        // const _client = new PromptWizardClient(pwConfig);
+        // const client = new PromptWizardClient(pwConfig);
         const templateService = new TemplateService({
           templatePaths: [directory],
         });
@@ -675,8 +818,8 @@ function createBatchCommand(): Command {
           {
             promptWizard: {
               enabled: true,
-              serviceUrl: _pwConfig.serviceUrl || 'http://localhost:8080',
-              timeout: _pwConfig.timeout || 30000,
+              serviceUrl: pwConfig.serviceUrl || 'http://localhost:8080',
+              timeout: pwConfig.timeout || 30000,
               retries: 3,
             },
             cache: {
@@ -716,38 +859,118 @@ function createBatchCommand(): Command {
 
         // Batch optimize
         const result = await optimizationService.batchOptimize(templatePaths, {
-          priority: 'normal',
+          // Note: priority is handled at the service level
         });
 
         spinner.stop();
 
         // Display results
-        const batchResult = {
-          batchId: `batch-${Date.now()}`,
-          total: result.length,
-          successful: result.filter(r => r.status === 'completed').length,
-          failed: result.filter(r => r.status === 'failed').length,
-          results: result.map(r => ({
-            requestId: r.jobId,
-            templateId: r.jobId,
-            originalTemplate: { content: '', metadata: {} },
-            optimizedTemplate: { content: '', metadata: {} },
-            metrics: {
-              tokenReduction: 0,
-              qualityScore: 0,
-              processingTime: 0,
-              costReduction: 0,
-            },
-            qualityScore: 0,
+        const batchResult: import('../services/prompt-optimization.service').BatchOptimizationResult =
+          {
+            batchId: `batch-${Date.now()}`,
+            total: result.length,
+            successful: result.filter(r => r.status === 'completed').length,
+            failed: result.filter(r => r.status === 'failed').length,
+            results: result
+              .filter(r => r.status === 'completed')
+              .map(r => ({
+                requestId: r.jobId,
+                templateId: r.jobId,
+                originalTemplate: {
+                  name: '',
+                  version: '1.0.0',
+                  content: r.result?.originalPrompt || '',
+                  metadata: {},
+                  variables: {},
+                  commands: {},
+                  requirements: [],
+                  examples: [],
+                  filePatterns: [],
+                  contextFiles: [],
+                  references: [],
+                  priority: 'medium' as const,
+                  alwaysApply: false,
+                },
+                optimizedTemplate: {
+                  name: '',
+                  version: '1.0.0',
+                  content: r.result?.optimizedPrompt || '',
+                  metadata: {},
+                  variables: {},
+                  commands: {},
+                  requirements: [],
+                  examples: [],
+                  filePatterns: [],
+                  contextFiles: [],
+                  references: [],
+                  priority: 'medium' as const,
+                  alwaysApply: false,
+                },
+                metrics: {
+                  tokenReduction: r.result?.metrics?.tokenReduction || 0,
+                  accuracyImprovement:
+                    r.result?.metrics?.accuracyImprovement || 0,
+                  optimizationTime: r.result?.metrics?.processingTime || 0,
+                  apiCalls: r.result?.metrics?.apiCallsUsed || 0,
+                },
+                qualityScore: {
+                  overall: r.result?.qualityScore || 0,
+                  metrics: {
+                    clarity: 0,
+                    taskAlignment: 0,
+                    tokenEfficiency: 0,
+                  },
+                  suggestions: [],
+                  confidence: 0,
+                },
+                comparison: {
+                  comparisonId: `comp-${Date.now()}`,
+                  original: {
+                    prompt: r.result?.originalPrompt || '',
+                    score: {
+                      overall: 0,
+                      metrics: {
+                        clarity: 0,
+                        taskAlignment: 0,
+                        tokenEfficiency: 0,
+                      },
+                      suggestions: [],
+                      confidence: 0,
+                    },
+                    estimatedTokens: 0,
+                    estimatedCost: 0,
+                  },
+                  optimized: {
+                    prompt: r.result?.optimizedPrompt || '',
+                    score: {
+                      overall: r.result?.qualityScore || 0,
+                      metrics: {
+                        clarity: 0,
+                        taskAlignment: 0,
+                        tokenEfficiency: 0,
+                      },
+                      suggestions: [],
+                      confidence: 0,
+                    },
+                    estimatedTokens: 0,
+                    estimatedCost: 0,
+                  },
+                  analysis: {
+                    strengthsGained: [],
+                    potentialRisks: [],
+                    recommendations: [],
+                  },
+                },
+                timestamp: new Date(),
+              })),
+            errors: result
+              .filter(r => r.error)
+              .map(r => ({
+                templateId: r.jobId,
+                error: r.error!,
+              })),
             timestamp: new Date(),
-            comparison: undefined,
-            error: r.error || undefined,
-          })),
-          errors: result.filter(r => r.error).map(r => r.error!),
-          timestamp: new Date(),
-          duration: 0,
-          averageImprovement: 0,
-        };
+          };
         displayBatchResults(batchResult);
 
         // Save optimized templates if output directory specified
@@ -803,10 +1026,10 @@ export function createOptimizeCommand(): Command {
 
         // Load configuration
         const config = await loadConfig();
-        const _pwConfig = createDefaultConfig();
+        const pwConfig = createDefaultConfig();
 
         // Initialize services
-        // const _client = new PromptWizardClient(pwConfig);
+        // const client = new PromptWizardClient(pwConfig);
         const templateService = new TemplateService({
           templatePaths: config.templatePaths || ['./templates'],
         });
@@ -815,8 +1038,8 @@ export function createOptimizeCommand(): Command {
           {
             promptWizard: {
               enabled: true,
-              serviceUrl: _pwConfig.serviceUrl || 'http://localhost:8080',
-              timeout: _pwConfig.timeout || 30000,
+              serviceUrl: pwConfig.serviceUrl || 'http://localhost:8080',
+              timeout: pwConfig.timeout || 30000,
               retries: 3,
             },
             cache: {

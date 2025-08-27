@@ -199,8 +199,8 @@ export class UnifiedOptimizationService extends EventEmitter {
           'Optimize template for clarity, effectiveness, and token efficiency',
         prompt: template.files?.[0]?.content || '',
         targetModel:
-          (options.targetModel as any) ||
-          (this.config.defaults.targetModel as any),
+          (options.targetModel as string | undefined) ||
+          (this.config.defaults.targetModel as string),
         mutateRefineIterations:
           options.mutateRefineIterations ||
           this.config.defaults.mutateRefineIterations,
@@ -242,7 +242,7 @@ export class UnifiedOptimizationService extends EventEmitter {
           templatePath,
           template,
           {
-            targetModel: request.targetModel as any,
+            targetModel: request.targetModel as string | undefined,
             mutateRefineIterations: request.mutateRefineIterations,
             generateReasoning: request.generateReasoning,
           }
@@ -633,7 +633,7 @@ export class UnifiedOptimizationService extends EventEmitter {
       results[index] = {
         jobId: this.generateJobId(),
         status: 'failed',
-        error: `Template loading failed: ${(template as any).error}`,
+        error: `Template loading failed: ${(template as { error?: string }).error || 'unknown error'}`,
         createdAt: new Date(),
         completedAt: new Date(),
       };
@@ -658,7 +658,7 @@ export class UnifiedOptimizationService extends EventEmitter {
    * Process templates using worker pool pattern for maximum parallelism
    */
   private async processWithWorkerPool(
-    templates: Array<{ index: number; path: string; template: any }>,
+    templates: Array<{ index: number; path: string; template: unknown }>,
     options: Partial<OptimizationConfig>
   ): Promise<OptimizationJobResult[]> {
     const results: OptimizationJobResult[] = [];
@@ -668,8 +668,8 @@ export class UnifiedOptimizationService extends EventEmitter {
     const processTemplate = async (templateData: {
       index: number;
       path: string;
-      template: any;
-    }) => {
+      template: unknown;
+    }): Promise<OptimizationJobResult> => {
       try {
         const result = await this.optimize(templateData.path, options);
         results[templateData.index] = result;
@@ -786,7 +786,7 @@ export class UnifiedOptimizationService extends EventEmitter {
           costReduction: 10,
           processingTime: Date.now() - Date.now(),
         },
-      } as any,
+      } as OptimizationMetrics,
       createdAt: new Date(),
       completedAt: new Date(),
     };
