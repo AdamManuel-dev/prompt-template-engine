@@ -654,6 +654,10 @@ export class ChainOfThoughtOptimizer {
         case 'low':
           score -= 0.05;
           break;
+        default:
+          // Unknown severity level, treat as low impact
+          score -= 0.05;
+          break;
       }
     });
 

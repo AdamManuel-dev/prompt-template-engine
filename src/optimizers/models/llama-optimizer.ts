@@ -305,6 +305,10 @@ export class LlamaOptimizer {
           applied = true;
         }
         break;
+
+      default:
+        // For unrecognized models, apply general optimizations
+        break;
     }
 
     return { prompt: tuned, applied };

@@ -834,7 +834,7 @@ export class MarketplaceOptimizationService {
       const tier =
         template.optimizationFeatures?.qualityTier ||
         OptimizationTier.UNOPTIMIZED;
-      distribution[tier]++;
+      distribution[tier] += 1;
     });
 
     return distribution;
@@ -1020,6 +1020,10 @@ export class PerformanceMetricsWidget {
         if (value < thresholds.costEffectiveness.excellent) level = 'excellent';
         else if (value < thresholds.costEffectiveness.good) level = 'good';
         else if (value < thresholds.costEffectiveness.fair) level = 'fair';
+        break;
+      default:
+        // For unknown metric types, default to 'poor'
+        level = 'poor';
         break;
     }
 

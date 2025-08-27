@@ -294,8 +294,8 @@ class FileTemplateRepository implements ITemplateRepository {
     });
   }
 
-  private getNestedValue(obj: any, path: string): any {
-    return path.split('.').reduce((curr, key) => curr?.[key], obj);
+  private getNestedValue(obj: any, propertyPath: string): any {
+    return propertyPath.split('.').reduce((curr, key) => curr?.[key], obj);
   }
 
   private matchesFilter(

@@ -150,7 +150,7 @@ export class CacheService<T extends object = any> {
       max: number;
       ttl: number;
       updateAgeOnGet?: boolean;
-      sizeCalculation?: <T>(value: T, key: string) => number;
+      sizeCalculation?: <V>(value: V, key: string) => number;
       maxSize?: number;
     } = {
       max: finalOptions.maxSize!,

@@ -277,7 +277,7 @@ export class OpenAIAdapter {
           role: 'user',
           content: `Part ${chunkIndex}: ${currentChunk}`,
         });
-        chunkIndex++;
+        chunkIndex += 1;
         currentChunk = paragraph;
       } else {
         // Single paragraph is too long, need to split by sentences
@@ -291,7 +291,7 @@ export class OpenAIAdapter {
               role: 'user',
               content: `Part ${chunkIndex}: ${sentence}`,
             });
-            chunkIndex++;
+            chunkIndex += 1;
           } else {
             warnings.push(
               `Sentence too long to fit in token limit: ${sentence.substring(0, 100)}...`

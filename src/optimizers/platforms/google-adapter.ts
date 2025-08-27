@@ -404,16 +404,14 @@ export class GoogleAdapter {
       if (content.role !== lastRole) {
         result.push(content);
         lastRole = content.role;
-      } else {
+      } else if (
+        result.length > 0 &&
+        result[result.length - 1].role === content.role
+      ) {
         // Combine with previous content of same role
-        if (
-          result.length > 0 &&
-          result[result.length - 1].role === content.role
-        ) {
-          const lastContent = result[result.length - 1];
-          const newText = content.parts.map(p => p.text).join(' ');
-          lastContent.parts[0].text += ` ${newText}`;
-        }
+        const lastContent = result[result.length - 1];
+        const newText = content.parts.map(p => p.text).join(' ');
+        lastContent.parts[0].text += ` ${newText}`;
       }
     }
 

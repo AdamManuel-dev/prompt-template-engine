@@ -59,8 +59,10 @@
     "url": "https://github.com/AdamManuel-dev/cursor-prompt-template-engine"
   },
   "dependencies": {
+    "@babel/parser": "^7.28.3",
     "@grpc/grpc-js": "^1.12.2",
     "@grpc/proto-loader": "^0.7.15",
+    "@types/babel__traverse": "^7.28.0",
     "@types/ws": "^8.18.1",
     "chalk": "^4.1.2",
     "chokidar": "^4.0.3",

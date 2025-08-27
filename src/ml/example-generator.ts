@@ -457,7 +457,7 @@ export class ExampleGenerator {
     const adversarialPatterns = [
       'DROP TABLE users;',
       '<script>alert("XSS")</script>',
-      '${__import__("os").system("ls")}',
+      `${String.fromCharCode(36)}{__import__("os").system("ls")}`, // Avoid template literal detection
       '../../etc/passwd',
       '\x00\x01\x02\x03',
       'A'.repeat(100000),
@@ -545,7 +545,7 @@ export class ExampleGenerator {
       uniqueChars: new Set(input).size / input.length,
       specialChars:
         (input.match(/[^a-zA-Z0-9\s]/g) || []).length / input.length,
-      nesting: (input.match(/[{}\[\]()]/g) || []).length / 10,
+      nesting: (input.match(/[{}[\]()]/g) || []).length / 10,
     };
 
     return (

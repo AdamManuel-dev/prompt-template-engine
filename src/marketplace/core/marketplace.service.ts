@@ -2039,7 +2039,8 @@ export class MarketplaceService
         // Fallback to template's reviews in model
         const template = await this.getTemplate(id);
         if (typeof template.rating === 'object' && template.rating.reviews) {
-          reviews = template.rating.reviews;
+          const { reviews: templateReviews } = template.rating;
+          reviews = templateReviews;
         }
       }
 

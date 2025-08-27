@@ -72,8 +72,8 @@ class SecureCodeValidator {
       });
 
       traverse(ast, {
-        enter: path => {
-          const { node } = path;
+        enter: nodePath => {
+          const { node } = nodePath;
 
           // Check allowed node types
           if (!this.allowedNodeTypes.has(node.type)) {
@@ -221,8 +221,8 @@ export class PluginSandbox {
   async executePlugin(
     plugin: IPlugin,
     method: string,
-    args: unknown[] = [],
-    customConfig?: Partial<SandboxConfig>
+    customConfig?: Partial<SandboxConfig>,
+    args: unknown[] = []
   ): Promise<PluginExecutionResult> {
     const executionId = this.generateExecutionId();
     const finalConfig = { ...this.config, ...customConfig };
@@ -555,8 +555,8 @@ export class PluginSandbox {
           // Use AST traversal to safely extract return values
           let result: unknown;
           traverse(ast, {
-            ReturnStatement: path => {
-              const { argument } = path.node;
+            ReturnStatement: nodePath => {
+              const { argument } = nodePath.node;
               if (
                 argument &&
                 typeof argument === 'object' &&

@@ -433,10 +433,12 @@ export class ContextAnalyzer {
     });
 
     const consolidated: string[] = [];
-    conceptMap.forEach(sentences => {
-      if (sentences.length > 1) {
+    conceptMap.forEach(sentenceGroup => {
+      if (sentenceGroup.length > 1) {
         // Keep the longest, most informative version
-        const best = sentences.reduce((a, b) => (a.length > b.length ? a : b));
+        const best = sentenceGroup.reduce((a, b) =>
+          a.length > b.length ? a : b
+        );
         consolidated.push(best);
       } else {
         consolidated.push(sentences[0]);
@@ -520,7 +522,7 @@ export class ContextAnalyzer {
 
     let overlap = 0;
     set1.forEach(keyword => {
-      if (set2.has(keyword)) overlap++;
+      if (set2.has(keyword)) overlap += 1;
     });
 
     return overlap / Math.min(set1.size, set2.size);

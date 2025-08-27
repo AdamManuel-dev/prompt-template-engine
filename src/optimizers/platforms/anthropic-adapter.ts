@@ -138,8 +138,10 @@ export class AnthropicAdapter {
         processedPrompt,
         systemMessage
       );
-      processedPrompt = constitutionalResult.prompt;
-      systemMessage = constitutionalResult.systemMessage;
+      const { prompt: processedResult, systemMessage: systemResult } =
+        constitutionalResult;
+      processedPrompt = processedResult;
+      systemMessage = systemResult;
       if (constitutionalResult.applied) {
         adaptationNotes.push('Constitutional AI principles applied');
       }
@@ -480,14 +482,12 @@ export class AnthropicAdapter {
       if (message.role !== lastRole) {
         result.push(message);
         lastRole = message.role;
-      } else {
+      } else if (
+        result.length > 0 &&
+        result[result.length - 1].role === message.role
+      ) {
         // Combine with previous message of same role
-        if (
-          result.length > 0 &&
-          result[result.length - 1].role === message.role
-        ) {
-          result[result.length - 1].content += `\n\n${message.content}`;
-        }
+        result[result.length - 1].content += `\n\n${message.content}`;
       }
     }
 

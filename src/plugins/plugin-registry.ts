@@ -364,7 +364,7 @@ export class PluginRegistry {
 
       // Update usage stats
       if (registration.metadata?.usageStats) {
-        registration.metadata.usageStats.activationCount++;
+        registration.metadata.usageStats.activationCount += 1;
         registration.metadata.usageStats.lastActivated = new Date();
       }
 
@@ -376,7 +376,7 @@ export class PluginRegistry {
       if (registration) {
         registration.status = PluginStatus.ERROR;
         if (registration.metadata?.usageStats) {
-          registration.metadata.usageStats.errorCount++;
+          registration.metadata.usageStats.errorCount += 1;
           registration.metadata.usageStats.lastError = new Date();
         }
       }
