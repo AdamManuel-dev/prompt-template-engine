@@ -199,9 +199,49 @@ export class PluginLoader {
    * ```
    */
   addPluginDir(dir: string): void {
-    if (!this.pluginDirs.includes(dir)) {
-      this.pluginDirs.push(dir);
-      logger.debug(`Added plugin directory: ${dir}`);
+    // SECURITY: Validate and normalize directory path
+    const normalizedDir = this.validatePluginDirectory(dir);
+    if (!normalizedDir) {
+      logger.error(`Invalid plugin directory rejected: ${dir}`);
+      return;
+    }
+
+    if (!this.pluginDirs.includes(normalizedDir)) {
+      this.pluginDirs.push(normalizedDir);
+      logger.debug(`Added plugin directory: ${normalizedDir}`);
+    }
+  }
+
+  /**
+   * Validate and normalize plugin directory path for security
+   * @private
+   * @param dir - Directory path to validate
+   * @returns Normalized path if valid, null if invalid
+   */
+  private validatePluginDirectory(dir: string): string | null {
+    try {
+      // Normalize and resolve the path
+      const normalizedPath = path.resolve(path.normalize(dir));
+
+      // Security checks
+      if (normalizedPath.includes('..')) {
+        logger.warn(`Directory traversal attempt blocked: ${dir}`);
+        return null;
+      }
+
+      // Reject potentially dangerous paths
+      const dangerousPaths = ['/etc', '/usr/bin', '/bin', '/sbin', '/system'];
+      if (
+        dangerousPaths.some(dangerous => normalizedPath.startsWith(dangerous))
+      ) {
+        logger.warn(`Dangerous system directory blocked: ${dir}`);
+        return null;
+      }
+
+      return normalizedPath;
+    } catch (error) {
+      logger.error(`Path validation failed for ${dir}: ${String(error)}`);
+      return null;
     }
   }
 
@@ -312,9 +352,22 @@ export class PluginLoader {
     }
 
     try {
-      const metadata = JSON.parse(
-        fs.readFileSync(metadataPath, 'utf8')
-      ) as PluginMetadata;
+      const metadataContent = fs.readFileSync(metadataPath, 'utf8');
+
+      // SECURITY: Validate JSON content size and structure
+      if (metadataContent.length > 10240) {
+        // 10KB limit
+        logger.error(`Plugin metadata too large: ${pluginPath}`);
+        return null;
+      }
+
+      const metadata = JSON.parse(metadataContent) as PluginMetadata;
+
+      // SECURITY: Validate metadata structure
+      if (!this.validatePluginMetadata(metadata)) {
+        logger.error(`Invalid plugin metadata structure: ${pluginPath}`);
+        return null;
+      }
 
       return {
         metadata,
@@ -691,6 +744,65 @@ export class PluginLoader {
    */
   getPlugin(name: string): Plugin | undefined {
     return this.plugins.get(name);
+  }
+
+  /**
+   * Validate plugin metadata for security and correctness
+   * @private
+   * @param metadata - Plugin metadata to validate
+   * @returns True if metadata is valid and safe
+   */
+  private validatePluginMetadata(metadata: PluginMetadata): boolean {
+    if (!metadata || typeof metadata !== 'object') {
+      return false;
+    }
+
+    // Required fields
+    if (!metadata.name || typeof metadata.name !== 'string') {
+      return false;
+    }
+
+    if (!metadata.version || typeof metadata.version !== 'string') {
+      return false;
+    }
+
+    // Security: Check for dangerous plugin names
+    const dangerousNames = ['system', 'root', 'admin', 'eval', 'exec'];
+    if (dangerousNames.includes(metadata.name.toLowerCase())) {
+      logger.warn(`Dangerous plugin name blocked: ${metadata.name}`);
+      return false;
+    }
+
+    // Validate name format (alphanumeric, hyphens, underscores only)
+    if (!/^[a-zA-Z0-9_-]+$/.test(metadata.name)) {
+      logger.warn(`Invalid plugin name format: ${metadata.name}`);
+      return false;
+    }
+
+    // Validate version format (semver-like)
+    if (!/^\d+\.\d+\.\d+(-[a-zA-Z0-9-]+)?$/.test(metadata.version)) {
+      logger.warn(`Invalid plugin version format: ${metadata.version}`);
+      return false;
+    }
+
+    // Optional fields validation
+    if (metadata.description && typeof metadata.description !== 'string') {
+      return false;
+    }
+
+    if (metadata.author && typeof metadata.author !== 'string') {
+      return false;
+    }
+
+    if (metadata.commands && !Array.isArray(metadata.commands)) {
+      return false;
+    }
+
+    if (metadata.dependencies && typeof metadata.dependencies !== 'object') {
+      return false;
+    }
+
+    return true;
   }
 
   /**

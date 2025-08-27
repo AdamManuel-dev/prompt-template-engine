@@ -112,8 +112,9 @@ class SecureCodeValidator {
           }
         },
       });
-    } catch (parseError: any) {
-      errors.push(`Code parsing failed: ${parseError.message}`);
+    } catch (parseError: unknown) {
+      const message = parseError instanceof Error ? parseError.message : String(parseError);
+      errors.push(`Code parsing failed: ${message}`);
     }
 
     return {
