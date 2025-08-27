@@ -37,14 +37,17 @@ export interface NotificationHistory {
 
 /**
  * Notification service focused solely on sending desktop notifications
- * 
+ *
  * This service handles the notification logic that was previously
  * embedded in AutoOptimizeManager, following single responsibility principle.
  */
 export class NotificationService {
   private enabled: boolean = true;
+
   private history: NotificationHistory[] = [];
+
   private maxHistorySize: number = 100;
+
   private platform: string;
 
   constructor(options: { enabled?: boolean; maxHistorySize?: number } = {}) {
@@ -63,10 +66,10 @@ export class NotificationService {
     }
 
     const notificationId = this.generateNotificationId();
-    
+
     try {
       await this.sendPlatformNotification(options);
-      
+
       this.addToHistory({
         id: notificationId,
         title: options.title,
@@ -83,10 +86,9 @@ export class NotificationService {
       });
 
       return true;
-
     } catch (error) {
       const errorMessage = (error as Error).message;
-      
+
       this.addToHistory({
         id: notificationId,
         title: options.title,
@@ -125,10 +127,10 @@ export class NotificationService {
     templatePath: string,
     tokenReduction?: number
   ): Promise<boolean> {
-    const reductionText = tokenReduction 
+    const reductionText = tokenReduction
       ? ` (${tokenReduction.toFixed(1)}% token reduction)`
       : '';
-    
+
     return this.send({
       title: 'Optimization Completed',
       message: `Template optimized: ${this.getTemplateDisplayName(templatePath)}${reductionText}`,
@@ -254,7 +256,7 @@ export class NotificationService {
         stats.failed++;
       }
 
-      stats.platforms[notification.platform] = 
+      stats.platforms[notification.platform] =
         (stats.platforms[notification.platform] || 0) + 1;
     });
 
@@ -263,31 +265,35 @@ export class NotificationService {
 
   // Private methods
 
-  private async sendPlatformNotification(options: NotificationOptions): Promise<void> {
+  private async sendPlatformNotification(
+    options: NotificationOptions
+  ): Promise<void> {
     switch (this.platform) {
       case 'darwin':
         await this.sendMacOSNotification(options);
         break;
-      
+
       case 'linux':
         await this.sendLinuxNotification(options);
         break;
-      
+
       case 'win32':
         await this.sendWindowsNotification(options);
         break;
-      
+
       default:
         throw new Error(`Unsupported platform: ${this.platform}`);
     }
   }
 
-  private async sendMacOSNotification(options: NotificationOptions): Promise<void> {
+  private async sendMacOSNotification(
+    options: NotificationOptions
+  ): Promise<void> {
     const { title, message, sound = false } = options;
-    
+
     const soundArg = sound ? '' : 'with no sound';
     const script = `display notification "${message}" with title "${title}" ${soundArg}`;
-    
+
     return new Promise((resolve, reject) => {
       child_process.exec(
         `osascript -e '${script}'`,
@@ -302,9 +308,11 @@ export class NotificationService {
     });
   }
 
-  private async sendLinuxNotification(options: NotificationOptions): Promise<void> {
+  private async sendLinuxNotification(
+    options: NotificationOptions
+  ): Promise<void> {
     const { title, message, timeout = 5000 } = options;
-    
+
     return new Promise((resolve, reject) => {
       child_process.exec(
         `notify-send "${title}" "${message}" --expire-time=${timeout}`,
@@ -319,23 +327,25 @@ export class NotificationService {
     });
   }
 
-  private async sendWindowsNotification(options: NotificationOptions): Promise<void> {
+  private async sendWindowsNotification(
+    options: NotificationOptions
+  ): Promise<void> {
     // Windows notifications require more complex setup or third-party tools
     // For now, we'll just log the notification
     logger.info(`Windows Notification: ${options.title} - ${options.message}`);
-    
+
     // In a real implementation, you might use:
     // - Windows Toast Notification API via PowerShell
     // - node-notifier library
     // - Electron's notification API if running in Electron
-    
+
     // For demonstration, we'll simulate success
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   private addToHistory(notification: NotificationHistory): void {
     this.history.push(notification);
-    
+
     // Maintain history size limit
     if (this.history.length > this.maxHistorySize) {
       this.history = this.history.slice(-this.maxHistorySize);

@@ -9,8 +9,8 @@
  */
 
 // Core coordinator
-export { 
-  AutoOptimizeCoordinator, 
+export {
+  AutoOptimizeCoordinator,
   autoOptimizeCoordinator,
   type AutoOptimizeCoordinatorOptions,
   type AutoOptimizeStatus,

@@ -113,7 +113,8 @@ class SecureCodeValidator {
         },
       });
     } catch (parseError: unknown) {
-      const message = parseError instanceof Error ? parseError.message : String(parseError);
+      const message =
+        parseError instanceof Error ? parseError.message : String(parseError);
       errors.push(`Code parsing failed: ${message}`);
     }
 

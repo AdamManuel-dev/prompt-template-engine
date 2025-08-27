@@ -46,17 +46,21 @@ export interface JobProcessorStats {
 
 /**
  * Job processor service focused solely on managing optimization job queue
- * 
+ *
  * This service handles the job processing logic that was previously
  * embedded in AutoOptimizeManager, following single responsibility principle.
  */
 export class JobProcessorService extends EventEmitter {
   private jobQueue: OptimizationJob[] = [];
+
   private activeJobs: Map<string, OptimizationJob> = new Map();
+
   private options: JobProcessorOptions;
+
   private isProcessing: boolean = false;
+
   private processorInterval: NodeJS.Timeout | null = null;
-  
+
   private stats: JobProcessorStats = {
     totalProcessed: 0,
     successCount: 0,
@@ -94,13 +98,13 @@ export class JobProcessorService extends EventEmitter {
         break;
       }
     }
-    
+
     if (!inserted) {
       this.jobQueue.push(job);
     }
 
     this.updateStats();
-    
+
     logger.info('Job added to processing queue', {
       jobId: job.id,
       templatePath,
@@ -123,7 +127,7 @@ export class JobProcessorService extends EventEmitter {
 
     this.isProcessing = true;
     this.startJobProcessor();
-    
+
     logger.info('Job processor started', {
       maxConcurrentJobs: this.options.maxConcurrentJobs,
       maxRetryAttempts: this.options.maxRetryAttempts,
@@ -163,7 +167,7 @@ export class JobProcessorService extends EventEmitter {
     }
 
     this.updateStats();
-    
+
     logger.info('Job processor stopped', { graceful });
     this.emit('processor-stopped');
   }
@@ -186,10 +190,7 @@ export class JobProcessorService extends EventEmitter {
    * Get all jobs (active and queued)
    */
   getAllJobs(): OptimizationJob[] {
-    return [
-      ...Array.from(this.activeJobs.values()),
-      ...this.jobQueue,
-    ];
+    return [...Array.from(this.activeJobs.values()), ...this.jobQueue];
   }
 
   /**
@@ -203,10 +204,10 @@ export class JobProcessorService extends EventEmitter {
       job.status = 'failed';
       job.error = 'Job cancelled';
       job.completedTime = new Date();
-      
+
       this.updateStats();
       this.emit('job-cancelled', job);
-      
+
       logger.info('Job cancelled from queue', { jobId });
       return true;
     }
@@ -217,7 +218,7 @@ export class JobProcessorService extends EventEmitter {
       activeJob.status = 'failed';
       activeJob.error = 'Job cancelled';
       activeJob.completedTime = new Date();
-      
+
       this.emit('job-cancelled', activeJob);
       logger.info('Active job marked for cancellation', { jobId });
       return true;
@@ -231,17 +232,17 @@ export class JobProcessorService extends EventEmitter {
    */
   clearQueue(): number {
     const clearedCount = this.jobQueue.length;
-    
+
     this.jobQueue.forEach(job => {
       job.status = 'failed';
       job.error = 'Queue cleared';
       job.completedTime = new Date();
       this.emit('job-cancelled', job);
     });
-    
+
     this.jobQueue = [];
     this.updateStats();
-    
+
     logger.info('Job queue cleared', { clearedCount });
     return clearedCount;
   }
@@ -350,16 +351,18 @@ export class JobProcessorService extends EventEmitter {
       });
 
       this.emit('job-completed', job);
-
     } catch (error) {
       // Job failed
       const errorMessage = (error as Error).message;
-      
-      if (job.retryCount < this.options.maxRetryAttempts && errorMessage !== 'Job timeout') {
+
+      if (
+        job.retryCount < this.options.maxRetryAttempts &&
+        errorMessage !== 'Job timeout'
+      ) {
         // Retry the job
         job.retryCount++;
         job.status = 'pending';
-        
+
         // Add back to queue with delay
         setTimeout(() => {
           this.jobQueue.unshift(job); // Add to front for priority
@@ -367,7 +370,7 @@ export class JobProcessorService extends EventEmitter {
         }, this.options.retryBackoffMs);
 
         this.stats.retryCount++;
-        
+
         logger.info('Job scheduled for retry', {
           jobId: job.id,
           retryCount: job.retryCount,
@@ -375,7 +378,6 @@ export class JobProcessorService extends EventEmitter {
         });
 
         this.emit('job-retry', job);
-
       } else {
         // Job failed permanently
         job.status = 'failed';
@@ -422,7 +424,7 @@ export class JobProcessorService extends EventEmitter {
 
     if (success) {
       this.stats.successCount++;
-      
+
       // Update average processing time
       if (processingTime > 0) {
         this.stats.averageProcessingTime =

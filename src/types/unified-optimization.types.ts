@@ -11,7 +11,12 @@
 /**
  * Status of an optimization operation
  */
-export type OptimizationStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+export type OptimizationStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
 
 /**
  * Optimization metrics and performance data
@@ -43,7 +48,7 @@ export interface OptimizationMetrics {
 
 /**
  * Unified optimization result - replaces both OptimizationResult and OptimizedResult
- * 
+ *
  * This is the single, canonical interface for optimization results across the entire system.
  * Previously, we had duplicate interfaces causing confusion and maintenance issues.
  */
@@ -81,7 +86,12 @@ export interface OptimizationRequest {
   /** Task description for context */
   task: string;
   /** Target model for optimization */
-  targetModel: 'gpt-4' | 'gpt-3.5-turbo' | 'claude-3-opus' | 'claude-3-sonnet' | 'gemini-pro';
+  targetModel:
+    | 'gpt-4'
+    | 'gpt-3.5-turbo'
+    | 'claude-3-opus'
+    | 'claude-3-sonnet'
+    | 'gemini-pro';
   /** Number of refinement iterations */
   mutateRefineIterations?: number;
   /** Number of few-shot examples to generate */
@@ -238,10 +248,22 @@ export interface OptimizationServiceConfig {
  * Optimization event types for event emitters
  */
 export interface OptimizationEvents {
-  'optimization:started': { jobId: string; templatePath: string; request: OptimizationRequest };
-  'optimization:completed': { jobId: string; templatePath: string; result: OptimizationResult };
+  'optimization:started': {
+    jobId: string;
+    templatePath: string;
+    request: OptimizationRequest;
+  };
+  'optimization:completed': {
+    jobId: string;
+    templatePath: string;
+    result: OptimizationResult;
+  };
   'optimization:failed': { jobId: string; templatePath: string; error: Error };
-  'optimization:cached': { jobId: string; templatePath: string; result: OptimizationResult };
+  'optimization:cached': {
+    jobId: string;
+    templatePath: string;
+    result: OptimizationResult;
+  };
   'batch:started': { batchId: string; templatePaths: string[] };
   'batch:completed': { batchId: string; results: OptimizationResult[] };
   'batch:progress': { batchId: string; completed: number; total: number };
@@ -294,12 +316,18 @@ export const OptimizationTypeGuards = {
   /**
    * Type guard to check if result is completed
    */
-  isCompletedResult(result: OptimizationResult): result is OptimizationResult & {
+  isCompletedResult(
+    result: OptimizationResult
+  ): result is OptimizationResult & {
     status: 'completed';
     optimizedPrompt: string;
     completedAt: Date;
   } {
-    return result.status === 'completed' && !!result.optimizedPrompt && !!result.completedAt;
+    return (
+      result.status === 'completed' &&
+      !!result.optimizedPrompt &&
+      !!result.completedAt
+    );
   },
 
   /**

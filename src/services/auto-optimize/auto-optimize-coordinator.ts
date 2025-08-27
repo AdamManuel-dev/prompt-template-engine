@@ -54,10 +54,10 @@ export interface AutoOptimizeStatus {
 
 /**
  * Refactored auto-optimization coordinator
- * 
+ *
  * This replaces the monolithic AutoOptimizeManager with a lean coordinator
  * that orchestrates focused services, following single responsibility principle.
- * 
+ *
  * Services coordinated:
  * - FileWatcherService: Monitors file changes
  * - JobProcessorService: Manages job queue and processing
@@ -66,11 +66,15 @@ export interface AutoOptimizeStatus {
  */
 export class AutoOptimizeCoordinator extends EventEmitter {
   private fileWatcher: FileWatcherService;
+
   private jobProcessor: JobProcessorService;
+
   private notificationService: NotificationService;
+
   private optimizationService: UnifiedOptimizationService;
 
   private options: AutoOptimizeCoordinatorOptions;
+
   private isEnabled: boolean = false;
 
   constructor(
@@ -83,27 +87,34 @@ export class AutoOptimizeCoordinator extends EventEmitter {
     }
   ) {
     super();
-    
+
     this.options = options;
 
     // Initialize services with dependency injection
-    this.fileWatcher = services?.fileWatcher || new FileWatcherService({
-      watchPatterns: options.watchPatterns,
-      debounceMs: options.debounceMs,
-    });
+    this.fileWatcher =
+      services?.fileWatcher ||
+      new FileWatcherService({
+        watchPatterns: options.watchPatterns,
+        debounceMs: options.debounceMs,
+      });
 
-    this.jobProcessor = services?.jobProcessor || new JobProcessorService({
-      maxConcurrentJobs: options.maxConcurrentJobs,
-      maxRetryAttempts: options.maxRetryAttempts,
-      retryBackoffMs: 5000,
-      jobTimeoutMs: options.jobTimeoutMs,
-    });
+    this.jobProcessor =
+      services?.jobProcessor ||
+      new JobProcessorService({
+        maxConcurrentJobs: options.maxConcurrentJobs,
+        maxRetryAttempts: options.maxRetryAttempts,
+        retryBackoffMs: 5000,
+        jobTimeoutMs: options.jobTimeoutMs,
+      });
 
-    this.notificationService = services?.notificationService || new NotificationService({
-      enabled: options.notifications,
-    });
+    this.notificationService =
+      services?.notificationService ||
+      new NotificationService({
+        enabled: options.notifications,
+      });
 
-    this.optimizationService = services?.optimizationService || this.createOptimizationService();
+    this.optimizationService =
+      services?.optimizationService || this.createOptimizationService();
 
     this.setupEventHandlers();
   }
@@ -145,7 +156,6 @@ export class AutoOptimizeCoordinator extends EventEmitter {
       await this.notificationService.sendAutoOptimizationEnabled();
 
       this.emit('started', this.getStatus());
-
     } catch (error) {
       logger.error('Failed to start auto-optimization', error as Error);
       throw error;
@@ -176,7 +186,6 @@ export class AutoOptimizeCoordinator extends EventEmitter {
       await this.notificationService.sendAutoOptimizationDisabled();
 
       this.emit('stopped', this.getStatus());
-
     } catch (error) {
       logger.error('Failed to stop auto-optimization', error as Error);
       throw error;
@@ -188,15 +197,16 @@ export class AutoOptimizeCoordinator extends EventEmitter {
    */
   getStatus(): AutoOptimizeStatus {
     const jobStats = this.jobProcessor.getStats();
-    
+
     return {
       enabled: this.isEnabled,
       activeJobs: jobStats.activeJobs,
       queuedJobs: jobStats.queuedJobs,
       totalProcessed: jobStats.totalProcessed,
-      successRate: jobStats.totalProcessed > 0 
-        ? (jobStats.successCount / jobStats.totalProcessed) * 100 
-        : 0,
+      successRate:
+        jobStats.totalProcessed > 0
+          ? (jobStats.successCount / jobStats.totalProcessed) * 100
+          : 0,
       options: { ...this.options },
     };
   }
@@ -211,11 +221,17 @@ export class AutoOptimizeCoordinator extends EventEmitter {
     if (newOptions.watchPatterns || newOptions.debounceMs) {
       // File watcher options changed - restart may be needed
       if (this.isEnabled) {
-        logger.info('File watcher configuration changed - restart may be required for full effect');
+        logger.info(
+          'File watcher configuration changed - restart may be required for full effect'
+        );
       }
     }
 
-    if (newOptions.maxConcurrentJobs || newOptions.maxRetryAttempts || newOptions.jobTimeoutMs) {
+    if (
+      newOptions.maxConcurrentJobs ||
+      newOptions.maxRetryAttempts ||
+      newOptions.jobTimeoutMs
+    ) {
       this.jobProcessor.updateOptions({
         maxConcurrentJobs: this.options.maxConcurrentJobs,
         maxRetryAttempts: this.options.maxRetryAttempts,
@@ -238,9 +254,15 @@ export class AutoOptimizeCoordinator extends EventEmitter {
   /**
    * Manually trigger optimization for a specific file
    */
-  async optimizeFile(templatePath: string, priority: number = 10): Promise<OptimizationJob> {
+  async optimizeFile(
+    templatePath: string,
+    priority: number = 10
+  ): Promise<OptimizationJob> {
     const job = this.jobProcessor.addJob(templatePath, priority);
-    logger.info('Manual optimization triggered', { jobId: job.id, templatePath });
+    logger.info('Manual optimization triggered', {
+      jobId: job.id,
+      templatePath,
+    });
     return job;
   }
 
@@ -263,7 +285,7 @@ export class AutoOptimizeCoordinator extends EventEmitter {
 
   private createOptimizationService(): UnifiedOptimizationService {
     const promptWizardConfig = getPromptWizardConfig();
-    
+
     return new UnifiedOptimizationService({
       promptWizard: {
         enabled: true,
@@ -283,7 +305,8 @@ export class AutoOptimizeCoordinator extends EventEmitter {
       },
       defaults: {
         targetModel: this.options.targetModels[0] || 'gpt-4',
-        mutateRefineIterations: promptWizardConfig.optimization.mutateRefineIterations,
+        mutateRefineIterations:
+          promptWizardConfig.optimization.mutateRefineIterations,
         fewShotCount: promptWizardConfig.optimization.fewShotCount,
         generateReasoning: promptWizardConfig.optimization.generateReasoning,
       },
@@ -358,7 +381,6 @@ export class AutoOptimizeCoordinator extends EventEmitter {
       // Job completed successfully
       job.result = result;
       this.jobProcessor.emit('job-process-completed', result);
-
     } catch (error) {
       // Job failed
       this.jobProcessor.emit('job-process-failed', error);
@@ -367,7 +389,7 @@ export class AutoOptimizeCoordinator extends EventEmitter {
 
   private async handleJobCompleted(job: OptimizationJob): Promise<void> {
     const result = job.result as any;
-    
+
     // Extract metrics if available
     let tokenReduction: number | undefined;
     if (result?.result?.metrics?.tokenReduction) {

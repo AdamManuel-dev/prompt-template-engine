@@ -55,16 +55,16 @@ export interface DisposableService {
 
 /**
  * Dependency injection container for managing services
- * 
+ *
  * This container provides type-safe dependency injection, replacing hard-coded
  * service instantiation throughout the application. It supports:
- * 
+ *
  * - Singleton services (created once, reused)
  * - Transient services (created each time)
  * - Scoped services (created once per scope)
  * - Dependency validation
  * - Automatic disposal of disposable services
- * 
+ *
  * Benefits:
  * - Loose coupling between services
  * - Easy testing with mock services
@@ -73,9 +73,13 @@ export interface DisposableService {
  */
 export class ServiceContainer {
   private services = new Map<string, ServiceDescriptor>();
+
   private singletonInstances = new Map<string, unknown>();
+
   private scopedInstances = new Map<string, unknown>();
+
   private parentContainer?: ServiceContainer;
+
   private isDisposed = false;
 
   constructor(parent?: ServiceContainer) {
@@ -102,7 +106,7 @@ export class ServiceContainer {
     };
 
     this.services.set(serviceId, descriptor);
-    
+
     logger.debug('Service registered', {
       serviceId,
       lifetime: descriptor.lifetime,
@@ -121,8 +125,8 @@ export class ServiceContainer {
     factory: ServiceFactory<T>,
     dependencies?: string[]
   ): ServiceContainer {
-    return this.register(serviceId, factory, { 
-      lifetime: 'singleton', 
+    return this.register(serviceId, factory, {
+      lifetime: 'singleton',
       dependencies,
       disposable: this.isDisposableFactory(factory),
     });
@@ -136,8 +140,8 @@ export class ServiceContainer {
     factory: ServiceFactory<T>,
     dependencies?: string[]
   ): ServiceContainer {
-    return this.register(serviceId, factory, { 
-      lifetime: 'transient', 
+    return this.register(serviceId, factory, {
+      lifetime: 'transient',
       dependencies,
       disposable: this.isDisposableFactory(factory),
     });
@@ -151,8 +155,8 @@ export class ServiceContainer {
     factory: ServiceFactory<T>,
     dependencies?: string[]
   ): ServiceContainer {
-    return this.register(serviceId, factory, { 
-      lifetime: 'scoped', 
+    return this.register(serviceId, factory, {
+      lifetime: 'scoped',
       dependencies,
       disposable: this.isDisposableFactory(factory),
     });
@@ -168,8 +172,8 @@ export class ServiceContainer {
 
     // Create a factory that returns the instance
     const factory: ServiceFactory<T> = () => instance;
-    
-    this.register(serviceId, factory, { 
+
+    this.register(serviceId, factory, {
       lifetime: 'singleton',
       disposable: this.isDisposable(instance),
     });
@@ -222,15 +226,17 @@ export class ServiceContainer {
     switch (typedDescriptor.lifetime) {
       case 'singleton':
         return this.resolveSingleton<T>(serviceId, typedDescriptor);
-      
+
       case 'scoped':
         return this.resolveScoped<T>(serviceId, typedDescriptor);
-      
+
       case 'transient':
         return this.resolveTransient<T>(serviceId, typedDescriptor);
-      
+
       default:
-        throw new Error(`Unknown service lifetime: ${typedDescriptor.lifetime}`);
+        throw new Error(
+          `Unknown service lifetime: ${typedDescriptor.lifetime}`
+        );
     }
   }
 
@@ -241,11 +247,11 @@ export class ServiceContainer {
     if (this.services.has(serviceId)) {
       return true;
     }
-    
+
     if (this.parentContainer) {
       return this.parentContainer.isRegistered(serviceId);
     }
-    
+
     return false;
   }
 
@@ -265,12 +271,12 @@ export class ServiceContainer {
    */
   getServiceIds(): string[] {
     const serviceIds = Array.from(this.services.keys());
-    
+
     if (this.parentContainer) {
       const parentIds = this.parentContainer.getServiceIds();
       return [...new Set([...serviceIds, ...parentIds])];
     }
-    
+
     return serviceIds;
   }
 
@@ -279,16 +285,16 @@ export class ServiceContainer {
    */
   getDependencyGraph(): Record<string, string[]> {
     const graph: Record<string, string[]> = {};
-    
+
     for (const [serviceId, descriptor] of this.services) {
       graph[serviceId] = descriptor.dependencies || [];
     }
-    
+
     if (this.parentContainer) {
       const parentGraph = this.parentContainer.getDependencyGraph();
       Object.assign(graph, parentGraph);
     }
-    
+
     return graph;
   }
 
@@ -299,20 +305,22 @@ export class ServiceContainer {
     const errors: string[] = [];
     const graph = this.getDependencyGraph();
     const serviceIds = this.getServiceIds();
-    
+
     // Check for missing dependencies
     for (const [serviceId, dependencies] of Object.entries(graph)) {
       for (const dependency of dependencies) {
         if (!serviceIds.includes(dependency)) {
-          errors.push(`Service '${serviceId}' depends on unregistered service '${dependency}'`);
+          errors.push(
+            `Service '${serviceId}' depends on unregistered service '${dependency}'`
+          );
         }
       }
     }
-    
+
     // Check for circular dependencies
     const circularErrors = this.detectCircularDependencies(graph);
     errors.push(...circularErrors);
-    
+
     return {
       valid: errors.length === 0,
       errors,
@@ -347,49 +355,62 @@ export class ServiceContainer {
 
   // Private methods
 
-  private resolveSingleton<T>(serviceId: string, descriptor: ServiceDescriptor<T>): T {
+  private resolveSingleton<T>(
+    serviceId: string,
+    descriptor: ServiceDescriptor<T>
+  ): T {
     let instance = this.singletonInstances.get(serviceId) as T;
-    
+
     if (!instance) {
       logger.debug('Creating singleton service', { serviceId });
       instance = descriptor.factory(this);
       this.singletonInstances.set(serviceId, instance);
     }
-    
+
     return instance;
   }
 
-  private resolveScoped<T>(serviceId: string, descriptor: ServiceDescriptor<T>): T {
+  private resolveScoped<T>(
+    serviceId: string,
+    descriptor: ServiceDescriptor<T>
+  ): T {
     let instance = this.scopedInstances.get(serviceId) as T;
-    
+
     if (!instance) {
       logger.debug('Creating scoped service', { serviceId });
       instance = descriptor.factory(this);
       this.scopedInstances.set(serviceId, instance);
     }
-    
+
     return instance;
   }
 
-  private resolveTransient<T>(serviceId: string, descriptor: ServiceDescriptor<T>): T {
+  private resolveTransient<T>(
+    serviceId: string,
+    descriptor: ServiceDescriptor<T>
+  ): T {
     logger.debug('Creating transient service', { serviceId });
     return descriptor.factory(this);
   }
 
-  private async disposeInstances(instances: Map<string, unknown>): Promise<void> {
+  private async disposeInstances(
+    instances: Map<string, unknown>
+  ): Promise<void> {
     const disposals: Promise<void>[] = [];
 
     for (const [serviceId, instance] of instances) {
       if (this.isDisposable(instance)) {
         logger.debug('Disposing service', { serviceId });
-        
+
         try {
           const disposal = instance.dispose();
           if (disposal instanceof Promise) {
             disposals.push(disposal);
           }
         } catch (error) {
-          logger.error('Error disposing service', error as Error, { serviceId });
+          logger.error('Error disposing service', error as Error, {
+            serviceId,
+          });
         }
       }
     }
@@ -398,9 +419,11 @@ export class ServiceContainer {
   }
 
   private isDisposable(obj: unknown): obj is DisposableService {
-    return obj !== null && 
-           typeof obj === 'object' && 
-           typeof (obj as any).dispose === 'function';
+    return (
+      obj !== null &&
+      typeof obj === 'object' &&
+      typeof (obj as any).dispose === 'function'
+    );
   }
 
   private isDisposableFactory<T>(_factory: ServiceFactory<T>): boolean {
@@ -409,7 +432,9 @@ export class ServiceContainer {
     return false;
   }
 
-  private detectCircularDependencies(graph: Record<string, string[]>): string[] {
+  private detectCircularDependencies(
+    graph: Record<string, string[]>
+  ): string[] {
     const errors: string[] = [];
     const visited = new Set<string>();
     const visiting = new Set<string>();
@@ -428,11 +453,11 @@ export class ServiceContainer {
 
       visiting.add(serviceId);
       const dependencies = graph[serviceId] || [];
-      
+
       for (const dependency of dependencies) {
         visit(dependency, [...path, serviceId]);
       }
-      
+
       visiting.delete(serviceId);
       visited.add(serviceId);
     };
@@ -449,7 +474,7 @@ export class ServiceContainer {
 
 /**
  * Global service container instance
- * 
+ *
  * This is the root container for the application. Services should be registered
  * here during application startup.
  */
@@ -464,18 +489,24 @@ export const ServiceRegistry = {
    */
   registerCommonServices(_container: ServiceContainer = globalContainer): void {
     // These would typically be registered during application startup
-    logger.info('Common services would be registered here during application startup');
+    logger.info(
+      'Common services would be registered here during application startup'
+    );
   },
 
   /**
    * Register optimization services
    */
-  registerOptimizationServices(container: ServiceContainer = globalContainer): void {
+  registerOptimizationServices(
+    container: ServiceContainer = globalContainer
+  ): void {
     // Auto-optimization services
     container.registerSingleton(
       'fileWatcher',
-      (_c) => {
-        const { FileWatcherService } = require('./auto-optimize/file-watcher.service');
+      _c => {
+        const {
+          FileWatcherService,
+        } = require('./auto-optimize/file-watcher.service');
         return new FileWatcherService({
           watchPatterns: ['**/*.prompt', '**/*.md', 'templates/**/*'],
           debounceMs: 2000,
@@ -485,9 +516,11 @@ export const ServiceRegistry = {
     );
 
     container.registerSingleton(
-      'jobProcessor', 
-      (_c) => {
-        const { JobProcessorService } = require('./auto-optimize/job-processor.service');
+      'jobProcessor',
+      _c => {
+        const {
+          JobProcessorService,
+        } = require('./auto-optimize/job-processor.service');
         return new JobProcessorService({
           maxConcurrentJobs: 3,
           maxRetryAttempts: 2,
@@ -500,8 +533,10 @@ export const ServiceRegistry = {
 
     container.registerSingleton(
       'notificationService',
-      (_c) => {
-        const { NotificationService } = require('./auto-optimize/notification.service');
+      _c => {
+        const {
+          NotificationService,
+        } = require('./auto-optimize/notification.service');
         return new NotificationService({ enabled: true });
       },
       []
@@ -509,50 +544,65 @@ export const ServiceRegistry = {
 
     container.registerSingleton(
       'unifiedOptimization',
-      (_c) => {
-        const { UnifiedOptimizationService } = require('./unified-optimization.service');
-        const { getPromptWizardConfig } = require('../config/promptwizard.config');
-        
+      _c => {
+        const {
+          UnifiedOptimizationService,
+        } = require('./unified-optimization.service');
+        const {
+          getPromptWizardConfig,
+        } = require('../config/promptwizard.config');
+
         const config = getPromptWizardConfig();
-        return new UnifiedOptimizationService({
-          promptWizard: {
-            enabled: true,
-            serviceUrl: config.connection.serviceUrl,
-            timeout: config.connection.timeout,
-            retries: config.connection.retries,
+        return new UnifiedOptimizationService(
+          {
+            promptWizard: {
+              enabled: true,
+              serviceUrl: config.connection.serviceUrl,
+              timeout: config.connection.timeout,
+              retries: config.connection.retries,
+            },
+            cache: { maxSize: 1000, ttlMs: 86400000, useRedis: false },
+            queue: { maxConcurrent: 3, retryAttempts: 2, backoffMs: 5000 },
+            defaults: {
+              targetModel: config.optimization.defaultModel,
+              mutateRefineIterations:
+                config.optimization.mutateRefineIterations,
+              fewShotCount: config.optimization.fewShotCount,
+              generateReasoning: config.optimization.generateReasoning,
+            },
           },
-          cache: { maxSize: 1000, ttlMs: 86400000, useRedis: false },
-          queue: { maxConcurrent: 3, retryAttempts: 2, backoffMs: 5000 },
-          defaults: {
-            targetModel: config.optimization.defaultModel,
-            mutateRefineIterations: config.optimization.mutateRefineIterations,
-            fewShotCount: config.optimization.fewShotCount,
-            generateReasoning: config.optimization.generateReasoning,
-          },
-        }, {
-          cacheService: c.tryResolve('cacheService') || undefined,
-          templateService: c.tryResolve('templateService') || undefined,
-        });
+          {
+            cacheService: _c.tryResolve('cacheService') || undefined,
+            templateService: _c.tryResolve('templateService') || undefined,
+          }
+        );
       },
       ['cacheService', 'templateService']
     );
 
     container.registerSingleton(
       'autoOptimizeCoordinator',
-      (_c) => {
-        const { AutoOptimizeCoordinator } = require('./auto-optimize/auto-optimize-coordinator');
-        
+      _c => {
+        const {
+          AutoOptimizeCoordinator,
+        } = require('./auto-optimize/auto-optimize-coordinator');
+
         return new AutoOptimizeCoordinator(
           AutoOptimizeCoordinator.getDefaultOptions(),
           {
-            fileWatcher: c.resolve('fileWatcher'),
-            jobProcessor: c.resolve('jobProcessor'),
-            notificationService: c.resolve('notificationService'),
-            optimizationService: c.resolve('unifiedOptimization'),
+            fileWatcher: _c.resolve('fileWatcher'),
+            jobProcessor: _c.resolve('jobProcessor'),
+            notificationService: _c.resolve('notificationService'),
+            optimizationService: _c.resolve('unifiedOptimization'),
           }
         );
       },
-      ['fileWatcher', 'jobProcessor', 'notificationService', 'unifiedOptimization']
+      [
+        'fileWatcher',
+        'jobProcessor',
+        'notificationService',
+        'unifiedOptimization',
+      ]
     );
 
     logger.info('Optimization services registered in container');

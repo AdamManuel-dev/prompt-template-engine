@@ -32,16 +32,19 @@ export interface FileChangeEvent {
 
 /**
  * File watcher service focused solely on monitoring file system changes
- * 
+ *
  * This service replaces the file watching functionality that was previously
  * embedded in AutoOptimizeManager, following single responsibility principle.
  */
 export class FileWatcherService extends EventEmitter {
   private watchers: FSWatcher[] = [];
+
   private options: FileWatcherOptions;
+
   private isWatching: boolean = false;
+
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
-  
+
   constructor(options: FileWatcherOptions) {
     super();
     this.options = {
@@ -71,17 +74,20 @@ export class FileWatcherService extends EventEmitter {
           },
         });
 
-        watcher.on('add', (filePath: string) => 
+        watcher.on('add', (filePath: string) =>
           this.handleFileChange(filePath, 'add')
         );
-        watcher.on('change', (filePath: string) => 
+        watcher.on('change', (filePath: string) =>
           this.handleFileChange(filePath, 'change')
         );
-        watcher.on('unlink', (filePath: string) => 
+        watcher.on('unlink', (filePath: string) =>
           this.handleFileChange(filePath, 'unlink')
         );
-        watcher.on('error', (error: unknown) => 
-          this.emit('error', error instanceof Error ? error : new Error(String(error)))
+        watcher.on('error', (error: unknown) =>
+          this.emit(
+            'error',
+            error instanceof Error ? error : new Error(String(error))
+          )
         );
 
         this.watchers.push(watcher);
@@ -89,9 +95,10 @@ export class FileWatcherService extends EventEmitter {
 
       this.isWatching = true;
       this.emit('started', { patterns: this.options.watchPatterns });
-      
-      logger.info(`File watcher started monitoring ${this.options.watchPatterns.length} patterns`);
-      
+
+      logger.info(
+        `File watcher started monitoring ${this.options.watchPatterns.length} patterns`
+      );
     } catch (error) {
       logger.error('Failed to start file watcher', error as Error);
       throw error;
@@ -115,12 +122,11 @@ export class FileWatcherService extends EventEmitter {
       // Close all watchers
       await Promise.all(this.watchers.map(watcher => watcher.close()));
       this.watchers = [];
-      
+
       this.isWatching = false;
       this.emit('stopped');
-      
+
       logger.info('File watcher stopped');
-      
     } catch (error) {
       logger.error('Failed to stop file watcher', error as Error);
       throw error;
@@ -137,7 +143,7 @@ export class FileWatcherService extends EventEmitter {
     }
 
     this.options.watchPatterns.push(pattern);
-    
+
     if (this.isWatching) {
       // Add watcher for new pattern
       const watcher = watch(pattern, {
@@ -150,17 +156,20 @@ export class FileWatcherService extends EventEmitter {
         },
       });
 
-      watcher.on('add', (filePath: string) => 
+      watcher.on('add', (filePath: string) =>
         this.handleFileChange(filePath, 'add')
       );
-      watcher.on('change', (filePath: string) => 
+      watcher.on('change', (filePath: string) =>
         this.handleFileChange(filePath, 'change')
       );
-      watcher.on('unlink', (filePath: string) => 
+      watcher.on('unlink', (filePath: string) =>
         this.handleFileChange(filePath, 'unlink')
       );
-      watcher.on('error', (error: unknown) => 
-        this.emit('error', error instanceof Error ? error : new Error(String(error)))
+      watcher.on('error', (error: unknown) =>
+        this.emit(
+          'error',
+          error instanceof Error ? error : new Error(String(error))
+        )
       );
 
       this.watchers.push(watcher);
@@ -180,10 +189,12 @@ export class FileWatcherService extends EventEmitter {
     }
 
     this.options.watchPatterns.splice(index, 1);
-    
+
     if (this.isWatching) {
       // This is simplified - in practice you'd need to track which watcher corresponds to which pattern
-      logger.info(`Pattern removed (restart required to fully remove): ${pattern}`);
+      logger.info(
+        `Pattern removed (restart required to fully remove): ${pattern}`
+      );
     }
 
     logger.info(`Removed watch pattern: ${pattern}`);
@@ -213,7 +224,10 @@ export class FileWatcherService extends EventEmitter {
 
   // Private methods
 
-  private handleFileChange(filePath: string, eventType: 'add' | 'change' | 'unlink'): void {
+  private handleFileChange(
+    filePath: string,
+    eventType: 'add' | 'change' | 'unlink'
+  ): void {
     try {
       const absolutePath = path.resolve(this.options.cwd!, filePath);
 
@@ -225,7 +239,7 @@ export class FileWatcherService extends EventEmitter {
       // Debounce file changes
       const debounceKey = `${absolutePath}-${eventType}`;
       const existingTimer = this.debounceTimers.get(debounceKey);
-      
+
       if (existingTimer) {
         clearTimeout(existingTimer);
       }
@@ -240,15 +254,16 @@ export class FileWatcherService extends EventEmitter {
 
         this.emit('file-change', event);
         this.debounceTimers.delete(debounceKey);
-        
       }, this.options.debounceMs);
 
       this.debounceTimers.set(debounceKey, timer);
 
       logger.debug('Template file change detected', { filePath, eventType });
-      
     } catch (error) {
-      logger.error('Error handling file change', error as Error, { filePath, eventType });
+      logger.error('Error handling file change', error as Error, {
+        filePath,
+        eventType,
+      });
     }
   }
 
@@ -270,7 +285,6 @@ export class FileWatcherService extends EventEmitter {
 
       // For unlink events, we can't check the file but we trust the extension
       return true;
-      
     } catch {
       return false;
     }

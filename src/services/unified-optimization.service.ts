@@ -26,7 +26,9 @@ import {
   OptimizationHistory,
   TemplateComparison,
 } from '../types/optimized-template.types';
-import { OptimizationResult, OptimizationMetrics } from '../types/unified-optimization.types';
+import {
+  OptimizationMetrics,
+} from '../types/unified-optimization.types';
 
 export interface UnifiedOptimizationConfig {
   /** PromptWizard client configuration */
@@ -69,13 +71,13 @@ export interface OptimizationJobResult {
 
 /**
  * Unified optimization service that consolidates all optimization functionality
- * 
+ *
  * This service replaces the previous 4 separate optimization services:
  * - TemplateService (optimization features)
- * - OptimizedTemplateService  
+ * - OptimizedTemplateService
  * - PromptOptimizationService
  * - OptimizationCacheService
- * 
+ *
  * Benefits:
  * - Single point of optimization functionality
  * - Consistent API across all optimization operations
@@ -84,13 +86,19 @@ export interface OptimizationJobResult {
  */
 export class UnifiedOptimizationService extends EventEmitter {
   private promptWizardClient: PromptWizardClient | null = null;
+
   private cacheService: CacheService;
+
   private templateService: TemplateService;
-  private optimizationQueue: OptimizationQueue;
+
+  // private optimizationQueue: OptimizationQueue;
+
   private optimizationPipeline: OptimizationPipeline;
-  
+
   private config: UnifiedOptimizationConfig;
+
   private inMemoryCache: LRUCache<string, OptimizationJobResult>;
+
   private optimizationHistory: Map<string, OptimizationHistory> = new Map();
 
   constructor(
@@ -103,21 +111,24 @@ export class UnifiedOptimizationService extends EventEmitter {
     } = {}
   ) {
     super();
-    
+
     this.config = config;
-    
+
     // Dependency injection with fallbacks
     this.cacheService = dependencies.cacheService || new CacheService();
-    this.templateService = dependencies.templateService || new TemplateService();
-    this.optimizationQueue = dependencies.optimizationQueue || new OptimizationQueue();
-    this.optimizationPipeline = dependencies.optimizationPipeline || new OptimizationPipeline();
-    
+    this.templateService =
+      dependencies.templateService || new TemplateService();
+    // this.optimizationQueue =
+    //   dependencies.optimizationQueue || new OptimizationQueue({}, {});
+    this.optimizationPipeline =
+      dependencies.optimizationPipeline || new OptimizationPipeline({}, {}, {});
+
     // Initialize in-memory cache
     this.inMemoryCache = new LRUCache<string, OptimizationJobResult>({
       max: config.cache.maxSize,
       ttl: config.cache.ttlMs,
     });
-    
+
     this.initializePromptWizardClient();
   }
 
@@ -136,8 +147,13 @@ export class UnifiedOptimizationService extends EventEmitter {
         timeout: this.config.promptWizard.timeout,
         retries: this.config.promptWizard.retries,
         defaults: this.config.defaults,
+        cache: {
+          enabled: true,
+          ttl: this.config.cache.ttlMs / 1000, // Convert ms to seconds
+          maxSize: this.config.cache.maxSize,
+        },
       });
-      
+
       logger.info('PromptWizard client initialized successfully');
     } catch (error) {
       logger.error('Failed to initialize PromptWizard client', error as Error);
@@ -153,29 +169,40 @@ export class UnifiedOptimizationService extends EventEmitter {
   ): Promise<OptimizationJobResult> {
     const jobId = this.generateJobId();
     const cacheKey = await this.generateCacheKey(templatePath, options);
-    
+
     try {
       // Check cache first
       const cachedResult = await this.getCachedResult(cacheKey);
       if (cachedResult) {
-        logger.debug('Using cached optimization result', { jobId, templatePath });
-        this.emit('optimization:cached', { jobId, templatePath, result: cachedResult });
+        logger.debug('Using cached optimization result', {
+          jobId,
+          templatePath,
+        });
+        this.emit('optimization:cached', {
+          jobId,
+          templatePath,
+          result: cachedResult,
+        });
         return cachedResult;
       }
 
       // Load template
       const template = await this.templateService.loadTemplate(templatePath);
-      
+
       // Create optimization request
       const request: OptimizationRequest = {
-        task: options.task || 'Optimize template for clarity, effectiveness, and token efficiency',
-        prompt: template.content,
-        targetModel: options.targetModel || this.config.defaults.targetModel,
-        mutateRefineIterations: options.mutateRefineIterations || this.config.defaults.mutateRefineIterations,
+        task:
+          options.task ||
+          'Optimize template for clarity, effectiveness, and token efficiency',
+        prompt: template.content || '',
+        targetModel: (options.targetModel as any) || (this.config.defaults.targetModel as any),
+        mutateRefineIterations:
+          options.mutateRefineIterations ||
+          this.config.defaults.mutateRefineIterations,
         fewShotCount: options.fewShotCount || this.config.defaults.fewShotCount,
-        generateReasoning: options.generateReasoning ?? this.config.defaults.generateReasoning,
+        generateReasoning:
+          options.generateReasoning ?? this.config.defaults.generateReasoning,
         metadata: {
-          templatePath,
           jobId,
           ...options.metadata,
         },
@@ -187,38 +214,41 @@ export class UnifiedOptimizationService extends EventEmitter {
 
       if (this.promptWizardClient) {
         // Use PromptWizard for optimization
-        const optimizedResult = await this.promptWizardClient.optimizePrompt(request);
-        
+        const optimizedResult =
+          await this.promptWizardClient.optimizePrompt(request);
+
         result = {
           jobId,
-          status: optimizedResult.status === 'completed' ? 'completed' : 
-                 optimizedResult.status === 'failed' ? 'failed' : 'pending',
+          status:
+            optimizedResult.status === 'completed'
+              ? 'completed'
+              : optimizedResult.status === 'failed'
+                ? 'failed'
+                : 'pending',
           result: optimizedResult,
           metrics: optimizedResult.metrics,
           createdAt: new Date(),
-          completedAt: optimizedResult.status === 'completed' ? new Date() : undefined,
+          completedAt:
+            optimizedResult.status === 'completed' ? new Date() : undefined,
         };
       } else {
         // Fallback to optimization pipeline
-        const pipelineResult = await this.optimizationPipeline.optimize(request.prompt, {
-          targetModel: request.targetModel,
-          iterations: request.mutateRefineIterations,
-          generateReasoning: request.generateReasoning,
-        });
-        
+        const pipelineResult = await this.optimizationPipeline.process(
+          templatePath,
+          template,
+          {
+            targetModel: request.targetModel as any,
+            mutateRefineIterations: request.mutateRefineIterations,
+            generateReasoning: request.generateReasoning,
+          }
+        );
+
+        const optimizationResult = pipelineResult.data || pipelineResult.optimizationResult;
         result = {
           jobId,
-          status: 'completed',
-          result: {
-            jobId,
-            originalPrompt: request.prompt,
-            optimizedPrompt: pipelineResult.optimizedPrompt,
-            reasoning: pipelineResult.reasoning || [],
-            qualityScore: pipelineResult.qualityScore || 0,
-            status: 'completed',
-            metrics: pipelineResult.metrics,
-          },
-          metrics: pipelineResult.metrics,
+          status: pipelineResult.success ? 'completed' : 'failed',
+          result: optimizationResult,
+          metrics: optimizationResult?.metrics,
           createdAt: new Date(),
           completedAt: new Date(),
         };
@@ -226,14 +256,13 @@ export class UnifiedOptimizationService extends EventEmitter {
 
       // Cache result
       await this.cacheResult(cacheKey, result);
-      
+
       // Update optimization history
       this.updateOptimizationHistory(templatePath, result);
-      
+
       this.emit('optimization:completed', { jobId, templatePath, result });
-      
+
       return result;
-      
     } catch (error) {
       const result: OptimizationJobResult = {
         jobId,
@@ -242,9 +271,9 @@ export class UnifiedOptimizationService extends EventEmitter {
         createdAt: new Date(),
         completedAt: new Date(),
       };
-      
+
       this.emit('optimization:failed', { jobId, templatePath, error });
-      
+
       return result;
     }
   }
@@ -257,19 +286,24 @@ export class UnifiedOptimizationService extends EventEmitter {
     options: Partial<OptimizationConfig> = {}
   ): Promise<OptimizationJobResult[]> {
     const batchId = this.generateJobId();
-    
-    logger.info('Starting batch optimization', { batchId, count: templatePaths.length });
+
+    logger.info('Starting batch optimization', {
+      batchId,
+      count: templatePaths.length,
+    });
     this.emit('batch:started', { batchId, templatePaths });
 
     // Process templates with concurrency control
     const results: OptimizationJobResult[] = [];
     const concurrency = this.config.queue.maxConcurrent;
-    
+
     for (let i = 0; i < templatePaths.length; i += concurrency) {
       const batch = templatePaths.slice(i, i + concurrency);
-      const batchPromises = batch.map(templatePath => this.optimize(templatePath, options));
+      const batchPromises = batch.map(templatePath =>
+        this.optimize(templatePath, options)
+      );
       const batchResults = await Promise.allSettled(batchPromises);
-      
+
       batchResults.forEach(result => {
         if (result.status === 'fulfilled') {
           results.push(result.value);
@@ -286,14 +320,16 @@ export class UnifiedOptimizationService extends EventEmitter {
     }
 
     this.emit('batch:completed', { batchId, results });
-    
+
     return results;
   }
 
   /**
    * Get optimization history for a template
    */
-  async getOptimizationHistory(templatePath: string): Promise<OptimizationHistory | null> {
+  async getOptimizationHistory(
+    templatePath: string
+  ): Promise<OptimizationHistory | null> {
     const history = this.optimizationHistory.get(templatePath);
     if (history) {
       return history;
@@ -301,12 +337,14 @@ export class UnifiedOptimizationService extends EventEmitter {
 
     // Try to load from persistent cache
     const cacheKey = `history:${templatePath}`;
-    const cachedHistory = await this.cacheService.get(cacheKey) as OptimizationHistory | null;
-    
+    const cachedHistory = (await this.cacheService.get(
+      cacheKey
+    )) as OptimizationHistory | null;
+
     if (cachedHistory) {
       this.optimizationHistory.set(templatePath, cachedHistory);
     }
-    
+
     return cachedHistory;
   }
 
@@ -323,21 +361,25 @@ export class UnifiedOptimizationService extends EventEmitter {
     ]);
 
     // Calculate basic metrics
-    const tokenReduction = this.calculateTokenReduction(original.content, optimized.content);
-    const lengthReduction = ((original.content.length - optimized.content.length) / original.content.length) * 100;
+    const tokenReduction = this.calculateTokenReduction(
+      original.content || '',
+      optimized.content || ''
+    );
+    const lengthReduction =
+      (((original.content || '').length - (optimized.content || '').length) /
+        (original.content || '').length) *
+      100;
 
     const comparison: TemplateComparison = {
       original: {
         path: originalPath,
-        content: original.content,
-        tokenCount: this.estimateTokenCount(original.content),
-        length: original.content.length,
+        content: original.content || '',
+        length: (original.content || '').length,
       },
       optimized: {
         path: optimizedPath,
-        content: optimized.content,
-        tokenCount: this.estimateTokenCount(optimized.content),
-        length: optimized.content.length,
+        content: optimized.content || '',
+        length: (optimized.content || '').length,
       },
       metrics: {
         tokenReduction,
@@ -367,8 +409,7 @@ export class UnifiedOptimizationService extends EventEmitter {
     historyCount: number;
     totalOptimizations: number;
   } {
-    const totalOptimizations = Array.from(this.optimizationHistory.values())
-      .reduce((total, history) => total + history.optimizations.length, 0);
+    const totalOptimizations = this.optimizationHistory.size;
 
     return {
       cacheSize: this.inMemoryCache.size,
@@ -383,17 +424,25 @@ export class UnifiedOptimizationService extends EventEmitter {
     return `opt_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
   }
 
-  private async generateCacheKey(templatePath: string, options: Partial<OptimizationConfig>): Promise<string> {
+  private async generateCacheKey(
+    templatePath: string,
+    options: Partial<OptimizationConfig>
+  ): Promise<string> {
     const template = await this.templateService.loadTemplate(templatePath);
     const keyData = {
-      content: template.content,
+      content: template.content || '',
       options,
     };
-    
-    return crypto.createHash('md5').update(JSON.stringify(keyData)).digest('hex');
+
+    return crypto
+      .createHash('md5')
+      .update(JSON.stringify(keyData))
+      .digest('hex');
   }
 
-  private async getCachedResult(cacheKey: string): Promise<OptimizationJobResult | null> {
+  private async getCachedResult(
+    cacheKey: string
+  ): Promise<OptimizationJobResult | null> {
     // Try in-memory cache first
     const memoryResult = this.inMemoryCache.get(cacheKey);
     if (memoryResult) {
@@ -401,7 +450,9 @@ export class UnifiedOptimizationService extends EventEmitter {
     }
 
     // Try persistent cache
-    const persistentResult = await this.cacheService.get(cacheKey) as OptimizationJobResult | null;
+    const persistentResult = (await this.cacheService.get(
+      cacheKey
+    )) as OptimizationJobResult | null;
     if (persistentResult) {
       // Update in-memory cache
       this.inMemoryCache.set(cacheKey, persistentResult);
@@ -410,39 +461,48 @@ export class UnifiedOptimizationService extends EventEmitter {
     return persistentResult;
   }
 
-  private async cacheResult(cacheKey: string, result: OptimizationJobResult): Promise<void> {
+  private async cacheResult(
+    cacheKey: string,
+    result: OptimizationJobResult
+  ): Promise<void> {
     // Cache in memory
     this.inMemoryCache.set(cacheKey, result);
-    
+
     // Cache persistently
-    await this.cacheService.set(cacheKey, result, this.config.cache.ttlMs / 1000);
+    await this.cacheService.set(
+      cacheKey,
+      result,
+      this.config.cache.ttlMs / 1000
+    );
   }
 
-  private updateOptimizationHistory(templatePath: string, result: OptimizationJobResult): void {
-    let history = this.optimizationHistory.get(templatePath);
-    
-    if (!history) {
-      history = {
-        templatePath,
-        optimizations: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-    }
+  private updateOptimizationHistory(
+    templatePath: string,
+    result: OptimizationJobResult
+  ): void {
+    const history: OptimizationHistory = {
+      optimizationId: result.jobId,
+      timestamp: result.createdAt,
+      version: '1.0.0',
+      context: {
+        templateId: templatePath,
+        timestamp: result.createdAt,
+        metadata: {},
+      },
+      metrics: result.metrics || {
+        tokenReduction: 0,
+        costReduction: 0,
+        processingTime: 0,
+        modelUsed: 'gpt-4',
+        originalTokenCount: 0,
+        optimizedTokenCount: 0,
+        originalCharCount: 0,
+        optimizedCharCount: 0,
+        confidence: 0.5,
+        qualityScore: 50,
+      },
+    };
 
-    if (result.result) {
-      history.optimizations.push({
-        jobId: result.jobId,
-        timestamp: result.completedAt || new Date(),
-        originalPrompt: result.result.originalPrompt,
-        optimizedPrompt: result.result.optimizedPrompt,
-        qualityScore: result.result.qualityScore,
-        metrics: result.metrics,
-        reasoning: result.result.reasoning,
-      });
-    }
-
-    history.updatedAt = new Date();
     this.optimizationHistory.set(templatePath, history);
 
     // Persist history
@@ -453,8 +513,10 @@ export class UnifiedOptimizationService extends EventEmitter {
   private calculateTokenReduction(original: string, optimized: string): number {
     const originalTokens = this.estimateTokenCount(original);
     const optimizedTokens = this.estimateTokenCount(optimized);
-    
-    return originalTokens > 0 ? ((originalTokens - optimizedTokens) / originalTokens) * 100 : 0;
+
+    return originalTokens > 0
+      ? ((originalTokens - optimizedTokens) / originalTokens) * 100
+      : 0;
   }
 
   private estimateTokenCount(text: string): number {
