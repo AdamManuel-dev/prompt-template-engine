@@ -44,6 +44,10 @@ export interface OptimizationMetrics {
   confidence: number;
   /** Quality score (0-100) */
   qualityScore: number;
+  /** Accuracy improvement percentage */
+  accuracyImprovement: number;
+  /** Number of API calls used */
+  apiCallsUsed: number;
 }
 
 /**

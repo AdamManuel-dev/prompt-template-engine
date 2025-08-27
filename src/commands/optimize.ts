@@ -17,7 +17,7 @@ import {
   PromptWizardClient,
   createDefaultConfig,
 } from '../integrations/promptwizard';
-import { PromptOptimizationService } from '../services/prompt-optimization.service';
+import { UnifiedOptimizationService } from '../services/unified-optimization.service';
 import { TemplateService } from '../services/template.service';
 import { CacheService } from '../services/cache.service';
 import { loadConfig } from '../utils/config';
@@ -328,7 +328,7 @@ async function generateOptimizationReport(
 // Handler functions (moved to fix no-use-before-define)
 
 async function handleSingleOptimization(
-  service: PromptOptimizationService,
+  service: UnifiedOptimizationService,
   templateService: TemplateService,
   templateArg: string,
   options: OptimizeOptions
@@ -359,23 +359,16 @@ async function handleSingleOptimization(
   }
 
   // Optimize template
-  const result = await service.optimizeTemplate({
-    templateId: template.name,
-    template,
-    config: {
-      targetModel: options.model as
-        | 'gpt-4'
-        | 'gpt-3.5-turbo'
-        | 'claude-3-opus'
-        | 'claude-3-sonnet'
-        | 'gemini-pro',
-      mutateRefineIterations: parseInt(options.iterations || '3', 10),
-      fewShotCount: parseInt(options.examples || '2', 10),
-      generateReasoning: options.reasoning,
-    },
-    options: {
-      skipCache: options.noCache,
-    },
+  const result = await service.optimize(templateArg, {
+    targetModel: options.model as
+      | 'gpt-4'
+      | 'gpt-3.5-turbo'
+      | 'claude-3-opus'
+      | 'claude-3-sonnet'
+      | 'gemini-pro',
+    mutateRefineIterations: parseInt(options.iterations || '3', 10),
+    fewShotCount: parseInt(options.examples || '2', 10),
+    generateReasoning: options.reasoning,
   });
 
   // Display results
@@ -407,7 +400,7 @@ async function handleSingleOptimization(
 }
 
 async function handleBatchOptimization(
-  service: PromptOptimizationService,
+  service: UnifiedOptimizationService,
   templateService: TemplateService,
   _directory: string,
   options: OptimizeOptions
@@ -445,7 +438,7 @@ async function handleBatchOptimization(
 }
 
 async function handleInteractiveOptimization(
-  _service: PromptOptimizationService,
+  _service: UnifiedOptimizationService,
   templateService: TemplateService,
   _options: OptimizeOptions
 ): Promise<void> {
@@ -610,10 +603,34 @@ function createBatchCommand(): Command {
           templatePaths: [directory],
         });
         const cacheService = new CacheService();
-        const optimizationService = new PromptOptimizationService(
-          client,
-          templateService,
-          cacheService
+        const optimizationService = new UnifiedOptimizationService(
+          {
+            promptWizard: {
+              enabled: true,
+              serviceUrl: pwConfig.serviceUrl || 'http://localhost:8080',
+              timeout: pwConfig.timeout || 30000,
+              retries: 3,
+            },
+            cache: {
+              enabled: true,
+              maxSize: 1000,
+              ttlMs: 3600000,
+            },
+            queue: {
+              maxConcurrent: 5,
+              retryDelayMs: 1000,
+            },
+            defaults: {
+              targetModel: 'gpt-4',
+              mutateRefineIterations: 3,
+              fewShotCount: 5,
+              generateReasoning: true,
+            },
+          },
+          {
+            cacheService,
+            templateService,
+          }
         );
 
         spinner.update('Loading templates...');
@@ -707,10 +724,34 @@ export function createOptimizeCommand(): Command {
           templatePaths: config.templatePaths || ['./templates'],
         });
         const cacheService = new CacheService();
-        const optimizationService = new PromptOptimizationService(
-          client,
-          templateService,
-          cacheService
+        const optimizationService = new UnifiedOptimizationService(
+          {
+            promptWizard: {
+              enabled: true,
+              serviceUrl: pwConfig.serviceUrl || 'http://localhost:8080',
+              timeout: pwConfig.timeout || 30000,
+              retries: 3,
+            },
+            cache: {
+              enabled: true,
+              maxSize: 1000,
+              ttlMs: 3600000,
+            },
+            queue: {
+              maxConcurrent: 5,
+              retryDelayMs: 1000,
+            },
+            defaults: {
+              targetModel: 'gpt-4',
+              mutateRefineIterations: 3,
+              fewShotCount: 5,
+              generateReasoning: true,
+            },
+          },
+          {
+            cacheService,
+            templateService,
+          }
         );
 
         spinner.update('Loading templates...');
