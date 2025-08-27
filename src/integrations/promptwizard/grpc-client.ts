@@ -21,6 +21,11 @@ import {
   ComparisonRequest,
   ComparisonResponse,
 } from './types'; // TODO: Replace with generated types when proto files are generated
+import {
+  validateScoringResponse,
+  validateComparisonResponse,
+  safeValidateOptimizationResponse,
+} from './schemas';
 
 export interface GrpcClientConfig {
   serviceUrl: string;
@@ -292,7 +297,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
   /**
    * Check if error is retryable
    */
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(error: unknown): boolean {
     const retryableCodes = [
       grpc.status.UNAVAILABLE,
       grpc.status.DEADLINE_EXCEEDED,
@@ -300,19 +305,31 @@ export class PromptWizardGrpcClient extends EventEmitter {
       grpc.status.INTERNAL,
     ];
 
-    return retryableCodes.includes(error.code);
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      retryableCodes.includes((error as any).code)
+    );
   }
 
   /**
    * Parse gRPC error into standard format
    */
-  private parseGrpcError(error: any): Error {
-    const statusText =
-      Object.keys(grpc.status).find(
-        key => (grpc.status as any)[key] === error.code
-      ) || 'UNKNOWN';
+  private parseGrpcError(error: unknown): Error {
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      const grpcError = error as any;
+      const statusText =
+        Object.keys(grpc.status).find(
+          key => (grpc.status as any)[key] === grpcError.code
+        ) || 'UNKNOWN';
 
-    return new Error(`gRPC ${statusText}: ${error.details || error.message}`);
+      return new Error(
+        `gRPC ${statusText}: ${grpcError.details || grpcError.message}`
+      );
+    }
+
+    return new Error(`Unknown gRPC error: ${String(error)}`);
   }
 
   /**
@@ -337,7 +354,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
    * Convert gRPC optimization response
    */
   private convertGrpcOptimizationResponse(response: any): OptimizationResponse {
-    return {
+    const converted = {
       jobId: response.job_id,
       status: response.status,
       originalPrompt: response.original_prompt,
@@ -351,30 +368,75 @@ export class PromptWizardGrpcClient extends EventEmitter {
       } as OptimizationMetrics,
       error: response.error_message,
     };
+
+    // Validate converted response with Zod schema
+    const validationResult = safeValidateOptimizationResponse(converted);
+    if (!validationResult.success) {
+      logger.error(
+        'Invalid OptimizationResponse from gRPC API:',
+        validationResult.error.issues
+      );
+      throw new Error(
+        `Invalid gRPC response: ${validationResult.error.issues.map((i: any) => i.message).join(', ')}`
+      );
+    }
+
+    return validationResult.data;
   }
 
   /**
    * Convert gRPC scoring response
    */
   private convertGrpcScoringResponse(response: any): ScoringResponse {
-    return {
+    // Ensure componentScores is properly typed
+    const componentScores: Record<string, number> = {};
+    if (
+      response.component_scores &&
+      typeof response.component_scores === 'object'
+    ) {
+      Object.entries(response.component_scores).forEach(([key, value]) => {
+        componentScores[key] = typeof value === 'number' ? value : 0;
+      });
+    }
+
+    const converted = {
       overallScore: response.overall_score,
-      componentScores: response.component_scores || {},
+      componentScores,
       suggestions: response.suggestions || [],
       metrics: response.metrics || {},
     };
+
+    // Validate converted response with Zod schema
+    try {
+      return validateScoringResponse(converted);
+    } catch (error) {
+      logger.error('Invalid ScoringResponse from gRPC API:', error);
+      throw new Error(
+        `Invalid gRPC response: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   /**
    * Convert gRPC comparison response
    */
   private convertGrpcComparisonResponse(response: any): ComparisonResponse {
-    return {
+    const converted = {
       improvementScore: response.improvement_score,
       improvements: response.improvements || [],
       potentialIssues: response.potential_issues || [],
       metrics: response.metrics || {},
     };
+
+    // Validate converted response with Zod schema
+    try {
+      return validateComparisonResponse(converted);
+    } catch (error) {
+      logger.error('Invalid ComparisonResponse from gRPC API:', error);
+      throw new Error(
+        `Invalid gRPC response: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   /**

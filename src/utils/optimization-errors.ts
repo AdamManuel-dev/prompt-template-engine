@@ -81,7 +81,7 @@ export class ConfigurationError extends OptimizationError {
 }
 
 export class ValidationError extends OptimizationError {
-  constructor(message: string, field: string, value: any) {
+  constructor(message: string, field: string, value: unknown) {
     super(message, 'VALIDATION_ERROR', { field, value }, false);
     this.name = 'ValidationError';
   }
@@ -130,7 +130,11 @@ export class ErrorTracker {
     }
   }
 
-  getStats() {
+  getStats(): {
+    totalErrors: number;
+    errorsByType: Record<string, number>;
+    recentErrors: OptimizationError[];
+  } {
     return {
       totalErrors: this.errorHistory.length,
       errorsByType: Object.fromEntries(this.errorCounts),
@@ -293,7 +297,12 @@ export class CircuitBreaker {
     }
   }
 
-  getState() {
+  getState(): {
+    state: CircuitState;
+    failures: number;
+    successCount: number;
+    lastFailureTime: number;
+  } {
     return {
       state: this.state,
       failures: this.failures,
@@ -302,7 +311,7 @@ export class CircuitBreaker {
     };
   }
 
-  reset() {
+  reset(): void {
     this.state = CircuitState.CLOSED;
     this.failures = 0;
     this.successCount = 0;

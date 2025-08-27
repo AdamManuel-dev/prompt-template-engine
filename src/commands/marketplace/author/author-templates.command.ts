@@ -16,6 +16,7 @@ import { AuthorService } from '../../../marketplace/core/author.service';
 import { MarketplaceService } from '../../../marketplace/core/marketplace.service';
 import { MarketplaceCommandOptions } from '../../../types';
 import { logger } from '../../../utils/logger';
+import { TemplateSortOption } from '../../../marketplace/models/template.model';
 
 export class AuthorTemplatesCommand extends BaseCommand {
   name = 'marketplace:author:templates';
@@ -67,7 +68,7 @@ export class AuthorTemplatesCommand extends BaseCommand {
         author: authorId,
         page,
         limit,
-        sortBy: (options.sort as any) || 'recent',
+        sortBy: (options.sort as TemplateSortOption) || 'recent',
       });
 
       if (!result.templates || result.templates.length === 0) {

@@ -87,7 +87,7 @@ export class AutoOptimizeManager {
     queuedJobs: 0,
   };
 
-  private processingTimers: Map<string, number> = new Map();
+  private processingTimers: Map<string, NodeJS.Timeout> = new Map();
 
   constructor() {
     this.cacheService = new CacheService();
@@ -308,7 +308,7 @@ export class AutoOptimizeManager {
       const timer = setTimeout(() => {
         this.queueOptimization(absolutePath);
         this.processingTimers.delete(debounceKey);
-      }, this.options.debounceMs) as any;
+      }, this.options.debounceMs) as NodeJS.Timeout;
 
       this.processingTimers.set(debounceKey, timer);
 
@@ -364,7 +364,7 @@ export class AutoOptimizeManager {
    * Start background job processor
    */
   private startJobProcessor(): void {
-    const processJobs = async () => {
+    const processJobs = async (): Promise<void> => {
       while (this.isEnabled) {
         // Process jobs if we have capacity
         if (
@@ -695,7 +695,7 @@ export function addAutoOptimizeFlag(command: Command): Command {
  * Setup auto-optimize from CLI options
  */
 export async function setupAutoOptimizeFromOptions(
-  options: any
+  options: Record<string, unknown>
 ): Promise<void> {
   if (!options.autoOptimize) {
     return;
@@ -704,12 +704,12 @@ export async function setupAutoOptimizeFromOptions(
   const autoOptimizeOptions: Partial<AutoOptimizeOptions> = {
     enabled: true,
     notifications: !options.noNotifications,
-    maxConcurrentJobs: parseInt(options.maxConcurrent, 10),
-    minConfidence: parseFloat(options.autoOptimizeConfidence),
+    maxConcurrentJobs: parseInt(options.maxConcurrent as string, 10),
+    minConfidence: parseFloat(options.autoOptimizeConfidence as string),
   };
 
   if (options.autoOptimizeModels) {
-    autoOptimizeOptions.targetModels = options.autoOptimizeModels
+    autoOptimizeOptions.targetModels = (options.autoOptimizeModels as string)
       .split(',')
       .map((model: string) => model.trim());
   }

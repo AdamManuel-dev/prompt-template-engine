@@ -241,7 +241,7 @@ export class OptimizationWorkflowManager {
         try {
           const candidates = await this.analyzeFileForPrompts(file);
           if (candidates.length > 0) {
-            analysis.promptFiles++;
+            analysis.promptFiles += 1;
             analysis.optimizationCandidates.push(...candidates);
           }
         } catch (error) {
@@ -313,7 +313,7 @@ export class OptimizationWorkflowManager {
     const filePromises = files.map(async (file, index) => {
       // Wait for available slot
       await new Promise<void>(resolve => {
-        const checkSlot = () => {
+        const checkSlot = (): void => {
           const availableSlot = semaphore.findIndex(slot => slot === null);
           if (availableSlot !== -1) {
             semaphore[availableSlot] = file;
@@ -368,7 +368,7 @@ export class OptimizationWorkflowManager {
           semaphore[slotIndex] = null;
         }
 
-        progress.filesProcessed++;
+        progress.filesProcessed += 1;
         progress.progress = (progress.filesProcessed / files.length) * 100;
 
         if (progressCallback) {
@@ -677,7 +677,7 @@ export class OptimizationWorkflowManager {
   private async findRelevantFiles(projectRoot: string): Promise<string[]> {
     const files: string[] = [];
 
-    const scanDirectory = async (dir: string) => {
+    const scanDirectory = async (dir: string): Promise<void> => {
       try {
         const entries = await fs.readdir(dir, { withFileTypes: true });
 
@@ -819,10 +819,15 @@ export class OptimizationWorkflowManager {
       // Optimize using PromptWizard
       const result = await this.optimizationService.optimizeTemplate({
         templateId: template.id || 'file-optimization',
-        template: template as any,
+        template,
         config: {
           task: `Optimize content from file: ${filePath}`,
-          targetModel: this.config.optimization.model as any,
+          targetModel: this.config.optimization.model as
+            | 'gpt-4'
+            | 'gpt-3.5-turbo'
+            | 'claude-3-opus'
+            | 'claude-3-sonnet'
+            | 'gemini-pro',
           mutateRefineIterations: this.config.optimization.iterations,
           fewShotCount: this.config.optimization.examples,
           generateReasoning: this.config.optimization.reasoning,
@@ -834,7 +839,7 @@ export class OptimizationWorkflowManager {
         originalContent: content,
         optimizedContent:
           result.optimizedTemplate.files
-            ?.map(f => (f as any).content)
+            ?.map(f => ('content' in f ? f.content : f.source) || '')
             .join('\n') || '',
         metrics: {
           accuracyImprovement: result.metrics.accuracyImprovement,

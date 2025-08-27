@@ -22,6 +22,12 @@ import {
   OptimizationEvent,
   OptimizationEventHandler,
 } from './types';
+import {
+  safeValidateOptimizedResult,
+  safeValidateQualityScore,
+  safeValidatePromptComparison,
+  safeValidateOptimizationJob,
+} from './schemas';
 
 export class PromptWizardClient implements PromptWizardService {
   private config: PromptWizardConfig;
@@ -57,19 +63,31 @@ export class PromptWizardClient implements PromptWizardService {
         throw new Error(response.error?.message || 'Optimization failed');
       }
 
+      // Validate response data with Zod schema
+      const validationResult = safeValidateOptimizedResult(response.data);
+      if (!validationResult.success) {
+        logger.error(
+          'Invalid OptimizedResult response from API:',
+          validationResult.error.issues
+        );
+        throw new Error(
+          `Invalid API response: ${validationResult.error.issues.map((i: any) => i.message).join(', ')}`
+        );
+      }
+
       // Emit started event
       this.emitEvent({
         type: 'started',
-        jobId: response.data.jobId,
+        jobId: validationResult.data.jobId,
         config: optimizationConfig,
       });
 
       // If job is processing, poll for completion
-      if (response.data.status === 'processing') {
-        return await this.pollForCompletion(response.data.jobId);
+      if (validationResult.data.status === 'processing') {
+        return await this.pollForCompletion(validationResult.data.jobId);
       }
 
-      return response.data;
+      return validationResult.data;
     } catch (error) {
       logger.error(
         `Prompt optimization failed: ${error instanceof Error ? error.message : String(error)}`
@@ -98,7 +116,19 @@ export class PromptWizardClient implements PromptWizardService {
         throw new Error(response.error?.message || 'Scoring failed');
       }
 
-      return response.data;
+      // Validate response data with Zod schema
+      const validationResult = safeValidateQualityScore(response.data);
+      if (!validationResult.success) {
+        logger.error(
+          'Invalid QualityScore response from API:',
+          validationResult.error.issues
+        );
+        throw new Error(
+          `Invalid API response: ${validationResult.error.issues.map((i: any) => i.message).join(', ')}`
+        );
+      }
+
+      return validationResult.data;
     } catch (error) {
       logger.error(
         `Prompt scoring failed: ${error instanceof Error ? error.message : String(error)}`
@@ -132,7 +162,19 @@ export class PromptWizardClient implements PromptWizardService {
         throw new Error(response.error?.message || 'Comparison failed');
       }
 
-      return response.data;
+      // Validate response data with Zod schema
+      const validationResult = safeValidatePromptComparison(response.data);
+      if (!validationResult.success) {
+        logger.error(
+          'Invalid PromptComparison response from API:',
+          validationResult.error.issues
+        );
+        throw new Error(
+          `Invalid API response: ${validationResult.error.issues.map((i: any) => i.message).join(', ')}`
+        );
+      }
+
+      return validationResult.data;
     } catch (error) {
       logger.error(
         `Prompt comparison failed: ${error instanceof Error ? error.message : String(error)}`
@@ -184,7 +226,19 @@ export class PromptWizardClient implements PromptWizardService {
         throw new Error(response.error?.message || 'Failed to get job status');
       }
 
-      return response.data;
+      // Validate response data with Zod schema
+      const validationResult = safeValidateOptimizationJob(response.data);
+      if (!validationResult.success) {
+        logger.error(
+          'Invalid OptimizationJob response from API:',
+          validationResult.error.issues
+        );
+        throw new Error(
+          `Invalid API response: ${validationResult.error.issues.map((i: any) => i.message).join(', ')}`
+        );
+      }
+
+      return validationResult.data;
     } catch (error) {
       logger.error(
         `Failed to get job status: ${error instanceof Error ? error.message : String(error)}`

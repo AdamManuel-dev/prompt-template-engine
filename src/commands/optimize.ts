@@ -22,6 +22,10 @@ import { TemplateService } from '../services/template.service';
 import { CacheService } from '../services/cache.service';
 import { loadConfig } from '../utils/config';
 import { Template } from '../types';
+import {
+  PromptComparison,
+  QualityScore,
+} from '../integrations/promptwizard/types';
 
 // Mock spinner implementation since it doesn't exist
 const mockSpinner = {
@@ -94,7 +98,7 @@ function displayOptimizationResult(
   console.log(table.toString());
 }
 
-function displayComparison(comparison: any): void {
+function displayComparison(comparison: PromptComparison): void {
   console.log(chalk.cyan('\n📊 Prompt Comparison:\n'));
 
   const table = new Table({
@@ -102,41 +106,60 @@ function displayComparison(comparison: any): void {
     style: { head: ['cyan'] },
   });
 
+  const tokenReduction = comparison.improvements?.tokenReduction || 0;
+  const qualityImprovement = comparison.improvements?.qualityImprovement || 0;
+
   table.push(
     [
       'Token Count',
-      comparison.originalTokens,
-      comparison.optimizedTokens,
-      chalk.green(`-${comparison.tokenReduction}%`),
+      comparison.original.estimatedTokens,
+      comparison.optimized.estimatedTokens,
+      chalk.green(`-${tokenReduction.toFixed(1)}%`),
     ],
     [
-      'Accuracy',
-      `${comparison.originalAccuracy}%`,
-      `${comparison.optimizedAccuracy}%`,
-      chalk.green(`+${comparison.accuracyImprovement}%`),
+      'Quality Score',
+      `${comparison.original.score.overall}/100`,
+      `${comparison.optimized.score.overall}/100`,
+      chalk.green(`+${qualityImprovement.toFixed(1)}%`),
     ],
     [
       'Clarity Score',
-      comparison.originalClarity,
-      comparison.optimizedClarity,
-      comparison.optimizedClarity > comparison.originalClarity
+      `${comparison.original.score.metrics.clarity}/100`,
+      `${comparison.optimized.score.metrics.clarity}/100`,
+      comparison.optimized.score.metrics.clarity >
+      comparison.original.score.metrics.clarity
         ? chalk.green('↑')
         : chalk.red('↓'),
     ],
     [
-      'Specificity',
-      comparison.originalSpecificity,
-      comparison.optimizedSpecificity,
-      comparison.optimizedSpecificity > comparison.originalSpecificity
-        ? chalk.green('↑')
-        : chalk.red('↓'),
+      'Cost Estimate',
+      `$${comparison.original.estimatedCost.toFixed(4)}`,
+      `$${comparison.optimized.estimatedCost.toFixed(4)}`,
+      comparison.optimized.estimatedCost < comparison.original.estimatedCost
+        ? chalk.green('↓')
+        : chalk.red('↑'),
     ]
   );
 
   console.log(table.toString());
 }
 
-function displayScore(scoreData: any): void {
+interface OptimizeOptions {
+  model?: string;
+  iterations?: string;
+  examples?: string;
+  reasoning?: boolean;
+  noCache?: boolean;
+  json?: boolean;
+  compare?: boolean;
+  dryRun?: boolean;
+  output?: string;
+  batch?: string;
+  report?: string;
+  suggestions?: boolean;
+}
+
+function displayScore(scoreData: QualityScore): void {
   console.log(chalk.cyan('\n📊 Prompt Quality Score:\n'));
 
   const table = new Table({
@@ -153,17 +176,25 @@ function displayScore(scoreData: any): void {
 
   table.push(
     ['Overall', `${scoreData.overall}/100`, getRating(scoreData.overall)],
-    ['Clarity', `${scoreData.clarity}/100`, getRating(scoreData.clarity)],
     [
-      'Specificity',
-      `${scoreData.specificity}/100`,
-      getRating(scoreData.specificity),
+      'Clarity',
+      `${scoreData.metrics.clarity}/100`,
+      getRating(scoreData.metrics.clarity),
     ],
-    ['Coherence', `${scoreData.coherence}/100`, getRating(scoreData.coherence)],
     [
-      'Completeness',
-      `${scoreData.completeness}/100`,
-      getRating(scoreData.completeness),
+      'Task Alignment',
+      `${scoreData.metrics.taskAlignment}/100`,
+      getRating(scoreData.metrics.taskAlignment),
+    ],
+    [
+      'Token Efficiency',
+      `${scoreData.metrics.tokenEfficiency}/100`,
+      getRating(scoreData.metrics.tokenEfficiency),
+    ],
+    [
+      'Confidence',
+      `${scoreData.confidence}/100`,
+      getRating(scoreData.confidence),
     ]
   );
 
@@ -300,7 +331,7 @@ async function handleSingleOptimization(
   service: PromptOptimizationService,
   templateService: TemplateService,
   templateArg: string,
-  options: any
+  options: OptimizeOptions
 ): Promise<void> {
   // Load template
   let template: Template;
@@ -338,8 +369,8 @@ async function handleSingleOptimization(
         | 'claude-3-opus'
         | 'claude-3-sonnet'
         | 'gemini-pro',
-      mutateRefineIterations: parseInt(options.iterations, 10),
-      fewShotCount: parseInt(options.examples, 10),
+      mutateRefineIterations: parseInt(options.iterations || '3', 10),
+      fewShotCount: parseInt(options.examples || '2', 10),
       generateReasoning: options.reasoning,
     },
     options: {
@@ -379,7 +410,7 @@ async function handleBatchOptimization(
   service: PromptOptimizationService,
   templateService: TemplateService,
   _directory: string,
-  options: any
+  options: OptimizeOptions
 ): Promise<void> {
   // Load all templates from directory
   const templateList = await templateService.listTemplates();
@@ -416,7 +447,7 @@ async function handleBatchOptimization(
 async function handleInteractiveOptimization(
   _service: PromptOptimizationService,
   templateService: TemplateService,
-  _options: any
+  _options: OptimizeOptions
 ): Promise<void> {
   // List available templates
   const templates = await templateService.listTemplates();

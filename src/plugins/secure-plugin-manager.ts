@@ -10,6 +10,8 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { parse } from '@babel/parser';
+import traverse from '@babel/traverse';
 import { IPlugin, PluginAPI } from '../types';
 import {
   PluginSandbox,
@@ -17,6 +19,95 @@ import {
   PluginExecutionResult,
 } from './sandbox/plugin-sandbox';
 import { logger } from '../utils/logger';
+
+/**
+ * Secure plugin code validator
+ */
+class SecurePluginValidator {
+  private dangerousPatterns = [
+    /eval\s*\(/,
+    /Function\s*\(/,
+    /setTimeout\s*\(/,
+    /setInterval\s*\(/,
+    /require\s*\(/,
+    /process\./,
+    /global\./,
+    /__dirname/,
+    /__filename/,
+    /import\s+/,
+    /\bfs\./,
+    /\bos\./,
+    /\bchild_process\./,
+  ];
+
+  validatePluginCode(code: string): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // Check for dangerous patterns using regex
+    for (const pattern of this.dangerousPatterns) {
+      if (pattern.test(code)) {
+        errors.push(`Dangerous pattern detected: ${pattern.source}`);
+      }
+    }
+
+    // Try to parse with Babel to check syntax
+    try {
+      const ast = parse(code, {
+        sourceType: 'module',
+        plugins: ['objectRestSpread', 'functionBind'],
+      });
+
+      traverse(ast, {
+        enter: nodePath => {
+          const { node } = nodePath;
+
+          // Block dangerous function calls
+          if (
+            node.type === 'CallExpression' &&
+            node.callee.type === 'Identifier'
+          ) {
+            const dangerousFunctions = [
+              'eval',
+              'Function',
+              'require',
+              'setTimeout',
+              'setInterval',
+            ];
+            if (dangerousFunctions.includes(node.callee.name)) {
+              errors.push(`Dangerous function call: ${node.callee.name}`);
+            }
+          }
+
+          // Block access to dangerous objects
+          if (
+            node.type === 'MemberExpression' &&
+            node.object.type === 'Identifier'
+          ) {
+            const dangerousObjects = [
+              'process',
+              'global',
+              'fs',
+              'os',
+              'child_process',
+            ];
+            if (dangerousObjects.includes(node.object.name)) {
+              errors.push(`Dangerous object access: ${node.object.name}`);
+            }
+          }
+        },
+      });
+    } catch (parseError: unknown) {
+      const errorMessage =
+        parseError instanceof Error ? parseError.message : String(parseError);
+      errors.push(`Plugin code parsing failed: ${errorMessage}`);
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }
+}
 
 /**
  * Plugin security policy
@@ -165,8 +256,10 @@ export class SecurePluginManager {
       });
 
       logger.info(`Plugin loaded securely: ${plugin.name}`);
-    } catch (error: any) {
-      logger.error(`Failed to load plugin ${pluginPath}: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to load plugin ${pluginPath}: ${errorMessage}`);
       throw error;
     }
   }
@@ -648,7 +741,7 @@ export class SecurePluginManager {
   }
 
   /**
-   * Parse plugin from code string into plugin object
+   * Securely parse plugin from code string into plugin object
    * @param code - Plugin code to parse
    * @param filePath - File path for error reporting
    * @returns Promise resolving to parsed plugin object
@@ -657,29 +750,107 @@ export class SecurePluginManager {
    */
   private async parsePlugin(code: string, filePath: string): Promise<IPlugin> {
     try {
-      // For now, we'll use a simple module evaluation
-      // In production, this would be more sophisticated
-      let plugin: any;
+      // Validate plugin code for security risks
+      const validator = new SecurePluginValidator();
+      const validation = validator.validatePluginCode(code);
+
+      if (!validation.isValid) {
+        logger.error(
+          `Plugin code validation failed for ${filePath}:`,
+          validation.errors
+        );
+        throw new Error(
+          `Plugin code validation failed: ${validation.errors.join(', ')}`
+        );
+      }
+
+      let plugin: IPlugin;
 
       try {
-        // Try to evaluate the module code
-        // This is a simplified approach - in production, use proper module loading
-        const moduleCode = `
-          const module = { exports: {} };
-          const exports = module.exports;
-          ${code}
-          return module.exports.default || module.exports;
-        `;
+        // SECURITY: Parse plugin code using AST instead of Function constructor
+        logger.debug(`Parsing plugin code using AST for ${filePath}`);
 
-        const pluginFactory = new Function(moduleCode);
-        plugin = pluginFactory();
-      } catch (_evalError) {
+        // Parse the code using Babel AST
+        const ast = parse(code, {
+          sourceType: 'module',
+          plugins: ['objectRestSpread', 'functionBind'],
+        });
+
+        // Extract plugin configuration from AST
+        const pluginConfig: Record<string, unknown> = {};
+
+        traverse(ast, {
+          // Look for module.exports assignments
+          AssignmentExpression: path => {
+            const { left } = path.node;
+            if (
+              left.type === 'MemberExpression' &&
+              left.object.type === 'MemberExpression' &&
+              left.object.object.type === 'Identifier' &&
+              left.object.object.name === 'module' &&
+              left.object.property.type === 'Identifier' &&
+              left.object.property.name === 'exports'
+            ) {
+              // Extract literal values from the right side
+              const { right } = path.node;
+              if (right.type === 'ObjectExpression') {
+                right.properties.forEach(prop => {
+                  if (
+                    prop.type === 'ObjectProperty' &&
+                    'key' in prop &&
+                    'value' in prop &&
+                    typeof prop.key === 'object' &&
+                    (prop.key as any).type === 'Identifier' &&
+                    'name' in prop.key &&
+                    typeof prop.value === 'object' &&
+                    (prop.value as any).type === 'Literal' &&
+                    'value' in prop.value
+                  ) {
+                    pluginConfig[(prop.key as { name: string }).name] = (
+                      prop.value as { value: unknown }
+                    ).value;
+                  }
+                });
+              }
+            }
+          },
+
+          // Look for direct exports
+          ExportDefaultDeclaration: path => {
+            const { declaration } = path.node;
+            if (declaration.type === 'ObjectExpression') {
+              declaration.properties.forEach(prop => {
+                if (
+                  prop.type === 'ObjectProperty' &&
+                  'key' in prop &&
+                  'value' in prop &&
+                  typeof prop.key === 'object' &&
+                  (prop.key as any).type === 'Identifier' &&
+                  'name' in prop.key &&
+                  typeof prop.value === 'object' &&
+                  (prop.value as any).type === 'Literal' &&
+                  'value' in prop.value
+                ) {
+                  pluginConfig[(prop.key as { name: string }).name] = (
+                    prop.value as { value: unknown }
+                  ).value;
+                }
+              });
+            }
+          },
+        });
+
+        plugin = pluginConfig as unknown as IPlugin;
+      } catch (_parseError) {
         // Fallback to basic plugin structure
         plugin = {
           name: path.basename(filePath, path.extname(filePath)),
           version: '1.0.0',
           description: 'Plugin loaded from file',
           author: 'Unknown',
+          init: async () =>
+            // Default initialization
+            true,
         };
       }
 

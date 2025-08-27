@@ -33,13 +33,20 @@ module.exports = {
     },
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup/test-setup.ts'],
-  testTimeout: 30000, // Reduced timeout to catch hanging tests faster
+  testTimeout: 15000, // Reduced timeout to catch hanging tests faster
   maxWorkers: 1, // Use single worker for E2E tests to reduce memory usage
-  workerIdleMemoryLimit: '512MB', // Reduced memory limit to prevent leaks
+  workerIdleMemoryLimit: '256MB', // Further reduced memory limit to prevent leaks
   verbose: false, // Reduced verbosity to save memory
+  // Additional memory optimizations
+  logHeapUsage: false, // Disable heap logging to save memory
+  bail: 0, // Don't bail early to get full test results
   clearMocks: true,
   restoreMocks: true,
   resetMocks: true,
+  // Enable automatic mocking from __mocks__ directory
+  moduleNameMapper: {
+    '^ora$': '<rootDir>/tests/__mocks__/ora.js',
+  },
   forceExit: true, // Force exit to prevent hanging handles
   detectOpenHandles: true, // Detect open handles that prevent exit
   moduleFileExtensions: ['ts', 'js', 'json'],

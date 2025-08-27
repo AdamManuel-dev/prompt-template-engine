@@ -241,10 +241,10 @@ export class MCPOptimizationTools {
       const startTime = Date.now();
       const result = await this.optimizationService.optimizeTemplate({
         templateId: template.id || 'mcp-prompt',
-        template: template as any,
+        template,
         config: {
           task: request.task || 'Optimize this prompt for better performance',
-          targetModel: (request.model as any) || 'gpt-4',
+          targetModel: request.model || 'gpt-4',
           mutateRefineIterations: request.iterations || 3,
           fewShotCount: request.examples || 5,
           generateReasoning: request.reasoning ?? true,
@@ -256,7 +256,7 @@ export class MCPOptimizationTools {
         this.client.scorePrompt(promptText, request.task),
         this.client.scorePrompt(
           result.optimizedTemplate.files
-            ?.map(f => (f as any).content)
+            ?.map(f => ('content' in f ? f.content : f.source) || '')
             .join('\n') || '',
           request.task
         ),
@@ -269,7 +269,7 @@ export class MCPOptimizationTools {
         originalPrompt: promptText,
         optimizedPrompt:
           result.optimizedTemplate.files
-            ?.map(f => (f as any).content)
+            ?.map(f => ('content' in f ? f.content : f.source) || '')
             .join('\n') || '',
         metrics: {
           accuracyImprovement: result.metrics.accuracyImprovement,
@@ -284,13 +284,17 @@ export class MCPOptimizationTools {
       };
 
       // Add examples if optimization generated them
-      if ((result.optimizedTemplate as any).examples) {
-        response.examples = (result.optimizedTemplate as any).examples;
+      if (result.optimizedTemplate.examples) {
+        // Convert string[] to expected format
+        response.examples = result.optimizedTemplate.examples.map(ex => ({
+          input: ex,
+          output: ex,
+        }));
       }
 
       // Add reasoning if generated
-      if ((result.optimizedTemplate as any).reasoning) {
-        response.reasoning = (result.optimizedTemplate as any).reasoning;
+      if (result.optimizedTemplate.reasoning) {
+        response.reasoning = [result.optimizedTemplate.reasoning];
       }
 
       logger.info(
@@ -547,7 +551,12 @@ export class MCPOptimizationTools {
               prompt: '', // Will be loaded from template
               templateName,
               task: `Optimize template: ${templateName}`,
-              model: request.config?.model as any,
+              model: request.config?.model as
+                | 'gpt-4'
+                | 'claude-3-opus'
+                | 'claude-3-sonnet'
+                | 'gemini-pro'
+                | undefined,
               iterations: request.config?.iterations,
               examples: request.config?.examples,
               reasoning: request.config?.reasoning,
@@ -569,7 +578,7 @@ export class MCPOptimizationTools {
 
               totalAccuracyImprovement += result.metrics.accuracyImprovement;
               totalTokenReduction += result.metrics.tokenReduction;
-              successCount++;
+              successCount += 1;
             } else {
               results.push({
                 name: templateName,
@@ -594,7 +603,12 @@ export class MCPOptimizationTools {
             const optimizeRequest: MCPOptimizePromptRequest = {
               prompt: promptData.text,
               task: promptData.task,
-              model: request.config?.model as any,
+              model: request.config?.model as
+                | 'gpt-4'
+                | 'claude-3-opus'
+                | 'claude-3-sonnet'
+                | 'gemini-pro'
+                | undefined,
               iterations: request.config?.iterations,
               examples: request.config?.examples,
               reasoning: request.config?.reasoning,
@@ -616,7 +630,7 @@ export class MCPOptimizationTools {
 
               totalAccuracyImprovement += result.metrics.accuracyImprovement;
               totalTokenReduction += result.metrics.tokenReduction;
-              successCount++;
+              successCount += 1;
             } else {
               results.push({
                 name: promptData.name || 'Direct Prompt',

@@ -17,35 +17,60 @@ jest.mock('../../../../src/services/template.service');
 jest.mock('../../../../src/integrations/promptwizard');
 jest.mock('diff');
 jest.mock('chalk', () => ({
-  blue: {
-    bold: jest.fn(str => `[BLUE]${str}[/BLUE]`),
-  },
-  cyan: jest.fn(str => `[CYAN]${str}[/CYAN]`),
-  yellow: {
-    bold: jest.fn(str => `[YELLOW]${str}[/YELLOW]`),
-  },
-  green: jest.fn(str => `[GREEN]${str}[/GREEN]`),
-  red: jest.fn(str => `[RED]${str}[/RED]`),
-  gray: jest.fn(str => `[GRAY]${str}[/GRAY]`),
-  white: jest.fn(str => `[WHITE]${str}[/WHITE]`),
-  magenta: {
-    bold: jest.fn(str => `[MAGENTA]${str}[/MAGENTA]`),
-  },
+  blue: Object.assign(
+    (str: string) => `[BLUE]${str}[/BLUE]`,
+    {
+      bold: (str: string) => `[BLUE]${str}[/BLUE]`,
+    }
+  ),
+  cyan: Object.assign(
+    (str: string) => `[CYAN]${str}[/CYAN]`,
+    {
+      bold: (str: string) => `[CYAN]${str}[/CYAN]`,
+    }
+  ),
+  yellow: Object.assign(
+    (str: string) => `[YELLOW]${str}[/YELLOW]`,
+    {
+      bold: (str: string) => `[YELLOW]${str}[/YELLOW]`,
+    }
+  ),
+  green: Object.assign(
+    (str: string) => `[GREEN]${str}[/GREEN]`,
+    {
+      bold: (str: string) => `[GREEN]${str}[/GREEN]`,
+    }
+  ),
+  red: (str: string) => `[RED]${str}[/RED]`,
+  gray: (str: string) => `[GRAY]${str}[/GRAY]`,
+  white: (str: string) => `[WHITE]${str}[/WHITE]`,
+  magenta: Object.assign(
+    (str: string) => `[MAGENTA]${str}[/MAGENTA]`,
+    {
+      bold: (str: string) => `[MAGENTA]${str}[/MAGENTA]`,
+    }
+  ),
 }));
-const mockSpinner = {
-  start: jest.fn().mockReturnThis(),
-  stop: jest.fn().mockReturnThis(),
-  succeed: jest.fn().mockReturnThis(),
-  fail: jest.fn().mockReturnThis(),
-  text: '',
+// Mock ora with direct import
+const mockOra = () => {
+  const spinner = {
+    start: jest.fn().mockReturnThis(),
+    stop: jest.fn().mockReturnThis(),
+    succeed: jest.fn().mockReturnThis(),
+    fail: jest.fn().mockReturnThis(),
+    warn: jest.fn().mockReturnThis(),
+    info: jest.fn().mockReturnThis(),
+    text: '',
+    color: 'cyan',
+    isSpinning: false,
+    clear: jest.fn().mockReturnThis(),
+    render: jest.fn().mockReturnThis(),
+    frame: jest.fn().mockReturnValue('⠋'),
+  };
+  return spinner;
 };
 
-jest.mock('ora', () => {
-  return {
-    __esModule: true,
-    default: jest.fn(() => mockSpinner),
-  };
-});
+jest.mock('ora', () => mockOra);
 
 // Import modules after mocks are set up
 import { CompareCommand } from '../../../../src/cli/commands/compare';
@@ -58,8 +83,9 @@ describe('CompareCommand', () => {
   let mockClient: jest.Mocked<PromptWizardClient>;
   
   // Mock console methods
-  const mockLog = jest.spyOn(console, 'log').mockImplementation();
-  const mockWrite = jest.spyOn(process.stdout, 'write').mockImplementation();
+  let mockLog: jest.SpyInstance;
+  let mockError: jest.SpyInstance;
+  let mockWrite: jest.SpyInstance;
 
   const mockComparisonResult = {
     comparisonId: 'comp-123',
@@ -104,6 +130,11 @@ describe('CompareCommand', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
+    // Setup console mocks fresh each time
+    mockLog = jest.spyOn(console, 'log').mockImplementation();
+    mockError = jest.spyOn(console, 'error').mockImplementation();
+    mockWrite = jest.spyOn(process.stdout, 'write').mockImplementation();
+    
     // Setup mocked services
     mockTemplateService = {
       findTemplate: jest.fn(),
@@ -128,6 +159,7 @@ describe('CompareCommand', () => {
     jest.clearAllTimers();
     jest.resetAllMocks();
     mockLog.mockRestore();
+    mockError.mockRestore();
     mockWrite.mockRestore();
   });
 
@@ -175,9 +207,14 @@ describe('CompareCommand', () => {
 
     it('should proceed if service health check passes', async () => {
       mockClient.healthCheck.mockResolvedValue(true);
-      (compareCommand as any).prompt = jest.fn().mockResolvedValue('test prompt');
+      
+      // Mock the actual comparison flow with proper arguments
+      const options = {
+        original: 'test original prompt',
+        optimized: 'test optimized prompt'
+      };
 
-      await compareCommand.execute([], {});
+      await compareCommand.execute([], options);
       
       expect(mockClient.healthCheck).toHaveBeenCalled();
     });
@@ -328,10 +365,10 @@ describe('CompareCommand', () => {
         detailed: true,
       });
 
-      expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('Detailed Analysis'));
-      expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('Strengths Gained:'));
-      expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('Potential Risks:'));
-      expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('Recommendations:'));
+      expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('[MAGENTA]🔍 Detailed Analysis[/MAGENTA]'));
+      expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('[GREEN]✅ Strengths Gained:[/GREEN]'));
+      expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('[RED]⚠️  Potential Risks:[/RED]'));
+      expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('[YELLOW]💡 Recommendations:[/YELLOW]'));
     });
   });
 

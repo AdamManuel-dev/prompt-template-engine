@@ -14,7 +14,7 @@ import { ContextBridge, CursorContext } from './context-bridge';
 import { TemplateEngine } from '../../core/template-engine';
 import { TemplateService } from '../../services/template.service';
 import { logger } from '../../utils/logger';
-// import type { Template } from '../../types'; // Currently unused
+import type { Template, TemplateVariable } from '../../types';
 
 export interface CommandOptions {
   enableQuickFix?: boolean;
@@ -338,7 +338,10 @@ export class CursorCommandIntegration {
     }
 
     // Find appropriate template for error
-    const errorType = this.categorizeError(context.errors[0]);
+    const error = context.errors[0];
+    const errorObj = new Error(error.message);
+    errorObj.name = `${error.severity}Error`;
+    const errorType = this.categorizeError(errorObj);
     const template = await this.findTemplateForError(errorType);
 
     if (!template) {
@@ -509,11 +512,13 @@ export class CursorCommandIntegration {
           context.gitStatus = {
             branch: repo.state.HEAD?.name || 'unknown',
             modified: repo.state.workingTreeChanges.map(
-              (c: any) => c.uri.fsPath
+              (c: vscode.SourceControlResourceState) => c.resourceUri.fsPath
             ),
-            staged: repo.state.indexChanges.map((c: any) => c.uri.fsPath),
+            staged: repo.state.indexChanges.map(
+              (c: vscode.SourceControlResourceState) => c.resourceUri.fsPath
+            ),
             untracked: repo.state.untrackedChanges.map(
-              (c: any) => c.uri.fsPath
+              (c: vscode.SourceControlResourceState) => c.resourceUri.fsPath
             ),
           };
         }
@@ -529,7 +534,7 @@ export class CursorCommandIntegration {
    * Collect variables from user
    */
   private async collectVariables(
-    template: any,
+    template: Template,
     existingVars: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const variables: Record<string, unknown> = { ...existingVars };
@@ -539,9 +544,10 @@ export class CursorCommandIntegration {
     for (const [key, config] of Object.entries(template.variables)) {
       if (variables[key] !== undefined) continue;
 
-      const varConfig: any =
+      const varConfig: TemplateVariable | unknown =
         typeof config === 'object' ? config : { default: config };
-      const defaultValue = varConfig?.default?.toString() || '';
+      const defaultValue =
+        (varConfig as TemplateVariable)?.default?.toString() || '';
       const value = await vscode.window.showInputBox({
         prompt: `Enter value for ${key}`,
         placeHolder: defaultValue,
@@ -675,7 +681,7 @@ export class CursorCommandIntegration {
   /**
    * Helper methods
    */
-  private categorizeError(error: any): string {
+  private categorizeError(error: Error): string {
     const message = error.message.toLowerCase();
 
     if (message.includes('type') || message.includes('typescript')) {
@@ -694,7 +700,9 @@ export class CursorCommandIntegration {
     return 'generic-error';
   }
 
-  private async findTemplateForError(errorType: string): Promise<any> {
+  private async findTemplateForError(
+    errorType: string
+  ): Promise<Template | null> {
     const templates = await this.templateService.listTemplates();
 
     // Look for exact match
@@ -714,7 +722,7 @@ export class CursorCommandIntegration {
     if (template) return template;
 
     // Default to bug-fix template
-    return templates.find(t => t.name === 'bug-fix');
+    return templates.find(t => t.name === 'bug-fix') || null;
   }
 
   private generateTemplateBoilerplate(
@@ -787,7 +795,7 @@ examples:
     );
   }
 
-  private async showTemplateDetails(template: any): Promise<void> {
+  private async showTemplateDetails(template: Template): Promise<void> {
     const details =
       `# ${template.name}\n\n` +
       `**Description:** ${template.description || 'No description'}\n\n` +

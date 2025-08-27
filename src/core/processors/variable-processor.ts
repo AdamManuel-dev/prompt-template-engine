@@ -98,7 +98,7 @@ export class VariableProcessor {
 
     // Handle nested path resolution
     const path = key.split('.');
-    let current: any = context.variables;
+    let current: unknown = context.variables;
 
     for (const segment of path) {
       if (current === null || current === undefined) {
@@ -109,9 +109,20 @@ export class VariableProcessor {
       const arrayMatch = segment.match(/^(\w+)\[(\d+)\]$/);
       if (arrayMatch) {
         const [, arrayName, index] = arrayMatch;
-        current = current[arrayName]?.[parseInt(index, 10)];
+        if (current && typeof current === 'object' && arrayName in current) {
+          const arrayValue = (current as Record<string, unknown>)[arrayName];
+          if (Array.isArray(arrayValue)) {
+            current = arrayValue[parseInt(index, 10)];
+          } else {
+            current = undefined;
+          }
+        } else {
+          current = undefined;
+        }
+      } else if (current && typeof current === 'object' && segment in current) {
+        current = (current as Record<string, unknown>)[segment];
       } else {
-        current = current[segment];
+        current = undefined;
       }
     }
 

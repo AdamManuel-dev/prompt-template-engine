@@ -30,6 +30,25 @@ export type {
   OptimizationEventHandler,
 } from './types';
 
+// Validation schemas and utilities
+export {
+  QualityScoreSchema,
+  OptimizedResultSchema,
+  OptimizationConfigSchema,
+  PromptComparisonSchema,
+  OptimizationJobSchema,
+  OptimizationResponseSchema,
+  validateQualityScore,
+  validateOptimizedResult,
+  validateOptimizationConfig,
+  validatePromptComparison,
+  validateOptimizationJob,
+  validateOptimizationResponse,
+  safeValidateQualityScore,
+  safeValidateOptimizedResult,
+  safeValidateOptimizationResponse,
+} from './schemas';
+
 // Re-export for convenience
 export type { PromptWizardClient as Client } from './client';
 export type { ConfigMapper as Mapper } from './config-mapper';

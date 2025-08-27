@@ -23,7 +23,7 @@ export interface CacheOptions {
   /** Alias for maxAge (maintained for backward compatibility) */
   ttl?: number;
   /** Custom function to calculate item size for memory management */
-  sizeCalculation?: (value: any, key: string) => number;
+  sizeCalculation?: <T>(value: T, key: string) => number;
   /** Whether to update item age on cache hits */
   updateAgeOnGet?: boolean;
   /** Directory path for persistent cache storage on file system */
@@ -146,7 +146,13 @@ export class CacheService<T extends object = any> {
     // Store cacheDir option (Required by TODO)
     this.cacheDir = finalOptions.cacheDir;
 
-    const cacheConfig: any = {
+    const cacheConfig: {
+      max: number;
+      ttl: number;
+      updateAgeOnGet?: boolean;
+      sizeCalculation?: <T>(value: T, key: string) => number;
+      maxSize?: number;
+    } = {
       max: finalOptions.maxSize!,
       ttl: finalOptions.maxAge!,
       updateAgeOnGet: finalOptions.updateAgeOnGet,

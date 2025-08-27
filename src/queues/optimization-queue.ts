@@ -24,6 +24,7 @@ import {
 let Queue: any;
 // let _Job: any; // Commented out as unused
 try {
+  // eslint-disable-next-line import/no-unresolved
   const bullModule = require('bull');
   Queue = bullModule.default || bullModule.Queue || bullModule;
   // _Job = bullModule.Job; // Commented out as unused
@@ -553,7 +554,7 @@ export class OptimizationQueue extends EventEmitter {
     error: Error
   ): Promise<void> {
     job.error = error.message;
-    job.retryCount++;
+    job.retryCount += 1;
 
     logger.warn(
       `Optimization job failed - ${JSON.stringify({
@@ -649,7 +650,7 @@ export class OptimizationQueue extends EventEmitter {
     };
 
     for (const job of this.jobs.values()) {
-      counts[job.status]++;
+      counts[job.status] += 1;
     }
 
     return counts;

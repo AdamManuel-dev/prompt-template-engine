@@ -323,7 +323,7 @@ export class MockFactory {
    */
   static initializeMarketplaceMocks(): void {
     // Stub - does nothing to avoid TypeScript errors
-    console.log('Marketplace mocks initialization skipped (stub)');
+    // Silently skip marketplace mocks to avoid test noise
   }
 
   /**

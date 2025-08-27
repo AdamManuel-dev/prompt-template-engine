@@ -549,13 +549,17 @@ export class ConditionalProcessor {
 
     // Handle nested paths
     const path = condition.split('.');
-    let current: any = context;
+    let current: unknown = context;
 
     for (const segment of path) {
       if (current === null || current === undefined) {
         return undefined;
       }
-      current = current[segment];
+      if (current && typeof current === 'object' && segment in current) {
+        current = (current as Record<string, unknown>)[segment];
+      } else {
+        current = undefined;
+      }
     }
 
     return current;

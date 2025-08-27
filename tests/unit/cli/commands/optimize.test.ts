@@ -7,6 +7,27 @@
  * Patterns: Mocked dependencies, async testing, error scenarios
  */
 
+// Mock ora with direct import
+const mockOra = () => {
+  const spinner = {
+    start: jest.fn().mockReturnThis(),
+    stop: jest.fn().mockReturnThis(),
+    succeed: jest.fn().mockReturnThis(),
+    fail: jest.fn().mockReturnThis(),
+    warn: jest.fn().mockReturnThis(),
+    info: jest.fn().mockReturnThis(),
+    text: '',
+    color: 'cyan',
+    isSpinning: false,
+    clear: jest.fn().mockReturnThis(),
+    render: jest.fn().mockReturnThis(),
+    frame: jest.fn().mockReturnValue('⠋'),
+  };
+  return spinner;
+};
+
+jest.mock('ora', () => mockOra);
+
 import { OptimizeCommand } from '../../../../src/cli/commands/optimize';
 import { TemplateService } from '../../../../src/services/template.service';
 import { CacheService } from '../../../../src/services/cache.service';

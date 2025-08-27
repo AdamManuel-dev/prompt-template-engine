@@ -4,6 +4,9 @@
     "es2024": true,
     "jest": true
   },
+  "globals": {
+    "NodeJS": "readonly"
+  },
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",

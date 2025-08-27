@@ -46,7 +46,11 @@ export interface OptimizationPipelineConfig {
   parallelProcessing: boolean;
   maxConcurrency: number;
   progressCallback?: (
-    stage: { name: string; description: string; execute: () => Promise<any> },
+    stage: {
+      name: string;
+      description: string;
+      execute: () => Promise<unknown>;
+    },
     progress: number
   ) => void;
 }
@@ -173,7 +177,7 @@ export class OptimizationPipeline extends EventEmitter {
       const optimizationResult = await this.executeStage('optimization', () =>
         this.promptOptimizationService.optimizeTemplate({
           templateId,
-          template: template as any,
+          template: template as Template,
           config: optimizationRequestFinal,
           options: {
             skipCache: !this.config.enableCaching,
@@ -231,13 +235,15 @@ export class OptimizationPipeline extends EventEmitter {
         jobId: `pipeline_${pipelineId}`,
         originalPrompt: template.content || '',
         optimizedPrompt:
-          (finalResult.optimizedTemplate as any).content ||
+          (finalResult.optimizedTemplate as Template).content ||
           finalResult.optimizedTemplate.name,
         status: 'completed' as const,
         metrics: {
           accuracyImprovement: finalResult.metrics.accuracyImprovement || 0,
           tokenReduction: finalResult.metrics.tokenReduction || 0,
-          costReduction: (finalResult.metrics as any).costReduction || 1.0,
+          costReduction:
+            ((finalResult.metrics as Record<string, unknown>)
+              .costReduction as number) || 1.0,
           processingTime: finalResult.metrics.optimizationTime || 0,
           apiCallsUsed: finalResult.metrics.apiCalls || 0,
         },
@@ -555,7 +561,12 @@ export class OptimizationPipeline extends EventEmitter {
     return {
       task: context.task,
       prompt: template.content || '',
-      targetModel: context.targetModel as any,
+      targetModel: context.targetModel as
+        | 'gpt-4'
+        | 'gpt-3.5-turbo'
+        | 'claude-3-opus'
+        | 'claude-3-sonnet'
+        | 'gemini-pro',
       mutateRefineIterations:
         request.mutateRefineIterations ||
         promptwizardConfig.optimization.mutateRefineIterations,
@@ -580,7 +591,7 @@ export class OptimizationPipeline extends EventEmitter {
     metadata: TemplateMetadata
   ): Promise<ServiceOptimizationResult> {
     let processedContent =
-      (result.optimizedTemplate as any).content ||
+      (result.optimizedTemplate as Template).content ||
       result.optimizedTemplate.name;
 
     // Restore variable placeholders if they were preserved during preprocessing
@@ -615,7 +626,7 @@ export class OptimizationPipeline extends EventEmitter {
       optimizedTemplate: {
         ...result.optimizedTemplate,
         ...(processedContent && { content: processedContent }),
-      } as any,
+      } as ServiceOptimizationResult['optimizedTemplate'],
       metrics: enhancedMetrics,
     };
   }
@@ -636,10 +647,10 @@ export class OptimizationPipeline extends EventEmitter {
     }
 
     // Validate that essential variables are preserved
-    const originalVariables =
+    const originalVariables: string[] =
       (originalTemplate.content || '').match(/\{\{[^}]+\}\}/g) || [];
-    const optimizedVariables =
-      ((result.optimizedTemplate as any).content || '').match(
+    const optimizedVariables: string[] =
+      ((result.optimizedTemplate as Template).content || '').match(
         /\{\{[^}]+\}\}/g
       ) || [];
 
@@ -695,7 +706,11 @@ export class OptimizationPipeline extends EventEmitter {
         'save' in this.templateService &&
         typeof this.templateService.save === 'function'
       ) {
-        await (this.templateService as any).save(optimizedTemplate);
+        await (
+          this.templateService as TemplateService & {
+            save: (template: Template) => Promise<void>;
+          }
+        ).save(optimizedTemplate);
       } else {
         // Cache the optimized template instead
         await this.cacheService.set(

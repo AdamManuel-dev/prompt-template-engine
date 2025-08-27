@@ -104,7 +104,7 @@ export class CompareCommand extends BaseCommand {
       this.error(
         `Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`
       );
-      process.exit(1);
+      this.exit(1);
     }
   }
 
@@ -229,8 +229,29 @@ export class CompareCommand extends BaseCommand {
             template,
             {}
           );
-          const templateContent =
-            renderedTemplate.files?.map(f => f.content).join('\n') || '';
+
+          // Handle different render template result formats
+          let templateContent = '';
+          if ((renderedTemplate as unknown as { content?: string }).content) {
+            templateContent = (
+              renderedTemplate as unknown as { content: string }
+            ).content;
+          } else if (
+            (
+              renderedTemplate as unknown as {
+                files?: Array<{ content: string }>;
+              }
+            ).files
+          ) {
+            templateContent = (
+              renderedTemplate as unknown as {
+                files: Array<{ content: string }>;
+              }
+            ).files
+              .map(f => f.content)
+              .join('\n');
+          }
+
           if (templateContent) {
             return templateContent;
           }
@@ -303,17 +324,17 @@ export class CompareCommand extends BaseCommand {
       const metricStr = String(metric);
       const originalStr = String(original);
       const optimizedStr = String(optimized);
-      const improvement =
-        typeof original === 'number' && typeof optimized === 'number'
-          ? `${(((optimized - original) / original) * 100).toFixed(1)}%`
-          : 'N/A';
 
-      const improvementColor = improvement.startsWith('-')
+      const improvement = this.calculateImprovement(original, optimized);
+
+      // Ensure improvement is always a string to prevent undefined errors
+      const improvementStr = improvement || 'N/A';
+      const improvementColor = improvementStr.startsWith('-')
         ? chalk.red
         : chalk.green;
 
       console.log(
-        `│ ${metricStr.padEnd(19)} │ ${originalStr.padEnd(11)} │ ${optimizedStr.padEnd(11)} │ ${improvementColor(String(improvement).padEnd(11))} │`
+        `│ ${metricStr.padEnd(19)} │ ${originalStr.padEnd(11)} │ ${optimizedStr.padEnd(11)} │ ${improvementColor(improvementStr.padEnd(11))} │`
       );
     });
 
@@ -482,6 +503,22 @@ export class CompareCommand extends BaseCommand {
     );
 
     console.log(''); // Add final newline
+  }
+
+  /**
+   * Calculate improvement percentage between two values
+   */
+  private calculateImprovement(original: unknown, optimized: unknown): string {
+    if (typeof original !== 'number' || typeof optimized !== 'number') {
+      return 'N/A';
+    }
+
+    if (original === 0) {
+      return optimized === 0 ? '0.0%' : 'N/A';
+    }
+
+    const improvement = ((optimized - original) / original) * 100;
+    return `${improvement.toFixed(1)}%`;
   }
 
   /**

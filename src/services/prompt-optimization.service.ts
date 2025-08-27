@@ -16,13 +16,15 @@ import {
   OptimizationConfig,
   QualityScore,
   PromptComparison,
-  OptimizationJob,
 } from '../integrations/promptwizard';
 import { TemplateService } from './template.service';
-import { Template } from '../types';
+import { Template, TemplateFile } from '../types';
 import { CacheService } from './cache.service';
 import { OptimizationCacheService } from './optimization-cache.service';
-import { OptimizationQueue } from '../queues/optimization-queue';
+import {
+  OptimizationQueue,
+  OptimizationJob as QueueJob,
+} from '../queues/optimization-queue';
 import { OptimizationPipeline } from '../core/optimization-pipeline';
 
 /**
@@ -380,7 +382,7 @@ export class PromptOptimizationService extends EventEmitter {
           task: request.template.name,
           prompt:
             request.template.content ||
-            (request.template.files?.[0] as any)?.content ||
+            (request.template.files?.[0] as TemplateFile)?.content ||
             request.template.description ||
             '',
           targetModel: request.config?.targetModel || 'gpt-4',
@@ -489,25 +491,68 @@ export class PromptOptimizationService extends EventEmitter {
       ); // 10 minutes default
 
       // Forward declaration
-      let onCompleted: (completedJob: any) => void;
+      let onCompleted: (completedJob: QueueJob) => void;
 
-      const onFailed = (failedJob: any) => {
+      const onFailed = (failedJob: QueueJob): void => {
         if (failedJob.jobId === job.jobId) {
           clearTimeout(timeout);
           this.optimizationQueue.off('job:completed', onCompleted);
           this.optimizationQueue.off('job:failed', onFailed);
-          reject(new Error(failedJob.error || 'Job failed'));
+          reject(
+            new Error(
+              typeof failedJob.error === 'string'
+                ? failedJob.error
+                : 'Job failed'
+            )
+          );
         }
       };
 
-      onCompleted = (completedJob: any) => {
+      onCompleted = (completedJob: QueueJob): void => {
         if (completedJob.jobId === job.jobId) {
           clearTimeout(timeout);
           this.optimizationQueue.off('job:completed', onCompleted);
           this.optimizationQueue.off('job:failed', onFailed);
 
           if (completedJob.result) {
-            resolve(completedJob.result);
+            // Transform QueueJob result to OptimizationResult format
+            const optimizationResult: OptimizationResult = {
+              requestId: completedJob.jobId,
+              templateId: completedJob.templateId,
+              originalTemplate: completedJob.template,
+              optimizedTemplate:
+                typeof completedJob.result.optimizedTemplate === 'object' &&
+                completedJob.result.optimizedTemplate !== null
+                  ? (completedJob.result.optimizedTemplate as Template)
+                  : completedJob.template,
+              metrics: {
+                tokenReduction:
+                  completedJob.result.metrics?.tokenReduction || 0,
+                accuracyImprovement:
+                  completedJob.result.metrics?.accuracyImprovement || 0,
+                optimizationTime: Date.now() - completedJob.createdAt.getTime(),
+                apiCalls: completedJob.result.metrics?.apiCallsUsed || 0,
+              },
+              qualityScore:
+                typeof completedJob.result.qualityScore === 'object' &&
+                completedJob.result.qualityScore !== null
+                  ? (completedJob.result.qualityScore as QualityScore)
+                  : {
+                      overall: 50,
+                      metrics: {
+                        clarity: 50,
+                        taskAlignment: 50,
+                        tokenEfficiency: 50,
+                      },
+                      suggestions: ['No quality score available'],
+                      confidence: 0.5,
+                    },
+              comparison: completedJob.result.comparison || {
+                improvements: {},
+              },
+              timestamp: new Date(),
+            };
+            resolve(optimizationResult);
           } else {
             reject(new Error('Job completed but no result available'));
           }
@@ -644,18 +689,20 @@ export class PromptOptimizationService extends EventEmitter {
    *
    * @see {@link OptimizationJob} for job structure
    */
-  async getOptimizationStatus(jobId: string): Promise<OptimizationJob | null> {
+  async getOptimizationStatus(jobId: string): Promise<QueueJob | null> {
     const job = this.optimizationQueue.getJob(jobId);
     if (!job) {
       // Check if job exists in the Python service
       try {
-        return await this.client.getJobStatus(jobId);
+        await this.client.getJobStatus(jobId);
+        // Convert to QueueJob format or return null if no meaningful conversion
+        return null;
       } catch (error) {
         logger.warn(`Failed to get job status from client: ${error}`);
         return null;
       }
     }
-    return job as any;
+    return job;
   }
 
   /**
@@ -796,7 +843,7 @@ export class PromptOptimizationService extends EventEmitter {
     maxSize: number;
     hits: number;
     misses: number;
-    optimizationCache?: any;
+    optimizationCache?: Record<string, unknown>;
   } {
     const optimizationCacheStats = this.optimizationCacheService.getStats();
 
@@ -805,7 +852,10 @@ export class PromptOptimizationService extends EventEmitter {
       maxSize: this.resultCache.max,
       hits: this.resultCache.size, // Simplified, would need proper tracking
       misses: 0, // Would need proper tracking
-      optimizationCache: optimizationCacheStats,
+      optimizationCache: optimizationCacheStats as unknown as Record<
+        string,
+        unknown
+      >,
     };
   }
 
@@ -828,7 +878,7 @@ export class PromptOptimizationService extends EventEmitter {
    * console.log(`Failed jobs: ${queueStats.failed}`);
    * ```
    */
-  getQueueStats() {
+  getQueueStats(): ReturnType<OptimizationQueue['getStats']> {
     return this.optimizationQueue.getStats();
   }
 

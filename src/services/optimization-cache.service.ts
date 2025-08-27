@@ -16,6 +16,7 @@ import {
   CacheError,
   ErrorTracker,
   RetryManager,
+  OptimizationError,
 } from '../utils/optimization-errors';
 import { optimizationMetrics } from '../utils/performance-monitor';
 import {
@@ -401,7 +402,13 @@ export class OptimizationCacheService {
   /**
    * Get cache statistics
    */
-  getStats(): CacheStats & { errorStats?: any } {
+  getStats(): CacheStats & {
+    errorStats?: {
+      totalErrors: number;
+      errorsByType: Record<string, number>;
+      recentErrors: OptimizationError[];
+    };
+  } {
     const hitRate =
       this.stats.totalRequests > 0
         ? this.stats.cacheHits / this.stats.totalRequests

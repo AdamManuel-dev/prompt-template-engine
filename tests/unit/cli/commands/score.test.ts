@@ -7,6 +7,27 @@
  * Patterns: Mocked dependencies, async testing, format validation
  */
 
+// Mock ora with direct import
+const mockOra = () => {
+  const spinner = {
+    start: jest.fn().mockReturnThis(),
+    stop: jest.fn().mockReturnThis(),
+    succeed: jest.fn().mockReturnThis(),
+    fail: jest.fn().mockReturnThis(),
+    warn: jest.fn().mockReturnThis(),
+    info: jest.fn().mockReturnThis(),
+    text: '',
+    color: 'cyan',
+    isSpinning: false,
+    clear: jest.fn().mockReturnThis(),
+    render: jest.fn().mockReturnThis(),
+    frame: jest.fn().mockReturnValue('⠋'),
+  };
+  return spinner;
+};
+
+jest.mock('ora', () => mockOra);
+
 import { ScoreCommand } from '../../../../src/cli/commands/score';
 import { TemplateService } from '../../../../src/services/template.service';
 import { PromptWizardClient } from '../../../../src/integrations/promptwizard';
@@ -33,19 +54,6 @@ jest.mock('chalk', () => ({
   },
   white: jest.fn(str => `[WHITE]${str}[/WHITE]`),
 }));
-jest.mock('ora', () => {
-  const mockSpinner = {
-    start: jest.fn().mockReturnThis(),
-    stop: jest.fn().mockReturnThis(),
-    succeed: jest.fn().mockReturnThis(),
-    fail: jest.fn().mockReturnThis(),
-    text: '',
-  };
-  return {
-    __esModule: true,
-    default: jest.fn(() => mockSpinner),
-  };
-});
 
 describe('ScoreCommand', () => {
   let scoreCommand: ScoreCommand;
@@ -187,15 +195,11 @@ describe('ScoreCommand', () => {
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
       mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        id: 'test-template',
-        name: 'Test Template',
-        description: 'Template for testing',
-        content: 'Rendered template content',
-        author: 'Test Author',
-        version: '1.0.0',
-        tags: [],
-        variables: {},
-        metadata: {},
+        files: [{
+          path: 'template.txt',
+          content: 'Rendered template content',
+          variables: {}
+        }]
       } as any);
 
       await scoreCommand.execute([], {
@@ -251,15 +255,11 @@ describe('ScoreCommand', () => {
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/user-template.json');
       mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        id: 'user-template',
-        name: 'User Template',
-        description: 'User selected template',
-        content: 'Rendered user template',
-        author: 'User',
-        version: '1.0.0',
-        tags: [],
-        variables: {},
-        metadata: {},
+        files: [{
+          path: 'user-template.txt',
+          content: 'Rendered user template',
+          variables: {}
+        }]
       } as any);
 
       await scoreCommand.execute([], {});
@@ -436,6 +436,18 @@ describe('ScoreCommand', () => {
         return Promise.resolve(mockTemplates[index] as any);
       });
 
+      mockTemplateService.renderTemplate.mockImplementation((template, _variables) => {
+        return Promise.resolve({
+          ...template,
+          files: [{
+            path: 'template.txt',
+            source: 'template.txt',
+            destination: 'rendered-template.txt',
+            content: (template as any).content, // Cast to access content field
+          }]
+        });
+      });
+
       mockClient.scorePrompt
         .mockResolvedValueOnce({ ...mockScoreResult, overall: 80 })
         .mockResolvedValueOnce({ ...mockScoreResult, overall: 75 });
@@ -471,6 +483,18 @@ describe('ScoreCommand', () => {
         return Promise.resolve(mockTemplates[index] as any);
       });
 
+      mockTemplateService.renderTemplate.mockImplementation((template, _variables) => {
+        return Promise.resolve({
+          ...template,
+          files: [{
+            path: 'template.txt',
+            source: 'template.txt',
+            destination: 'rendered-template.txt',
+            content: (template as any).content, // Cast to access content field
+          }]
+        });
+      });
+
       mockClient.scorePrompt
         .mockResolvedValueOnce({ ...mockScoreResult, overall: 80 })
         .mockRejectedValueOnce(new Error('Scoring failed for template2'));
@@ -493,6 +517,18 @@ describe('ScoreCommand', () => {
       mockTemplateService.loadTemplate.mockImplementation((path) => {
         const index = path.includes('template1') ? 0 : 1;
         return Promise.resolve(mockTemplates[index] as any);
+      });
+
+      mockTemplateService.renderTemplate.mockImplementation((template, _variables) => {
+        return Promise.resolve({
+          ...template,
+          files: [{
+            path: 'template.txt',
+            source: 'template.txt',
+            destination: 'rendered-template.txt',
+            content: (template as any).content, // Cast to access content field
+          }]
+        });
       });
 
       mockClient.scorePrompt
@@ -656,15 +692,11 @@ describe('ScoreCommand', () => {
       mockTemplateService.findTemplate.mockResolvedValue('/path/to/template.json');
       mockTemplateService.loadTemplate.mockResolvedValue(mockTemplate as any);
       mockTemplateService.renderTemplate.mockResolvedValue({
-        id: 'test-template',
-        name: 'Test Template',
-        description: 'Template for product descriptions',
-        content: 'Rendered content',
-        author: 'Test Author',
-        version: '1.0.0',
-        tags: [],
-        variables: {},
-        metadata: {},
+        files: [{
+          path: 'template.txt',
+          content: 'Rendered content',
+          variables: {}
+        }]
       } as any);
 
       await scoreCommand.execute([], {

@@ -184,9 +184,10 @@ export class TemplateToRulesConverter {
     // Extract from content using regex
     if (template.content) {
       const refPattern = /@([^\s]+\.(ts|tsx|js|jsx|md|json|yaml|yml))/g;
-      let match;
-      while ((match = refPattern.exec(template.content)) !== null) {
+      let match = refPattern.exec(template.content);
+      while (match !== null) {
         references.add(match[1]);
+        match = refPattern.exec(template.content);
       }
     }
 

@@ -7,6 +7,27 @@
  * Patterns: Mocked dependencies, async testing, state testing
  */
 
+// Mock ora with direct import
+const mockOra = () => {
+  const spinner = {
+    start: jest.fn().mockReturnThis(),
+    stop: jest.fn().mockReturnThis(),
+    succeed: jest.fn().mockReturnThis(),
+    fail: jest.fn().mockReturnThis(),
+    warn: jest.fn().mockReturnThis(),
+    info: jest.fn().mockReturnThis(),
+    text: '',
+    color: 'cyan',
+    isSpinning: false,
+    clear: jest.fn().mockReturnThis(),
+    render: jest.fn().mockReturnThis(),
+    frame: jest.fn().mockReturnValue('⠋'),
+  };
+  return spinner;
+};
+
+jest.mock('ora', () => mockOra);
+
 import { OptimizationWizardCommand } from '../../../../src/cli/commands/wizard';
 import { TemplateService } from '../../../../src/services/template.service';
 import { CacheService } from '../../../../src/services/cache.service';
@@ -222,13 +243,21 @@ describe('OptimizationWizardCommand', () => {
 
     it('should proceed if service health check passes', async () => {
       mockClient.healthCheck.mockResolvedValue(true);
-      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(true);
-      (wizardCommand as any).prompt = jest.fn().mockResolvedValue('test prompt');
-      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false); // Skip save at end
+      
+      // Mock exit to prevent actual process.exit
+      const mockExit = jest.spyOn(wizardCommand as any, 'exit').mockImplementation(() => {
+        throw new Error('Process exit called');
+      });
+      
+      // Mock confirm to decline continuation, which should trigger exit
+      (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false);
 
-      await wizardCommand.execute([], { skipIntro: true });
+      await expect(async () => {
+        await wizardCommand.execute([], { skipIntro: true });
+      }).rejects.toThrow('Process exit called');
       
       expect(mockClient.healthCheck).toHaveBeenCalled();
+      mockExit.mockRestore();
     });
   });
 

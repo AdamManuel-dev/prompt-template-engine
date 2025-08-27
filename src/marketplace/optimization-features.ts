@@ -148,6 +148,28 @@ export interface OptimizationFeatures {
  */
 export interface OptimizedTemplateModel extends TemplateModel {
   optimizationFeatures?: OptimizationFeatures;
+  optimizationData?: Record<string, unknown>;
+  qualityScore?: number;
+  performanceMetrics?:
+    | {
+        averageResponseTime: number;
+        tokenEfficiency: number;
+        costPerRequest: number;
+        successRate: number;
+        cacheHitRate: number;
+      }
+    | Record<string, unknown>;
+  optimizationLevel?: string;
+  tokenReduction?: number;
+  qualityImprovement?: number;
+  optimizedAt?: string;
+  aiOptimized?: boolean;
+  optimization?: Record<string, unknown>;
+  optimizationReviews?: unknown[];
+  optimizedBy?: string;
+  optimizationVersion?: string;
+  performanceOptimized?: boolean;
+  costReduction?: number;
 }
 
 /**
@@ -504,12 +526,16 @@ export class MarketplaceOptimizationService {
    * @returns Whether template has optimization features
    * @private
    */
-  private hasOptimizationFeatures(template: TemplateModel): boolean {
+  private hasOptimizationFeatures(
+    template: TemplateModel | OptimizedTemplateModel
+  ): boolean {
     // Check for optimization indicators in template metadata
+    const optimizedTemplate = template as OptimizedTemplateModel;
     return (
-      !!(template as any).optimizationData ||
-      !!(template as any).qualityScore ||
-      !!(template as any).performanceMetrics
+      !!optimizedTemplate.optimizationFeatures ||
+      !!optimizedTemplate.optimizationData ||
+      !!optimizedTemplate.qualityScore ||
+      !!optimizedTemplate.performanceMetrics
     );
   }
 
@@ -539,25 +565,35 @@ export class MarketplaceOptimizationService {
    * @private
    */
   private extractOptimizationFeatures(
-    template: TemplateModel
+    template: TemplateModel | OptimizedTemplateModel
   ): OptimizationFeatures {
-    const templateAny = template as any;
+    const optimizedTemplate = template as OptimizedTemplateModel;
 
     const qualityScore =
-      templateAny.qualityScore || this.estimateQualityScore(template);
+      optimizedTemplate.qualityScore || this.estimateQualityScore(template);
     const qualityTier = this.determineQualityTier(qualityScore);
 
     return {
       qualityScore,
       qualityTier,
-      performanceMetrics:
-        templateAny.performanceMetrics ||
-        this.estimatePerformanceMetrics(template),
-      optimization:
-        templateAny.optimization || this.extractOptimizationMetadata(template),
-      optimizationReviews:
-        templateAny.optimizationReviews ||
-        this.extractOptimizationReviews(template),
+      performanceMetrics: optimizedTemplate.performanceMetrics
+        ? typeof optimizedTemplate.performanceMetrics === 'object' &&
+          'averageResponseTime' in optimizedTemplate.performanceMetrics
+          ? (optimizedTemplate.performanceMetrics as {
+              averageResponseTime: number;
+              tokenEfficiency: number;
+              costPerRequest: number;
+              successRate: number;
+              cacheHitRate: number;
+            })
+          : this.estimatePerformanceMetrics(template)
+        : this.estimatePerformanceMetrics(template),
+      optimization: optimizedTemplate.optimization
+        ? (optimizedTemplate.optimization as any)
+        : this.extractOptimizationMetadata(template),
+      optimizationReviews: optimizedTemplate.optimizationReviews
+        ? (optimizedTemplate.optimizationReviews as any)
+        : this.extractOptimizationReviews(template),
       badges: this.determineBadges(template, qualityScore),
     };
   }
@@ -642,19 +678,21 @@ export class MarketplaceOptimizationService {
    * @returns Optimization metadata
    * @private
    */
-  private extractOptimizationMetadata(template: TemplateModel) {
-    const templateAny = template as any;
+  private extractOptimizationMetadata(
+    template: TemplateModel | OptimizedTemplateModel
+  ) {
+    const optimizedTemplate = template as OptimizedTemplateModel;
 
     return {
-      level: templateAny.optimizationLevel || 'standard',
-      tokenReduction: templateAny.tokenReduction || 0,
-      qualityImprovement: templateAny.qualityImprovement || 0,
+      level: optimizedTemplate.optimizationLevel || 'standard',
+      tokenReduction: optimizedTemplate.tokenReduction || 0,
+      qualityImprovement: optimizedTemplate.qualityImprovement || 0,
       optimizedAt:
-        templateAny.optimizedAt ||
+        optimizedTemplate.optimizedAt ||
         template.updated.toISOString() ||
         new Date().toISOString(),
-      optimizedBy: templateAny.optimizedBy || 'system',
-      version: templateAny.optimizationVersion || '1.0.0',
+      optimizedBy: optimizedTemplate.optimizedBy || 'system',
+      version: optimizedTemplate.optimizationVersion || '1.0.0',
     };
   }
 
@@ -705,17 +743,25 @@ export class MarketplaceOptimizationService {
    * @returns Template badges
    * @private
    */
-  private determineBadges(template: TemplateModel, qualityScore: number) {
-    const templateAny = template as any;
+  private determineBadges(
+    template: TemplateModel | OptimizedTemplateModel,
+    qualityScore: number
+  ) {
+    const optimizedTemplate = template as OptimizedTemplateModel;
 
     return {
-      aiOptimized: !!(templateAny.optimizationData || templateAny.aiOptimized),
-      tokenEfficient: qualityScore >= 80 || templateAny.tokenReduction > 0.2,
+      aiOptimized: !!(
+        optimizedTemplate.optimizationData || optimizedTemplate.aiOptimized
+      ),
+      tokenEfficient:
+        qualityScore >= 80 || (optimizedTemplate.tokenReduction || 0) > 0.2,
       highQuality: qualityScore >= 90,
       performanceOptimized: !!(
-        templateAny.performanceOptimized || templateAny.performanceMetrics
+        optimizedTemplate.performanceOptimized ||
+        optimizedTemplate.performanceMetrics
       ),
-      costEffective: qualityScore >= 75 && templateAny.costReduction > 0.15,
+      costEffective:
+        qualityScore >= 75 && (optimizedTemplate.costReduction || 0) > 0.15,
       communityFavorite:
         (template.downloads || template.stats?.downloads || 0) > 1000 &&
         (typeof template.rating === 'number'
@@ -731,9 +777,14 @@ export class MarketplaceOptimizationService {
    * @returns Comparison result
    * @private
    */
-  private compareOptimizationScore(a: TemplateModel, b: TemplateModel): number {
-    const scoreA = (a as any).qualityScore || this.estimateQualityScore(a);
-    const scoreB = (b as any).qualityScore || this.estimateQualityScore(b);
+  private compareOptimizationScore(
+    a: TemplateModel | OptimizedTemplateModel,
+    b: TemplateModel | OptimizedTemplateModel
+  ): number {
+    const optimizedA = a as OptimizedTemplateModel;
+    const optimizedB = b as OptimizedTemplateModel;
+    const scoreA = optimizedA.qualityScore || this.estimateQualityScore(a);
+    const scoreB = optimizedB.qualityScore || this.estimateQualityScore(b);
     return scoreB - scoreA;
   }
 
@@ -846,7 +897,7 @@ export class MarketplaceOptimizationService {
       if (template.optimizationFeatures?.badges) {
         const { badges } = template.optimizationFeatures;
         Object.keys(badges).forEach(badge => {
-          if ((badges as any)[badge]) {
+          if ((badges as Record<string, boolean>)[badge]) {
             badgeSet.add(badge);
           }
         });

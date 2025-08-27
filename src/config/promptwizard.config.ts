@@ -491,7 +491,7 @@ export function updatePromptWizardConfig(
 
   // Flatten the updates object for ConfigManager
   const flattenConfig = (
-    obj: any,
+    obj: Record<string, unknown>,
     prefix = 'promptwizard'
   ): Record<string, unknown> => {
     const flattened: Record<string, unknown> = {};
@@ -505,7 +505,10 @@ export function updatePromptWizardConfig(
         typeof value === 'object' &&
         !Array.isArray(value)
       ) {
-        Object.assign(flattened, flattenConfig(value, fullKey));
+        Object.assign(
+          flattened,
+          flattenConfig(value as Record<string, unknown>, fullKey)
+        );
       } else {
         flattened[fullKey] = value;
       }
@@ -530,14 +533,24 @@ export function updatePromptWizardConfig(
  * Get environment-specific configuration overrides
  */
 export function getEnvironmentOverrides(): Partial<PromptWizardConfig> {
-  const overrides: any = {};
+  const overrides: Partial<PromptWizardConfig> = {};
 
   // Connection overrides
   if (process.env.PROMPTWIZARD_SERVICE_URL) {
-    overrides.connection = { serviceUrl: process.env.PROMPTWIZARD_SERVICE_URL };
+    overrides.connection = {
+      serviceUrl: process.env.PROMPTWIZARD_SERVICE_URL,
+      timeout: 30000,
+      retries: 3,
+      verifySSL: true,
+    };
   }
   if (process.env.PROMPTWIZARD_API_KEY) {
     overrides.connection = {
+      serviceUrl:
+        process.env.PROMPTWIZARD_SERVICE_URL || 'http://localhost:8080',
+      timeout: 30000,
+      retries: 3,
+      verifySSL: true,
       ...overrides.connection,
       apiKey: process.env.PROMPTWIZARD_API_KEY,
     };
@@ -545,18 +558,36 @@ export function getEnvironmentOverrides(): Partial<PromptWizardConfig> {
 
   // Protocol overrides
   if (process.env.PROMPTWIZARD_GRPC_ENABLED === 'true') {
-    overrides.grpc = { enabled: true };
+    overrides.grpc = {
+      enabled: true,
+      serviceUrl: process.env.PROMPTWIZARD_SERVICE_URL || 'localhost:50051',
+      secure: false,
+      keepAlive: true,
+      maxReceiveMessageLength: 4 * 1024 * 1024,
+      maxSendMessageLength: 4 * 1024 * 1024,
+    };
   }
   if (process.env.PROMPTWIZARD_WS_ENABLED === 'true') {
-    overrides.websocket = { enabled: true };
+    overrides.websocket = {
+      enabled: true,
+      serviceUrl: process.env.PROMPTWIZARD_SERVICE_URL || 'ws://localhost:8080',
+      reconnectInterval: 5000,
+      maxReconnectAttempts: 10,
+      heartbeatInterval: 30000,
+    };
   }
 
   // Redis overrides
   if (process.env.REDIS_URL) {
     overrides.cache = {
+      enabled: true,
+      ttl: 3600,
+      maxSize: 1000,
       redis: {
         enabled: true,
         url: process.env.REDIS_URL,
+        keyPrefix: 'promptwizard:',
+        ttl: 3600,
       },
     };
   }

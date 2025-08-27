@@ -763,9 +763,9 @@ Focus on practical solutions.`,
 
     // Standardize Cursor pattern formatting
     const patternReplacements = [
-      [/\@file\s*:\s*/g, '@file: '],
-      [/\@folder\s*:\s*/g, '@folder: '],
-      [/\@codebase\b/g, '@codebase'],
+      [/@file\s*:\s*/g, '@file: '],
+      [/@folder\s*:\s*/g, '@folder: '],
+      [/@codebase\b/g, '@codebase'],
       [/\/\/ Cursor:\s*/g, '// Cursor: '],
       [/\/\* Cursor:\s*/g, '/* Cursor: '],
       [/# Cursor:\s*/g, '# Cursor: '],

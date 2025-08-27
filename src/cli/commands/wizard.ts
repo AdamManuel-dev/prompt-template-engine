@@ -841,8 +841,13 @@ export class OptimizationWizardCommand extends BaseCommand {
       });
 
       // Extract content from optimized template files
+      const firstFile = result.optimizedTemplate.files?.[0];
       this.state.currentOptimized =
-        (result.optimizedTemplate.files?.[0] as any)?.content || '';
+        firstFile &&
+        'content' in firstFile &&
+        typeof firstFile.content === 'string'
+          ? firstFile.content
+          : '';
 
       spinner.succeed('Optimization completed successfully!');
       console.log();
