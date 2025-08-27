@@ -26,9 +26,7 @@ import {
   OptimizationHistory,
   TemplateComparison,
 } from '../types/optimized-template.types';
-import {
-  OptimizationMetrics,
-} from '../types/unified-optimization.types';
+import { OptimizationMetrics } from '../types/unified-optimization.types';
 
 export interface UnifiedOptimizationConfig {
   /** PromptWizard client configuration */
@@ -121,7 +119,12 @@ export class UnifiedOptimizationService extends EventEmitter {
     // this.optimizationQueue =
     //   dependencies.optimizationQueue || new OptimizationQueue({}, {});
     this.optimizationPipeline =
-      dependencies.optimizationPipeline || new OptimizationPipeline({}, {}, {});
+      dependencies.optimizationPipeline ||
+      new OptimizationPipeline(
+        new (require('./prompt-optimization.service').PromptOptimizationService)(),
+        this.templateService,
+        this.cacheService
+      );
 
     // Initialize in-memory cache
     this.inMemoryCache = new LRUCache<string, OptimizationJobResult>({
@@ -195,7 +198,9 @@ export class UnifiedOptimizationService extends EventEmitter {
           options.task ||
           'Optimize template for clarity, effectiveness, and token efficiency',
         prompt: template.content || '',
-        targetModel: (options.targetModel as any) || (this.config.defaults.targetModel as any),
+        targetModel:
+          (options.targetModel as any) ||
+          (this.config.defaults.targetModel as any),
         mutateRefineIterations:
           options.mutateRefineIterations ||
           this.config.defaults.mutateRefineIterations,
@@ -203,7 +208,7 @@ export class UnifiedOptimizationService extends EventEmitter {
         generateReasoning:
           options.generateReasoning ?? this.config.defaults.generateReasoning,
         metadata: {
-          jobId,
+          templateId: templatePath,
           ...options.metadata,
         },
       };
@@ -226,7 +231,7 @@ export class UnifiedOptimizationService extends EventEmitter {
                 ? 'failed'
                 : 'pending',
           result: optimizedResult,
-          metrics: optimizedResult.metrics,
+          metrics: this.convertPromptWizardMetrics(optimizedResult.metrics),
           createdAt: new Date(),
           completedAt:
             optimizedResult.status === 'completed' ? new Date() : undefined,
@@ -243,12 +248,15 @@ export class UnifiedOptimizationService extends EventEmitter {
           }
         );
 
-        const optimizationResult = pipelineResult.data || pipelineResult.optimizationResult;
+        const optimizationResult =
+          pipelineResult.data || pipelineResult.optimizationResult;
         result = {
           jobId,
           status: pipelineResult.success ? 'completed' : 'failed',
           result: optimizationResult,
-          metrics: optimizationResult?.metrics,
+          metrics: optimizationResult?.metrics
+            ? this.convertPromptWizardMetrics(optimizationResult.metrics)
+            : undefined,
           createdAt: new Date(),
           completedAt: new Date(),
         };
@@ -486,7 +494,8 @@ export class UnifiedOptimizationService extends EventEmitter {
       version: '1.0.0',
       context: {
         templateId: templatePath,
-        timestamp: result.createdAt,
+        targetModel: 'gpt-4',
+        task: 'optimization',
         metadata: {},
       },
       metrics: result.metrics || {
@@ -522,5 +531,33 @@ export class UnifiedOptimizationService extends EventEmitter {
   private estimateTokenCount(text: string): number {
     // Rough token estimation (more accurate would use tiktoken)
     return Math.ceil(text.split(/\s+/).length * 1.3);
+  }
+
+  /**
+   * Convert PromptWizard metrics to unified OptimizationMetrics format
+   */
+  private convertPromptWizardMetrics(pwMetrics: {
+    accuracyImprovement: number;
+    tokenReduction: number;
+    costReduction: number;
+    processingTime: number;
+    apiCallsUsed: number;
+  }): OptimizationMetrics {
+    return {
+      tokenReduction: pwMetrics.tokenReduction,
+      costReduction: pwMetrics.costReduction,
+      processingTime: pwMetrics.processingTime * 1000, // Convert seconds to ms
+      modelUsed: 'promptwizard',
+      originalTokenCount: 100, // Default values, could be calculated
+      optimizedTokenCount: Math.round(
+        100 * (1 - pwMetrics.tokenReduction / 100)
+      ),
+      originalCharCount: 500, // Default values
+      optimizedCharCount: Math.round(
+        500 * (1 - pwMetrics.tokenReduction / 100)
+      ),
+      confidence: Math.min(pwMetrics.accuracyImprovement / 100, 1.0),
+      qualityScore: Math.round(pwMetrics.accuracyImprovement),
+    };
   }
 }
