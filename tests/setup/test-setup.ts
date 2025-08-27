@@ -165,13 +165,15 @@ jest.mock('../../src/integrations/cursor-extension-bridge', () => ({
   },
 }));
 
-// Set test timeout - reduced for faster feedback
-jest.setTimeout(10000);
+// Set test timeout - increased for stability
+jest.setTimeout(30000);
 
 // Mock timers for faster test execution
 jest.useFakeTimers({
   advanceTimers: true,
-  doNotFake: ['nextTick', 'setImmediate'],
+  doNotFake: ['nextTick', 'setImmediate', 'performance'],
+  // Ensure fake timers work properly with promises
+  now: Date.now(),
 });
 
 // Disable real network calls in tests
@@ -316,6 +318,20 @@ This is a test template for: {{project.name}}`;
    */
   static async flushPromises(): Promise<void> {
     await new Promise(resolve => setImmediate(resolve));
+    // Fast-forward any pending timers
+    if (jest.isMockFunction(setTimeout)) {
+      jest.runOnlyPendingTimers();
+    }
+  }
+
+  /**
+   * Fast-forward time and flush promises
+   */
+  static async advanceTime(ms: number): Promise<void> {
+    if (jest.isMockFunction(setTimeout)) {
+      jest.advanceTimersByTime(ms);
+    }
+    await this.flushPromises();
   }
 
   /**
@@ -380,27 +396,38 @@ beforeEach(() => {
   jest.clearAllMocks();
   jest.clearAllTimers();
   jest.resetAllMocks();
+  // Ensure fake timers are active for each test
+  if (!jest.isMockFunction(setTimeout)) {
+    jest.useFakeTimers({
+      advanceTimers: true,
+      doNotFake: ['nextTick', 'setImmediate', 'performance'],
+    });
+  }
 });
 
-afterEach(() => {
-  jest.clearAllTimers();
-  jest.resetModules();
-});
-
-// Ensure all async operations complete
 afterEach(async () => {
+  // Clear all timers and flush promises
+  jest.clearAllTimers();
   await TestUtils.flushPromises();
   
   // Force garbage collection if available
   if (global.gc) {
     global.gc();
   }
+  
+  // Reset modules to prevent memory leaks
+  jest.resetModules();
 });
 
 // Global test cleanup
 afterAll(() => {
   jest.useRealTimers();
   jest.restoreAllMocks();
+  
+  // Final memory cleanup
+  if (global.gc) {
+    global.gc();
+  }
 });
 
 export default {

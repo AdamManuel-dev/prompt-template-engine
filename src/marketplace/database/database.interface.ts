@@ -13,6 +13,8 @@ import {
   TemplateModel,
   TemplateReview,
   TemplateManifest,
+  TemplateVersion,
+  TemplateInstallation,
 } from '../models/template.model';
 
 /**
@@ -21,7 +23,7 @@ import {
 export interface QueryFilter {
   field: string;
   operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'in' | 'nin';
-  value: any;
+  value: unknown;
 }
 
 export interface QueryOptions {
@@ -64,9 +66,9 @@ export interface ITemplateRepository {
   getRecent(limit?: number): Promise<TemplateModel[]>;
 
   // Version management
-  createVersion(templateId: string, version: any): Promise<void>;
-  getVersions(templateId: string): Promise<any[]>;
-  getLatestVersion(templateId: string): Promise<any | null>;
+  createVersion(templateId: string, version: TemplateVersion): Promise<void>;
+  getVersions(templateId: string): Promise<TemplateVersion[]>;
+  getLatestVersion(templateId: string): Promise<TemplateVersion | null>;
 }
 
 /**
@@ -116,11 +118,11 @@ export interface IReviewRepository {
  * Installation repository interface
  */
 export interface IInstallationRepository {
-  create(installation: any): Promise<any>;
-  findById(id: string): Promise<any | null>;
-  findByUser(userId: string, options?: QueryOptions): Promise<any[]>;
-  findByTemplate(templateId: string, options?: QueryOptions): Promise<any[]>;
-  update(id: string, installation: Partial<any>): Promise<any>;
+  create(installation: TemplateInstallation): Promise<TemplateInstallation>;
+  findById(id: string): Promise<TemplateInstallation | null>;
+  findByUser(userId: string, options?: QueryOptions): Promise<TemplateInstallation[]>;
+  findByTemplate(templateId: string, options?: QueryOptions): Promise<TemplateInstallation[]>;
+  update(id: string, installation: Partial<TemplateInstallation>): Promise<TemplateInstallation>;
   delete(id: string): Promise<void>;
 
   // Installation statistics

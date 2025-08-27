@@ -28,15 +28,18 @@ import type {
   OptimizationContext,
   OptimizationSettings,
   OptimizationBatch,
-  TemplateFile,
   TemplateComparison,
   // OptimizationJob as TypesOptimizationJob, // Commented out as unused
   OptimizationMetrics,
 } from '../types/optimized-template.types';
 
-import type { OptimizationResult } from '../integrations/promptwizard/types';
+import type {
+  OptimizationResult,
+  OptimizationRequest,
+  PromptWizardService,
+} from '../integrations/promptwizard/types';
 
-import type { Template } from '../types/index';
+import type { Template, TemplateFile } from '../types/index';
 import type { OptimizationJob } from '../queues/optimization-queue';
 
 export interface OptimizedTemplateServiceConfig {
@@ -63,6 +66,10 @@ export class OptimizedTemplateService extends EventEmitter {
 
   private readonly optimizedTemplateCache: CacheService<OptimizedTemplate>;
 
+  private readonly promptWizardService: PromptWizardService;
+
+  private readonly cacheService: CacheService<OptimizationResult>;
+
   private settings: OptimizationSettings;
 
   constructor(config: Partial<OptimizedTemplateServiceConfig> = {}) {
@@ -80,12 +87,18 @@ export class OptimizedTemplateService extends EventEmitter {
     };
 
     this.templateService = new TemplateService({});
+
+    // Initialize services - properly typed implementations
+    this.promptWizardService = new PromptWizardService();
+    this.cacheService = new CacheService<OptimizationResult>({ maxSize: 100, ttl: 3600000 });
+
     // Note: OptimizationPipeline needs proper service instances - simplified for now
     // this.optimizationPipeline = new OptimizationPipeline(promptService, this.templateService, {});
-    // TODO: Properly initialize OptimizationQueue with correct service instances
+    // Initialize OptimizationQueue with dependency injection pattern
+    // Note: Full service dependencies would be injected in production
     this.optimizationQueue = new OptimizationQueue(
-      {} as unknown as ConstructorParameters<typeof OptimizationQueue>[0],
-      {} as unknown as ConstructorParameters<typeof OptimizationQueue>[1]
+      this.promptWizardService,
+      this.cacheService
     );
 
     // Initialize cache
@@ -148,12 +161,18 @@ export class OptimizedTemplateService extends EventEmitter {
       ...context,
     };
 
+    // Convert context to request format
+    const optimizationRequest = this.convertContextToRequest(
+      template,
+      optimizationContext
+    );
+
     if (options.async) {
       // Queue optimization job
       const job = await this.optimizationQueue.addJob(
         templateId,
         template,
-        optimizationContext,
+        optimizationRequest,
         {
           priority: options.priority || 'normal',
         }
@@ -170,7 +189,7 @@ export class OptimizedTemplateService extends EventEmitter {
     const result = await this.optimizationPipeline.process(
       templateId,
       template,
-      optimizationContext
+      optimizationRequest
     );
 
     if (result.success && result.data) {
@@ -276,8 +295,16 @@ export class OptimizedTemplateService extends EventEmitter {
       batchId,
       templateIds,
       status: jobs.length > 0 ? 'processing' : 'failed',
-      jobs: jobs.map(j => j.jobId) as string[],
-      config: {} as Record<string, unknown>,
+      jobs,
+      config: {
+        concurrency: options.concurrency || 3,
+        failFast: options.failFast || false,
+        context: context || {
+          templateId: '',
+          targetModel: 'gpt-4',
+          task: 'Default optimization task',
+        },
+      },
       createdAt: new Date(),
       // settings commented out as not in OptimizationBatch interface
       // settings: {
@@ -718,5 +745,45 @@ export class OptimizedTemplateService extends EventEmitter {
 
   private generateBatchId(): string {
     return `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Convert OptimizationContext to OptimizationRequest format
+   */
+  private convertContextToRequest(
+    template: Template,
+    context: OptimizationContext
+  ): OptimizationRequest {
+    // Convert targetModel to valid values
+    const validTargetModels: Array<
+      | 'gpt-4'
+      | 'gpt-3.5-turbo'
+      | 'claude-3-opus'
+      | 'claude-3-sonnet'
+      | 'gemini-pro'
+    > = [
+      'gpt-4',
+      'gpt-3.5-turbo',
+      'claude-3-opus',
+      'claude-3-sonnet',
+      'gemini-pro',
+    ];
+
+    const targetModel = validTargetModels.includes(context.targetModel as any)
+      ? (context.targetModel as any)
+      : 'gpt-4';
+
+    return {
+      prompt: template.content || template.description || '',
+      task: context.task,
+      targetModel,
+      metadata: {
+        templateId: context.templateId,
+        templateName: template.name,
+        version: template.version,
+        author: template.author,
+      },
+      ...context.preferences,
+    };
   }
 }

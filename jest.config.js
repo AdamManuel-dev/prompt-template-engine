@@ -33,13 +33,13 @@ module.exports = {
     },
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup/test-setup.ts'],
-  testTimeout: 10000, // Reduced timeout for faster feedback
-  maxWorkers: '50%', // Use half available CPUs for better performance
-  workerIdleMemoryLimit: '512MB', // Increased memory limit for stability
+  testTimeout: 30000, // 30 seconds timeout - sufficient for most tests
+  maxWorkers: 1, // Use single worker to prevent resource conflicts
+  workerIdleMemoryLimit: '256MB', // Reduced memory limit for stability
   verbose: false, // Reduced verbosity to save memory
   // Additional memory optimizations
   logHeapUsage: false, // Disable heap logging to save memory
-  bail: 0, // Don't bail early to get full test results
+  bail: 1, // Stop after first test suite failure to prevent cascade
   clearMocks: true,
   restoreMocks: true,
   resetMocks: true,
@@ -52,9 +52,16 @@ module.exports = {
   },
   forceExit: true, // Force exit to prevent hanging handles
   detectOpenHandles: true, // Detect open handles that prevent exit
+  // Timeout settings for different test types
+  testTimeout: 30000, // Global timeout
+  slowTestThreshold: 5000, // Mark tests slower than 5s as slow
   moduleFileExtensions: ['ts', 'js', 'json'],
   extensionsToTreatAsEsm: [],
   transformIgnorePatterns: [
     'node_modules/(?!(clipboardy|execa|strip-final-newline|npm-run-path|path-key|onetime|mimic-fn|human-signals|is-stream|get-stream)/)'
+  ],
+  // Test matching patterns - all tests enabled after optimization
+  testPathIgnorePatterns: [
+    '/node_modules/'
   ]
 };

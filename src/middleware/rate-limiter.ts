@@ -186,7 +186,7 @@ export class RateLimiter extends EventEmitter {
   constructor(config: Partial<RateLimitConfig> = {}) {
     super();
 
-    // Handle 'max' option alias (Required by TODO)
+    // Handle 'max' option alias for backward compatibility
     const processedConfig = { ...config };
     if (config.max !== undefined) {
       processedConfig.maxRequests = config.max;
@@ -242,8 +242,9 @@ export class RateLimiter extends EventEmitter {
         default:
           throw new Error(`Unknown algorithm: ${this.config.algorithm}`);
       }
-    } catch (error: any) {
-      logger.error(`Rate limit check failed: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(`Rate limit check failed: ${errorMessage}`);
       return {
         allowed: false,
         remaining: 0,
@@ -510,7 +511,7 @@ export function withRateLimit(config: Partial<RateLimitConfig> = {}) {
   const limiter = new RateLimiter(config);
 
   return function (
-    _target: any,
+    _target: unknown,
     _propertyName: string,
     descriptor: PropertyDescriptor
   ) {

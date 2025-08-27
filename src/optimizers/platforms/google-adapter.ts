@@ -109,7 +109,7 @@ export class GoogleAdapter {
     const contents: GoogleContent[] = [];
     const adaptationNotes: string[] = [];
     const warnings: string[] = [];
-    let multimodalFeatures: any = {};
+    let multimodalFeatures: Record<string, unknown> = {};
 
     // Add conversation history if available
     if (context?.conversationHistory) {
@@ -252,7 +252,7 @@ export class GoogleAdapter {
       images?: Array<{ data: string; mimeType: string }>;
       files?: Array<{ data: string; mimeType: string }>;
     }
-  ): { added: boolean; features: any; notes: string[] } {
+  ): { added: boolean; features: Record<string, unknown>; notes: string[] } {
     const features = {
       imageSupport: false,
       fileSupport: false,

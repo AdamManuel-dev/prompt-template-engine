@@ -251,9 +251,9 @@ export class NotificationService {
 
     this.history.forEach(notification => {
       if (notification.success) {
-        stats.successful++;
+        stats.successful += 1;
       } else {
-        stats.failed++;
+        stats.failed += 1;
       }
 
       stats.platforms[notification.platform] =

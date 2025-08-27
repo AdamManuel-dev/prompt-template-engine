@@ -195,7 +195,7 @@ export class PluginRegistry {
 
   private watchForChanges: boolean;
 
-  private changeWatcher?: any; // FSWatcher type from fs/promises not available
+  private changeWatcher?: NodeJS.FSWatcher; // File system watcher
 
   constructor(
     pluginManager: SecurePluginManager,
@@ -489,8 +489,8 @@ export class PluginRegistry {
     const sortOrder = criteria.sortOrder || 'asc';
 
     results.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+      let aValue: unknown;
+      let bValue: unknown;
 
       switch (sortBy) {
         case 'name':
@@ -777,7 +777,7 @@ export class PluginRegistry {
    * @param manifest - Plugin manifest
    * @private
    */
-  private validateManifest(manifest: any): void {
+  private validateManifest(manifest: Record<string, unknown>): void {
     const required = ['name', 'version', 'description'];
     for (const field of required) {
       if (!manifest[field]) {
@@ -860,7 +860,7 @@ export class PluginRegistry {
    * @returns Plugin metadata
    * @private
    */
-  private extractMetadata(manifest: any, _installPath: string): PluginMetadata {
+  private extractMetadata(manifest: Record<string, unknown>, _installPath: string): PluginMetadata {
     return {
       source: 'local',
       installMethod: 'manual',

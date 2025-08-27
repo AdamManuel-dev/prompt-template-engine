@@ -21,8 +21,26 @@ import {
 } from '../integrations/promptwizard/types';
 
 // Optional Bull Queue support for Redis-backed job queues
-let Queue: any;
-// let _Job: any; // Commented out as unused
+interface BullJob {
+  id: string;
+  data: OptimizationJob;
+  progress: (progress: number) => void;
+  progress(): number;
+  opts: Record<string, unknown>;
+}
+
+interface BullQueue {
+  add(name: string, data: OptimizationJob, opts?: Record<string, unknown>): Promise<BullJob>;
+  process(concurrency: number, processor: (job: BullJob) => Promise<unknown>): void;
+  on(event: string, callback: (...args: unknown[]) => void): void;
+  getJob(jobId: string): Promise<BullJob | null>;
+  removeJobs(pattern: string): Promise<void>;
+  clean(grace: number, status: string): Promise<BullJob[]>;
+  close(): Promise<void>;
+}
+
+let Queue: (new (name: string, opts?: Record<string, unknown>) => BullQueue) | undefined;
+// let _Job: unknown; // Commented out as unused
 try {
   // eslint-disable-next-line import/no-unresolved
   const bullModule = require('bull');
@@ -117,7 +135,7 @@ export class OptimizationQueue extends EventEmitter {
   private cleanupTimer?: NodeJS.Timeout;
 
   // Bull queue integration
-  private bullQueue?: any;
+  private bullQueue?: BullQueue;
 
   private useBull = false;
 
@@ -490,7 +508,7 @@ export class OptimizationQueue extends EventEmitter {
 
       // Set up progress callback
       // Progress callback commented out as unused
-      // const _progressCallback = (stage: any, progress: number) => {
+      // const _progressCallback = (stage: string, progress: number) => {
       //   job.currentStep = stage;
       //   job.progress = progress;
       //   this.emit('job:progress', job);
@@ -684,22 +702,22 @@ export class OptimizationQueue extends EventEmitter {
       this.useBull = true;
 
       // Set up Bull event listeners
-      this.bullQueue.on('completed', (job: any, result: any) => {
+      this.bullQueue.on('completed', (job: BullJob, result: unknown) => {
         logger.debug(`Bull job completed: ${job.id}`);
         this.emit('job:completed', { jobId: job.id, result });
       });
 
-      this.bullQueue.on('failed', (job: any, err: Error) => {
+      this.bullQueue.on('failed', (job: BullJob, err: Error) => {
         logger.warn(`Bull job failed: ${job.id} - ${err.message}`);
         this.emit('job:failed', { jobId: job.id, error: err.message });
       });
 
-      this.bullQueue.on('progress', (job: any, progress: number) => {
+      this.bullQueue.on('progress', (job: BullJob, progress: number) => {
         this.emit('job:progress', { jobId: job.id, progress });
       });
 
       // Process jobs with Bull
-      this.bullQueue.process(this.config.maxConcurrency, async (job: any) =>
+      this.bullQueue.process(this.config.maxConcurrency, async (job: BullJob) =>
         this.processBullJob(job)
       );
 
@@ -716,7 +734,7 @@ export class OptimizationQueue extends EventEmitter {
   /**
    * Process a Bull job
    */
-  private async processBullJob(bullJob: any): Promise<any> {
+  private async processBullJob(bullJob: BullJob): Promise<unknown> {
     const { templateId, template, request, options: _options } = bullJob.data;
 
     try {

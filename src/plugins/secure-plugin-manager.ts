@@ -19,6 +19,13 @@ import {
   SandboxConfig,
   PluginExecutionResult,
 } from './sandbox/plugin-sandbox';
+import { 
+  EnhancedValidator, 
+  PluginConfigSchema, 
+  SecurityValidationResult,
+  ValidationContext,
+  customValidators 
+} from '../validation/schemas';
 import { logger } from '../utils/logger';
 
 /**
@@ -30,83 +37,336 @@ class SecurePluginValidator {
     /Function\s*\(/,
     /setTimeout\s*\(/,
     /setInterval\s*\(/,
+    /setImmediate\s*\(/,
     /require\s*\(/,
+    /import\s*\(/,
     /process\./,
     /global\./,
     /__dirname/,
     /__filename/,
-    /import\s+/,
     /\bfs\./,
     /\bos\./,
+    /\bnet\./,
+    /\bhttp\./,
+    /\bhttps\./,
+    /\burl\./,
     /\bchild_process\./,
+    /\bcluster\./,
+    /\bworker_threads\./,
+    /\bvm\./,
+    /\bcrypto\.exec/,
+    /document\./,
+    /window\./,
+    /location\./,
+    /navigator\./,
+    /XMLHttpRequest/,
+    /fetch\s*\(/,
+    /WebSocket/,
+    /SharedArrayBuffer/,
+    /Worker\s*\(/,
+    /ServiceWorker/,
+    /WebAssembly/,
+    /<script/i,
+    /javascript:/i,
+    /data:/i,
+    /vbscript:/i,
+    /on\w+\s*=/i,
   ];
 
-  validatePluginCode(code: string): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
+  validatePluginCode(code: string, context?: ValidationContext): SecurityValidationResult {
+    const threats: string[] = [];
+    const warnings: string[] = [];
+    let threatLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+
+    // Check code size limits
+    if (code.length > 1024 * 1024) { // 1MB limit
+      threats.push(`Plugin code too large: ${code.length} bytes`);
+      threatLevel = 'high';
+    }
 
     // Check for dangerous patterns using regex
     for (const pattern of this.dangerousPatterns) {
       if (pattern.test(code)) {
-        errors.push(`Dangerous pattern detected: ${pattern.source}`);
+        threats.push(`Dangerous pattern detected: ${pattern.source}`);
+        threatLevel = 'high';
       }
     }
 
-    // Try to parse with Babel to check syntax
+    // Enhanced content safety check
+    const contentSafety = customValidators.isContentSafe(code);
+    if (!contentSafety.safe) {
+      threats.push(...contentSafety.threats.map(threat => `Code safety: ${threat}`));
+      threatLevel = 'high';
+    }
+
+    // Check for excessive complexity
+    const complexityScore = this.calculateCodeComplexity(code);
+    if (complexityScore > 100) {
+      warnings.push(`High code complexity score: ${complexityScore}`);
+    }
+
+    // Check for obfuscation patterns
+    const obfuscationCheck = this.detectObfuscation(code);
+    if (obfuscationCheck.detected) {
+      threats.push(...obfuscationCheck.patterns);
+      threatLevel = 'high';
+    }
+
+    // Try to parse with Babel to check syntax and analyze AST
     try {
       const ast = parse(code, {
         sourceType: 'module',
         plugins: ['objectRestSpread', 'functionBind'],
       });
 
-      traverse(ast, {
-        enter: nodePath => {
-          const { node } = nodePath;
+      const astAnalysis = this.analyzeAST(ast);
+      threats.push(...astAnalysis.threats);
+      warnings.push(...astAnalysis.warnings);
+      
+      if (astAnalysis.threatLevel === 'critical') {
+        threatLevel = 'critical';
+      } else if (astAnalysis.threatLevel === 'high' && threatLevel !== 'critical') {
+        threatLevel = 'high';
+      }
 
-          // Block dangerous function calls
-          if (
-            node.type === 'CallExpression' &&
-            node.callee.type === 'Identifier'
-          ) {
-            const dangerousFunctions = [
-              'eval',
-              'Function',
-              'require',
-              'setTimeout',
-              'setInterval',
-            ];
-            if (dangerousFunctions.includes(node.callee.name)) {
-              errors.push(`Dangerous function call: ${node.callee.name}`);
-            }
-          }
-
-          // Block access to dangerous objects
-          if (
-            node.type === 'MemberExpression' &&
-            node.object.type === 'Identifier'
-          ) {
-            const dangerousObjects = [
-              'process',
-              'global',
-              'fs',
-              'os',
-              'child_process',
-            ];
-            if (dangerousObjects.includes(node.object.name)) {
-              errors.push(`Dangerous object access: ${node.object.name}`);
-            }
-          }
-        },
-      });
     } catch (parseError: unknown) {
       const errorMessage =
         parseError instanceof Error ? parseError.message : String(parseError);
-      errors.push(`Plugin code parsing failed: ${errorMessage}`);
+      threats.push(`Plugin code parsing failed: ${errorMessage}`);
+      threatLevel = 'high';
+    }
+
+    // Network access validation
+    const networkCheck = this.checkNetworkAccess(code);
+    if (networkCheck.hasNetworkCalls) {
+      warnings.push('Plugin contains network access calls');
+      threats.push(...networkCheck.unsafeCalls);
+    }
+
+    // File system access validation
+    const fsCheck = this.checkFileSystemAccess(code);
+    if (fsCheck.hasFileAccess) {
+      warnings.push('Plugin contains file system access');
+      threats.push(...fsCheck.unsafeAccess);
     }
 
     return {
-      isValid: errors.length === 0,
-      errors,
+      valid: threats.length === 0,
+      errors: threats,
+      warnings,
+      threatLevel,
     };
+  }
+
+  /**
+   * Calculate code complexity score
+   */
+  private calculateCodeComplexity(code: string): number {
+    let score = 0;
+    
+    // Count various complexity indicators
+    score += (code.match(/function/g) || []).length * 2;
+    score += (code.match(/if\s*\(/g) || []).length;
+    score += (code.match(/for\s*\(/g) || []).length * 2;
+    score += (code.match(/while\s*\(/g) || []).length * 2;
+    score += (code.match(/try\s*\{/g) || []).length;
+    score += (code.match(/catch\s*\(/g) || []).length;
+    score += (code.match(/switch\s*\(/g) || []).length * 3;
+    score += (code.match(/case\s+/g) || []).length;
+    
+    // Nested structure penalty
+    const maxNesting = this.calculateMaxNesting(code);
+    score += maxNesting * 5;
+    
+    return score;
+  }
+
+  /**
+   * Detect code obfuscation patterns
+   */
+  private detectObfuscation(code: string): { detected: boolean; patterns: string[] } {
+    const patterns: string[] = [];
+    
+    // Check for minification/obfuscation indicators
+    if (code.includes('eval(') || code.includes('Function(')) {
+      patterns.push('Dynamic code execution (eval/Function)');
+    }
+    
+    if (/[a-zA-Z_$][a-zA-Z0-9_$]*\['[a-zA-Z_$][a-zA-Z0-9_$]*'\]/.test(code)) {
+      patterns.push('Bracket notation property access (potential obfuscation)');
+    }
+    
+    // Check for excessive string concatenation
+    if ((code.match(/\+/g) || []).length > 50) {
+      patterns.push('Excessive string concatenation (potential obfuscation)');
+    }
+    
+    // Check for hex/unicode escapes
+    if (/\\x[0-9a-fA-F]{2}/.test(code) || /\\u[0-9a-fA-F]{4}/.test(code)) {
+      patterns.push('Hex/Unicode escape sequences (potential obfuscation)');
+    }
+    
+    // Check for very short variable names
+    const shortVarCount = (code.match(/\b[a-zA-Z_$]{1,2}\b/g) || []).length;
+    if (shortVarCount > code.length / 100) {
+      patterns.push('Excessive use of short variable names (potential obfuscation)');
+    }
+    
+    return { detected: patterns.length > 0, patterns };
+  }
+
+  /**
+   * Analyze AST for security threats
+   */
+  private analyzeAST(ast: any): {
+    threats: string[];
+    warnings: string[];
+    threatLevel: 'low' | 'medium' | 'high' | 'critical';
+  } {
+    const threats: string[] = [];
+    const warnings: string[] = [];
+    let threatLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+
+    traverse(ast, {
+      enter: nodePath => {
+        const { node } = nodePath;
+
+        // Block dangerous function calls
+        if (node.type === 'CallExpression' && node.callee.type === 'Identifier') {
+          const dangerousFunctions = [
+            'eval', 'Function', 'require', 'setTimeout', 'setInterval',
+            'setImmediate', 'execSync', 'spawn', 'exec', 'fork'
+          ];
+          
+          if (dangerousFunctions.includes(node.callee.name)) {
+            threats.push(`Dangerous function call: ${node.callee.name}`);
+            threatLevel = 'critical';
+          }
+
+          // Check for dynamic imports
+          if (node.callee.name === 'import' && node.callee.type === 'Import') {
+            threats.push('Dynamic imports not allowed');
+            threatLevel = 'high';
+          }
+        }
+
+        // Block access to dangerous objects
+        if (node.type === 'MemberExpression' && node.object.type === 'Identifier') {
+          const dangerousObjects = [
+            'process', 'global', 'globalThis', '__dirname', '__filename',
+            'module', 'exports', 'Buffer', 'console'
+          ];
+          
+          if (dangerousObjects.includes(node.object.name)) {
+            threats.push(`Dangerous object access: ${node.object.name}`);
+            threatLevel = 'high';
+          }
+        }
+
+        // Check for property access that could be dangerous
+        if (node.type === 'MemberExpression' && 
+            node.property.type === 'Identifier' &&
+            ['constructor', 'prototype', '__proto__'].includes(node.property.name)) {
+          threats.push(`Dangerous property access: ${node.property.name}`);
+          threatLevel = 'high';
+        }
+
+        // Check for try-catch blocks that might hide errors
+        if (node.type === 'TryStatement' && !node.handler) {
+          warnings.push('Try statement without catch block detected');
+        }
+
+        // Check for with statements (deprecated and dangerous)
+        if (node.type === 'WithStatement') {
+          threats.push('With statements are not allowed');
+          threatLevel = 'high';
+        }
+
+        // Check for debugger statements
+        if (node.type === 'DebuggerStatement') {
+          warnings.push('Debugger statement detected');
+        }
+      },
+    });
+
+    return { threats, warnings, threatLevel };
+  }
+
+  /**
+   * Check for network access patterns
+   */
+  private checkNetworkAccess(code: string): {
+    hasNetworkCalls: boolean;
+    unsafeCalls: string[];
+  } {
+    const unsafeCalls: string[] = [];
+    
+    const networkPatterns = [
+      { regex: /XMLHttpRequest/g, desc: 'XMLHttpRequest usage' },
+      { regex: /fetch\s*\(/g, desc: 'Fetch API usage' },
+      { regex: /WebSocket/g, desc: 'WebSocket usage' },
+      { regex: /new\s+Request\s*\(/g, desc: 'Request constructor usage' },
+      { regex: /import\s*\(\s*['"`][^'"`]*['"`]\s*\)/g, desc: 'Dynamic imports' },
+    ];
+    
+    for (const pattern of networkPatterns) {
+      if (pattern.regex.test(code)) {
+        unsafeCalls.push(pattern.desc);
+      }
+    }
+    
+    return {
+      hasNetworkCalls: unsafeCalls.length > 0,
+      unsafeCalls,
+    };
+  }
+
+  /**
+   * Check for file system access patterns
+   */
+  private checkFileSystemAccess(code: string): {
+    hasFileAccess: boolean;
+    unsafeAccess: string[];
+  } {
+    const unsafeAccess: string[] = [];
+    
+    const fsPatterns = [
+      { regex: /readFileSync|writeFileSync|appendFileSync/g, desc: 'Synchronous file operations' },
+      { regex: /readFile|writeFile|appendFile|unlink|rmdir/g, desc: 'File system operations' },
+      { regex: /createReadStream|createWriteStream/g, desc: 'File stream operations' },
+      { regex: /fs\./g, desc: 'Direct fs module usage' },
+      { regex: /path\.resolve|path\.join/g, desc: 'Path manipulation' },
+    ];
+    
+    for (const pattern of fsPatterns) {
+      if (pattern.regex.test(code)) {
+        unsafeAccess.push(pattern.desc);
+      }
+    }
+    
+    return {
+      hasFileAccess: unsafeAccess.length > 0,
+      unsafeAccess,
+    };
+  }
+
+  /**
+   * Calculate maximum nesting depth
+   */
+  private calculateMaxNesting(code: string): number {
+    let maxDepth = 0;
+    let currentDepth = 0;
+    
+    for (const char of code) {
+      if (char === '{') {
+        currentDepth++;
+        maxDepth = Math.max(maxDepth, currentDepth);
+      } else if (char === '}') {
+        currentDepth = Math.max(0, currentDepth - 1);
+      }
+    }
+    
+    return maxDepth;
   }
 }
 
@@ -225,6 +485,111 @@ export class SecurePluginManager {
   }
 
   /**
+   * Verify plugin digital signature for authenticity
+   */
+  private async verifyPluginSignature(
+    pluginPath: string,
+    signature: string
+  ): Promise<boolean> {
+    try {
+      const crypto = await import('crypto');
+      const fs = await import('fs/promises');
+
+      // Read plugin content
+      const pluginContent = await fs.readFile(pluginPath, 'utf8');
+
+      // Create hash of plugin content
+      const hash = crypto
+        .createHash('sha256')
+        .update(pluginContent)
+        .digest('hex');
+
+      // In production, verify signature against known public key
+      // For now, check if signature matches expected pattern
+      const expectedSignature = crypto
+        .createHmac('sha256', 'plugin-signing-key')
+        .update(hash)
+        .digest('hex');
+
+      return signature === expectedSignature;
+    } catch (error) {
+      logger.error('Plugin signature verification failed', error as Error);
+      return false;
+    }
+  }
+
+  /**
+   * Monitor plugin resource usage and enforce limits
+   */
+  private createResourceMonitor(pluginId: string) {
+    const startTime = Date.now();
+    const startMemory = process.memoryUsage();
+
+    return {
+      checkLimits: () => {
+        const currentTime = Date.now();
+        const currentMemory = process.memoryUsage();
+
+        const executionTime = currentTime - startTime;
+        const memoryUsage = currentMemory.heapUsed - startMemory.heapUsed;
+
+        const limits = this.securityPolicy.resourceLimits;
+
+        if (executionTime > limits.executionTimeMs) {
+          throw new Error(
+            `Plugin ${pluginId} exceeded execution time limit (${executionTime}ms > ${limits.executionTimeMs}ms)`
+          );
+        }
+
+        if (memoryUsage > limits.memoryLimitMB * 1024 * 1024) {
+          throw new Error(
+            `Plugin ${pluginId} exceeded memory limit (${Math.round(memoryUsage / 1024 / 1024)}MB > ${limits.memoryLimitMB}MB)`
+          );
+        }
+
+        return {
+          executionTime,
+          memoryUsage: Math.round(memoryUsage / 1024 / 1024),
+          withinLimits: true,
+        };
+      },
+
+      getUsage: () => ({
+        executionTime: Date.now() - startTime,
+        memoryUsage: Math.round(
+          (process.memoryUsage().heapUsed - startMemory.heapUsed) / 1024 / 1024
+        ),
+      }),
+    };
+  }
+
+  /**
+   * Enhanced plugin loading with signature verification
+   */
+  private async loadPluginSecurely(
+    pluginPath: string,
+    signature?: string
+  ): Promise<void> {
+    // Verify signature if provided
+    if (signature && this.securityPolicy.requireSignature) {
+      const signatureValid = await this.verifyPluginSignature(
+        pluginPath,
+        signature
+      );
+      if (!signatureValid) {
+        throw new Error(`Plugin signature verification failed: ${pluginPath}`);
+      }
+      logger.info(`Plugin signature verified: ${pluginPath}`);
+    } else if (this.securityPolicy.requireSignature) {
+      throw new Error(
+        `Plugin signature required but not provided: ${pluginPath}`
+      );
+    }
+
+    // Continue with existing loading logic...
+  }
+
+  /**
    * Load a plugin from file with comprehensive security validation
    * @param pluginPath - Absolute path to the plugin file
    * @returns Promise that resolves when plugin is successfully loaded
@@ -284,7 +649,7 @@ export class SecurePluginManager {
       for (const file of pluginFiles) {
         try {
           await this.loadPlugin(path.join(this.pluginsDir, file));
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error(`Failed to load plugin ${file}: ${error.message}`);
         }
       }
@@ -292,7 +657,7 @@ export class SecurePluginManager {
       logger.info(
         `Loaded ${this.plugins.size} plugins from ${this.pluginsDir}`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to load plugins directory: ${error.message}`);
     }
   }
@@ -311,7 +676,7 @@ export class SecurePluginManager {
         if (plugin.init && userConfig[name]) {
           try {
             await plugin.init(this.createPluginAPI(name), userConfig[name]);
-          } catch (error: any) {
+          } catch (error: unknown) {
             this.validationErrors.push(
               `Plugin ${name} init failed: ${error.message}`
             );
@@ -401,7 +766,7 @@ export class SecurePluginManager {
           // Execute directly
           result = await handler.call(plugin, result, ...args.slice(1));
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(
           `Hook ${name} error in plugin ${plugin.name}: ${error.message}`
         );
@@ -506,7 +871,7 @@ export class SecurePluginManager {
           success: !!initResult,
           error: initResult ? undefined : 'Initialization returned false',
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`Plugin initialization error: ${name} - ${error.message}`);
         this.validationErrors.push(
           `Plugin ${name} initialization failed: ${error.message}`
@@ -568,7 +933,7 @@ export class SecurePluginManager {
         `Plugin executed: ${pluginName}.${method} (${result.success ? 'success' : 'failed'})`
       );
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMsg = error.message;
       metadata.errors.push(`${new Date().toISOString()}: ${errorMsg}`);
 
@@ -637,7 +1002,7 @@ export class SecurePluginManager {
 
       logger.info(`Plugin unloaded: ${pluginName}`);
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Plugin unload failed: ${pluginName} - ${error.message}`);
       return false;
     }
@@ -684,7 +1049,7 @@ export class SecurePluginManager {
         if (plugin.dispose) {
           await plugin.dispose();
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`Plugin disposal error: ${name} - ${error.message}`);
       }
     }
@@ -885,7 +1250,7 @@ export class SecurePluginManager {
       }
 
       return plugin as IPlugin;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.validationErrors.push(
         `Failed to parse plugin ${filePath}: ${error.message}`
       );

@@ -71,7 +71,7 @@ export class PromptWizardClient implements PromptWizardService {
           validationResult.error.issues
         );
         throw new Error(
-          `Invalid API response: ${validationResult.error.issues.map((i: any) => i.message).join(', ')}`
+          `Invalid API response: ${validationResult.error.issues.map((i: { message: string }) => i.message).join(', ')}`
         );
       }
 
@@ -124,7 +124,7 @@ export class PromptWizardClient implements PromptWizardService {
           validationResult.error.issues
         );
         throw new Error(
-          `Invalid API response: ${validationResult.error.issues.map((i: any) => i.message).join(', ')}`
+          `Invalid API response: ${validationResult.error.issues.map((i: { message: string }) => i.message).join(', ')}`
         );
       }
 
@@ -170,7 +170,7 @@ export class PromptWizardClient implements PromptWizardService {
           validationResult.error.issues
         );
         throw new Error(
-          `Invalid API response: ${validationResult.error.issues.map((i: any) => i.message).join(', ')}`
+          `Invalid API response: ${validationResult.error.issues.map((i: { message: string }) => i.message).join(', ')}`
         );
       }
 
@@ -234,7 +234,7 @@ export class PromptWizardClient implements PromptWizardService {
           validationResult.error.issues
         );
         throw new Error(
-          `Invalid API response: ${validationResult.error.issues.map((i: any) => i.message).join(', ')}`
+          `Invalid API response: ${validationResult.error.issues.map((i: { message: string }) => i.message).join(', ')}`
         );
       }
 

@@ -271,7 +271,10 @@ class FileTemplateRepository implements ITemplateRepository {
   ): TemplateModel[] {
     return results.filter(item =>
       filters.every(filter => {
-        const value = this.getNestedValue(item, filter.field);
+        const value = this.getNestedValue(
+          item as Record<string, unknown>,
+          filter.field
+        );
         return this.matchesFilter(value, filter.operator, filter.value);
       })
     );
@@ -283,8 +286,14 @@ class FileTemplateRepository implements ITemplateRepository {
   ): TemplateModel[] {
     return results.sort((a, b) => {
       for (const sortRule of sort) {
-        const aVal = this.getNestedValue(a, sortRule.field);
-        const bVal = this.getNestedValue(b, sortRule.field);
+        const aVal = this.getNestedValue(
+          a as Record<string, unknown>,
+          sortRule.field
+        );
+        const bVal = this.getNestedValue(
+          b as Record<string, unknown>,
+          sortRule.field
+        );
 
         // Handle undefined values
         if (aVal === undefined && bVal === undefined) continue;
@@ -292,8 +301,10 @@ class FileTemplateRepository implements ITemplateRepository {
         if (bVal === undefined) return sortRule.direction === 'desc' ? -1 : 1;
 
         let comparison = 0;
-        if (aVal < bVal) comparison = -1;
-        else if (aVal > bVal) comparison = 1;
+        if (aVal !== null && bVal !== null) {
+          if (aVal < bVal) comparison = -1;
+          else if (aVal > bVal) comparison = 1;
+        }
 
         if (sortRule.direction === 'desc') comparison *= -1;
         if (comparison !== 0) return comparison;
@@ -306,7 +317,14 @@ class FileTemplateRepository implements ITemplateRepository {
     obj: Record<string, unknown>,
     propertyPath: string
   ): unknown {
-    return propertyPath.split('.').reduce((curr, key) => curr?.[key], obj);
+    return propertyPath
+      .split('.')
+      .reduce((curr: Record<string, unknown> | unknown, key: string) => {
+        if (curr && typeof curr === 'object' && curr !== null) {
+          return (curr as Record<string, unknown>)[key];
+        }
+        return undefined;
+      }, obj);
   }
 
   private matchesFilter(
@@ -320,13 +338,21 @@ class FileTemplateRepository implements ITemplateRepository {
       case 'ne':
         return value !== filterValue;
       case 'gt':
-        return value > filterValue;
+        return typeof value === 'number' && typeof filterValue === 'number'
+          ? value > filterValue
+          : false;
       case 'gte':
-        return value >= filterValue;
+        return typeof value === 'number' && typeof filterValue === 'number'
+          ? value >= filterValue
+          : false;
       case 'lt':
-        return value < filterValue;
+        return typeof value === 'number' && typeof filterValue === 'number'
+          ? value < filterValue
+          : false;
       case 'lte':
-        return value <= filterValue;
+        return typeof value === 'number' && typeof filterValue === 'number'
+          ? value <= filterValue
+          : false;
       case 'like':
         return String(value)
           .toLowerCase()
@@ -370,14 +396,14 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
     this.reviews = new FileReviewRepository(path.join(dataDir, 'reviews.json'));
     this.installations = new FileRepository(
       path.join(dataDir, 'installations.json')
-    ) as IInstallationRepository;
+    ) as unknown as IInstallationRepository;
   }
 
   async connect(): Promise<void> {
     try {
       await fs.mkdir(path.dirname(this.manifestPath), { recursive: true });
       await this.templates.init();
-      await this.reviews.init();
+      await (this.reviews as unknown as { init(): Promise<void> }).init();
       this.isConnectedFlag = true;
       logger.info('File database connected successfully');
     } catch (error) {
@@ -582,18 +608,43 @@ class FileReviewRepository
     if (options?.sort) {
       reviews.sort((a, b) => {
         for (const sortOption of options.sort!) {
-          const aVal = this.getFieldValue(a, sortOption.field);
-          const bVal = this.getFieldValue(b, sortOption.field);
+          const aVal = this.getFieldValue(
+            a as Record<string, unknown>,
+            sortOption.field
+          );
+          const bVal = this.getFieldValue(
+            b as Record<string, unknown>,
+            sortOption.field
+          );
 
           if (aVal !== bVal) {
-            const result =
-              sortOption.direction === 'desc'
-                ? bVal > aVal
-                  ? 1
-                  : -1
-                : aVal > bVal
-                  ? 1
-                  : -1;
+            // Type-safe comparison
+            let result = 0;
+            if (sortOption.direction === 'desc') {
+              if (bVal != null && aVal != null && typeof bVal === typeof aVal) {
+                if (typeof bVal === 'number' && typeof aVal === 'number') {
+                  result = bVal > aVal ? 1 : -1;
+                } else if (typeof bVal === 'string' && typeof aVal === 'string') {
+                  result = bVal > aVal ? 1 : -1;
+                } else {
+                  result = String(bVal) > String(aVal) ? 1 : -1;
+                }
+              } else {
+                result = bVal != null && aVal == null ? 1 : -1;
+              }
+            } else {
+              if (aVal != null && bVal != null && typeof aVal === typeof bVal) {
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                  result = aVal > bVal ? 1 : -1;
+                } else if (typeof aVal === 'string' && typeof bVal === 'string') {
+                  result = aVal > bVal ? 1 : -1;
+                } else {
+                  result = String(aVal) > String(bVal) ? 1 : -1;
+                }
+              } else {
+                result = aVal != null && bVal == null ? 1 : -1;
+              }
+            }
             return result;
           }
         }
@@ -646,7 +697,12 @@ class FileReviewRepository
   }
 
   private getFieldValue(obj: Record<string, unknown>, field: string): unknown {
-    return field.split('.').reduce((o, key) => o?.[key], obj);
+    return field.split('.').reduce((o: unknown, key: string) => {
+      if (o && typeof o === 'object' && key in o) {
+        return (o as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, obj);
   }
 }
 

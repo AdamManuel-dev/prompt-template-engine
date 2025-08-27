@@ -249,7 +249,7 @@ export class GeminiOptimizer {
   private calculateImprovements(
     _original: string,
     optimized: string,
-    context?: any
+    context?: Record<string, unknown>
   ) {
     const efficiencyScore = this.calculateEfficiencyScore(optimized);
     const clarityScore = this.calculateClarityScore(optimized);

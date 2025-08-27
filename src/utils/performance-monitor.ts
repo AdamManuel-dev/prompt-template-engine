@@ -41,7 +41,7 @@ export class PerformanceMonitor extends EventEmitter {
 
   private timers = new Map<
     string,
-    { start: number; operation: string; metadata?: any }
+    { start: number; operation: string; metadata?: Record<string, unknown> }
   >();
 
   /**
@@ -291,7 +291,7 @@ export class OptimizationMetricsCollector {
     cache: AggregatedMetrics[];
     queue: AggregatedMetrics[];
     pipeline: AggregatedMetrics[];
-    system: any;
+    system: Record<string, unknown>;
   } {
     const operations = this.monitor.getOperations();
     const timeWindow = 60 * 60 * 1000; // Last hour

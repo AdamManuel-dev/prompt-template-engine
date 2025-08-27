@@ -351,7 +351,7 @@ export class LlamaOptimizer {
   private calculateImprovements(
     _original: string,
     optimized: string,
-    _context?: any
+    _context?: Record<string, unknown>
   ) {
     const efficiencyScore = this.calculateEfficiencyScore(optimized);
     const clarityScore = this.calculateClarityScore(optimized);

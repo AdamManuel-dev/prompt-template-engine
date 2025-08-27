@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { ValidationError } from '../errors';
 
 /**
  * Common validation patterns
@@ -20,10 +21,36 @@ const patterns = {
   templateName: /^[a-zA-Z][a-zA-Z0-9_-]*$/,
   // Variable name: valid JavaScript identifier
   variableName: /^[a-zA-Z_$][a-zA-Z0-9_$]*$/,
-  // File path: no path traversal
-  safePath: /^(?!.*\.\.).*$/,
-  // URL: http(s) protocol
-  url: /^https?:\/\/.+$/,
+  // File path: strict validation with no path traversal, no null bytes
+  safePath: /^(?![./])(?!.*\.\.)(?!.*[\u0000-\u001f\u007f-\u009f])[a-zA-Z0-9][a-zA-Z0-9._/-]{0,254}$/,
+  // Absolute path validation for system operations
+  absolutePath: /^\/(?:[a-zA-Z0-9._-]+\/?)*[a-zA-Z0-9._-]*$/,
+  // URL: strict http(s) only, no dangerous protocols
+  url: /^https?:\/\/(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(\.w{2,})+(?::\d{2,5})?(?:\/[a-zA-Z0-9._~:/?#[\]@!$&'()*+,;=-]*)?$/,
+  // Enhanced SQL injection prevention with comprehensive keyword blocking
+  sqlSafe: /^(?!.*(union|select|insert|delete|update|drop|create|alter|exec|execute|script|declare|cast|convert|char|varchar|nvarchar|substring|ascii|waitfor|delay|benchmark|sleep|load_file|outfile|dumpfile|information_schema|mysql|pg_|sys\.|xp_|sp_)\b).*$/i,
+  // Enhanced XSS prevention with comprehensive pattern matching
+  xssSafe: /^(?!.*(<\/?(?:script|iframe|object|embed|applet|meta|link|style|form|input|textarea|button|select|option)|javascript:|vbscript:|data:|on\w+\s*=|eval\s*\(|setTimeout|setInterval|Function\s*\(|innerHTML|outerHTML|document\.|window\.|location\.|navigator\.|XMLHttpRequest|fetch\s*\(|WebSocket|eval|unescape)).*$/i,
+  // Enhanced command injection prevention
+  commandSafe: /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/,
+  // Shell argument safety - no metacharacters or control sequences
+  shellArgSafe: /^[a-zA-Z0-9][a-zA-Z0-9._/=-]{0,127}$/,
+  // Email validation with strict format
+  email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  // Username validation - alphanumeric with limited special chars
+  username: /^[a-zA-Z][a-zA-Z0-9._-]{2,29}$/,
+  // Hex hash validation (SHA-256)
+  sha256: /^[a-f0-9]{64}$/,
+  // JWT token pattern
+  jwt: /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
+  // Base64 validation
+  base64: /^[A-Za-z0-9+/]*={0,2}$/,
+  // IPv4 address validation
+  ipv4: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
+  // Port number validation
+  port: /^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$/,
+  // MIME type validation
+  mimeType: /^[a-zA-Z][a-zA-Z0-9][a-zA-Z0-9!#$&\-\^]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\-\^]*$/,
 };
 
 /**
@@ -48,6 +75,53 @@ export const VariableTypeSchema = z.enum([
   'object',
   'date',
 ]);
+
+/**
+ * Security-enhanced string validation
+ */
+export const SecureStringSchema = z
+  .string()
+  .min(1, 'String cannot be empty')
+  .max(10000, 'String too long (max 10000 characters)')
+  .refine(val => patterns.xssSafe.test(val), 'String contains XSS patterns')
+  .refine(
+    val => patterns.sqlSafe.test(val),
+    'String contains SQL injection patterns'
+  )
+  .refine(val => !val.includes('\u0000'), 'String contains null bytes');
+
+/**
+ * Secure file path validation
+ */
+export const SecurePathSchema = z
+  .string()
+  .min(1, 'Path cannot be empty')
+  .max(500, 'Path too long (max 500 characters)')
+  .refine(val => patterns.safePath.test(val), 'Path contains unsafe characters')
+  .refine(val => !val.startsWith('/'), 'Absolute paths not allowed')
+  .refine(val => !val.includes('..'), 'Path traversal not allowed');
+
+/**
+ * Command argument validation (prevents command injection)
+ */
+export const SecureCommandArgSchema = z
+  .string()
+  .min(1, 'Command argument cannot be empty')
+  .max(1000, 'Command argument too long')
+  .refine(
+    val => patterns.commandSafe.test(val),
+    'Command contains unsafe characters'
+  );
+
+/**
+ * URL validation with security checks
+ */
+export const SecureUrlSchema = z
+  .string()
+  .url('Must be a valid URL')
+  .refine(val => patterns.url.test(val), 'Only HTTP/HTTPS URLs allowed')
+  .refine(val => !val.includes('..'), 'URL contains path traversal')
+  .refine(val => val.length < 2000, 'URL too long');
 
 /**
  * Variable validation schema

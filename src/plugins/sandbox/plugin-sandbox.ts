@@ -51,6 +51,26 @@ class SecureCodeValidator {
     'Function',
     'setTimeout',
     'setInterval',
+    'setImmediate',
+    'require',
+    'import',
+    'process.exit',
+    'process.kill',
+    'child_process',
+    'fs.writeFile',
+    'fs.writeFileSync',
+    'fs.unlink',
+    'fs.unlinkSync',
+    'fs.rmdir',
+    'fs.rmdirSync',
+    'fetch',
+    'XMLHttpRequest',
+    'Worker',
+    'SharedArrayBuffer',
+    'WebAssembly',
+    'Function',
+    'setTimeout',
+    'setInterval',
     'require',
     'import',
     'process',
@@ -402,7 +422,7 @@ export class PluginSandbox {
         id: message.id,
         data: result,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       worker.postMessage({
         type: 'error',
         id: message.id,
@@ -586,7 +606,7 @@ export class PluginSandbox {
         return executionResult.result;
       }
       throw new Error(executionResult.error || 'Sandbox execution failed');
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Sandbox execution failed: ${error.message}`);
     }
   }

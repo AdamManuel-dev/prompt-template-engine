@@ -55,7 +55,7 @@ export interface OptimizationConfig {
     preserveVariables?: boolean;
     maintainStructure?: boolean;
     focusAreas?: string[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -106,7 +106,7 @@ export interface OptimizedResult {
   qualityScore?: number;
 
   /** Comparison data */
-  comparison?: any;
+  comparison?: PromptComparison | unknown;
 
   /** Error information if failed */
   error?: {
@@ -180,6 +180,7 @@ export interface PromptComparison {
     recommendations: string[];
   };
 }
+
 
 export interface Example {
   /** Example ID */
@@ -428,7 +429,7 @@ export interface PipelineStage {
   description: string;
 
   /** Stage function */
-  execute: (context: OptimizationContext, data: any) => Promise<any>;
+  execute: (context: OptimizationContext, data: unknown) => Promise<unknown>;
 
   /** Stage dependencies */
   dependencies?: string[];

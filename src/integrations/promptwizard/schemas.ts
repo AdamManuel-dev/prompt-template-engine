@@ -154,7 +154,16 @@ export const OptimizationJobSchema = z.object({
 });
 
 // Service Response Schema (Generic)
-export const ServiceResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
+export const ServiceResponseSchema = <T extends z.ZodType>(dataSchema: T): z.ZodObject<{
+  success: z.ZodBoolean;
+  data: T;
+  error: z.ZodOptional<z.ZodObject<{
+    code: z.ZodString;
+    message: z.ZodString;
+    details: z.ZodOptional<z.ZodUnknown>;
+  }>>;
+  timestamp: z.ZodString;
+}> =>
   z.object({
     success: z.boolean(),
     data: dataSchema.optional(),

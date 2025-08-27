@@ -61,7 +61,7 @@ export interface OptimizationContext {
     preserveVariables?: boolean;
     maintainStructure?: boolean;
     focusAreas?: string[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   /** Optimization constraints and preferences - alias for compatibility */
@@ -70,7 +70,7 @@ export interface OptimizationContext {
     preserveVariables?: boolean;
     maintainStructure?: boolean;
     focusAreas?: string[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   /** Additional metadata for optimization */

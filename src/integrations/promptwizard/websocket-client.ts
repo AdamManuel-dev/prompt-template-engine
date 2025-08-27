@@ -27,7 +27,7 @@ export interface WebSocketClientConfig {
 
 export interface WebSocketMessage {
   type: string;
-  data?: any;
+  data?: unknown;
   jobId?: string;
   timestamp?: string;
 }
@@ -57,6 +57,66 @@ export class PromptWizardWebSocketClient extends EventEmitter {
   private reconnectTimer: NodeJS.Timeout | null = null;
 
   private subscribedJobs: Set<string> = new Set();
+
+  /**
+   * Type guard for optimization update data
+   */
+  private isValidOptimizationData(data: unknown): data is {
+    job_id: string;
+    progress: number;
+    current_step: string;
+    status: string;
+    data?: unknown;
+    result?: unknown;
+    error?: string;
+  } {
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      'job_id' in data &&
+      'progress' in data &&
+      'current_step' in data &&
+      'status' in data
+    );
+  }
+
+  /**
+   * Type guard for job status data
+   */
+  private isValidJobStatusData(data: unknown): data is {
+    job_id: string;
+    status: string;
+    original_prompt: string;
+    optimized_prompt: string;
+    metrics?: unknown;
+    error?: string;
+    error_message?: string;
+  } {
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      'job_id' in data &&
+      'status' in data
+    );
+  }
+
+  /**
+   * Type guard for status values
+   */
+  private isValidStatus(
+    status: string
+  ): status is 'processing' | 'completed' | 'failed' {
+    return ['processing', 'completed', 'failed'].includes(status);
+  }
+
+  /**
+   * Type guard for job status values
+   */
+  private isValidJobStatus(
+    status: string
+  ): status is 'error' | 'pending' | 'success' {
+    return ['error', 'pending', 'success'].includes(status);
+  }
 
   constructor(config: WebSocketClientConfig) {
     super();
@@ -194,28 +254,36 @@ export class PromptWizardWebSocketClient extends EventEmitter {
           break;
 
         case 'progress_update':
-          this.emit(
-            'progressUpdate',
-            this.convertToOptimizationUpdate(message.data)
-          );
+          if (this.isValidOptimizationData(message.data)) {
+            this.emit(
+              'progressUpdate',
+              this.convertToOptimizationUpdate(message.data)
+            );
+          }
           break;
 
         case 'optimization_complete':
-          this.emit(
-            'optimizationComplete',
-            this.convertToOptimizationUpdate(message.data)
-          );
+          if (this.isValidOptimizationData(message.data)) {
+            this.emit(
+              'optimizationComplete',
+              this.convertToOptimizationUpdate(message.data)
+            );
+          }
           break;
 
         case 'optimization_failed':
-          this.emit('optimizationFailed', {
-            jobId: message.data.job_id,
-            error: message.data.error,
-          });
+          if (this.isValidOptimizationData(message.data)) {
+            this.emit('optimizationFailed', {
+              jobId: message.data.job_id,
+              error: message.data.error,
+            });
+          }
           break;
 
         case 'job_status':
-          this.emit('jobStatus', message.data);
+          if (this.isValidJobStatusData(message.data)) {
+            this.emit('jobStatus', message.data);
+          }
           break;
 
         case 'job_cancelled':
@@ -246,12 +314,23 @@ export class PromptWizardWebSocketClient extends EventEmitter {
   /**
    * Convert server data to OptimizationUpdate format
    */
-  private convertToOptimizationUpdate(data: any): OptimizationUpdate {
+  private convertToOptimizationUpdate(data: {
+    job_id: string;
+    progress: number;
+    current_step: string;
+    status: string;
+    data?: unknown;
+    result?: unknown;
+    error?: string;
+  }): OptimizationUpdate {
+    const validStatus = this.isValidStatus(data.status)
+      ? data.status
+      : 'processing';
     return {
       jobId: data.job_id,
       progress: data.progress,
       currentStep: data.current_step,
-      status: data.status,
+      status: validStatus,
       result: data.result
         ? this.convertToOptimizationResponse(data.result)
         : undefined,
@@ -262,14 +341,22 @@ export class PromptWizardWebSocketClient extends EventEmitter {
   /**
    * Convert server data to OptimizationResponse format
    */
-  private convertToOptimizationResponse(data: any): OptimizationResponse {
+  private convertToOptimizationResponse(data: unknown): OptimizationResponse {
+    // Type guard to ensure data has expected structure
+    if (!this.isValidJobStatusData(data)) {
+      throw new Error('Invalid optimization response data');
+    }
+
+    const validStatus = this.isValidJobStatus(data.status)
+      ? data.status
+      : 'pending';
     return {
       jobId: data.job_id,
-      status: data.status,
+      status: validStatus,
       originalPrompt: data.original_prompt,
       optimizedPrompt: data.optimized_prompt,
       metrics: data.metrics as OptimizationMetrics,
-      error: data.error_message,
+      error: data.error_message || data.error,
     };
   }
 
@@ -386,7 +473,20 @@ export class PromptWizardWebSocketClient extends EventEmitter {
   /**
    * Get connection statistics
    */
-  getConnectionStats(): any {
+  getConnectionStats(): {
+    isConnected: boolean;
+    reconnectAttempts: number;
+    queuedMessages: number;
+    subscribedJobs: string[];
+    readyState?: number;
+    lastHeartbeat?: Date;
+    config: {
+      url: string;
+      reconnectInterval: number;
+      maxReconnectAttempts: number;
+      heartbeatInterval: number;
+    };
+  } {
     return {
       isConnected: this.isConnected,
       reconnectAttempts: this.reconnectAttempts,

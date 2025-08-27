@@ -198,9 +198,10 @@ export class UnifiedOptimizationService extends EventEmitter {
           options.task ||
           'Optimize template for clarity, effectiveness, and token efficiency',
         prompt: template.files?.[0]?.content || '',
-        targetModel:
+        targetModel: this.validateTargetModel(
           (options.targetModel as string | undefined) ||
-          (this.config.defaults.targetModel as string),
+            (this.config.defaults.targetModel as string)
+        ),
         mutateRefineIterations:
           options.mutateRefineIterations ||
           this.config.defaults.mutateRefineIterations,
@@ -242,7 +243,7 @@ export class UnifiedOptimizationService extends EventEmitter {
           templatePath,
           template,
           {
-            targetModel: request.targetModel as string | undefined,
+            targetModel: this.validateTargetModel(request.targetModel),
             mutateRefineIterations: request.mutateRefineIterations,
             generateReasoning: request.generateReasoning,
           }
@@ -442,6 +443,28 @@ export class UnifiedOptimizationService extends EventEmitter {
 
   private generateJobId(): string {
     return `opt_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+  }
+
+  private validateTargetModel(
+    model: string | undefined
+  ):
+    | 'gpt-4'
+    | 'gpt-3.5-turbo'
+    | 'claude-3-opus'
+    | 'claude-3-sonnet'
+    | 'gemini-pro'
+    | undefined {
+    const validModels = [
+      'gpt-4',
+      'gpt-3.5-turbo',
+      'claude-3-opus',
+      'claude-3-sonnet',
+      'gemini-pro',
+    ] as const;
+    if (!model) return undefined;
+    return validModels.includes(model as any)
+      ? (model as (typeof validModels)[number])
+      : 'gpt-4';
   }
 
   private async generateCacheKey(
@@ -673,14 +696,17 @@ export class UnifiedOptimizationService extends EventEmitter {
       try {
         const result = await this.optimize(templateData.path, options);
         results[templateData.index] = result;
+        return result;
       } catch (error) {
-        results[templateData.index] = {
+        const errorResult = {
           jobId: this.generateJobId(),
-          status: 'failed',
+          status: 'failed' as const,
           error: (error as Error).message,
           createdAt: new Date(),
           completedAt: new Date(),
         };
+        results[templateData.index] = errorResult;
+        return errorResult;
       }
     };
 
@@ -775,18 +801,23 @@ export class UnifiedOptimizationService extends EventEmitter {
       jobId,
       status: 'completed',
       result: {
+        jobId,
+        originalPrompt: content,
         optimizedPrompt: optimizedContent,
-        improvements: [],
-        qualityScore: 85, // Default score
+        status: 'completed',
         metrics: {
+          accuracyImprovement: 0,
           tokenReduction: Math.max(
             0,
             ((content.length - optimizedContent.length) / content.length) * 100
           ),
           costReduction: 10,
           processingTime: Date.now() - Date.now(),
+          apiCallsUsed: 1,
         },
-      } as OptimizationMetrics,
+        createdAt: new Date(),
+        completedAt: new Date(),
+      } as OptimizedResult,
       createdAt: new Date(),
       completedAt: new Date(),
     };

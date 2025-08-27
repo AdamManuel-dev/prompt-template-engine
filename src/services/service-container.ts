@@ -18,6 +18,10 @@ export type ServiceLifetime = 'singleton' | 'transient' | 'scoped';
 // Forward declaration for ServiceContainer
 interface IServiceContainer {
   resolve<T>(serviceId: string): T;
+  isRegistered(serviceId: string): boolean;
+  getServiceIds(): string[];
+  getDependencyGraph(): Map<string, string[]>;
+  tryResolve<T>(serviceId: string): T | null;
 }
 
 /**
@@ -288,16 +292,20 @@ export class ServiceContainer implements IServiceContainer {
   /**
    * Get service dependency graph
    */
-  getDependencyGraph(): Record<string, string[]> {
-    const graph: Record<string, string[]> = {};
+  getDependencyGraph(): Map<string, string[]> {
+    const graph = new Map<string, string[]>();
 
     for (const [serviceId, descriptor] of this.services) {
-      graph[serviceId] = descriptor.dependencies || [];
+      graph.set(serviceId, descriptor.dependencies || []);
     }
 
     if (this.parentContainer) {
       const parentGraph = this.parentContainer.getDependencyGraph();
-      Object.assign(graph, parentGraph);
+      for (const [key, value] of parentGraph) {
+        if (!graph.has(key)) {
+          graph.set(key, value);
+        }
+      }
     }
 
     return graph;
@@ -323,7 +331,8 @@ export class ServiceContainer implements IServiceContainer {
     }
 
     // Check for circular dependencies
-    const circularErrors = this.detectCircularDependencies(graph);
+    const graphRecord = Object.fromEntries(graph.entries());
+    const circularErrors = this.detectCircularDependencies(graphRecord);
     errors.push(...circularErrors);
 
     return {

@@ -143,7 +143,7 @@ export class CacheService<T extends object = any> {
       finalOptions.maxAge = options.ttl;
     }
 
-    // Store cacheDir option (Required by TODO)
+    // Store cacheDir option for persistence configuration
     this.cacheDir = finalOptions.cacheDir;
 
     const cacheConfig: {

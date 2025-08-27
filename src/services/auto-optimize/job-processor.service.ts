@@ -360,7 +360,7 @@ export class JobProcessorService extends EventEmitter {
         errorMessage !== 'Job timeout'
       ) {
         // Retry the job
-        job.retryCount++;
+        job.retryCount += 1;
         job.status = 'pending';
 
         // Add back to queue with delay
@@ -369,7 +369,7 @@ export class JobProcessorService extends EventEmitter {
           this.updateStats();
         }, this.options.retryBackoffMs);
 
-        this.stats.retryCount++;
+        this.stats.retryCount += 1;
 
         logger.info('Job scheduled for retry', {
           jobId: job.id,
@@ -420,10 +420,10 @@ export class JobProcessorService extends EventEmitter {
   }
 
   private updateJobStats(success: boolean, processingTime: number): void {
-    this.stats.totalProcessed++;
+    this.stats.totalProcessed += 1;
 
     if (success) {
-      this.stats.successCount++;
+      this.stats.successCount += 1;
 
       // Update average processing time
       if (processingTime > 0) {
@@ -433,7 +433,7 @@ export class JobProcessorService extends EventEmitter {
           this.stats.successCount;
       }
     } else {
-      this.stats.failureCount++;
+      this.stats.failureCount += 1;
     }
   }
 

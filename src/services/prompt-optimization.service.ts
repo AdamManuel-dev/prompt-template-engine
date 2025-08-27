@@ -426,7 +426,11 @@ export class PromptOptimizationService extends EventEmitter {
                   },
                   suggestions: [],
                 }) as QualityScore,
-            comparison: cached.comparison || { improvements: {} },
+            comparison:
+              cached.comparison ||
+              this.createDefaultComparison(
+                (request as any).prompt || 'No prompt available'
+              ),
             timestamp: new Date(),
           };
 
@@ -547,9 +551,11 @@ export class PromptOptimizationService extends EventEmitter {
                       suggestions: ['No quality score available'],
                       confidence: 0.5,
                     },
-              comparison: completedJob.result.comparison || {
-                improvements: {},
-              },
+              comparison:
+                completedJob.result.comparison ||
+                this.createDefaultComparison(
+                  (request as any).prompt || 'No prompt available'
+                ),
               timestamp: new Date(),
             };
             resolve(optimizationResult);
@@ -1039,6 +1045,54 @@ export class PromptOptimizationService extends EventEmitter {
    * });
    * ```
    */
+
+  /**
+   * Create a default PromptComparison object for fallback cases
+   */
+  private createDefaultComparison(originalPrompt: string): PromptComparison {
+    const defaultScore: QualityScore = {
+      overall: 50,
+      clarity: 50,
+      relevance: 50,
+      efficiency: 50,
+      completeness: 50,
+      suggestions: ['Default comparison - actual metrics not available'],
+      confidence: 0.5,
+      metrics: {
+        clarity: 50,
+        taskAlignment: 50,
+        tokenEfficiency: 50,
+      },
+    };
+
+    return {
+      comparisonId: `default_${Date.now()}`,
+      original: {
+        prompt: originalPrompt,
+        score: defaultScore,
+        estimatedTokens: Math.ceil(originalPrompt.length / 4),
+        estimatedCost: 0.001,
+      },
+      optimized: {
+        prompt: originalPrompt,
+        score: defaultScore,
+        estimatedTokens: Math.ceil(originalPrompt.length / 4),
+        estimatedCost: 0.001,
+      },
+      improvements: {
+        tokenReduction: 0,
+        qualityImprovement: 0,
+        costSavings: 0,
+        changes: [],
+      },
+      metadata: {
+        optimizationMethod: 'default',
+        processingTime: 0,
+        version: '1.0.0',
+      },
+    };
+  }
+
   async cleanup(): Promise<void> {
     logger.info('Shutting down PromptOptimizationService');
 

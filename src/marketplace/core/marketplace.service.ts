@@ -2065,16 +2065,19 @@ export class MarketplaceService
       this.emit('recordDownload:started', { id });
 
       if (this.database) {
+        // Get template to record installation
+        const template = await this.database.templates.findById(id);
+        
         // Record installation in database
         await this.database.installations.create({
-          id: `${id}_${Date.now()}`,
           templateId: id,
-          userId: 'anonymous', // Would normally track actual user
+          version: template?.currentVersion || '1.0.0',
+          installPath: `/templates/${id}`,
           installed: new Date(),
+          autoUpdate: false,
         });
 
         // Update template stats
-        const template = await this.database.templates.findById(id);
         if (template) {
           const updatedStats = {
             ...template.stats,
@@ -2214,9 +2217,9 @@ export class MarketplaceService
               );
             }
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           // If it's a permission error, re-throw it
-          if (error.message.includes('can only be updated')) {
+          if (error instanceof Error && error.message.includes('can only be updated')) {
             throw error;
           }
           // Otherwise, the template probably doesn't exist yet, which is fine for new templates

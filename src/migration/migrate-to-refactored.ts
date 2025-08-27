@@ -15,6 +15,7 @@ import type {
   TemplateReview,
   TemplateSearchQuery,
   TemplateModel,
+  TemplateSearchResult,
   InstallationResult,
   UpdateResult,
   UpdateCheckResult,
@@ -37,11 +38,11 @@ export class TemplateEngineAdapter extends TemplateEngine {
     template: string,
     context: Record<string, unknown>
   ): Promise<string> {
-    return this.refactoredEngine.render(template, context);
+    return this.refactoredEngine.render(template, { variables: context });
   }
 
   renderSync(template: string, context: Record<string, unknown>): string {
-    return this.refactoredEngine.renderSync(template, context);
+    return this.refactoredEngine.renderSync(template, { variables: context });
   }
 
   isTruthy(value: unknown): boolean {
@@ -59,7 +60,7 @@ export class TemplateEngineAdapter extends TemplateEngine {
     _depth = 0
   ): string {
     // Use refactored engine's renderSync which includes conditional processing
-    return this.refactoredEngine.renderSync(template, context);
+    return this.refactoredEngine.renderSync(template, { variables: context });
   }
 
   findOutermostIfBlocks(_template: string): Array<{
@@ -101,7 +102,7 @@ export class MarketplaceServiceAdapter {
     this.refactoredService = new MarketplaceRefactoredService();
   }
 
-  async search(query: TemplateSearchQuery): Promise<TemplateModel[]> {
+  async search(query: TemplateSearchQuery): Promise<TemplateSearchResult> {
     return this.refactoredService.search(query);
   }
 
@@ -155,7 +156,7 @@ export class MarketplaceServiceAdapter {
   }
 
   async updatePreferences(preferences: UserPreferences): Promise<void> {
-    return this.refactoredService.updatePreferences(preferences);
+    await this.refactoredService.updatePreferences(preferences);
   }
 }
 

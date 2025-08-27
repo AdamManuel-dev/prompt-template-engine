@@ -92,7 +92,7 @@ export class AnthropicAdapter {
     const messages: AnthropicMessage[] = [];
     const adaptationNotes: string[] = [];
     const warnings: string[] = [];
-    let xmlStructure: any = {};
+    let xmlStructure: Record<string, unknown> = {};
 
     // Extract and format system message
     let systemMessage = '';
@@ -297,7 +297,7 @@ export class AnthropicAdapter {
   private addXMLStructuring(
     prompt: string,
     context?: { taskComplexity?: string; enableThinking?: boolean }
-  ): { prompt: string; applied: boolean; structure: any } {
+  ): { prompt: string; applied: boolean; structure: Record<string, unknown> } {
     let structuredPrompt = prompt;
     const structure = {
       thinkingEnabled: false,

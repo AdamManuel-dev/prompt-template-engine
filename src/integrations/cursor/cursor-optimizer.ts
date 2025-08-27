@@ -45,7 +45,7 @@ import { TemplateService } from '../../services/template.service';
 import { PromptOptimizationService } from '../../services/prompt-optimization.service';
 import { CacheService } from '../../services/cache.service';
 import { CursorIntegration } from './index';
-import { Template } from '../../types';
+import { Template, TemplateFile } from '../../types';
 
 /**
  * Configuration interface for Cursor-specific optimization settings
@@ -432,7 +432,7 @@ export class CursorOptimizer {
     // Run optimization with Cursor context
     const optimizationResult = await this.optimizationService.optimizeTemplate({
       templateId: template.name,
-      template: originalTemplate as any,
+      template: originalTemplate as Template,
       config: {
         task: optimizationTask,
         targetModel: this.config.preferredModel,
@@ -450,7 +450,7 @@ export class CursorOptimizer {
     // Apply additional Cursor-specific optimizations
     const cursorOptimizedContent = await this.applyCursorSpecificOptimizations(
       optimizationResult.optimizedTemplate.files
-        ?.map(f => (f as any).content)
+        ?.map(f => (f as TemplateFile).content)
         .join('\n') || '',
       cursorContext
     );

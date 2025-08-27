@@ -92,6 +92,7 @@ export interface TemplateExample {
 }
 
 export interface TemplateReview {
+  [key: string]: unknown;
   id: string;
   templateId?: string; // Added for proper filtering in database operations
   userId: string;
@@ -190,6 +191,7 @@ export interface MarketplacePreferences {
 
 // Main template interface
 export interface TemplateModel {
+  [key: string]: unknown;
   id: string;
   name: string;
   displayName: string;

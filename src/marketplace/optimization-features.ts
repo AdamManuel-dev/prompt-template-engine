@@ -396,7 +396,7 @@ export class MarketplaceOptimizationService {
         templates: enhancedTemplates,
         optimizationMetadata:
           this.generateOptimizationMetadata(enhancedTemplates),
-      } as TemplateSearchResult & { optimizationMetadata: any };
+      } as TemplateSearchResult & { optimizationMetadata: Record<string, unknown> };
     } catch (error) {
       logger.error('Failed to search optimized templates:', error);
       throw error;
