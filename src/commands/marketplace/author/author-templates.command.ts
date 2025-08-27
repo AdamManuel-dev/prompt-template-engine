@@ -68,7 +68,7 @@ export class AuthorTemplatesCommand extends BaseCommand {
         author: authorId,
         page,
         limit,
-        sortBy: (options.sort as TemplateSortOption) || 'recent',
+        sortBy: (options.sort as TemplateSortOption) || 'updated',
       });
 
       if (!result.templates || result.templates.length === 0) {

@@ -12,6 +12,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
+import type { ObjectProperty } from '@babel/types';
 import { IPlugin, PluginAPI } from '../types';
 import {
   PluginSandbox,
@@ -385,6 +386,7 @@ export class SecurePluginManager {
           const sandboxResult = await this.sandbox.executePlugin(
             plugin,
             'executeHook',
+            undefined,
             [name, result, ...args.slice(1)]
           );
           if (sandboxResult.success) {
@@ -547,7 +549,12 @@ export class SecurePluginManager {
       metadata.lastExecuted = new Date();
 
       // Execute in sandbox
-      const result = await this.sandbox.executePlugin(plugin, method, args);
+      const result = await this.sandbox.executePlugin(
+        plugin,
+        method,
+        undefined,
+        args
+      );
 
       if (!result.success && result.error) {
         metadata.errors.push(`${new Date().toISOString()}: ${result.error}`);
@@ -797,9 +804,9 @@ export class SecurePluginManager {
               left.object.property.name === 'exports'
             ) {
               // Extract literal values from the right side
-              const { right } = path.node;
+              const { right } = nodePath.node;
               if (right.type === 'ObjectExpression') {
-                right.properties.forEach(prop => {
+                right.properties.forEach((prop: ObjectProperty | any) => {
                   if (
                     prop.type === 'ObjectProperty' &&
                     'key' in prop &&

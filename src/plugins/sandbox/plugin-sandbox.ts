@@ -573,9 +573,12 @@ export class PluginSandbox {
         },
       };
 
-      const executionResult = await this.executePlugin(mockPlugin, 'execute', [
-        context,
-      ]);
+      const executionResult = await this.executePlugin(
+        mockPlugin,
+        'execute',
+        undefined,
+        [context]
+      );
 
       if (executionResult.success) {
         return executionResult.result;

@@ -69,7 +69,7 @@ export function createFeedbackLoop(
 
   // Create optimization service (available for other systems)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // @ts-expect-error - Intentionally unused for now but available for future extension
+  // @ts-expect-error - Intentionally unused service for future extension
   const _optimizationService = new PromptOptimizationService(
     promptWizardClient,
     templateService,
