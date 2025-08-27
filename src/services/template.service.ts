@@ -105,6 +105,33 @@ export interface TemplateServiceOptions {
   validationStrict?: boolean;
 }
 
+/**
+ * Service class for template management, rendering, and optimization tracking
+ * Provides a high-level abstraction over the template engine with caching,
+ * validation, and optimization features for production use.
+ * 
+ * @class TemplateService
+ * @version 1.0.0
+ * @since 1.0.0
+ * 
+ * @example <caption>Basic template service usage</caption>
+ * const service = new TemplateService({
+ *   templatePaths: ['./templates'],
+ *   cacheEnabled: true,
+ *   validationStrict: true
+ * });
+ * 
+ * const template = await service.loadTemplate('my-template.yaml');
+ * const result = await service.renderTemplate(template, { name: 'World' });
+ * 
+ * @example <caption>Template optimization tracking</caption>
+ * await service.addOptimizationData(templateId, {
+ *   inputTokens: 150,
+ *   outputTokens: 300,
+ *   processingTime: 1200,
+ *   qualityScore: 0.85
+ * });
+ */
 export class TemplateService {
   private readonly engine: TemplateEngine;
 
@@ -112,6 +139,24 @@ export class TemplateService {
 
   private readonly templateCache: CacheService<Template>;
 
+  /**
+   * Creates a new TemplateService instance with configuration options
+   * 
+   * @param {TemplateServiceOptions} [options={}] - Configuration options for the service
+   * @param {string[]} [options.templatePaths=['./templates', '.cursor/templates']] - Paths to search for templates
+   * @param {boolean} [options.cacheEnabled=true] - Whether to enable template caching
+   * @param {boolean} [options.validationStrict=false] - Whether to use strict validation mode
+   * 
+   * @example <caption>Create with custom configuration</caption>
+   * const service = new TemplateService({
+   *   templatePaths: ['./my-templates', './shared-templates'],
+   *   cacheEnabled: true,
+   *   validationStrict: true
+   * });
+   * 
+   * @example <caption>Create with defaults</caption>
+   * const service = new TemplateService();
+   */
   constructor(options: TemplateServiceOptions = {}) {
     this.engine = new TemplateEngine();
     this.options = {
@@ -129,7 +174,35 @@ export class TemplateService {
   }
 
   /**
-   * Load a template from file system
+   * Loads a template from the file system with automatic caching and validation
+   * Supports both YAML and JSON template formats with front-matter parsing.
+   * Templates are cached for improved performance when caching is enabled.
+   * 
+   * @param {string} templatePath - Path to the template file (relative or absolute)
+   * @returns {Promise<Template>} Parsed template object with metadata and content
+   * @throws {FileNotFoundError} When the template file doesn't exist
+   * @throws {TemplateProcessingError} When template parsing fails
+   * @throws {ValidationError} When template validation fails in strict mode
+   * 
+   * @example <caption>Load a YAML template</caption>
+   * const template = await service.loadTemplate('./templates/bug-fix.yaml');
+   * console.log(`Loaded template: ${template.name}`);
+   * 
+   * @example <caption>Load with error handling</caption>
+   * try {
+   *   const template = await service.loadTemplate('./templates/feature.yaml');
+   *   // Process template...
+   * } catch (error) {
+   *   if (error instanceof FileNotFoundError) {
+   *     console.error('Template file not found');
+   *   } else if (error instanceof ValidationError) {
+   *     console.error('Template validation failed:', error.message);
+   *   }
+   * }
+   * 
+   * @see {@link renderTemplate} - For rendering loaded templates
+   * @see {@link validateTemplate} - For template validation
+   * @since 1.0.0
    */
   async loadTemplate(templatePath: string): Promise<Template> {
     // Use cache's getOrCompute for automatic caching
@@ -323,7 +396,44 @@ export class TemplateService {
   }
 
   /**
-   * Render a template with given variables
+   * Renders a template with the provided variables and returns the processed template
+   * Validates variables against template requirements and applies template transformations.
+   * Supports variable substitution, conditionals, loops, includes, and custom helpers.
+   * 
+   * @param {Template} template - The template object to render (loaded via loadTemplate)
+   * @param {Record<string, unknown>} variables - Variables to substitute in the template
+   * @returns {Promise<Template>} Rendered template with processed content and commands
+   * @throws {ValidationError} When provided variables don't match template requirements
+   * @throws {TemplateProcessingError} When template rendering fails
+   * 
+   * @example <caption>Basic template rendering</caption>
+   * const template = await service.loadTemplate('./templates/bug-fix.yaml');
+   * const rendered = await service.renderTemplate(template, {
+   *   issueNumber: '123',
+   *   description: 'Fix authentication bug',
+   *   severity: 'high'
+   * });
+   * 
+   * @example <caption>Complex template with conditionals</caption>
+   * const rendered = await service.renderTemplate(template, {
+   *   user: { name: 'John', role: 'admin' },
+   *   features: ['auth', 'dashboard', 'reporting'],
+   *   environment: 'production'
+   * });
+   * 
+   * @example <caption>Error handling for missing variables</caption>
+   * try {
+   *   const rendered = await service.renderTemplate(template, variables);
+   * } catch (error) {
+   *   if (error instanceof ValidationError) {
+   *     console.error('Missing required variables:', error.message);
+   *   }
+   * }
+   * 
+   * @see {@link loadTemplate} - For loading templates before rendering
+   * @see {@link validateTemplate} - For validating templates before rendering
+   * @see {@link TemplateEngine} - For low-level template rendering
+   * @since 1.0.0
    */
   async renderTemplate(
     template: Template,

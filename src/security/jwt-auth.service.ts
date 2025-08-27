@@ -53,7 +53,43 @@ export interface JWTAuthConfig {
 }
 
 /**
- * JWT Authentication Service with comprehensive security features
+ * Enterprise JWT Authentication Service with comprehensive security controls
+ * Provides secure token generation, verification, refresh, and revocation capabilities
+ * with role-based claims, device tracking, and comprehensive audit logging.
+ * 
+ * @class JWTAuthService
+ * @version 1.0.0
+ * @since 1.0.0
+ * 
+ * @example <caption>Basic JWT service setup</caption>
+ * const authService = new JWTAuthService({
+ *   jwtSecret: 'your-secret-key',
+ *   accessTokenExpiry: '15m',
+ *   refreshTokenExpiry: '7d',
+ *   issuer: 'my-app'
+ * });
+ * 
+ * @example <caption>Generate tokens for user</caption>
+ * const tokens = await authService.generateToken({
+ *   userId: '12345',
+ *   username: 'john_doe',
+ *   email: 'john@example.com',
+ *   roles: ['user', 'admin'],
+ *   permissions: ['read:templates', 'write:templates']
+ * });
+ * 
+ * @example <caption>Verify and extract user information</caption>
+ * try {
+ *   const payload = await authService.verifyToken(token);
+ *   console.log('User:', payload.username, 'Roles:', payload.roles);
+ * } catch (error) {
+ *   console.error('Token verification failed:', error.message);
+ * }
+ * 
+ * @see {@link generateToken} - For creating JWT tokens
+ * @see {@link verifyToken} - For token validation
+ * @see {@link refreshToken} - For token renewal
+ * @see {@link revokeToken} - For token revocation
  */
 export class JWTAuthService {
   private config: JWTAuthConfig;
