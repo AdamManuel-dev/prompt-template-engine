@@ -3,85 +3,85 @@
     {
       "templateId": "test-template",
       "version": "1.0.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-mR0CxP/templates/test-template-2",
-      "installed": "2025-08-27T04:54:04.370Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-wRvNkO/templates/test-template-2",
+      "installed": "2025-08-27T05:25:05.897Z",
       "autoUpdate": false
     },
     {
       "templateId": "template-1",
       "version": "1.1.0",
       "installPath": "/Users/adammanuel/Projects/cursor-prompt-template-engine/.cursor-prompt/templates/Template 1",
-      "installed": "2025-08-27T04:54:04.456Z",
+      "installed": "2025-08-27T05:25:05.980Z",
       "autoUpdate": false
     },
     {
       "templateId": "template-3",
       "version": "1.5.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-RYHcp9/templates/template-3",
-      "installed": "2025-08-27T04:54:04.452Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-JJeI1y/templates/template-3",
+      "installed": "2025-08-27T05:25:05.976Z",
       "autoUpdate": false
     },
     {
       "templateId": "template-2",
       "version": "2.0.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-RYHcp9/templates/template-2",
-      "installed": "2025-08-27T04:54:04.450Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-JJeI1y/templates/template-2",
+      "installed": "2025-08-27T05:25:05.973Z",
       "autoUpdate": false
     },
     {
       "templateId": "cached-template",
       "version": "1.0.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-KSLchP/install2",
-      "installed": "2025-08-27T04:54:04.487Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-2uhBid/install2",
+      "installed": "2025-08-27T05:25:06.013Z",
       "autoUpdate": false
     },
     {
       "templateId": "cache-test",
       "version": "1.1.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-Swmzpt/install2",
-      "installed": "2025-08-27T04:54:04.494Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-BUQFZ6/install2",
+      "installed": "2025-08-27T05:25:06.021Z",
       "autoUpdate": false
     },
     {
       "templateId": "cache-item-0",
       "version": "1.0.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-mzZZ7c/install-0",
-      "installed": "2025-08-27T04:54:04.500Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-sKrTXk/install-0",
+      "installed": "2025-08-27T05:25:06.025Z",
       "autoUpdate": false
     },
     {
       "templateId": "cache-item-1",
       "version": "1.0.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-mzZZ7c/install-1",
-      "installed": "2025-08-27T04:54:04.502Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-sKrTXk/install-1",
+      "installed": "2025-08-27T05:25:06.028Z",
       "autoUpdate": false
     },
     {
       "templateId": "cache-item-2",
       "version": "1.0.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-mzZZ7c/install-2",
-      "installed": "2025-08-27T04:54:04.504Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-sKrTXk/install-2",
+      "installed": "2025-08-27T05:25:06.031Z",
       "autoUpdate": false
     },
     {
       "templateId": "cache-item-3",
       "version": "1.0.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-mzZZ7c/install-3",
-      "installed": "2025-08-27T04:54:04.507Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-sKrTXk/install-3",
+      "installed": "2025-08-27T05:25:06.033Z",
       "autoUpdate": false
     },
     {
       "templateId": "cache-item-4",
       "version": "1.0.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-mzZZ7c/install-4",
-      "installed": "2025-08-27T04:54:04.510Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-sKrTXk/install-4",
+      "installed": "2025-08-27T05:25:06.036Z",
       "autoUpdate": false
     },
     {
       "templateId": "deps-template",
       "version": "1.0.0",
-      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-VI8lrH/templates",
-      "installed": "2025-08-27T04:54:04.364Z",
+      "installPath": "/var/folders/9j/n0nllt5x6m15l7rlf16q3zqr0000gn/T/marketplace-e2e-i9Xq4z/templates",
+      "installed": "2025-08-27T05:25:05.887Z",
       "autoUpdate": false
     }
   ],

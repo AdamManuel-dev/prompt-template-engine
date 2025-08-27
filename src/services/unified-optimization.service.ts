@@ -616,16 +616,20 @@ export class UnifiedOptimizationService extends EventEmitter {
     }));
 
     const loadedTemplates = await Promise.all(templateLoadPromises);
-    const validTemplates = loadedTemplates.filter(t => !('error' in t.template));
+    const validTemplates = loadedTemplates.filter(
+      t => !('error' in t.template)
+    );
     const failedLoads = loadedTemplates.filter(t => 'error' in t.template);
 
-    logger.info(`Template loading completed: ${validTemplates.length} success, ${failedLoads.length} failed`);
+    logger.info(
+      `Template loading completed: ${validTemplates.length} success, ${failedLoads.length} failed`
+    );
 
     // Process valid templates with worker pool
     const results = await this.processWithWorkerPool(validTemplates, options);
 
     // Add failed loads to results
-    failedLoads.forEach(({ index, path, template }) => {
+    failedLoads.forEach(({ index, template }) => {
       results[index] = {
         jobId: this.generateJobId(),
         status: 'failed',
@@ -659,9 +663,13 @@ export class UnifiedOptimizationService extends EventEmitter {
   ): Promise<OptimizationJobResult[]> {
     const results: OptimizationJobResult[] = [];
     const concurrency = this.config.queue.maxConcurrent;
-    const semaphore = new Array(concurrency).fill(null);
-    
-    const processTemplate = async (templateData: { index: number; path: string; template: any }) => {
+    // const _semaphore = new Array(concurrency).fill(null); // Reserved for future semaphore implementation"
+
+    const processTemplate = async (templateData: {
+      index: number;
+      path: string;
+      template: any;
+    }) => {
       try {
         const result = await this.optimize(templateData.path, options);
         results[templateData.index] = result;
@@ -695,18 +703,22 @@ export class UnifiedOptimizationService extends EventEmitter {
     options: Partial<OptimizationConfig> = {}
   ): Promise<OptimizationJobResult> {
     const jobId = this.generateJobId();
-    logger.info('Starting stream processing for large template', { jobId, templatePath });
+    logger.info('Starting stream processing for large template', {
+      jobId,
+      templatePath,
+    });
 
     try {
       // Use streaming approach for large template content
       const template = await this.templateService.loadTemplate(templatePath);
       const content = template.files?.[0]?.content || '';
-      
+
       // If content is large, process in chunks
-      if (content.length > 10000) { // 10KB threshold
+      if (content.length > 10000) {
+        // 10KB threshold
         return this.processInChunks(content, templatePath, options, jobId);
       }
-      
+
       // For smaller templates, use regular processing
       return this.optimize(templatePath, options);
     } catch (error) {
@@ -731,18 +743,19 @@ export class UnifiedOptimizationService extends EventEmitter {
   ): Promise<OptimizationJobResult> {
     const chunkSize = 5000; // 5KB chunks
     const chunks = [];
-    
+
     for (let i = 0; i < content.length; i += chunkSize) {
       chunks.push(content.slice(i, i + chunkSize));
     }
 
-    logger.info(`Processing template in ${chunks.length} chunks`, { jobId, templatePath });
+    logger.info(`Processing template in ${chunks.length} chunks`, {
+      jobId,
+      templatePath,
+    });
 
     // Process chunks in parallel with limited concurrency
     const chunkResults = await Promise.allSettled(
-      chunks.map((chunk, index) => 
-        this.optimizeChunk(chunk, index, options)
-      )
+      chunks.map((chunk, index) => this.optimizeChunk(chunk, index, options))
     );
 
     // Combine chunk results
@@ -766,7 +779,10 @@ export class UnifiedOptimizationService extends EventEmitter {
         improvements: [],
         qualityScore: 85, // Default score
         metrics: {
-          tokenReduction: Math.max(0, (content.length - optimizedContent.length) / content.length * 100),
+          tokenReduction: Math.max(
+            0,
+            ((content.length - optimizedContent.length) / content.length) * 100
+          ),
           costReduction: 10,
           processingTime: Date.now() - Date.now(),
         },
@@ -779,7 +795,11 @@ export class UnifiedOptimizationService extends EventEmitter {
   /**
    * Optimize individual chunk of content
    */
-  private async optimizeChunk(chunk: string, index: number, options: Partial<OptimizationConfig>): Promise<string> {
+  private async optimizeChunk(
+    chunk: string,
+    _index: number,
+    _options: Partial<OptimizationConfig>
+  ): Promise<string> {
     // For demo purposes, apply simple optimizations
     // In practice, this would use the PromptWizard API for each chunk
     return chunk
