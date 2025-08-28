@@ -72,14 +72,17 @@ program
       if (options.output) {
         const { writeFile } = await import('fs/promises');
         await writeFile(options.output, content);
+        // eslint-disable-next-line no-console
         console.log(
           chalk.green(`✅ Generated prompt saved to: ${options.output}`)
         );
       } else if (options.copy) {
         const clipboardy = await import('clipboardy');
         await clipboardy.default.write(content);
+        // eslint-disable-next-line no-console
         console.log(chalk.green('✅ Generated prompt copied to clipboard'));
       } else {
+        // eslint-disable-next-line no-console
         console.log(content);
       }
     } catch (error) {
@@ -102,6 +105,7 @@ program
       const templates = await service.listTemplates();
 
       if (templates.length === 0) {
+        // eslint-disable-next-line no-console
         console.log(chalk.yellow('No templates found'));
         return;
       }
@@ -111,35 +115,50 @@ program
       if (options.tags) {
         const tags = options.tags.split(',').map((t: string) => t.trim());
         filtered = templates.filter(
-          (t: any) => t.tags && tags.some((tag: string) => t.tags.includes(tag))
+          (t: { tags?: string[] }) =>
+            t.tags && tags.some((tag: string) => t.tags?.includes(tag))
         );
       }
 
       // Display templates
       if (options.detailed) {
-        filtered.forEach((template: any) => {
-          console.log(chalk.cyan(`\n📝 ${template.name}`));
-          console.log(
-            `   ${chalk.gray(template.description || 'No description')}`
-          );
-          if (template.version) {
-            console.log(`   ${chalk.gray(`Version: ${template.version}`)}`);
-          }
-          if (template.tags?.length > 0) {
+        filtered.forEach(
+          (template: {
+            name: string;
+            description?: string;
+            version?: string;
+            tags?: string[];
+          }) => {
+            // eslint-disable-next-line no-console
+            console.log(chalk.cyan(`\n📝 ${template.name}`));
+            // eslint-disable-next-line no-console
             console.log(
-              `   ${chalk.gray(`Tags: ${template.tags.join(', ')}`)}`
+              `   ${chalk.gray(template.description || 'No description')}`
             );
+            if (template.version) {
+              // eslint-disable-next-line no-console
+              console.log(`   ${chalk.gray(`Version: ${template.version}`)}`);
+            }
+            if (template.tags && template.tags?.length > 0) {
+              // eslint-disable-next-line no-console
+              console.log(
+                `   ${chalk.gray(`Tags: ${template.tags?.join(', ')}`)}}`
+              );
+            }
           }
-        });
+        );
       } else {
+        // eslint-disable-next-line no-console
         console.log(chalk.cyan('\nAvailable Templates:'));
-        filtered.forEach((template: any) => {
+        filtered.forEach((template: { name: string; description?: string }) => {
+          // eslint-disable-next-line no-console
           console.log(
             `  • ${template.name} ${chalk.gray(template.description ? `- ${template.description}` : '')}`
           );
         });
       }
 
+      // eslint-disable-next-line no-console
       console.log(chalk.gray(`\nTotal: ${filtered.length} template(s)`));
     } catch (error) {
       logger.error('Failed to list templates');
@@ -163,6 +182,7 @@ program
       });
 
       await integration.initialize();
+      // eslint-disable-next-line no-console
       console.log(
         chalk.green(`✅ Successfully synced templates to Cursor rules`)
       );
@@ -193,6 +213,7 @@ program
           await access(dir);
         } catch {
           await mkdir(dir, { recursive: true });
+          // eslint-disable-next-line no-console
           console.log(chalk.green(`✅ Created directory: ${dir}`));
         }
       }
@@ -223,6 +244,7 @@ program
         };
 
         await writeFile(configPath, JSON.stringify(defaultConfig, null, 2));
+        // eslint-disable-next-line no-console
         console.log(chalk.green(`✅ Created configuration: ${configPath}`));
       }
 
@@ -270,22 +292,29 @@ content: |
 `;
 
         await writeFile(exampleTemplatePath, exampleTemplate);
+        // eslint-disable-next-line no-console
         console.log(
           chalk.green(`✅ Created example template: ${exampleTemplatePath}`)
         );
       }
 
+      // eslint-disable-next-line no-console
       console.log(chalk.cyan('\n🎉 Cursor Prompt initialized successfully!'));
+      // eslint-disable-next-line no-console
       console.log(chalk.gray('\nNext steps:'));
+      // eslint-disable-next-line no-console
       console.log(
         chalk.gray('  1. Add your templates to the templates/ directory')
       );
+      // eslint-disable-next-line no-console
       console.log(
         chalk.gray('  2. Run "cursor-prompt list" to see available templates')
       );
+      // eslint-disable-next-line no-console
       console.log(
         chalk.gray('  3. Run "cursor-prompt sync" to sync with Cursor rules')
       );
+      // eslint-disable-next-line no-console
       console.log(
         chalk.gray(
           '  4. Run "cursor-prompt generate <template>" to generate prompts'
@@ -316,23 +345,30 @@ program
       const validationResult = await TemplateService.validateTemplate(template);
 
       if (validationResult.valid) {
+        // eslint-disable-next-line no-console
         console.log(chalk.green(`✅ Template is valid: ${resolvedPath}`));
         if (validationResult.warnings.length > 0) {
+          // eslint-disable-next-line no-console
           console.log(chalk.yellow('\nWarnings:'));
           validationResult.warnings.forEach((warning: string) => {
+            // eslint-disable-next-line no-console
             console.log(chalk.yellow(`   ⚠ ${warning}`));
           });
         }
       } else {
+        // eslint-disable-next-line no-console
         console.log(
           chalk.red(`❌ Template validation failed: ${resolvedPath}`)
         );
         validationResult.errors.forEach((error: string) => {
+          // eslint-disable-next-line no-console
           console.log(chalk.red(`   • ${error}`));
         });
         if (validationResult.warnings.length > 0) {
+          // eslint-disable-next-line no-console
           console.log(chalk.yellow('\nWarnings:'));
           validationResult.warnings.forEach((warning: string) => {
+            // eslint-disable-next-line no-console
             console.log(chalk.yellow(`   ⚠ ${warning}`));
           });
         }
@@ -352,7 +388,9 @@ program
   .option('-d, --dir <path>', 'Template directory to watch', './templates')
   .action(async options => {
     try {
+      // eslint-disable-next-line no-console
       console.log(chalk.cyan(`👀 Watching templates in: ${options.dir}`));
+      // eslint-disable-next-line no-console
       console.log(chalk.gray('Press Ctrl+C to stop watching'));
 
       const integration = CursorIntegration.getInstance({
@@ -364,10 +402,12 @@ program
 
       // The initialize() method already does an initial sync
       // Print confirmation for user feedback
+      // eslint-disable-next-line no-console
       console.log(chalk.green('✅ Initial sync completed'));
 
       // Keep the process running
       process.on('SIGINT', () => {
+        // eslint-disable-next-line no-console
         console.log(chalk.yellow('\n👋 Stopping watch mode...'));
         integration.dispose();
         process.exit(0);

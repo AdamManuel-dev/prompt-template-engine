@@ -18,7 +18,15 @@ describe('TemplateSearchService', () => {
   let mockApi: jest.Mocked<MarketplaceAPI>;
 
   beforeEach(() => {
-    mockApi = new MarketplaceAPI() as jest.Mocked<MarketplaceAPI>;
+    mockApi = {
+      searchTemplates: jest.fn(),
+      getTemplate: jest.fn(),
+      getFeaturedTemplates: jest.fn(),
+      getTrendingTemplates: jest.fn(),
+      getTemplatesByCategory: jest.fn(),
+      getRecommendations: jest.fn(),
+    } as unknown as jest.Mocked<MarketplaceAPI>;
+    
     service = new TemplateSearchService(mockApi);
     jest.clearAllMocks();
   });

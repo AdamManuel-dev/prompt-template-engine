@@ -100,10 +100,14 @@ export class SecurePluginManager {
 
   private hooks = new Map<
     string,
-    Array<{ plugin: IPlugin; handler: Function; priority: number }>
+    Array<{
+      plugin: IPlugin;
+      handler: (...args: any[]) => any;
+      priority: number;
+    }>
   >();
 
-  private helpers = new Map<string, Function>();
+  private helpers = new Map<string, (...args: any[]) => any>();
 
   private pluginsDir: string;
 
@@ -288,10 +292,11 @@ export class SecurePluginManager {
           const sandboxResult = await this.sandbox.executePlugin(
             plugin,
             'executeHook',
-            [name, result, ...args.slice(1)]
+            [name, result, ...args.slice(1)] as any
           );
           if (sandboxResult.success) {
-            result = sandboxResult.result;
+            const { result: newResult } = sandboxResult;
+            result = newResult;
           } else {
             logger.error(
               `Hook ${name} failed in plugin ${plugin.name}: ${sandboxResult.error}`
@@ -316,8 +321,8 @@ export class SecurePluginManager {
    * Get aggregated helpers from all plugins (excluding disabled plugins)
    * @returns Record of helper name to function mappings from all active plugins
    */
-  getHelpers(): Record<string, Function> {
-    const allHelpers: Record<string, Function> = {};
+  getHelpers(): Record<string, (...args: any[]) => any> {
+    const allHelpers: Record<string, (...args: any[]) => any> = {};
 
     // Collect helpers from all plugins (last loaded wins for conflicts)
     for (const [pluginName, plugin] of Array.from(this.plugins.entries())) {
@@ -354,7 +359,7 @@ export class SecurePluginManager {
     }
 
     this.disabledPlugins.delete(name);
-    return await this.activatePlugin(name);
+    return this.activatePlugin(name);
   }
 
   /**
@@ -368,7 +373,7 @@ export class SecurePluginManager {
     }
 
     this.disabledPlugins.add(name);
-    return await this.deactivatePlugin(name);
+    return this.deactivatePlugin(name);
   }
 
   /**
@@ -449,7 +454,11 @@ export class SecurePluginManager {
       metadata.lastExecuted = new Date();
 
       // Execute in sandbox
-      const result = await this.sandbox.executePlugin(plugin, method, args);
+      const result = await this.sandbox.executePlugin(
+        plugin,
+        method,
+        args as any
+      );
 
       if (!result.success && result.error) {
         metadata.errors.push(`${new Date().toISOString()}: ${result.error}`);
@@ -671,6 +680,7 @@ export class SecurePluginManager {
           return module.exports.default || module.exports;
         `;
 
+        // eslint-disable-next-line no-new-func
         const pluginFactory = new Function(moduleCode);
         plugin = pluginFactory();
       } catch (_evalError) {
@@ -762,7 +772,11 @@ export class SecurePluginManager {
    * @param handler - Hook handler function
    * @private
    */
-  private registerHook(name: string, plugin: IPlugin, handler: Function): void {
+  private registerHook(
+    name: string,
+    plugin: IPlugin,
+    handler: (...args: any[]) => any
+  ): void {
     if (!this.hooks.has(name)) {
       this.hooks.set(name, []);
     }
@@ -822,19 +836,19 @@ export class SecurePluginManager {
         },
       },
       fs: {
-        readFile: async (path: string) => {
+        readFile: async (filePath: string) => {
           // Secure file reading within plugin directory
-          const safePath = this.validatePluginPath(path);
-          return await fs.readFile(safePath, 'utf8');
+          const safePath = this.validatePluginPath(filePath);
+          return fs.readFile(safePath, 'utf8');
         },
-        writeFile: async (path: string, content: string) => {
+        writeFile: async (filePath: string, content: string) => {
           // Secure file writing within plugin directory
-          const safePath = this.validatePluginPath(path);
+          const safePath = this.validatePluginPath(filePath);
           await fs.writeFile(safePath, content);
         },
-        exists: async (path: string) => {
+        exists: async (filePath: string) => {
           try {
-            const safePath = this.validatePluginPath(path);
+            const safePath = this.validatePluginPath(filePath);
             await fs.access(safePath);
             return true;
           } catch {

@@ -112,8 +112,8 @@ export class PluginSandbox {
   async executePlugin(
     plugin: IPlugin,
     method: string,
-    args: unknown[] = [],
-    customConfig?: Partial<SandboxConfig>
+    customConfig?: Partial<SandboxConfig>,
+    args: unknown[] = []
   ): Promise<PluginExecutionResult> {
     const executionId = this.generateExecutionId();
     const finalConfig = { ...this.config, ...customConfig };
@@ -415,6 +415,7 @@ export class PluginSandbox {
   async execute(code: string, context: unknown): Promise<unknown> {
     try {
       // Simplified code execution for testing - in production this would use workers
+      // eslint-disable-next-line no-new-func
       const result = new Function(
         'context',
         `

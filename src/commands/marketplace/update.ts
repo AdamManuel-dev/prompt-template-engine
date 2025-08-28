@@ -244,16 +244,19 @@ export class UpdateCommand extends BaseCommand implements ICommand {
     try {
       const updates = await marketplace.checkUpdates();
 
-      if (updates.length === 0) {
+      const updatesArray = Array.isArray(updates) ? updates : [];
+      if (updatesArray.length === 0) {
         this.success('All templates are up to date!');
         return;
       }
 
       logger.info(
-        chalk.bold(`\n🔄 Found ${updates.length} template(s) with updates:\n`)
+        chalk.bold(
+          `\n🔄 Found ${updatesArray.length} template(s) with updates:\n`
+        )
       );
 
-      updates.forEach((update, index) => {
+      updatesArray.forEach((update, index) => {
         logger.info(
           `${index + 1}. ${chalk.cyan(update.templateId)}: ${chalk.yellow(update.currentVersion)} → ${chalk.yellow(update.latestVersion)}`
         );
@@ -265,7 +268,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
       }
 
       const confirmed = await this.confirm(
-        `\nUpdate all ${updates.length} template(s)?`
+        `\nUpdate all ${updatesArray.length} template(s)?`
       );
       if (!confirmed) {
         this.info('Update cancelled');
@@ -278,7 +281,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
 
       // Process updates sequentially to maintain order and show progress
       // eslint-disable-next-line no-restricted-syntax
-      for (const update of updates) {
+      for (const update of updatesArray) {
         try {
           this.info(`Updating ${update.templateId}...`);
           // eslint-disable-next-line no-await-in-loop
@@ -318,15 +321,18 @@ export class UpdateCommand extends BaseCommand implements ICommand {
 
     try {
       const updates = await marketplace.checkUpdates();
+      const updatesArray2 = Array.isArray(updates) ? updates : [];
 
-      if (updates.length === 0) {
+      if (updatesArray2.length === 0) {
         this.success('All templates are up to date!');
         return;
       }
 
-      logger.info(chalk.bold(`\n🔄 Available Updates (${updates.length}):\n`));
+      logger.info(
+        chalk.bold(`\n🔄 Available Updates (${updatesArray2.length}):\n`)
+      );
 
-      updates.forEach((update, index) => {
+      updatesArray2.forEach((update, index) => {
         logger.info(`${index + 1}. ${chalk.cyan(update.templateId)}`);
         logger.info(`   Current: ${chalk.yellow(update.currentVersion)}`);
         logger.info(`   Latest: ${chalk.yellow(update.latestVersion)}`);

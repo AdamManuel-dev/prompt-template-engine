@@ -185,7 +185,9 @@ export class TemplateToRulesConverter {
     if (template.content) {
       const refPattern = /@([^\s]+\.(ts|tsx|js|jsx|md|json|yaml|yml))/g;
       let match;
-      while ((match = refPattern.exec(template.content)) !== null) {
+      while (true) {
+        match = refPattern.exec(template.content);
+        if (match === null) break;
         references.add(match[1]);
       }
     }

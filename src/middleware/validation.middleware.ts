@@ -85,6 +85,34 @@ export function withValidation<TInput, TOutput>(
 }
 
 /**
+ * Sanitize data by removing potentially dangerous content
+ */
+function sanitizeData<T>(data: T): T {
+  if (typeof data === 'string') {
+    // Remove script tags and other dangerous patterns
+    return data
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on[a-z]+\s*=\s*["'][^"']*["']/gi, '') // Remove event handlers with quotes
+      .replace(/on[a-z]+\s*=\s*[^\s>]*/gi, '') as T; // Remove event handlers without quotes
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => sanitizeData(item)) as T;
+  }
+
+  if (data && typeof data === 'object') {
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      sanitized[key] = sanitizeData(value);
+    }
+    return sanitized;
+  }
+
+  return data;
+}
+
+/**
  * Create a middleware chain with validation
  */
 export function createValidationMiddleware<T>(
@@ -112,34 +140,6 @@ export function createValidationMiddleware<T>(
 
     return data;
   };
-}
-
-/**
- * Sanitize data by removing potentially dangerous content
- */
-function sanitizeData<T>(data: T): T {
-  if (typeof data === 'string') {
-    // Remove script tags and other dangerous patterns
-    return data
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/javascript:/gi, '')
-      .replace(/on[a-z]+\s*=\s*["'][^"']*["']/gi, '') // Remove event handlers with quotes
-      .replace(/on[a-z]+\s*=\s*[^\s>]*/gi, '') as T; // Remove event handlers without quotes
-  }
-
-  if (Array.isArray(data)) {
-    return data.map(item => sanitizeData(item)) as T;
-  }
-
-  if (data && typeof data === 'object') {
-    const sanitized: any = {};
-    for (const [key, value] of Object.entries(data)) {
-      sanitized[key] = sanitizeData(value);
-    }
-    return sanitized;
-  }
-
-  return data;
 }
 
 /**

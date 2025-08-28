@@ -8,6 +8,8 @@
  * Patterns: Error boundary pattern, structured error responses
  */
 
+/* eslint-disable max-classes-per-file */
+
 /**
  * Error severity levels
  */
@@ -57,10 +59,10 @@ export abstract class BaseError extends Error {
   constructor(
     message: string,
     code: string,
-    severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-    category: ErrorCategory = ErrorCategory.INTERNAL,
     context?: Record<string, any>,
-    originalError?: Error
+    originalError?: Error,
+    severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+    category: ErrorCategory = ErrorCategory.INTERNAL
   ) {
     super(message);
 
@@ -136,9 +138,10 @@ export class ValidationError extends BaseError {
     super(
       message,
       'VALIDATION_ERROR',
+      { field, value, constraints },
+      undefined,
       ErrorSeverity.LOW,
-      ErrorCategory.VALIDATION,
-      { field, value, constraints }
+      ErrorCategory.VALIDATION
     );
 
     this.field = field;
@@ -164,10 +167,10 @@ export class FileSystemError extends BaseError {
     super(
       message,
       'FILE_SYSTEM_ERROR',
-      ErrorSeverity.MEDIUM,
-      ErrorCategory.FILE_SYSTEM,
       { path, operation },
-      originalError
+      originalError,
+      ErrorSeverity.MEDIUM,
+      ErrorCategory.FILE_SYSTEM
     );
 
     this.path = path;
@@ -206,9 +209,10 @@ export class TemplateError extends BaseError {
     super(
       message,
       'TEMPLATE_ERROR',
+      { templateName, templatePath, ...context },
+      undefined,
       ErrorSeverity.MEDIUM,
-      ErrorCategory.TEMPLATE,
-      { templateName, templatePath, ...context }
+      ErrorCategory.TEMPLATE
     );
 
     this.templateName = templateName;
@@ -254,10 +258,10 @@ export class PluginError extends BaseError {
     super(
       message,
       'PLUGIN_ERROR',
-      ErrorSeverity.MEDIUM,
-      ErrorCategory.PLUGIN,
       { pluginName, pluginVersion },
-      originalError
+      originalError,
+      ErrorSeverity.MEDIUM,
+      ErrorCategory.PLUGIN
     );
 
     this.pluginName = pluginName;
@@ -304,10 +308,10 @@ export class NetworkError extends BaseError {
     super(
       message,
       'NETWORK_ERROR',
-      ErrorSeverity.MEDIUM,
-      ErrorCategory.NETWORK,
       { url, statusCode, method },
-      originalError
+      originalError,
+      ErrorSeverity.MEDIUM,
+      ErrorCategory.NETWORK
     );
 
     this.url = url;
@@ -343,32 +347,37 @@ export class TimeoutError extends NetworkError {
 export class SecurityError extends BaseError {
   constructor(
     message: string,
-    code: string = 'SECURITY_ERROR',
-    context?: Record<string, any>
+    context?: Record<string, any>,
+    code: string = 'SECURITY_ERROR'
   ) {
     super(
       message,
       code,
+      context,
+      undefined,
       ErrorSeverity.CRITICAL,
-      ErrorCategory.AUTHENTICATION,
-      context
+      ErrorCategory.AUTHENTICATION
     );
   }
 }
 
 export class AuthenticationError extends SecurityError {
   constructor(message: string = 'Authentication failed') {
-    super(message, 'AUTHENTICATION_ERROR');
+    super(message, undefined, 'AUTHENTICATION_ERROR');
   }
 }
 
 export class AuthorizationError extends SecurityError {
   constructor(resource: string, action: string, user?: string) {
-    super(`Unauthorized: Cannot ${action} ${resource}`, 'AUTHORIZATION_ERROR', {
-      resource,
-      action,
-      user,
-    });
+    super(
+      `Unauthorized: Cannot ${action} ${resource}`,
+      {
+        resource,
+        action,
+        user,
+      },
+      'AUTHORIZATION_ERROR'
+    );
     (this as any).category = ErrorCategory.AUTHORIZATION;
   }
 }
@@ -385,9 +394,10 @@ export class ConfigurationError extends BaseError {
     super(
       message,
       'CONFIGURATION_ERROR',
+      { configKey, configFile },
+      undefined,
       ErrorSeverity.HIGH,
-      ErrorCategory.CONFIGURATION,
-      { configKey, configFile }
+      ErrorCategory.CONFIGURATION
     );
 
     this.configKey = configKey;
@@ -426,10 +436,10 @@ export class MarketplaceError extends BaseError {
     super(
       message,
       'MARKETPLACE_ERROR',
-      ErrorSeverity.MEDIUM,
-      ErrorCategory.MARKETPLACE,
       { templateId, authorId },
-      originalError
+      originalError,
+      ErrorSeverity.MEDIUM,
+      ErrorCategory.MARKETPLACE
     );
 
     this.templateId = templateId;
@@ -456,16 +466,16 @@ export class PublishError extends MarketplaceError {
  */
 export class InternalError extends BaseError {
   constructor(
-    message: string = 'An internal error occurred',
-    originalError?: Error
+    originalError?: Error,
+    message: string = 'An internal error occurred'
   ) {
     super(
       message,
       'INTERNAL_ERROR',
-      ErrorSeverity.CRITICAL,
-      ErrorCategory.INTERNAL,
       undefined,
-      originalError
+      originalError,
+      ErrorSeverity.CRITICAL,
+      ErrorCategory.INTERNAL
     );
 
     (this as any).isOperational = false; // Unexpected error
@@ -474,7 +484,10 @@ export class InternalError extends BaseError {
 
 export class NotImplementedError extends InternalError {
   constructor(feature: string) {
-    super(`Feature not implemented: ${feature}`);
+    super(
+      new Error(`Feature not implemented: ${feature}`),
+      `Feature not implemented: ${feature}`
+    );
     (this as any).code = 'NOT_IMPLEMENTED';
     (this as any).severity = ErrorSeverity.LOW;
   }
@@ -509,7 +522,7 @@ export class ErrorBoundary {
       }
     } else {
       // Wrap non-custom errors
-      const internalError = new InternalError(error.message, error);
+      const internalError = new InternalError(error, error.message);
       this.defaultHandler(internalError);
     }
   }
@@ -541,7 +554,7 @@ export class ErrorBoundary {
         ? errorTransform(error as Error)
         : error instanceof BaseError
           ? error
-          : new InternalError((error as Error).message, error as Error);
+          : new InternalError(error as Error, (error as Error).message);
 
       this.handle(customError);
       throw customError;
@@ -562,7 +575,7 @@ export class ErrorBoundary {
         ? errorTransform(error as Error)
         : error instanceof BaseError
           ? error
-          : new InternalError((error as Error).message, error as Error);
+          : new InternalError(error as Error, (error as Error).message);
 
       this.handle(customError);
       throw customError;

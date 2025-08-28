@@ -88,17 +88,18 @@ class FileTemplateRepository implements ITemplateRepository {
   }
 
   async create(template: TemplateModel): Promise<TemplateModel> {
-    if (!template.id) {
-      template.id = createHash('sha256')
-        .update(`${template.name}-${Date.now()}`)
+    const templateWithId = { ...template };
+    if (!templateWithId.id) {
+      templateWithId.id = createHash('sha256')
+        .update(`${templateWithId.name}-${Date.now()}`)
         .digest('hex')
         .substring(0, 16);
     }
 
-    this.templates.set(template.id, template);
+    this.templates.set(templateWithId.id, templateWithId);
     await this.saveTemplates();
     this.buildSearchIndex();
-    return template;
+    return templateWithId;
   }
 
   async findById(id: string): Promise<TemplateModel | null> {
@@ -294,8 +295,8 @@ class FileTemplateRepository implements ITemplateRepository {
     });
   }
 
-  private getNestedValue(obj: any, path: string): any {
-    return path.split('.').reduce((curr, key) => curr?.[key], obj);
+  private getNestedValue(obj: any, propertyPath: string): any {
+    return propertyPath.split('.').reduce((curr, key) => curr?.[key], obj);
   }
 
   private matchesFilter(

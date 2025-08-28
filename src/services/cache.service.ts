@@ -31,7 +31,7 @@ export interface CacheStats {
   maxSize: number;
 }
 
-export class CacheService<T extends {} = any> {
+export class CacheService<T extends object = Record<string, unknown>> {
   private cache: LRUCache<string, T>;
 
   private stats: Omit<CacheStats, 'hitRate' | 'size' | 'maxSize'>;

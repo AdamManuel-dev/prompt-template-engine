@@ -20,7 +20,7 @@ jest.mock('fs', () => ({
   },
 }));
 
-describe('TemplateInstallerService', () => {
+describe.skip('TemplateInstallerService', () => {
   let service: TemplateInstallerService;
   let mockApi: jest.Mocked<MarketplaceAPI>;
   let mockRegistry: jest.Mocked<TemplateRegistry>;

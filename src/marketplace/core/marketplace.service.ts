@@ -109,10 +109,14 @@ interface IMarketplaceService {
     }>
   >;
   // Update methods
-  checkUpdates(): Promise<
-    Array<{ templateId: string; currentVersion: string; latestVersion: string }>
+  checkUpdates(installedPath?: string): Promise<
+    | UpdateCheckResult
+    | Array<{
+        templateId: string;
+        currentVersion: string;
+        latestVersion: string;
+      }>
   >;
-  checkUpdates(installedPath: string): Promise<UpdateCheckResult>;
   updateTemplate(
     id: string,
     installedPath: string,
@@ -1372,37 +1376,6 @@ export class MarketplaceService
    * @returns Promise resolving to array of installation results with success/failure status
    * @throws Error if critical installation failures occur and continueOnError is false
    */
-  async batchInstall(
-    templateQueries: string[],
-    options?: {
-      continueOnError?: boolean;
-      maxConcurrency?: number;
-    }
-  ): Promise<
-    Array<{
-      templateQuery: string;
-      success: boolean;
-      template?: TemplateModel;
-      installation?: TemplateInstallation;
-      error?: Error;
-    }>
-  >;
-
-  async batchInstall(
-    ids: string[],
-    targetPath: string,
-    options?: {
-      maxConcurrency?: number;
-      continueOnError?: boolean;
-    }
-  ): Promise<
-    Array<{
-      id: string;
-      success: boolean;
-      result?: InstallationResult;
-      error?: Error;
-    }>
-  >;
 
   async batchInstall(
     idsOrQueries: string[],
@@ -1527,11 +1500,6 @@ export class MarketplaceService
    * @returns Promise resolving to update check results or array of available updates
    * @throws Error if update check operation fails
    */
-  async checkUpdates(): Promise<
-    Array<{ templateId: string; currentVersion: string; latestVersion: string }>
-  >;
-
-  async checkUpdates(installedPath: string): Promise<UpdateCheckResult>;
 
   async checkUpdates(installedPath?: string): Promise<
     | UpdateCheckResult
@@ -1724,7 +1692,15 @@ export class MarketplaceService
       // Check for updates first
       const updateCheck = await this.checkUpdates(installedPath);
 
-      if (!updateCheck.hasUpdates) {
+      // Handle both return types from checkUpdates
+      const updates = Array.isArray(updateCheck)
+        ? updateCheck
+        : updateCheck.updates;
+      const hasUpdates = Array.isArray(updateCheck)
+        ? updateCheck.length > 0
+        : updateCheck.hasUpdates;
+
+      if (!hasUpdates) {
         const result: UpdateResult = {
           success: true,
           updated: [],
@@ -1739,7 +1715,7 @@ export class MarketplaceService
       const failed = [];
 
       // Update each template
-      for (const update of updateCheck.updates) {
+      for (const update of updates) {
         try {
           // eslint-disable-next-line no-await-in-loop
           await this.updateTemplate(
@@ -2019,7 +1995,8 @@ export class MarketplaceService
         // Fallback to template's reviews in model
         const template = await this.getTemplate(id);
         if (typeof template.rating === 'object' && template.rating.reviews) {
-          reviews = template.rating.reviews;
+          const { reviews: templateReviews } = template.rating;
+          reviews = templateReviews;
         }
       }
 

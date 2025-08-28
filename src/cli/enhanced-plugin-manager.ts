@@ -95,7 +95,8 @@ export interface ExtensionPoint<T = unknown> {
 
 // Forward declaration for self-referencing type
 export class EnhancedPluginManager extends EventEmitter {
-  private static instance: EnhancedPluginManager | undefined;
+  // eslint-disable-next-line no-use-before-define
+  private static instance: EnhancedPluginManager;
 
   private pluginLoader: PluginLoader;
 

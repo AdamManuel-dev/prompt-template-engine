@@ -28,6 +28,7 @@ export interface CursorIntegrationConfig {
 
 // Forward declaration for self-referencing type
 export class CursorIntegration {
+  // eslint-disable-next-line no-use-before-define
   private static instance: CursorIntegration | null = null;
 
   private converter: TemplateToRulesConverter;

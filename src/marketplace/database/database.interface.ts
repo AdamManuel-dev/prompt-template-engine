@@ -13,7 +13,20 @@ import {
   TemplateModel,
   TemplateReview,
   TemplateManifest,
+  TemplateSearchQuery,
 } from '../models/template.model';
+
+// Re-export commonly used types for convenience
+export {
+  TemplateModel,
+  TemplateSearchQuery,
+  TemplateReview,
+  MarketplaceAuthor,
+};
+
+// Type aliases for backwards compatibility
+export type AuthorModel = MarketplaceAuthor;
+export type ReviewModel = TemplateReview;
 
 /**
  * Database query filters
