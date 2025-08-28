@@ -109,10 +109,12 @@ export class ListCommand extends BaseCommand implements ICommand {
         try {
           const updates = await marketplace.checkUpdates();
           updateInfo = new Map(
-            (Array.isArray(updates) ? updates : []).map((u: any) => [
-              u.templateId,
-              u.latestVersion,
-            ])
+            (Array.isArray(updates) ? updates : []).map(
+              (u: { templateId: string; latestVersion: string }) => [
+                u.templateId,
+                u.latestVersion,
+              ]
+            )
           );
         } catch (error) {
           this.warn(

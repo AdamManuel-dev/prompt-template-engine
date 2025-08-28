@@ -9,16 +9,13 @@
  */
 
 import { z } from 'zod';
-import { ValidationError } from '../errors';
 import {
   EnhancedValidator,
   SecurityValidationResult,
   customValidators,
-  SecureStringSchema,
 } from '../validation/schemas';
 import { logger } from '../utils/logger';
 import { cryptoService } from '../security/cryptographic.service';
-import { securityService } from '../middleware/security.middleware';
 
 /**
  * Database configuration with security settings
@@ -155,7 +152,7 @@ export const DatabaseQuerySchema = z.object({
  */
 export interface QueryExecutionResult {
   success: boolean;
-  data?: any[];
+  data?: unknown[];
   rowsAffected?: number;
   insertId?: number;
   executionTime: number;
@@ -173,7 +170,7 @@ export interface AuditLogEntry {
   operation: string;
   tableName: string;
   queryHash: string;
-  parameters: any[];
+  parameters: unknown[];
   success: boolean;
   executionTime: number;
   userId?: string;
@@ -189,9 +186,12 @@ export class SecureDatabaseAdapter {
 
   private auditLog: AuditLogEntry[] = [];
 
-  private queryCache = new Map<string, { result: any; timestamp: number }>();
+  private queryCache = new Map<
+    string,
+    { result: unknown; timestamp: number }
+  >();
 
-  private connectionPool: any[] = []; // Would be actual database connections
+  private connectionPool: unknown[] = []; // Would be actual database connections
 
   private queryStats = new Map<
     string,
@@ -241,7 +241,7 @@ export class SecureDatabaseAdapter {
   /**
    * Encrypt sensitive data before storage
    */
-  private encryptSensitiveData(columnName: string, value: any): string {
+  private encryptSensitiveData(columnName: string, value: unknown): string {
     if (
       !this.config.encryptionAtRest.enabled ||
       !this.shouldEncryptColumn(columnName)
@@ -274,7 +274,10 @@ export class SecureDatabaseAdapter {
   /**
    * Decrypt sensitive data after retrieval
    */
-  private decryptSensitiveData(columnName: string, encryptedValue: any): any {
+  private decryptSensitiveData(
+    columnName: string,
+    encryptedValue: unknown
+  ): unknown {
     if (!this.config.encryptionAtRest.enabled || !encryptedValue) {
       return encryptedValue;
     }
@@ -333,13 +336,13 @@ export class SecureDatabaseAdapter {
    * Process data before storage (encrypt sensitive columns)
    */
   private processDataForStorage(
-    data: Record<string, any>
-  ): Record<string, any> {
+    data: Record<string, unknown>
+  ): Record<string, unknown> {
     if (!this.config.encryptionAtRest.enabled) {
       return data;
     }
 
-    const processedData: Record<string, any> = {};
+    const processedData: Record<string, unknown> = {};
 
     for (const [columnName, value] of Object.entries(data)) {
       processedData[columnName] = this.encryptSensitiveData(columnName, value);
@@ -352,13 +355,13 @@ export class SecureDatabaseAdapter {
    * Process data after retrieval (decrypt sensitive columns)
    */
   private processDataFromStorage(
-    data: Record<string, any>
-  ): Record<string, any> {
+    data: Record<string, unknown>
+  ): Record<string, unknown> {
     if (!this.config.encryptionAtRest.enabled) {
       return data;
     }
 
-    const processedData: Record<string, any> = {};
+    const processedData: Record<string, unknown> = {};
 
     for (const [columnName, value] of Object.entries(data)) {
       processedData[columnName] = this.decryptSensitiveData(columnName, value);
@@ -409,7 +412,15 @@ export class SecureDatabaseAdapter {
   /**
    * Get encryption statistics
    */
-  getEncryptionStats() {
+  getEncryptionStats(): {
+    encryptionEnabled: boolean;
+    encryptSensitiveColumns: boolean;
+    encryptFullDatabase: boolean;
+    sensitiveColumnPatterns: string[];
+    keyRotationDays: number;
+    currentKeyId: string | null;
+    keyAge: number | null;
+  } {
     return {
       encryptionEnabled: this.config.encryptionAtRest.enabled,
       encryptSensitiveColumns:
@@ -442,7 +453,7 @@ export class SecureDatabaseAdapter {
   async executeQuery(
     sql: string,
     options?: {
-      parameters?: any[];
+      parameters?: unknown[];
       tableName?: string;
       operation?: string;
       userId?: string;
@@ -582,7 +593,7 @@ export class SecureDatabaseAdapter {
    */
   private async validateQuery(
     sql: string,
-    parameters: any[],
+    parameters: unknown[],
     options?: { tableName?: string; operation?: string }
   ): Promise<SecurityValidationResult> {
     const threats: string[] = [];
@@ -733,7 +744,7 @@ export class SecureDatabaseAdapter {
   /**
    * Validate query parameters
    */
-  private async validateQueryParameters(parameters: any[]): Promise<{
+  private async validateQueryParameters(parameters: unknown[]): Promise<{
     valid: boolean;
     warnings: string[];
   }> {
@@ -771,7 +782,7 @@ export class SecureDatabaseAdapter {
   /**
    * Sanitize query parameters
    */
-  private async sanitizeParameters(parameters: any[]): Promise<any[]> {
+  private async sanitizeParameters(parameters: unknown[]): Promise<unknown[]> {
     return parameters.map((param, index) => {
       if (param === null || param === undefined) {
         return param;
@@ -843,10 +854,10 @@ export class SecureDatabaseAdapter {
    */
   private async buildSecureQuery(
     sql: string,
-    parameters: any[]
+    parameters: unknown[]
   ): Promise<{
     sql: string;
-    parameters: any[];
+    parameters: unknown[];
   }> {
     // For file-based database, we'll use a simple placeholder replacement
     // In a real implementation, this would use the database driver's parameterization
@@ -858,7 +869,8 @@ export class SecureDatabaseAdapter {
     // The actual execution would use proper database parameterization
     parameterizedSql = parameterizedSql.replace(/\?/g, () => {
       if (paramIndex < parameters.length) {
-        const param = parameters[paramIndex++];
+        const param = parameters[paramIndex];
+        paramIndex += 1;
         if (typeof param === 'string') {
           return `'${param}'`;
         }
@@ -880,12 +892,12 @@ export class SecureDatabaseAdapter {
    * Execute secure query (placeholder implementation)
    */
   private async executeSecureQuery(
-    sql: string,
-    parameters: any[],
-    timeout: number
+    _sql: string,
+    _parameters: unknown[],
+    _timeout: number
   ): Promise<{
     success: boolean;
-    data?: any[];
+    data?: unknown[];
     rowsAffected?: number;
     insertId?: number;
     errors?: string[];
@@ -950,7 +962,7 @@ export class SecureDatabaseAdapter {
     return sql.trim().toLowerCase().startsWith('select');
   }
 
-  private generateQueryHash(sql: string, parameters: any[]): string {
+  private generateQueryHash(sql: string, parameters: unknown[]): string {
     const crypto = require('crypto');
     const content = JSON.stringify({ sql, parameters });
     return crypto
@@ -960,7 +972,7 @@ export class SecureDatabaseAdapter {
       .substring(0, 16);
   }
 
-  private getCachedResult(queryHash: string): any {
+  private getCachedResult(queryHash: string): unknown {
     const cached = this.queryCache.get(queryHash);
     if (cached && Date.now() - cached.timestamp < 300000) {
       // 5 minute cache
@@ -969,7 +981,7 @@ export class SecureDatabaseAdapter {
     return null;
   }
 
-  private setCachedResult(queryHash: string, result: any): void {
+  private setCachedResult(queryHash: string, result: unknown): void {
     this.queryCache.set(queryHash, {
       result,
       timestamp: Date.now(),
@@ -990,7 +1002,7 @@ export class SecureDatabaseAdapter {
       totalTime: 0,
       lastExecuted: new Date(),
     };
-    stats.count++;
+    stats.count += 1;
     stats.totalTime += executionTime;
     stats.lastExecuted = new Date();
     this.queryStats.set(queryHash, stats);
@@ -1082,7 +1094,7 @@ export const secureDatabaseAdapter = new SecureDatabaseAdapter();
 export async function executeSafeQuery(
   sql: string,
   options?: {
-    parameters?: any[];
+    parameters?: unknown[];
     tableName?: string;
     operation?: string;
     userId?: string;

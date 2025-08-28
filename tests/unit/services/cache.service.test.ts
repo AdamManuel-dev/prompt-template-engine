@@ -6,10 +6,10 @@
 import { CacheService, CacheManager, templateCache, apiCache, fileCache } from '../../../src/services/cache.service';
 
 describe('CacheService', () => {
-  let cache: CacheService<string>;
+  let cache: CacheService;
 
   beforeEach(() => {
-    cache = new CacheService<string>({
+    cache = new CacheService({
       maxSize: 10,
       maxAge: 1000, // 1 second TTL for testing
     });
@@ -21,9 +21,9 @@ describe('CacheService', () => {
 
   describe('Basic Operations', () => {
     it('should set and get values', async () => {
-      await cache.set('key1', 'value1');
+      await cache.set('key1', { data: 'value1' });
       const value = await cache.get('key1');
-      expect(value).toBe('value1');
+      expect(value).toBe({ data: 'value1' });
     });
 
     it('should return undefined for non-existent keys', async () => {
@@ -32,7 +32,7 @@ describe('CacheService', () => {
     });
 
     it('should delete values', async () => {
-      await cache.set('key1', 'value1');
+      await cache.set('key1', { data: 'value1' });
       const deleted = await cache.delete('key1');
       expect(deleted).toBe(true);
       const value = await cache.get('key1');
@@ -40,14 +40,14 @@ describe('CacheService', () => {
     });
 
     it('should check if key exists', async () => {
-      await cache.set('key1', 'value1');
+      await cache.set('key1', { data: 'value1' });
       expect(await cache.has('key1')).toBe(true);
       expect(await cache.has('key2')).toBe(false);
     });
 
     it('should clear all values', async () => {
-      await cache.set('key1', 'value1');
-      await cache.set('key2', 'value2');
+      await cache.set('key1', { data: 'value1' });
+      await cache.set('key2', { data: 'value2' });
       await cache.clear();
       expect(await cache.get('key1')).toBeUndefined();
       expect(await cache.get('key2')).toBeUndefined();
@@ -57,8 +57,8 @@ describe('CacheService', () => {
 
   describe('TTL (Time To Live)', () => {
     it('should expire values after TTL', async () => {
-      await cache.set('key1', 'value1', 100); // 100ms TTL
-      expect(await cache.get('key1')).toBe('value1');
+      await cache.set('key1', { data: 'value1' }, 100); // 100ms TTL
+      expect(await cache.get('key1')).toBe({ data: 'value1' });
       
       // Wait for expiration
       await new Promise(resolve => setTimeout(resolve, 150));
@@ -66,8 +66,8 @@ describe('CacheService', () => {
     });
 
     it('should use default TTL when not specified', async () => {
-      await cache.set('key1', 'value1'); // Uses 1 second default
-      expect(await cache.get('key1')).toBe('value1');
+      await cache.set('key1', { data: 'value1' }); // Uses 1 second default
+      expect(await cache.get('key1')).toBe({ data: 'value1' });
       
       // Wait for expiration
       await new Promise(resolve => setTimeout(resolve, 1100));
@@ -84,10 +84,10 @@ describe('CacheService', () => {
       expect(cache.size).toBe(10);
 
       // Add one more - should evict key1
-      await cache.set('key11', 'value11');
+      await cache.set('key11', { data: 'value11' });
       expect(cache.size).toBe(10);
       expect(await cache.get('key1')).toBeUndefined();
-      expect(await cache.get('key11')).toBe('value11');
+      expect(await cache.get('key11')).toBe({ data: 'value11' });
     });
 
     it('should update LRU order on get', async () => {
@@ -100,8 +100,8 @@ describe('CacheService', () => {
       await cache.get('key1');
 
       // Add new item - should evict key2, not key1
-      await cache.set('key11', 'value11');
-      expect(await cache.get('key1')).toBe('value1');
+      await cache.set('key11', { data: 'value11' });
+      expect(await cache.get('key1')).toBe({ data: 'value1' });
       expect(await cache.get('key2')).toBeUndefined();
     });
   });
@@ -131,7 +131,7 @@ describe('CacheService', () => {
 
   describe('Statistics', () => {
     it('should track cache hits and misses', async () => {
-      await cache.set('key1', 'value1');
+      await cache.set('key1', { data: 'value1' });
       
       await cache.get('key1'); // Hit
       await cache.get('key2'); // Miss
@@ -144,8 +144,8 @@ describe('CacheService', () => {
     });
 
     it('should track sets, deletes, and clears', async () => {
-      await cache.set('key1', 'value1');
-      await cache.set('key2', 'value2');
+      await cache.set('key1', { data: 'value1' });
+      await cache.set('key2', { data: 'value2' });
       await cache.delete('key1');
       await cache.clear();
       
@@ -156,7 +156,7 @@ describe('CacheService', () => {
     });
 
     it('should reset statistics', async () => {
-      await cache.set('key1', 'value1');
+      await cache.set('key1', { data: 'value1' });
       await cache.get('key1');
       
       cache.resetStats();

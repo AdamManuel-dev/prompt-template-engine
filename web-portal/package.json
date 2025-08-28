@@ -1,0 +1,43 @@
+{
+  "name": "cursor-prompt-web-portal",
+  "version": "1.0.0",
+  "description": "React-based web portal for non-developer template engine access",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "typecheck": "npm run typecheck:backend && npm run typecheck:frontend",
+    "typecheck:backend": "cd backend && npm run typecheck",
+    "typecheck:frontend": "cd frontend && npm run typecheck",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm run test",
+    "test:frontend": "cd frontend && npm run test",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm start"
+  },
+  "keywords": [
+    "react",
+    "express",
+    "template-engine",
+    "web-portal",
+    "cli-integration"
+  ],
+  "author": "Adam Manuel",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ]
+}

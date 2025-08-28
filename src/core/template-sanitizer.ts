@@ -234,7 +234,7 @@ export class TemplateSanitizer {
     if (effectiveConfig.enableStrictMode) {
       // Remove any remaining HTML if not in allowed tags
       const htmlTagPattern = /<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g;
-      let match;
+      let _match;
       const disallowedTags: string[] = [];
 
       let tagMatch;
@@ -593,8 +593,7 @@ export function SanitizeTemplateContent(config?: Partial<SanitizationConfig>) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     descriptor.value = function (content: string, ...args: any[]) {
-      const sanitized = templateSanitizer.sanitize(content, config).sanitized;
-      // eslint-disable-next-line prefer-destructuring
+      const { sanitized } = templateSanitizer.sanitize(content, config);
       return originalMethod.call(this, sanitized, ...args);
     };
 

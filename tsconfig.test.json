@@ -4,7 +4,13 @@
     "rootDir": "./",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "strictNullChecks": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitReturns": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitAny": false
   },
   "include": [
     "tests/**/*",

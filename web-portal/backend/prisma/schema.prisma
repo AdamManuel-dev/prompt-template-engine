@@ -1,0 +1,242 @@
+/**
+ * @fileoverview Prisma database schema for Cursor Prompt Template Engine Web Portal
+ * @lastmodified 2025-01-08T20:00:00Z
+ * 
+ * Features: User management, template execution tracking, favorites, ratings, sessions
+ * Main Models: User, Execution, Favorite, Rating, Session, TemplateCache
+ * Constraints: Proper indexing for performance, unique constraints, cascade deletes
+ * Patterns: UUID primary keys, timestamped records, soft deletes where applicable
+ */
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and profile management
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  username        String    @unique
+  passwordHash    String?   // Nullable for OAuth-only users
+  displayName     String?
+  firstName       String?
+  lastName        String?
+  avatarUrl       String?
+  role            UserRole  @default(USER)
+  preferences     Json?     // User preferences (theme, language, etc.)
+  isActive        Boolean   @default(true)
+  lastLoginAt     DateTime?
+  emailVerified   Boolean   @default(false)
+  emailVerificationToken String?
+  passwordResetToken      String?
+  passwordResetExpires    DateTime?
+  failedLoginAttempts     Int       @default(0)
+  accountLockedUntil      DateTime?
+  twoFactorSecret         String?   // For 2FA support
+  twoFactorEnabled        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // OAuth provider information
+  oauthProviders  OAuthProvider[]
+  
+  // Relations
+  executions      Execution[]
+  favorites       Favorite[]
+  ratings         Rating[]
+  sessions        Session[]
+  
+  @@map("users")
+}
+
+// Template execution history for analytics and debugging
+model Execution {
+  id              String    @id @default(cuid())
+  userId          String
+  templateId      String
+  templateName    String
+  templatePath    String?   // Path to template file
+  parameters      Json      // Input parameters used
+  result          Json?     // Execution result
+  status          ExecutionStatus
+  duration        Int?      // Execution time in milliseconds
+  error           String?   // Error message if failed
+  metadata        Json?     // Additional execution metadata
+  createdAt       DateTime  @default(now())
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes for performance
+  @@index([userId, createdAt])
+  @@index([templateId, createdAt])
+  @@index([status])
+  @@map("executions")
+}
+
+// User favorites for quick access
+model Favorite {
+  id              String    @id @default(cuid())
+  userId          String
+  templateId      String
+  templateName    String
+  templatePath    String?
+  createdAt       DateTime  @default(now())
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Unique constraint - user can only favorite a template once
+  @@unique([userId, templateId])
+  @@map("favorites")
+}
+
+// Template ratings and reviews
+model Rating {
+  id              String    @id @default(cuid())
+  userId          String
+  templateId      String
+  templateName    String
+  rating          Int       // 1-5 star rating
+  comment         String?   // Optional review comment
+  helpful         Int       @default(0) // Number of users who found this helpful
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Unique constraint - user can only rate a template once
+  @@unique([userId, templateId])
+  @@index([templateId, rating])
+  @@map("ratings")
+}
+
+// OAuth provider information for users
+model OAuthProvider {
+  id              String    @id @default(cuid())
+  userId          String
+  provider        String    // google, github, microsoft, etc.
+  providerId      String    // OAuth provider's user ID
+  providerEmail   String?   // Email from OAuth provider
+  accessToken     String?   // Encrypted access token
+  refreshToken    String?   // Encrypted refresh token
+  tokenExpiresAt  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Unique constraint - user can only have one account per provider
+  @@unique([userId, provider])
+  @@unique([provider, providerId])
+  @@map("oauth_providers")
+}
+
+// User sessions for authentication
+model Session {
+  id              String    @id @default(cuid())
+  userId          String
+  jti             String    @unique // JWT ID for token revocation
+  tokenHash       String    @unique // Hashed JWT for security
+  refreshToken    String?   @unique
+  expiresAt       DateTime
+  refreshExpiresAt DateTime?
+  ipAddress       String?
+  userAgent       String?
+  deviceFingerprint String? // Device identification
+  isActive        Boolean   @default(true)
+  revokedAt       DateTime?
+  revokedReason   String?   // logout, security, expired, etc.
+  createdAt       DateTime  @default(now())
+  lastAccessedAt  DateTime  @default(now())
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes for performance
+  @@index([jti])
+  @@index([tokenHash])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("sessions")
+}
+
+// Template metadata cache for performance
+model TemplateCache {
+  id              String    @id @default(cuid())
+  templateId      String    @unique
+  templatePath    String
+  templateName    String
+  description     String?
+  category        String?
+  tags            String[]  // Array of tags
+  parameters      Json      // Template parameter definitions
+  metadata        Json?     // Additional template metadata
+  fileHash        String    // Hash of template file for cache invalidation
+  avgRating       Float?    // Average rating
+  totalRatings    Int       @default(0)
+  totalExecutions Int       @default(0)
+  lastExecutedAt  DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Indexes for performance
+  @@index([category])
+  @@index([avgRating])
+  @@index([totalExecutions])
+  @@index([updatedAt])
+  @@map("template_cache")
+}
+
+// Audit log for security and compliance
+model AuditLog {
+  id              String    @id @default(cuid())
+  userId          String?
+  action          String    // Action performed (login, execute_template, etc.)
+  resource        String?   // Resource affected (template_id, user_id, etc.)
+  details         Json?     // Additional details about the action
+  ipAddress       String?
+  userAgent       String?
+  success         Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  
+  // Indexes for performance
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Execution status enum
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+// User role enum for RBAC
+enum UserRole {
+  SUPER_ADMIN   // Full system access, user management
+  ADMIN         // Organization management, user roles
+  DEVELOPER     // Full template access, creation, modification
+  DESIGNER      // Template creation, Figma integration
+  CONTRIBUTOR   // Template creation, limited access
+  USER          // Basic usage, favorites, execution
+  VIEWER        // Read-only access
+}

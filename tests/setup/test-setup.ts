@@ -139,9 +139,9 @@ jest.mock('../../src/integrations/promptwizard', () => {
 });
 
 // Ensure integrations that open sockets/intervals are disabled in tests
-process.env.CURSOR_PROMPT_CURSOR_INTEGRATION = 'false';
-process.env.CURSOR_PROMPT_PLUGINS_ENABLED = 'false';
-process.env.CURSOR_PROMPT_CURSOR_AUTOSYNC = 'false';
+process.env['CURSOR_PROMPT_CURSOR_INTEGRATION'] = 'false';
+process.env['CURSOR_PROMPT_PLUGINS_ENABLED'] = 'false';
+process.env['CURSOR_PROMPT_CURSOR_AUTOSYNC'] = 'false';
 
 // Mock Cursor integration modules to avoid network/socket handles in tests
 jest.mock('../../src/integrations/cursor-ide', () => ({
@@ -151,7 +151,7 @@ jest.mock('../../src/integrations/cursor-ide', () => ({
       sync: jest.fn().mockResolvedValue(undefined),
       inject: jest.fn(),
       updateTemplate: jest.fn(),
-      getTemplates: jest.fn(() => []),
+      getTemplates: jest.fn((): any[] => []),
       isConnected: jest.fn(() => false),
       getConnectionStatus: jest.fn(() => ({ connected: false, endpoint: '' })),
       disconnect: jest.fn(),
@@ -177,10 +177,10 @@ jest.useFakeTimers({
 });
 
 // Disable real network calls in tests
-process.env.NODE_ENV = 'test';
-process.env.DISABLE_NETWORK = 'true';
-process.env.PROMPTWIZARD_SERVICE_URL = 'http://localhost:8080/test';
-process.env.PROMPTWIZARD_ENABLED = 'false';
+process.env['NODE_ENV'] = 'test';
+process.env['DISABLE_NETWORK'] = 'true';
+process.env['PROMPTWIZARD_SERVICE_URL'] = 'http://localhost:8080/test';
+process.env['PROMPTWIZARD_ENABLED'] = 'false';
 
 // Test environment configuration
 export class TestEnvironment {
@@ -208,21 +208,21 @@ export class TestEnvironment {
   ): void {
     // Setup file system mock
     if (options.mockFileSystem !== false) {
-      this.mocks.fileSystem = MockFactory.createFileSystemMock({
+      this.mocks['fileSystem'] = MockFactory.createFileSystemMock({
         files: options.fileSystemFiles,
       });
     }
 
     // Setup git service mock
     if (options.mockGit) {
-      this.mocks.gitService = MockFactory.createGitServiceMock(
+      this.mocks['gitService'] = MockFactory.createGitServiceMock(
         options.gitState
       );
     }
 
     // Setup logger mock
     if (options.mockLogger !== false) {
-      this.mocks.logger = MockFactory.createLoggerMock();
+      this.mocks['logger'] = MockFactory.createLoggerMock();
     }
 
     // Mock console methods for cleaner test output
@@ -251,7 +251,7 @@ export class TestEnvironment {
    */
   private mockConsole(): void {
     // Store original console methods
-    this.mocks.originalConsole = {
+    this.mocks['originalConsole'] = {
       log: console.log,
       warn: console.warn,
       error: console.error,
@@ -259,7 +259,7 @@ export class TestEnvironment {
     };
 
     // Mock console methods only if not in verbose mode
-    if (process.env.NODE_ENV !== 'verbose') {
+    if (process.env['NODE_ENV'] !== 'verbose') {
       console.log = jest.fn();
       console.warn = jest.fn();
       console.error = jest.fn();
@@ -271,11 +271,11 @@ export class TestEnvironment {
    * Restore original console methods
    */
   private restoreConsole(): void {
-    if (this.mocks.originalConsole) {
-      console.log = this.mocks.originalConsole.log;
-      console.warn = this.mocks.originalConsole.warn;
-      console.error = this.mocks.originalConsole.error;
-      console.info = this.mocks.originalConsole.info;
+    if (this.mocks['originalConsole']) {
+      console.log = this.mocks['originalConsole'].log;
+      console.warn = this.mocks['originalConsole'].warn;
+      console.error = this.mocks['originalConsole'].error;
+      console.info = this.mocks['originalConsole'].info;
     }
   }
 }

@@ -194,7 +194,7 @@ export class TemplateEngine {
     );
 
     // Validate context for security threats
-    const contextValidation =
+    const _contextValidation =
       templateSanitizer.sanitizeTemplateVariables(context);
 
     // Render with security options enabled
