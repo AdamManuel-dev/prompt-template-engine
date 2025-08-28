@@ -71,7 +71,7 @@ describe.skip('PluginSandbox', () => {
 
   describe('Plugin Execution', () => {
     it('should execute plugin successfully', async () => {
-      const result = await sandbox.executePlugin(mockPlugin, 'execute', ['test-input']);
+      const result = await sandbox.executePlugin(mockPlugin, 'execute', ['test-input'] as any);
 
       expect(result.success).toBe(true);
       expect(result.result).toBe('Plugin executed successfully');
@@ -94,7 +94,7 @@ describe.skip('PluginSandbox', () => {
         return mockWorker;
       });
 
-      const result = await sandbox.executePlugin(mockPlugin, 'execute', [], timeoutConfig);
+      const result = await sandbox.executePlugin(mockPlugin, 'execute', [] as any, timeoutConfig);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Plugin execution timed out');
@@ -185,7 +185,7 @@ describe.skip('PluginSandbox', () => {
         return mockWorker;
       });
 
-      await sandbox.executePlugin(mockPlugin, 'execute', [], customConfig);
+      await sandbox.executePlugin(mockPlugin, 'execute', [] as any, customConfig);
     });
   });
 
