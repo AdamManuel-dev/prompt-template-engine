@@ -51,6 +51,9 @@ export class IncludeProcessor {
 
     for (const match of matches) {
       const [fullMatch, includePath] = match;
+      if (!includePath) {
+        continue;
+      }
       const absolutePath = this.resolveIncludePath(includePath);
 
       // Check for circular dependencies
@@ -87,7 +90,7 @@ export class IncludeProcessor {
 
         // Remove from tracking after successful processing at this depth level
         this.includedFiles.delete(absolutePath);
-      } catch (error) {
+      } catch (error: any) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         logger.error(`Failed to include file ${includePath}: ${errorMessage}`);

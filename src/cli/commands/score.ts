@@ -107,7 +107,7 @@ export class ScoreCommand extends BaseCommand {
       const config = createDefaultConfig();
       this.client = new PromptWizardClient(config);
       this.templateService = new TemplateService();
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -122,7 +122,7 @@ export class ScoreCommand extends BaseCommand {
     try {
       const isHealthy = await this.client.healthCheck();
       return isHealthy;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Health check failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -220,7 +220,7 @@ export class ScoreCommand extends BaseCommand {
       if (options.output) {
         await this.saveScoreReport(score, finalPromptText, sourceName, options);
       }
-    } catch (error) {
+    } catch (error: any) {
       spinner.fail(
         `Scoring failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -243,7 +243,7 @@ export class ScoreCommand extends BaseCommand {
             templateInfo.path
           );
           templates.push(template);
-        } catch (error) {
+        } catch (error: any) {
           logger.warn(
             `Failed to load template ${templateInfo.name}: ${error instanceof Error ? error.message : String(error)}`
           );
@@ -280,7 +280,7 @@ export class ScoreCommand extends BaseCommand {
             score,
             passed: score.overall >= threshold,
           });
-        } catch (error) {
+        } catch (error: any) {
           results.push({
             template: template.name,
             error: error instanceof Error ? error.message : String(error),
@@ -298,7 +298,7 @@ export class ScoreCommand extends BaseCommand {
       if (options.output) {
         await this.saveBatchReport(results, options);
       }
-    } catch (error) {
+    } catch (error: any) {
       spinner.fail(
         `Batch scoring failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -609,7 +609,7 @@ export class ScoreCommand extends BaseCommand {
 
       fs.writeFileSync(options.output!, JSON.stringify(report, null, 2));
       this.success(`Score report saved to: ${options.output}`);
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to save score report: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -662,7 +662,7 @@ export class ScoreCommand extends BaseCommand {
 
       fs.writeFileSync(options.output!, JSON.stringify(report, null, 2));
       this.success(`Batch score report saved to: ${options.output}`);
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to save batch report: ${error instanceof Error ? error.message : String(error)}`
       );

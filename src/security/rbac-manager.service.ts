@@ -10,7 +10,6 @@
 
 import * as crypto from 'crypto';
 import { logger } from '../utils/logger';
-import { securityService } from '../middleware/security.middleware';
 
 export interface Permission {
   id: string;
@@ -532,7 +531,7 @@ export class RBACManagerService {
         conditionsChecked,
         startTime
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Permission evaluation failed', error as Error);
       return this.createEvaluationResult(
         false,
@@ -556,6 +555,9 @@ export class RBACManagerService {
     resourceId?: string
   ): Promise<boolean> {
     const [resource, action] = permission.split(':');
+    if (!resource || !action) {
+      return false;
+    }
     const result = await this.checkPermission(userId, resource, action, {
       userId,
       resource,
@@ -692,7 +694,7 @@ export class RBACManagerService {
           });
           return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Condition evaluation failed', error as Error);
       return false;
     }
@@ -793,14 +795,15 @@ export class RBACManagerService {
    * Statistics and Monitoring
    */
   getStats(): RBACStats {
-    const totalUsers = this.userRoles.size;
-    const activeUsers = Array.from(this.userRoles.values()).filter(userRoles =>
-      userRoles.some(ur => ur.isActive)
+    // Count active users from roles
+    const activeUserCount = Array.from(this.userRoles.values()).filter(
+      userRoles => userRoles.some(ur => ur.isActive)
     ).length;
 
     return {
       totalRoles: this.roles.size,
       totalPermissions: this.permissions.size,
+      activeUsers: activeUserCount,
       totalUserRoles: Array.from(this.userRoles.values()).reduce(
         (sum, userRoles) => sum + userRoles.length,
         0
@@ -809,7 +812,6 @@ export class RBACManagerService {
         .length,
       customRoles: Array.from(this.roles.values()).filter(r => !r.isSystemRole)
         .length,
-      activeUsers,
       permissionEvaluations: this.evaluationStats.totalEvaluations,
       averageEvaluationTime:
         this.evaluationStats.totalEvaluations > 0

@@ -191,8 +191,6 @@ export class SecureDatabaseAdapter {
     { result: unknown; timestamp: number }
   >();
 
-  private connectionPool: unknown[] = []; // Would be actual database connections
-
   private queryStats = new Map<
     string,
     { count: number; totalTime: number; lastExecuted: Date }
@@ -232,142 +230,10 @@ export class SecureDatabaseAdapter {
           `Using existing database encryption key: ${this.encryptionKeyId}`
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize database encryption', error as Error);
       throw new Error('Database encryption initialization failed');
     }
-  }
-
-  /**
-   * Encrypt sensitive data before storage
-   */
-  private encryptSensitiveData(columnName: string, value: unknown): string {
-    if (
-      !this.config.encryptionAtRest.enabled ||
-      !this.shouldEncryptColumn(columnName)
-    ) {
-      return value;
-    }
-
-    try {
-      if (value === null || value === undefined) {
-        return value;
-      }
-
-      const stringValue =
-        typeof value === 'string' ? value : JSON.stringify(value);
-      const encryptedPayload = cryptoService.encryptAES256GCM(
-        stringValue,
-        Buffer.from(`db-column-${columnName}`)
-      );
-
-      return JSON.stringify({
-        encrypted: true,
-        ...encryptedPayload,
-      });
-    } catch (error) {
-      logger.error(`Failed to encrypt column ${columnName}`, error as Error);
-      throw new Error(`Column encryption failed: ${columnName}`);
-    }
-  }
-
-  /**
-   * Decrypt sensitive data after retrieval
-   */
-  private decryptSensitiveData(
-    columnName: string,
-    encryptedValue: unknown
-  ): unknown {
-    if (!this.config.encryptionAtRest.enabled || !encryptedValue) {
-      return encryptedValue;
-    }
-
-    try {
-      // Check if value is encrypted
-      if (typeof encryptedValue === 'string') {
-        let parsed;
-        try {
-          parsed = JSON.parse(encryptedValue);
-        } catch {
-          // Not encrypted JSON, return as-is
-          return encryptedValue;
-        }
-
-        if (parsed && parsed.encrypted === true) {
-          const decryptedBuffer = cryptoService.decryptAES256GCM(
-            parsed,
-            Buffer.from(`db-column-${columnName}`)
-          );
-
-          const decryptedString = decryptedBuffer.toString('utf8');
-
-          // Try to parse as JSON, fallback to string
-          try {
-            return JSON.parse(decryptedString);
-          } catch {
-            return decryptedString;
-          }
-        }
-      }
-
-      return encryptedValue;
-    } catch (error) {
-      logger.error(`Failed to decrypt column ${columnName}`, error as Error);
-      // Return original value if decryption fails
-      return encryptedValue;
-    }
-  }
-
-  /**
-   * Check if column should be encrypted based on patterns
-   */
-  private shouldEncryptColumn(columnName: string): boolean {
-    if (!this.config.encryptionAtRest.encryptSensitiveColumns) {
-      return false;
-    }
-
-    const lowerColumnName = columnName.toLowerCase();
-    return this.config.encryptionAtRest.sensitiveColumnPatterns.some(pattern =>
-      lowerColumnName.includes(pattern.toLowerCase())
-    );
-  }
-
-  /**
-   * Process data before storage (encrypt sensitive columns)
-   */
-  private processDataForStorage(
-    data: Record<string, unknown>
-  ): Record<string, unknown> {
-    if (!this.config.encryptionAtRest.enabled) {
-      return data;
-    }
-
-    const processedData: Record<string, unknown> = {};
-
-    for (const [columnName, value] of Object.entries(data)) {
-      processedData[columnName] = this.encryptSensitiveData(columnName, value);
-    }
-
-    return processedData;
-  }
-
-  /**
-   * Process data after retrieval (decrypt sensitive columns)
-   */
-  private processDataFromStorage(
-    data: Record<string, unknown>
-  ): Record<string, unknown> {
-    if (!this.config.encryptionAtRest.enabled) {
-      return data;
-    }
-
-    const processedData: Record<string, unknown> = {};
-
-    for (const [columnName, value] of Object.entries(data)) {
-      processedData[columnName] = this.decryptSensitiveData(columnName, value);
-    }
-
-    return processedData;
   }
 
   /**
@@ -403,7 +269,7 @@ export class SecureDatabaseAdapter {
       );
 
       return { success: true, rotatedColumns };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Database encryption key rotation failed', error as Error);
       return { success: false, rotatedColumns: [] };
     }
@@ -482,7 +348,7 @@ export class SecureDatabaseAdapter {
         parameters,
         options
       );
-      if (!queryValidation.valid) {
+      if (!queryValidation.isValid) {
         result.errors = queryValidation.errors;
         result.warnings = queryValidation.warnings;
 
@@ -514,7 +380,7 @@ export class SecureDatabaseAdapter {
         const cachedResult = this.getCachedResult(queryHash);
         if (cachedResult) {
           result.success = true;
-          result.data = cachedResult.result;
+          result.data = (cachedResult as any).result;
           result.executionTime = Date.now() - startTime;
 
           this.updateQueryStats(queryHash, result.executionTime);
@@ -560,7 +426,7 @@ export class SecureDatabaseAdapter {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       result.errors.push(`Query execution error: ${(error as Error).message}`);
       result.executionTime = Date.now() - startTime;
 
@@ -598,7 +464,7 @@ export class SecureDatabaseAdapter {
   ): Promise<SecurityValidationResult> {
     const threats: string[] = [];
     const warnings: string[] = [];
-    let threatLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+    let threatLevel: 'safe' | 'warning' | 'danger' = 'safe';
 
     // 1. Basic schema validation
     const queryData = {
@@ -612,16 +478,16 @@ export class SecureDatabaseAdapter {
       DatabaseQuerySchema,
       queryData
     );
-    if (!schemaValidation.valid) {
+    if (!schemaValidation.isValid) {
       threats.push(...schemaValidation.errors);
-      threatLevel = 'high';
+      threatLevel = 'danger';
     }
 
     // 2. SQL injection detection
     const sqlInjectionCheck = this.detectSqlInjection(sql);
     if (sqlInjectionCheck.detected) {
       threats.push(...sqlInjectionCheck.patterns);
-      threatLevel = 'critical';
+      threatLevel = 'danger';
     }
 
     // 3. Blocked keywords check
@@ -630,14 +496,14 @@ export class SecureDatabaseAdapter {
       threats.push(
         `Blocked keywords detected: ${blockedKeywordCheck.found.join(', ')}`
       );
-      threatLevel = threatLevel === 'low' ? 'medium' : threatLevel;
+      threatLevel = threatLevel === 'safe' ? 'warning' : threatLevel;
     }
 
     // 4. Operation authorization check
     const operation = this.detectOperation(sql);
     if (!this.config.allowedOperations.includes(operation.toLowerCase())) {
       threats.push(`Operation not allowed: ${operation}`);
-      threatLevel = 'high';
+      threatLevel = 'danger';
     }
 
     // 5. Parameter validation
@@ -655,14 +521,16 @@ export class SecureDatabaseAdapter {
     const tableName = this.extractTableName(sql);
     if (tableName && !this.isValidTableName(tableName)) {
       threats.push(`Invalid table name: ${tableName}`);
-      threatLevel = 'high';
+      threatLevel = 'danger';
     }
 
     return {
-      valid: threats.length === 0,
+      isValid: threats.length === 0,
       errors: threats,
       warnings,
       threatLevel,
+      securityLevel: threatLevel,
+      threats,
     };
   }
 
@@ -946,7 +814,7 @@ export class SecureDatabaseAdapter {
 
     for (const pattern of patterns) {
       const match = normalizedSql.match(pattern);
-      if (match) {
+      if (match && match[1]) {
         return match[1];
       }
     }
@@ -992,7 +860,9 @@ export class SecureDatabaseAdapter {
       const oldest = Array.from(this.queryCache.entries()).sort(
         ([, a], [, b]) => a.timestamp - b.timestamp
       )[0];
-      this.queryCache.delete(oldest[0]);
+      if (oldest) {
+        this.queryCache.delete(oldest[0]);
+      }
     }
   }
 

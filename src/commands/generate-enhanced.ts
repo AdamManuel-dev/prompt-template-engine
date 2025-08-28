@@ -154,7 +154,7 @@ function parseTemplateMetadata(content: string): TemplateMetadata {
 
   try {
     // Simple YAML parsing
-    const lines = frontmatterMatch[1].split('\n');
+    const lines = frontmatterMatch[1]?.split('\n') ?? [];
     let currentSection: string | null = null;
     const currentIndent = 0;
 
@@ -167,12 +167,13 @@ function parseTemplateMetadata(content: string): TemplateMetadata {
       // Parse key-value pairs
       if (trimmed.includes(':')) {
         const [key, ...valueParts] = trimmed.split(':');
+        if (!key) return;
         const value = valueParts.join(':').trim();
 
         if (indent === 0) {
           // Top-level key
-          currentSection = key.trim();
-          if (value && value !== '') {
+          currentSection = key?.trim() ?? null;
+          if (value && value !== '' && currentSection) {
             const section = currentSection as keyof TemplateMetadata;
             if (section === 'name' || section === 'description') {
               metadata[section] = value;
@@ -181,7 +182,7 @@ function parseTemplateMetadata(content: string): TemplateMetadata {
         } else if (currentSection === 'context' && indent > currentIndent) {
           // Context section
           if (!metadata.context) metadata.context = {};
-          const contextKey = key.trim();
+          const contextKey = key?.trim();
 
           if (contextKey === 'git') {
             metadata.context.git = value === 'true';
@@ -197,7 +198,7 @@ function parseTemplateMetadata(content: string): TemplateMetadata {
         }
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.debug(`Failed to parse template metadata: ${error}`);
   }
 
@@ -274,7 +275,7 @@ async function gatherTemplateContext(
         aggregatedContext.project.filesByExtension.size > 0
           ? Array.from(
               aggregatedContext.project.filesByExtension.entries()
-            ).sort((a, b) => b[1] - a[1])[0][0]
+            ).sort((a, b) => b[1] - a[1])[0]?.[0]
           : 'unknown',
     };
   }
@@ -409,7 +410,7 @@ export async function generateEnhancedCommand(
       try {
         await clipboardy.write(output);
         logger.success('📋 Output copied to clipboard');
-      } catch (error) {
+      } catch (error: any) {
         logger.warn(`⚠️  Failed to copy to clipboard: ${error}`);
         logger.info('Output:');
         logger.info(output);
@@ -425,7 +426,7 @@ export async function generateEnhancedCommand(
     }
 
     logger.success('✨ Template generated successfully with context!');
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof TemplateEngineError) {
       logger.error(`❌ Generation failed: ${error.message}`);
       throw error;

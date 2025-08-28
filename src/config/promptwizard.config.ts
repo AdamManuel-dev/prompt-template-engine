@@ -473,7 +473,7 @@ export function getPromptWizardConfig(): PromptWizardConfig {
     }
 
     return config;
-  } catch (error) {
+  } catch (error: any) {
     logger.error(
       `Failed to load PromptWizard configuration, using defaults: ${(error as Error).message}`
     );
@@ -624,7 +624,7 @@ export async function checkPromptWizardAvailability(): Promise<{
       issues.push('PromptWizard service is not responding');
       recommendations.push('Ensure PromptWizard Python service is running');
     }
-  } catch (error) {
+  } catch (error: any) {
     issues.push(`Cannot connect to PromptWizard service: ${error}`);
     recommendations.push('Check service URL and network connectivity');
   }

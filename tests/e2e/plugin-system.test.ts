@@ -483,7 +483,7 @@ module.exports = {
   version: '1.0.0',
   
   config: {
-    apiKey: process.env.PLUGIN_API_KEY || 'default-key',
+    apiKey: process.env['PLUGIN_API_KEY'] || 'default-key',
     endpoint: 'https://api.example.com',
     retries: 3,
     features: {
@@ -507,7 +507,7 @@ module.exports = {
       );
 
       // Set environment variable
-      process.env.PLUGIN_API_KEY = 'test-key-123';
+      process.env['PLUGIN_API_KEY'] = 'test-key-123';
 
       await pluginManager.loadPlugins();
 
@@ -519,7 +519,7 @@ module.exports = {
       expect((result.variables.pluginConfig as any).features.cache).toBe(true);
 
       // Clean up env
-      delete process.env.PLUGIN_API_KEY;
+      delete process.env['PLUGIN_API_KEY'];
     });
 
     it('should merge user configuration with defaults', async () => {

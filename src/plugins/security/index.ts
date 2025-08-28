@@ -196,21 +196,21 @@ export class SecurityManager extends EventEmitter {
   private config: SecurityConfiguration;
 
   // Security components
-  private sandbox: EnhancedPluginSandbox;
+  private sandbox!: EnhancedPluginSandbox;
 
-  private resourceMonitor: ResourceMonitor;
+  private resourceMonitor!: ResourceMonitor;
 
-  private signatureVerifier: SignatureVerifier;
+  private signatureVerifier!: SignatureVerifier;
 
-  private codeAnalyzer: CodeAnalyzer;
+  private codeAnalyzer!: CodeAnalyzer;
 
-  private behaviorMonitor: BehaviorMonitor;
+  private behaviorMonitor!: BehaviorMonitor;
 
-  private permissionManager: PermissionManager;
+  private permissionManager!: PermissionManager;
 
-  private emergencyController: EmergencyController;
+  private emergencyController!: EmergencyController;
 
-  private securityTestSuite: SecurityTestSuite;
+  private securityTestSuite!: SecurityTestSuite;
 
   // State management
   private pluginContexts = new Map<string, PluginSecurityContext>();
@@ -419,7 +419,10 @@ export class SecurityManager extends EventEmitter {
           executionId,
           pluginName: plugin.name,
           description: `Plugin execution started: ${method}`,
-          metadata: { method, args },
+          metadata: {
+            method,
+            parameters: args,
+          },
         });
       }
 
@@ -821,7 +824,7 @@ export class SecurityManager extends EventEmitter {
     if (scores.length === 0) return 0;
 
     const weightedSum = scores.reduce(
-      (sum, score, index) => sum + score * weights[index],
+      (sum, score, index) => sum + score * (weights[index] ?? 1),
       0
     );
     const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
@@ -1041,9 +1044,9 @@ export {
 
 // Export types
 export type {
-  SecurityConfiguration,
-  SecurityAssessment,
-  SecurityEventData,
+  // SecurityConfiguration,
+  // SecurityAssessment,
+  // SecurityEventData,
   EnhancedSandboxConfig,
   EnhancedExecutionResult,
   ResourceLimits,

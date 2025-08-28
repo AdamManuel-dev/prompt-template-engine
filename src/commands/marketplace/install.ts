@@ -25,9 +25,9 @@ export class InstallCommand extends BaseCommand implements ICommand {
 
   description = 'Install template from marketplace';
 
-  aliases = ['i', 'add'];
+  override aliases = ['i', 'add'];
 
-  options = [
+  override options = [
     {
       flags: '-v, --version <version>',
       description: 'Specific version to install',
@@ -54,7 +54,7 @@ export class InstallCommand extends BaseCommand implements ICommand {
     },
   ];
 
-  async action(args: unknown, options: unknown): Promise<void> {
+  override async action(args: unknown, options: unknown): Promise<void> {
     await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
@@ -107,6 +107,10 @@ export class InstallCommand extends BaseCommand implements ICommand {
         }
 
         [template] = searchResult.templates;
+        if (!template) {
+          this.error(`Template "${templateName}" not found in search results`);
+          return;
+        }
         templateId = template.id;
 
         if (searchResult.templates.length > 1) {
@@ -114,6 +118,11 @@ export class InstallCommand extends BaseCommand implements ICommand {
             `Multiple templates found, installing: ${template.displayName || template.name}`
           );
         }
+      }
+
+      if (!template) {
+        this.error('Template could not be loaded');
+        return;
       }
 
       // Show template information
@@ -187,7 +196,7 @@ export class InstallCommand extends BaseCommand implements ICommand {
           `\n📚 Examples available - check the template documentation`
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Installation failed: ${error instanceof Error ? error.message : String(error)}`
       );

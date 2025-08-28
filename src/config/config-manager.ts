@@ -429,7 +429,7 @@ export class ConfigManager implements IConfigManager {
           priority: 10,
           data,
         });
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Failed to load global config:${String(error)}`);
       }
     }
@@ -444,7 +444,7 @@ export class ConfigManager implements IConfigManager {
           priority: 20,
           data,
         });
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Failed to load project config:${String(error)}`);
       }
     }
@@ -650,13 +650,17 @@ export class ConfigManager implements IConfigManager {
 
     for (let i = 0; i < keys.length - 1; i += 1) {
       const key = keys[i];
+      if (!key) continue;
       if (!(key in current) || typeof current[key] !== 'object') {
         current[key] = {};
       }
       current = current[key] as Record<string, unknown>;
     }
 
-    current[keys[keys.length - 1]] = value;
+    const lastKey = keys[keys.length - 1];
+    if (lastKey !== undefined) {
+      current[lastKey] = value;
+    }
 
     // Rebuild cache
     this.rebuildCache();
@@ -676,10 +680,12 @@ export class ConfigManager implements IConfigManager {
     let schemaPath = this.schema;
     for (let i = 0; i < keys.length; i += 1) {
       const key = keys[i];
+      if (!key) continue;
       if (key in schemaPath) {
         currentSchema = schemaPath[key];
         if (
           i < keys.length - 1 &&
+          currentSchema &&
           currentSchema.type === 'object' &&
           currentSchema.properties
         ) {
@@ -797,7 +803,7 @@ export class ConfigManager implements IConfigManager {
       callbacks.forEach(callback => {
         try {
           callback(value);
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`Error in config watcher for ${path}:${String(error)}`);
         }
       });

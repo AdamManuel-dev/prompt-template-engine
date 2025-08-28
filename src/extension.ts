@@ -39,7 +39,7 @@ async function handleConfigurationChange(): Promise<void> {
         'Cursor Prompt configuration updated'
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Failed to update configuration');
     vscode.window.showErrorMessage(`Failed to update configuration: ${error}`);
   }

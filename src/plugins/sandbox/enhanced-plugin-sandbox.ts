@@ -13,7 +13,6 @@ import * as vm from 'vm';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as crypto from 'crypto';
-import * as os from 'os';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import { IPlugin } from '../../types';
@@ -424,7 +423,7 @@ export class EnhancedPluginSandbox {
         timeout: config.maxExecutionTimeMs,
         displayErrors: false,
         breakOnSigint: true,
-        microtaskMode: 'afterEvaluate',
+        // microtaskMode: 'afterEvaluate', // Not available in vm module
       });
 
       if (!result.success) {
@@ -519,7 +518,7 @@ export class EnhancedPluginSandbox {
           clearTimeout(timeout);
           reject(error);
         });
-      } catch (error) {
+      } catch (error: any) {
         reject(error);
       }
     });
@@ -574,7 +573,7 @@ export class EnhancedPluginSandbox {
             this.incrementCounter(executionId, 'functionCalls');
             try {
               fn();
-            } catch (error) {
+            } catch (error: any) {
               this.reportSecurityViolation(
                 executionId,
                 'code',
@@ -655,7 +654,7 @@ export class EnhancedPluginSandbox {
             const result = originalCall.apply(this, callArgs);
             recursionDepth--;
             return result;
-          } catch (error) {
+          } catch (error: any) {
             recursionDepth--;
             throw error;
           }
@@ -692,7 +691,7 @@ export class EnhancedPluginSandbox {
             }
           };
           
-        } catch (error) {
+        } catch (error: any) {
           return {
             success: false,
             error: error.message,
@@ -907,15 +906,22 @@ export class EnhancedPluginSandbox {
           }
 
           // Check for obfuscation patterns
-          if (node.type === 'Literal' && typeof node.value === 'string') {
+          if ((node as any).type === 'Literal') {
+            const literalNode = node as any;
             if (
-              /\\x[0-9a-f]{2}/i.test(node.value) ||
-              /\\u[0-9a-f]{4}/i.test(node.value)
+              'value' in literalNode &&
+              typeof literalNode.value === 'string'
             ) {
-              obfuscationDetected = true;
-              warnings.push(
-                'Hex/Unicode encoding detected - possible obfuscation'
-              );
+              const nodeValue = literalNode.value;
+              if (
+                /\\x[0-9a-f]{2}/i.test(nodeValue) ||
+                /\\u[0-9a-f]{4}/i.test(nodeValue)
+              ) {
+                obfuscationDetected = true;
+                warnings.push(
+                  'Hex/Unicode encoding detected - possible obfuscation'
+                );
+              }
             }
           }
         },
@@ -953,7 +959,7 @@ export class EnhancedPluginSandbox {
    */
   private analyzeBehavior(
     executionId: string,
-    pluginName: string
+    _pluginName: string
   ): BehaviorAnalysisResult {
     const violations = this.securityViolations.get(executionId) || [];
     const stats = this.executionStats.get(executionId);
@@ -1195,9 +1201,9 @@ export class EnhancedPluginSandbox {
    * Install security monitors in VM context
    */
   private installSecurityMonitors(
-    context: vm.Context,
-    executionId: string,
-    config: EnhancedSandboxConfig
+    _context: vm.Context,
+    _executionId: string,
+    _config: EnhancedSandboxConfig
   ): void {
     // This would install various monitoring hooks in the VM context
     // For now, we rely on the secure wrapper functions
@@ -1333,7 +1339,7 @@ export class EnhancedPluginSandbox {
    */
   private async handleSecureStorageGet(
     key: string,
-    config: EnhancedSandboxConfig
+    _config: EnhancedSandboxConfig
   ): Promise<unknown> {
     // Validate key
     if (!/^[a-zA-Z0-9_-]+$/.test(key) || key.length > 100) {
@@ -1377,7 +1383,7 @@ export class EnhancedPluginSandbox {
   private async handleSecureNetworkRequest(
     executionId: string,
     url: string,
-    options: any,
+    _options: any,
     config: EnhancedSandboxConfig
   ): Promise<any> {
     // Validate URL against allowed hosts

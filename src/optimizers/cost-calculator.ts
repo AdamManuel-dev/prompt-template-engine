@@ -359,13 +359,16 @@ export class CostCalculator {
       };
     }
 
-    const recommended = candidates[0].model;
-    const alternatives = candidates.slice(1, 4).map(c => c.model);
+    const recommended = candidates[0]?.model || '';
+    const alternatives = candidates
+      .slice(1, 4)
+      .map(c => c.model || '')
+      .filter(Boolean);
 
     const reasoning = [
-      `${recommended} offers the lowest cost at $${candidates[0].cost.toFixed(6)} per request`,
-      `Context window: ${candidates[0].contextWindow.toLocaleString()} tokens`,
-      `Features: ${candidates[0].features.join(', ')}`,
+      `${recommended} offers the lowest cost at $${candidates[0]?.cost?.toFixed(6) ?? 'unknown'} per request`,
+      `Context window: ${candidates[0]?.contextWindow?.toLocaleString() ?? 'unknown'} tokens`,
+      `Features: ${candidates[0]?.features?.join(', ') ?? 'none'}`,
     ];
 
     return {
@@ -433,12 +436,14 @@ export class CostCalculator {
 
     if (sortedByPrice.length > 1) {
       const [cheapest, second] = sortedByPrice;
-      const savings = second[1].totalCost - cheapest[1].totalCost;
-      const percentage = (savings / second[1].totalCost) * 100;
+      if (cheapest && second) {
+        const savings = second[1].totalCost - cheapest[1].totalCost;
+        const percentage = (savings / second[1].totalCost) * 100;
 
-      recommendations.push(
-        `Switch to ${cheapest[0]} to save $${savings.toFixed(6)} (${percentage.toFixed(1)}%) per request`
-      );
+        recommendations.push(
+          `Switch to ${cheapest[0]} to save $${savings.toFixed(6)} (${percentage.toFixed(1)}%) per request`
+        );
+      }
     }
 
     // Token-specific recommendations

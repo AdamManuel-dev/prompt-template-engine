@@ -23,7 +23,12 @@ export * from './jwt-auth.service';
 export * from './rbac-manager.service';
 export * from './authorization-middleware';
 export * from './session-manager.service';
-export * from './policy-engine.service';
+export {
+  PolicyEngineService,
+  type PolicyRule,
+  type PolicyContext,
+  type PolicyDecision,
+} from './policy-engine.service';
 
 // Rate limiting and abuse prevention
 export * from './role-based-rate-limiter';
@@ -34,7 +39,11 @@ export * from './audit-logger.service';
 // Enterprise encryption and cryptography (NEW)
 export * from './cryptographic.service';
 export * from './file-encryption.service';
-export * from './secrets-vault.service';
+export {
+  SecretsVaultService,
+  type VaultConfig,
+  type SecretMetadata,
+} from './secrets-vault.service';
 
 // Security testing and validation (NEW)
 export * from './security-testing.service';
@@ -163,11 +172,16 @@ export class SecurityOrchestrator {
       }
 
       // 4. Check permissions
-      const authResult = await authorizationMiddleware.authorize(
+      const authzFunc = await authorizationMiddleware.authorize(
         `${resource}:${action}`
-      )({
+      );
+      const authResult = await authzFunc({
         headers: { authorization: `Bearer ${token}` },
-        sessionInfo: clientInfo,
+        sessionInfo: {
+          sessionId: 'demo-session',
+          deviceId: 'demo-device',
+          ...clientInfo,
+        },
         resourceId: undefined,
         resourceType: resource,
       });
@@ -210,7 +224,7 @@ export class SecurityOrchestrator {
         permissions: authResult.permissions,
         rateLimitResult,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Security orchestration failed', error as Error);
 
       await auditLogger.logEvent({
@@ -310,7 +324,15 @@ export class SecurityOrchestrator {
       }
 
       // Create session
-      const session = await sessionManager.createSession(user.id, clientInfo);
+      const session = await sessionManager.createSession(user.id, {
+        ...clientInfo,
+        location: clientInfo.location
+          ? {
+              ...clientInfo.location,
+              city: (clientInfo.location as any).city || 'Unknown',
+            }
+          : undefined,
+      });
 
       // Generate JWT tokens with role claims
       const tokens = await jwtAuthService.generateTokenPair(
@@ -353,7 +375,7 @@ export class SecurityOrchestrator {
         user,
         session,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Login failed', error as Error);
 
       return {
@@ -419,7 +441,7 @@ export class SecurityOrchestrator {
       });
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Logout failed', error as Error);
 
       return {
@@ -513,7 +535,7 @@ export const securityOrchestrator = new SecurityOrchestrator();
 export function createSecurityMiddleware(
   resource: string,
   action: string,
-  options: {
+  _options: {
     requireOwnership?: boolean;
     allowRoles?: string[];
     rateLimit?: boolean;

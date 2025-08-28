@@ -187,7 +187,11 @@ export class GoogleAdapter {
       warnings,
       multimodalFeatures:
         Object.keys(multimodalFeatures).length > 0
-          ? multimodalFeatures
+          ? (multimodalFeatures as {
+              imageSupport: boolean;
+              fileSupport: boolean;
+              optimizedForVision: boolean;
+            })
           : undefined,
     };
   }
@@ -406,12 +410,14 @@ export class GoogleAdapter {
         lastRole = content.role;
       } else if (
         result.length > 0 &&
-        result[result.length - 1].role === content.role
+        result[result.length - 1]?.role === content.role
       ) {
         // Combine with previous content of same role
         const lastContent = result[result.length - 1];
-        const newText = content.parts.map(p => p.text).join(' ');
-        lastContent.parts[0].text += ` ${newText}`;
+        if (lastContent) {
+          const newText = content.parts.map(p => p.text).join(' ');
+          if (lastContent.parts[0]) lastContent.parts[0].text += ` ${newText}`;
+        }
       }
     }
 
@@ -526,7 +532,7 @@ export class GoogleAdapter {
 
       // Check alternating pattern
       for (let i = 1; i < request.contents.length; i++) {
-        if (request.contents[i].role === request.contents[i - 1].role) {
+        if (request.contents[i]?.role === request.contents[i - 1]?.role) {
           errors.push('Contents should alternate between user and model roles');
           break;
         }

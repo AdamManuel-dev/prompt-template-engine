@@ -48,7 +48,7 @@ export abstract class BaseCommand implements ICommand {
 
       // Post-execution hook
       await this.postExecute(args, options);
-    } catch (error) {
+    } catch (error: any) {
       await this.handleError(error);
       throw error;
     }

@@ -113,7 +113,7 @@ export function verifyHMAC(data: string, signature: string, secret: string): boo
  * Encrypt sensitive data (for OAuth tokens, etc.)
  */
 export function encryptData(text: string, key?: string): string {
-  const encryptionKey = key || process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
+  const encryptionKey = key || process.env['ENCRYPTION_KEY'] || 'default-key-change-in-production';
   
   if (encryptionKey.length < 32) {
     throw new Error('Encryption key must be at least 32 characters');
@@ -133,7 +133,7 @@ export function encryptData(text: string, key?: string): string {
  * Decrypt sensitive data
  */
 export function decryptData(encryptedText: string, key?: string): string {
-  const encryptionKey = key || process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
+  const encryptionKey = key || process.env['ENCRYPTION_KEY'] || 'default-key-change-in-production';
   
   const parts = encryptedText.split(':');
   if (parts.length !== 2) {

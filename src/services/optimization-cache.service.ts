@@ -240,7 +240,7 @@ export class OptimizationCacheService {
             logger.debug('Cache hit (memory) -', { cacheKey });
             return result;
           }
-        } catch (error) {
+        } catch (error: any) {
           const cacheError = new CacheError('Memory cache read failed', {
             cacheKey,
             error,
@@ -266,7 +266,7 @@ export class OptimizationCacheService {
               try {
                 this.memoryCache.set(
                   cacheKey,
-                  redisResult as OptimizedResult,
+                  redisResult as unknown as OptimizedResult,
                   this.config.defaultTTL,
                   { source: 'redis' }
                 );
@@ -279,9 +279,9 @@ export class OptimizationCacheService {
 
               this.stats.cacheHits += 1;
               logger.debug('Cache hit (Redis) -', { cacheKey });
-              return redisResult as OptimizedResult;
+              return redisResult as unknown as OptimizedResult;
             }
-          } catch (error) {
+          } catch (error: any) {
             const cacheError = new CacheError('Redis cache read failed', {
               cacheKey,
               error,
@@ -323,11 +323,11 @@ export class OptimizationCacheService {
       try {
         await this.redisCache.set(
           cacheKey,
-          result,
+          result as unknown as Record<string, unknown>,
           Math.floor(effectiveTTL / 1000)
         ); // Redis TTL in seconds
         logger.debug('Result cached in Redis -', { cacheKey });
-      } catch (error) {
+      } catch (error: any) {
         logger.warn('Redis cache write failed -', { cacheKey, error });
       }
     }
@@ -364,7 +364,7 @@ export class OptimizationCacheService {
         for (const key of keysToRemove) {
           await this.redisCache.delete(key);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.warn('Redis cache invalidation failed -', { templateId, error });
       }
     }
@@ -437,7 +437,7 @@ export class OptimizationCacheService {
       try {
         // In a real implementation, this would use Redis FLUSHDB or SCAN/DEL pattern
         logger.info('Redis cache clear operation would be performed here');
-      } catch (error) {
+      } catch (error: any) {
         logger.warn('Redis cache clear failed -', error);
       }
     }
@@ -488,7 +488,7 @@ export class OptimizationCacheService {
         ttl: this.config.defaultTTL,
       });
       logger.info('Redis cache initialized for optimization service');
-    } catch (error) {
+    } catch (error: any) {
       logger.warn(
         'Failed to initialize Redis cache - continuing with memory cache only',
         error

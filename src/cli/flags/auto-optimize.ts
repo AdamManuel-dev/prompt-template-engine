@@ -158,7 +158,7 @@ export class AutoOptimizeManager {
       // Services are initialized in their constructors
 
       logger.info('Auto-optimize manager initialized successfully');
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         'Failed to initialize auto-optimize manager',
         error as Error
@@ -201,7 +201,7 @@ export class AutoOptimizeManager {
           'Templates will be optimized automatically on save'
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to start auto-optimization', error as Error);
       throw error;
     }
@@ -234,7 +234,7 @@ export class AutoOptimizeManager {
           'Templates will no longer be optimized automatically'
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to stop auto-optimization', error as Error);
       throw error;
     }
@@ -313,7 +313,7 @@ export class AutoOptimizeManager {
       this.processingTimers.set(debounceKey, timer);
 
       logger.debug('Template file change detected', { filePath, eventType });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error handling file change', error as Error);
     }
   }
@@ -412,9 +412,9 @@ export class AutoOptimizeManager {
 
       // Check cache first
       const cacheKey = this.generateCacheKey(templateContent);
-      const cachedResult = (await this.cacheService.get(
-        cacheKey
-      )) as OptimizationResponse;
+      const cachedResult = (await this.cacheService.get(cacheKey)) as
+        | OptimizationResponse
+        | undefined;
 
       let result: OptimizationResponse;
 
@@ -463,7 +463,11 @@ export class AutoOptimizeManager {
         };
 
         // Cache result
-        await this.cacheService.set(cacheKey, result, 86400); // 24 hours
+        await this.cacheService.set(
+          cacheKey,
+          result as unknown as Record<string, unknown>,
+          86400
+        ); // 24 hours
       }
 
       // Check confidence threshold
@@ -504,7 +508,7 @@ export class AutoOptimizeManager {
           `${path.basename(job.templatePath)} optimized successfully`
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Optimization job failed', error as Error, {
         jobId: job.id,
       });
@@ -554,7 +558,7 @@ export class AutoOptimizeManager {
 
       fs.writeFileSync(optimizedPath, finalContent, 'utf-8');
       logger.info('Saved optimized template', { optimizedPath });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to save optimized template', error as Error);
     }
   }
@@ -622,7 +626,7 @@ export class AutoOptimizeManager {
         // Windows notification (requires additional setup)
         logger.info(`Notification: ${title} - ${message}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.debug('Failed to send notification', error as Error);
     }
   }

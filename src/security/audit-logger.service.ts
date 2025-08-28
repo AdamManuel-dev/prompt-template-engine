@@ -11,7 +11,6 @@
 import * as crypto from 'crypto';
 import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
-import { securityService } from '../middleware/security.middleware';
 
 export type AuditEventType =
   | 'authentication'
@@ -341,7 +340,7 @@ export class AuditLoggerService extends EventEmitter {
       });
 
       return eventId;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to log audit event', error as Error);
 
       // Log the logging failure as a system event
@@ -474,7 +473,7 @@ export class AuditLoggerService extends EventEmitter {
         total,
         hasMore,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Audit log query failed', error as Error);
       throw error;
     }
@@ -643,7 +642,7 @@ export class AuditLoggerService extends EventEmitter {
       });
 
       return report;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Compliance report generation failed', error as Error);
       throw error;
     }
@@ -669,6 +668,7 @@ export class AuditLoggerService extends EventEmitter {
 
       for (let i = 0; i < this.auditLog.length; i++) {
         const event = this.auditLog[i];
+        if (!event) continue;
 
         // Verify event hash
         const calculatedHash = await this.calculateEventHash(event);
@@ -719,7 +719,7 @@ export class AuditLoggerService extends EventEmitter {
       }
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Integrity verification failed', error as Error);
       return {
         verified: false,
@@ -754,7 +754,7 @@ export class AuditLoggerService extends EventEmitter {
         default:
           throw new Error(`Unsupported export format: ${format}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Audit log export failed', error as Error);
       throw error;
     }
@@ -770,10 +770,10 @@ export class AuditLoggerService extends EventEmitter {
     newestEvent?: Date;
   } {
     const oldestEvent =
-      this.auditLog.length > 0 ? this.auditLog[0].timestamp : undefined;
+      this.auditLog.length > 0 ? this.auditLog[0]?.timestamp : undefined;
     const newestEvent =
       this.auditLog.length > 0
-        ? this.auditLog[this.auditLog.length - 1].timestamp
+        ? this.auditLog[this.auditLog.length - 1]?.timestamp
         : undefined;
 
     return {
@@ -817,7 +817,7 @@ export class AuditLoggerService extends EventEmitter {
         },
         retentionClass: 'extended',
       });
-    } catch (error) {
+    } catch (error: any) {
       // Avoid infinite recursion
       logger.error('Failed to log system event', error as Error);
     }
@@ -947,7 +947,6 @@ export class AuditLoggerService extends EventEmitter {
 
     // Detect unusual activity patterns
     const userActivity = new Map<string, number>();
-    const timeWindow = 60 * 60 * 1000; // 1 hour
 
     for (const event of events) {
       if (event.userId) {
@@ -1095,7 +1094,7 @@ export class AuditLoggerService extends EventEmitter {
         reportId: report.reportId,
         totalEvents: report.summary.totalEvents,
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Automated report generation failed', error as Error);
     }
   }

@@ -41,7 +41,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
   };
 
   // Log request start (only in development or for important endpoints)
-  if (process.env.NODE_ENV === 'development' || req.originalUrl?.startsWith('/api/executions')) {
+  if (process.env['NODE_ENV'] === 'development' || req.originalUrl?.startsWith('/api/executions')) {
     console.log(chalk.blue(`📥 ${requestInfo.method} ${requestInfo.url} - ${requestInfo.ip}`));
   }
 
@@ -67,7 +67,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
       console.error(chalk.red(`❌ ${logData.method} ${logData.url} - ${statusCode} - ${responseTime}ms`));
     } else if (statusCode >= 400) {
       console.warn(chalk.yellow(`⚠️  ${logData.method} ${logData.url} - ${statusCode} - ${responseTime}ms`));
-    } else if (process.env.NODE_ENV === 'development' || logData.url.startsWith('/api/executions')) {
+    } else if (process.env['NODE_ENV'] === 'development' || logData.url.startsWith('/api/executions')) {
       console.log(chalk.green(`✅ ${logData.method} ${logData.url} - ${statusCode} - ${responseTime}ms`));
     }
 
@@ -77,7 +77,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
     }
 
     // Log structured data in production
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env['NODE_ENV'] === 'production') {
       console.log(JSON.stringify({
         type: 'request',
         ...logData,

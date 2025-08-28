@@ -440,7 +440,7 @@ export class ContextAnalyzer {
           a.length > b.length ? a : b
         );
         consolidated.push(best);
-      } else {
+      } else if (sentences[0]) {
         consolidated.push(sentences[0]);
       }
     });
@@ -534,9 +534,13 @@ export class ContextAnalyzer {
 
     let coherenceScore = 0;
     for (let i = 1; i < sentences.length; i++) {
-      const prev = this.extractKeywords(sentences[i - 1]);
-      const curr = this.extractKeywords(sentences[i]);
-      coherenceScore += this.calculateKeywordOverlap(prev, curr);
+      const prevSentence = sentences[i - 1];
+      const currSentence = sentences[i];
+      if (prevSentence && currSentence) {
+        const prev = this.extractKeywords(prevSentence);
+        const curr = this.extractKeywords(currSentence);
+        coherenceScore += this.calculateKeywordOverlap(prev, curr);
+      }
     }
 
     return coherenceScore / (sentences.length - 1);
@@ -558,10 +562,16 @@ export class ContextAnalyzer {
     const similar: Array<{ section1: string; section2: string }> = [];
 
     for (let i = 0; i < sections.length - 1; i++) {
+      const sectionI = sections[i];
+      if (!sectionI) continue;
+
       for (let j = i + 1; j < sections.length; j++) {
-        const similarity = this.calculateSimilarity(sections[i], sections[j]);
+        const sectionJ = sections[j];
+        if (!sectionJ) continue;
+
+        const similarity = this.calculateSimilarity(sectionI, sectionJ);
         if (similarity > 0.7) {
-          similar.push({ section1: sections[i], section2: sections[j] });
+          similar.push({ section1: sectionI, section2: sectionJ });
         }
       }
     }

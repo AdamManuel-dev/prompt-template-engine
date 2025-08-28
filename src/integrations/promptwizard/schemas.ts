@@ -170,8 +170,9 @@ export const ServiceResponseSchema = <T extends z.ZodType>(
 }> =>
   z.object({
     success: z.boolean(),
-    data: dataSchema.optional(),
+    data: dataSchema,
     error: ErrorSchema.optional(),
+    timestamp: z.string(),
     metadata: z
       .object({
         requestId: z.string(),

@@ -16,8 +16,8 @@ import { body, query, param, validationResult, ValidationChain } from 'express-v
 import { RateLimitBucket } from '../utils/crypto.utils';
 
 // Environment-based configuration
-const isDevelopment = process.env.NODE_ENV === 'development';
-const isProduction = process.env.NODE_ENV === 'production';
+const isDevelopment = process.env['NODE_ENV'] === 'development';
+const isProduction = process.env['NODE_ENV'] === 'production';
 
 /**
  * Setup comprehensive security middleware stack
@@ -62,8 +62,8 @@ export function setupSecurity(app: Express): void {
       ];
 
       // Allow additional origins from environment
-      if (process.env.CORS_ORIGINS) {
-        allowedOrigins.push(...process.env.CORS_ORIGINS.split(','));
+      if (process.env['CORS_ORIGINS']) {
+        allowedOrigins.push(...process.env['CORS_ORIGINS'].split(','));
       }
 
       // Allow no origin for development (Postman, etc.)
@@ -93,7 +93,7 @@ export function setupSecurity(app: Express): void {
   }));
 
   // Trust proxy headers (for accurate IP detection behind reverse proxy)
-  if (process.env.TRUST_PROXY === 'true') {
+  if (process.env['TRUST_PROXY'] === 'true') {
     app.set('trust proxy', true);
   }
 }

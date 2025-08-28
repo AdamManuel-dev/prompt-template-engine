@@ -479,7 +479,7 @@ export class EmergencyController extends EventEmitter {
         this.activeExecutions.entries()
       ).filter(([_, context]) => context.pluginId === pluginId);
 
-      for (const [executionId, context] of activeForPlugin) {
+      for (const [_executionId, context] of activeForPlugin) {
         await this.terminateExecution(context);
       }
 

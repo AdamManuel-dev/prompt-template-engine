@@ -92,7 +92,8 @@ export class JobProcessorService extends EventEmitter {
     // Insert job in priority order (higher priority first)
     let inserted = false;
     for (let i = 0; i < this.jobQueue.length; i++) {
-      if (this.jobQueue[i].priority < priority) {
+      const currentJob = this.jobQueue[i];
+      if (currentJob && currentJob.priority < priority) {
         this.jobQueue.splice(i, 0, job);
         inserted = true;
         break;
@@ -200,16 +201,18 @@ export class JobProcessorService extends EventEmitter {
     // Try to remove from queue first
     const queueIndex = this.jobQueue.findIndex(job => job.id === jobId);
     if (queueIndex !== -1) {
-      const job = this.jobQueue.splice(queueIndex, 1)[0];
-      job.status = 'failed';
-      job.error = 'Job cancelled';
-      job.completedTime = new Date();
+      const [job] = this.jobQueue.splice(queueIndex, 1);
+      if (job) {
+        job.status = 'failed';
+        job.error = 'Job cancelled';
+        job.completedTime = new Date();
 
-      this.updateStats();
-      this.emit('job-cancelled', job);
+        this.updateStats();
+        this.emit('job-cancelled', job);
 
-      logger.info('Job cancelled from queue', { jobId });
-      return true;
+        logger.info('Job cancelled from queue', { jobId });
+        return true;
+      }
     }
 
     // Try to cancel active job
@@ -351,7 +354,7 @@ export class JobProcessorService extends EventEmitter {
       });
 
       this.emit('job-completed', job);
-    } catch (error) {
+    } catch (error: any) {
       // Job failed
       const errorMessage = (error as Error).message;
 

@@ -82,7 +82,7 @@ export class CursorExtensionBridge
       await this.registerAllCommands();
       this.initialized = true;
       this.emit('initialized');
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to initialize Cursor extension bridge:${String(error)}`
       );
@@ -140,7 +140,7 @@ export class CursorExtensionBridge
       }
 
       logger.info(`Loaded ${this.commands.size} extension commands`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to load extension manifest:${String(error)}`);
     }
   }
@@ -308,7 +308,7 @@ export class CursorExtensionBridge
     return async (...args: unknown[]) => {
       try {
         await this.executeCommand(commandId, args);
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Command ${commandId} failed:${String(error)}`);
         throw error;
       }

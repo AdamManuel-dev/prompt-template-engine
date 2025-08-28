@@ -192,7 +192,9 @@ export class TemplateToRulesConverter {
       const refPattern = /@([^\s]+\.(ts|tsx|js|jsx|md|json|yaml|yml))/g;
       let match = refPattern.exec(template.content);
       while (match !== null) {
-        references.add(match[1]);
+        if (match[1]) {
+          references.add(match[1]);
+        }
         match = refPattern.exec(template.content);
       }
     }
@@ -264,7 +266,7 @@ export class TemplateToRulesConverter {
 
       await fs.writeFile(legacyPath, newContent, 'utf-8');
       logger.info('Updated .cursorrules (legacy)');
-    } catch (error) {
+    } catch (error: any) {
       logger.warn(`Failed to write legacy .cursorrules: ${error}`);
     }
   }
@@ -297,7 +299,7 @@ export class TemplateToRulesConverter {
       }
 
       logger.info(`Converted ${rules.length} templates to rules`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to convert directory: ${error}`);
       throw error;
     }

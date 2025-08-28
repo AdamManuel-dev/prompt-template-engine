@@ -708,7 +708,7 @@ function createCompareCommand(): Command {
         } else {
           displayComparison(comparison);
         }
-      } catch (error) {
+      } catch (error: any) {
         spinner.fail(
           `Comparison failed: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -775,7 +775,7 @@ function createScoreCommand(): Command {
             console.log(chalk.gray(`  ${i + 1}. ${suggestion}`));
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         spinner.fail(
           `Scoring failed: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -982,7 +982,7 @@ function createBatchCommand(): Command {
         if (options.report) {
           await generateOptimizationReport(batchResult, directory);
         }
-      } catch (error) {
+      } catch (error: any) {
         spinner.fail(
           `Batch optimization failed: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -1093,7 +1093,7 @@ export function createOptimizeCommand(): Command {
         }
 
         spinner.succeed('Optimization completed successfully');
-      } catch (error) {
+      } catch (error: any) {
         spinner.fail(
           `Optimization failed: ${error instanceof Error ? error.message : String(error)}`
         );

@@ -211,7 +211,7 @@ export class FeedbackLoop extends EventEmitter {
     const categoryGroups = templateFeedback.reduce(
       (groups, fb) => {
         if (!groups[fb.category]) groups[fb.category] = [];
-        groups[fb.category].push(fb.rating);
+        groups[fb.category]?.push(fb.rating);
         return groups;
       },
       {} as Record<string, number[]>
@@ -404,7 +404,7 @@ export class FeedbackLoop extends EventEmitter {
           `Re-optimization failed for template ${templateId}: ${result.error}`
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Re-optimization process failed for template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -505,6 +505,8 @@ export class FeedbackLoop extends EventEmitter {
     if (!history || history.length === 0) return true;
 
     const lastReoptimization = history[history.length - 1];
+    if (!lastReoptimization) return true;
+
     const timeSinceLast = Date.now() - lastReoptimization.getTime();
 
     return timeSinceLast >= this.config.reoptimizationCooldown;
@@ -549,7 +551,7 @@ export class FeedbackLoop extends EventEmitter {
             }
           );
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error(
           `Scheduled review failed for template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -581,7 +583,7 @@ export class FeedbackLoop extends EventEmitter {
           this.performanceMetrics.set(templateId, metrics);
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.warn(
         `Failed to initialize from cache: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -596,8 +598,11 @@ export class FeedbackLoop extends EventEmitter {
       const cacheKey = `feedback:${feedback.templateId}`;
       const existing = (await this.cacheService.get(cacheKey)) || [];
       const updated = [...(existing as UserFeedback[]), feedback];
-      await this.cacheService.set(cacheKey, updated);
-    } catch (error) {
+      await this.cacheService.set(
+        cacheKey,
+        updated as unknown as Record<string, unknown>
+      );
+    } catch (error: any) {
       logger.warn(
         `Failed to cache feedback: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -614,8 +619,11 @@ export class FeedbackLoop extends EventEmitter {
       const cacheKey = `metrics:${metric.templateId}`;
       const existing = (await this.cacheService.get(cacheKey)) || [];
       const updated = [...(existing as PerformanceMetric[]), metric];
-      await this.cacheService.set(cacheKey, updated);
-    } catch (error) {
+      await this.cacheService.set(
+        cacheKey,
+        updated as unknown as Record<string, unknown>
+      );
+    } catch (error: any) {
       logger.warn(
         `Failed to cache performance metric: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -630,13 +638,13 @@ export class FeedbackLoop extends EventEmitter {
       // Try to get from cache first
       const cached = await this.cacheService.get(`template:${templateId}`);
       if (cached) {
-        return cached as Template;
+        return cached as unknown as Template;
       }
 
       // If template service has a get method, use it
       // Note: TemplateService interface may need extension
       return null;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to retrieve template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
       );

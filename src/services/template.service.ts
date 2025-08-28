@@ -192,7 +192,7 @@ export class TemplateService {
    * try {
    *   const template = await service.loadTemplate('./templates/feature.yaml');
    *   // Process template...
-   * } catch (error) {
+   * } catch (error: any) {
    *   if (error instanceof FileNotFoundError) {
    *     console.error('Template file not found');
    *   } else if (error instanceof ValidationError) {
@@ -424,7 +424,7 @@ export class TemplateService {
    * @example <caption>Error handling for missing variables</caption>
    * try {
    *   const rendered = await service.renderTemplate(template, variables);
-   * } catch (error) {
+   * } catch (error: any) {
    *   if (error instanceof ValidationError) {
    *     console.error('Missing required variables:', error.message);
    *   }
@@ -1027,7 +1027,7 @@ export class TemplateService {
       }
     }
 
-    return template.abTestVariants[0];
+    return template.abTestVariants[0] || null;
   }
 
   /**

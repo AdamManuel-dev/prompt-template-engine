@@ -103,7 +103,7 @@ async function findTemplate(
           }
           return matches[0];
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.debug(`Glob search failed in ${searchPath}: ${error}`);
       }
 
@@ -134,14 +134,14 @@ function extractMetadata(content: string): Record<string, unknown> {
   if (frontmatterMatch) {
     try {
       // Simple YAML-like parsing for basic metadata
-      const frontmatterLines = frontmatterMatch[1].split('\n');
+      const frontmatterLines = frontmatterMatch[1]?.split('\n') ?? [];
       frontmatterLines.forEach(line => {
         const [key, ...valueParts] = line.split(':');
         if (key && valueParts.length > 0) {
           metadata[key.trim()] = valueParts.join(':').trim();
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.debug(`Failed to parse frontmatter: ${error}`);
     }
   }
@@ -165,10 +165,10 @@ async function processTemplate(
 
   Array.from(variableMatches).forEach(match => {
     const [, name, description] = match;
-    if (!foundVariables.some(v => v.name === name)) {
+    if (name && !foundVariables.some(v => v.name === name)) {
       foundVariables.push({
         name,
-        description,
+        description: description || '',
         required: true,
         defaultValue: undefined,
       });
@@ -293,7 +293,7 @@ async function handleOutput(
     try {
       await clipboardy.write(output);
       logger.success('📋 Output copied to clipboard');
-    } catch (error) {
+    } catch (error: any) {
       logger.warn(`⚠️  Failed to copy to clipboard: ${error}`);
     }
   }
@@ -341,7 +341,7 @@ export async function generateCommand(options: GenerateOptions): Promise<void> {
     await handleOutput(output, options);
 
     logger.success('✅ Template generated successfully');
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof TemplateEngineError) {
       logger.error(`❌ Generation failed: ${error.message}`);
       throw error;

@@ -53,7 +53,9 @@ function extractVariables(content: string): string[] {
 
   let match = variablePattern.exec(content);
   while (match !== null) {
-    variables.add(match[1]);
+    if (match[1]) {
+      variables.add(match[1]);
+    }
     match = variablePattern.exec(content);
   }
 
@@ -70,7 +72,7 @@ function extractMetadata(content: string): Record<string, unknown> {
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
   if (frontmatterMatch) {
     try {
-      const frontmatterLines = frontmatterMatch[1].split('\n');
+      const frontmatterLines = frontmatterMatch[1]?.split('\n') ?? [];
       frontmatterLines.forEach(line => {
         const [key, ...valueParts] = line.split(':');
         if (key && valueParts.length > 0) {
@@ -136,7 +138,7 @@ async function analyzeTemplate(
 
   // Determine category from directory structure
   const pathParts = relativePath.split(path.sep);
-  const category = pathParts.length > 1 ? pathParts[0] : 'general';
+  const category = pathParts.length > 1 ? pathParts[0] || 'general' : 'general';
 
   // Extract variables
   const variables = extractVariables(content);
@@ -154,7 +156,7 @@ async function analyzeTemplate(
     name,
     path: filePath,
     category,
-    description,
+    description: description || 'No description available',
     variables,
     size: stats.size,
     lastModified: stats.mtime,
@@ -287,7 +289,7 @@ async function displayTableFormat(
       if (!acc[template.category]) {
         acc[template.category] = [];
       }
-      acc[template.category].push(template);
+      acc[template.category]?.push(template);
       return acc;
     },
     {} as Record<string, TemplateInfo[]>
@@ -406,7 +408,7 @@ export async function listCommand(options: ListOptions): Promise<void> {
     await displayTemplates(filteredTemplates, options);
 
     logger.success(`✅ Found ${filteredTemplates.length} template(s)`);
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof TemplateEngineError) {
       logger.error(`❌ List failed: ${error.message}`);
       throw error;

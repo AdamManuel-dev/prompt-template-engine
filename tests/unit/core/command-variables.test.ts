@@ -115,7 +115,7 @@ describe('Command Variable Substitution', () => {
     });
 
     it('should substitute environment variables with $env prefix', () => {
-      process.env.TEST_VAR = 'test-value';
+      process.env['TEST_VAR'] = 'test-value';
       const template = 'Environment: ${env.TEST_VAR}';
 
       const result = resolver.resolve(template, {});
@@ -133,7 +133,7 @@ describe('Command Variable Substitution', () => {
     });
 
     it('should handle mixed env and regular variables', () => {
-      process.env.API_URL = 'https://api.example.com';
+      process.env['API_URL'] = 'https://api.example.com';
       const template = '${app_name} API: ${env.API_URL}';
       const variables = { app_name: 'MyApp' };
 

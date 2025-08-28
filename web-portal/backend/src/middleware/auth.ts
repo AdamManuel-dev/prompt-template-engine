@@ -33,7 +33,7 @@ declare global {
  */
 export function validateApiKey(req: Request, res: Response, next: NextFunction): void {
   // Skip auth in development for now - in production this should be required
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env['NODE_ENV'] === 'development') {
     // Mock user for development
     req.user = {
       id: 'dev-user',
@@ -60,7 +60,7 @@ export function validateApiKey(req: Request, res: Response, next: NextFunction):
   }
 
   // Validate API key (in production, this would check against a database)
-  const validApiKeys = (process.env.VALID_API_KEYS || '').split(',').map(k => k.trim());
+  const validApiKeys = (process.env['VALID_API_KEYS'] || '').split(',').map(k => k.trim());
   
   if (!validApiKeys.includes(apiKey)) {
     res.status(401).json({
@@ -104,7 +104,7 @@ export function verifyToken(req: Request, res: Response, next: NextFunction): vo
 
   try {
     // In production, verify JWT token here
-    // const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    // const decoded = jwt.verify(token, process.env['JWT_SECRET']!);
     // req.user = decoded as UserInfo;
     
     // Mock implementation for now

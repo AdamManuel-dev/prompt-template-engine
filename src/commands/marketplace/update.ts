@@ -27,9 +27,9 @@ export class UpdateCommand extends BaseCommand implements ICommand {
 
   description = 'Update installed templates';
 
-  aliases = ['upgrade', 'up'];
+  override aliases = ['upgrade', 'up'];
 
-  options = [
+  override options = [
     {
       flags: '-v, --version <version>',
       description: 'Update to specific version',
@@ -66,7 +66,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
     },
   ];
 
-  async action(args: unknown, options: unknown): Promise<void> {
+  override async action(args: unknown, options: unknown): Promise<void> {
     await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
@@ -141,9 +141,11 @@ export class UpdateCommand extends BaseCommand implements ICommand {
           );
 
           if (updateOptions.minor.length > 0) {
-            targetVersion = updateOptions.minor[updateOptions.minor.length - 1];
+            targetVersion =
+              updateOptions.minor[updateOptions.minor.length - 1]!;
           } else if (updateOptions.patch.length > 0) {
-            targetVersion = updateOptions.patch[updateOptions.patch.length - 1];
+            targetVersion =
+              updateOptions.patch[updateOptions.patch.length - 1]!;
           } else {
             this.info('No safe updates available');
             return;
@@ -229,7 +231,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
         logger.info(chalk.bold('\n📝 Changelog:'));
         logger.info(versionInfo.changelog);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Update failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -290,7 +292,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
             chalk.green(`✓ ${update.templateId} updated successfully`)
           );
           successful += 1;
-        } catch (error) {
+        } catch (error: any) {
           logger.info(
             chalk.red(
               `✗ Failed to update ${update.templateId}: ${error instanceof Error ? error.message : String(error)}`
@@ -307,7 +309,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
       if (failed > 0) {
         logger.info(`   ${chalk.red('✗')} Failed: ${failed}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to check updates: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -345,7 +347,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
       logger.info(
         `💡 Update specific: ${chalk.green('cursor-prompt update <template-name>')}`
       );
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to check updates: ${error instanceof Error ? error.message : String(error)}`
       );

@@ -124,7 +124,8 @@ export class AuthService {
     roles?: string[];
   }): Promise<User> {
     const userId = crypto.randomUUID();
-    const _passwordHash = await this.hashPassword(userData.password);
+    // TODO: Store password hash for authentication
+    await this.hashPassword(userData.password);
 
     const user: User = {
       id: userId,
@@ -229,7 +230,9 @@ export class AuthService {
       const oldestSession = userSessions.sort(
         (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
       )[0];
-      await this.destroySession(oldestSession.id);
+      if (oldestSession) {
+        await this.destroySession(oldestSession.id);
+      }
     }
 
     const sessionId = crypto.randomUUID();

@@ -314,7 +314,7 @@ class FileStorage implements AnalyticsStorage {
           return event;
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize file storage', error as Error);
     }
   }
@@ -496,7 +496,7 @@ export class OptimizationTracker extends EventEmitter {
       });
 
       this.emit('initialized');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize optimization tracker', error as Error);
       throw error;
     }
@@ -843,7 +843,7 @@ export class OptimizationTracker extends EventEmitter {
         try {
           const report = await this.generateReport();
           this.emit('periodicReport', report);
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Failed to generate periodic report', error as Error);
         }
       }, this.config.reportInterval * 1000);
@@ -858,7 +858,7 @@ export class OptimizationTracker extends EventEmitter {
             logger.info('Old analytics data purged', {
               retentionDays: this.config.retentionDays,
             });
-          } catch (error) {
+          } catch (error: any) {
             logger.error('Failed to purge old data', error as Error);
           }
         },
@@ -888,7 +888,7 @@ export class OptimizationTracker extends EventEmitter {
   private async storeEvent(event: OptimizationEvent): Promise<void> {
     try {
       await this.storage.storeEvent(event);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to store analytics event', error as Error);
     }
   }

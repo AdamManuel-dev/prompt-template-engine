@@ -1,7 +1,7 @@
 /**
  * @fileoverview Figma preview component with screenshot and visual context
  * @lastmodified 2025-08-28T10:30:00Z
- * 
+ *
  * Features: Screenshot display, zoom controls, node highlighting, error handling
  * Main APIs: FigmaPreview, PreviewControls, ZoomableImage, NodeSelector
  * Constraints: Image loading performance, zoom functionality, mobile responsive
@@ -25,7 +25,7 @@ import {
   Skeleton,
   Chip,
   Zoom,
-  Fade
+  Fade,
 } from '@mui/material';
 import {
   ZoomIn,
@@ -39,9 +39,12 @@ import {
   Settings,
   Visibility,
   PhotoCamera,
-  Error as ErrorIcon
+  Error as ErrorIcon,
 } from '@mui/icons-material';
-import { FigmaPreview as FigmaPreviewType, FigmaApiError } from '@cursor-prompt/shared';
+import {
+  FigmaPreview as FigmaPreviewType,
+  FigmaApiError,
+} from '@cursor-prompt/shared';
 import { useFigmaApi } from '../../hooks/useFigmaApi';
 
 interface FigmaPreviewProps {
@@ -85,7 +88,7 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
   showFullscreenButton = true,
   maxWidth = 800,
   maxHeight = 600,
-  className
+  className,
 }) => {
   const [previewState, setPreviewState] = useState<PreviewState>({
     zoom: DEFAULT_ZOOM,
@@ -93,12 +96,14 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
     offsetY: 0,
     isDragging: false,
     dragStart: { x: 0, y: 0 },
-    isFullscreen: false
+    isFullscreen: false,
   });
 
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [settingsAnchor, setSettingsAnchor] = useState<null | HTMLElement>(null);
+  const [settingsAnchor, setSettingsAnchor] = useState<null | HTMLElement>(
+    null
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -116,13 +121,12 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
     try {
       const previewResult = await getPreview(fileId, nodeId, {
         scale: 2,
-        format: 'png'
+        format: 'png',
       });
       onPreviewLoad?.(previewResult);
     } catch (err) {
-      const errorMessage = err instanceof FigmaApiError 
-        ? err.message 
-        : 'Failed to load preview';
+      const errorMessage =
+        err instanceof FigmaApiError ? err.message : 'Failed to load preview';
       onError?.(errorMessage);
     }
   };
@@ -130,14 +134,14 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
   const handleZoomIn = useCallback(() => {
     setPreviewState(prev => ({
       ...prev,
-      zoom: Math.min(prev.zoom + ZOOM_STEP, MAX_ZOOM)
+      zoom: Math.min(prev.zoom + ZOOM_STEP, MAX_ZOOM),
     }));
   }, []);
 
   const handleZoomOut = useCallback(() => {
     setPreviewState(prev => ({
       ...prev,
-      zoom: Math.max(prev.zoom - ZOOM_STEP, MIN_ZOOM)
+      zoom: Math.max(prev.zoom - ZOOM_STEP, MIN_ZOOM),
     }));
   }, []);
 
@@ -146,81 +150,96 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
       ...prev,
       zoom: DEFAULT_ZOOM,
       offsetX: 0,
-      offsetY: 0
+      offsetY: 0,
     }));
   }, []);
 
-  const handleZoomChange = useCallback((event: Event, newValue: number | number[]) => {
-    const zoom = Array.isArray(newValue) ? newValue[0] : newValue;
-    setPreviewState(prev => ({
-      ...prev,
-      zoom: zoom / 100 // Convert percentage to decimal
-    }));
-  }, []);
+  const handleZoomChange = useCallback(
+    (event: Event, newValue: number | number[]) => {
+      const zoom = Array.isArray(newValue) ? newValue[0] : newValue;
+      setPreviewState(prev => ({
+        ...prev,
+        zoom: zoom / 100, // Convert percentage to decimal
+      }));
+    },
+    []
+  );
 
   const handleMouseDown = useCallback((event: React.MouseEvent) => {
     if (event.button !== 0) return; // Only left mouse button
-    
+
     event.preventDefault();
     setPreviewState(prev => ({
       ...prev,
       isDragging: true,
-      dragStart: { x: event.clientX - prev.offsetX, y: event.clientY - prev.offsetY }
+      dragStart: {
+        x: event.clientX - prev.offsetX,
+        y: event.clientY - prev.offsetY,
+      },
     }));
   }, []);
 
-  const handleMouseMove = useCallback((event: React.MouseEvent) => {
-    if (!previewState.isDragging) return;
-    
-    event.preventDefault();
-    setPreviewState(prev => ({
-      ...prev,
-      offsetX: event.clientX - prev.dragStart.x,
-      offsetY: event.clientY - prev.dragStart.y
-    }));
-  }, [previewState.isDragging]);
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent) => {
+      if (!previewState.isDragging) return;
+
+      event.preventDefault();
+      setPreviewState(prev => ({
+        ...prev,
+        offsetX: event.clientX - prev.dragStart.x,
+        offsetY: event.clientY - prev.dragStart.y,
+      }));
+    },
+    [previewState.isDragging]
+  );
 
   const handleMouseUp = useCallback(() => {
     setPreviewState(prev => ({
       ...prev,
-      isDragging: false
+      isDragging: false,
     }));
   }, []);
 
-  const handleWheel = useCallback((event: React.WheelEvent) => {
-    event.preventDefault();
-    
-    const delta = event.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, previewState.zoom + delta));
-    
-    setPreviewState(prev => ({
-      ...prev,
-      zoom: newZoom
-    }));
-  }, [previewState.zoom]);
+  const handleWheel = useCallback(
+    (event: React.WheelEvent) => {
+      event.preventDefault();
+
+      const delta = event.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+      const newZoom = Math.max(
+        MIN_ZOOM,
+        Math.min(MAX_ZOOM, previewState.zoom + delta)
+      );
+
+      setPreviewState(prev => ({
+        ...prev,
+        zoom: newZoom,
+      }));
+    },
+    [previewState.zoom]
+  );
 
   const handleFullscreenToggle = useCallback(() => {
     setPreviewState(prev => ({
       ...prev,
-      isFullscreen: !prev.isFullscreen
+      isFullscreen: !prev.isFullscreen,
     }));
   }, []);
 
   const handleDownload = useCallback(async () => {
     if (!preview?.imageUrl) return;
-    
+
     try {
       const response = await fetch(preview.imageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
+
       const link = document.createElement('a');
       link.href = url;
       link.download = `figma-preview-${fileId}${nodeId ? `-${nodeId}` : ''}.${preview.format}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to download preview:', error);
@@ -243,7 +262,7 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!previewState.isFullscreen) return;
-      
+
       switch (event.key) {
         case 'Escape':
           handleFullscreenToggle();
@@ -263,7 +282,13 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [previewState.isFullscreen, handleFullscreenToggle, handleZoomIn, handleZoomOut, handleZoomReset]);
+  }, [
+    previewState.isFullscreen,
+    handleFullscreenToggle,
+    handleZoomIn,
+    handleZoomOut,
+    handleZoomReset,
+  ]);
 
   const isLoading = loading || apiLoading;
   const displayError = error || apiError;
@@ -301,7 +326,12 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
             <Skeleton variant="circular" width={40} height={40} />
             <Skeleton variant="circular" width={40} height={40} />
             <Skeleton variant="circular" width={40} height={40} />
-            <Skeleton variant="rectangular" width={100} height={40} sx={{ ml: 'auto' }} />
+            <Skeleton
+              variant="rectangular"
+              width={100}
+              height={40}
+              sx={{ ml: 'auto' }}
+            />
           </Box>
         </CardContent>
       </Card>
@@ -343,7 +373,7 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
         maxHeight: previewState.isFullscreen ? '100vh' : maxHeight,
         width: '100%',
         height: previewState.isFullscreen ? '100vh' : 'auto',
-        backgroundColor: 'grey.100'
+        backgroundColor: 'grey.100',
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -367,7 +397,9 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
             maxHeight: 'none',
             userSelect: 'none',
             pointerEvents: 'none',
-            transition: previewState.isDragging ? 'none' : 'transform 0.2s ease-out'
+            transition: previewState.isDragging
+              ? 'none'
+              : 'transform 0.2s ease-out',
           }}
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageError(true)}
@@ -380,7 +412,7 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
             position: 'absolute',
             top: '50%',
             left: '50%',
-            transform: 'translate(-50%, -50%)'
+            transform: 'translate(-50%, -50%)',
           }}
         >
           <Skeleton variant="rectangular" width={400} height={300} />
@@ -394,7 +426,7 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            textAlign: 'center'
+            textAlign: 'center',
           }}
         >
           <ErrorIcon sx={{ fontSize: 48, color: 'error.main', mb: 1 }} />
@@ -410,11 +442,14 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
     <CardActions sx={{ justifyContent: 'space-between', px: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Tooltip title="Zoom out">
-          <IconButton onClick={handleZoomOut} disabled={previewState.zoom <= MIN_ZOOM}>
+          <IconButton
+            onClick={handleZoomOut}
+            disabled={previewState.zoom <= MIN_ZOOM}
+          >
             <ZoomOut />
           </IconButton>
         </Tooltip>
-        
+
         <Box sx={{ width: 100, mx: 1 }}>
           <Slider
             value={previewState.zoom * 100}
@@ -424,16 +459,19 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
             step={ZOOM_STEP * 100}
             size="small"
             valueLabelDisplay="auto"
-            valueLabelFormat={(value) => `${Math.round(value)}%`}
+            valueLabelFormat={value => `${Math.round(value)}%`}
           />
         </Box>
-        
+
         <Tooltip title="Zoom in">
-          <IconButton onClick={handleZoomIn} disabled={previewState.zoom >= MAX_ZOOM}>
+          <IconButton
+            onClick={handleZoomIn}
+            disabled={previewState.zoom >= MAX_ZOOM}
+          >
             <ZoomIn />
           </IconButton>
         </Tooltip>
-        
+
         <Tooltip title="Reset zoom">
           <IconButton onClick={handleZoomReset}>
             <ZoomOutMap />
@@ -447,19 +485,19 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
           size="small"
           variant="outlined"
         />
-        
+
         <Tooltip title="Refresh">
           <IconButton onClick={handleRefresh} size="small">
             <Refresh />
           </IconButton>
         </Tooltip>
-        
+
         <Tooltip title="Download">
           <IconButton onClick={handleDownload} size="small">
             <Download />
           </IconButton>
         </Tooltip>
-        
+
         <Tooltip title="Open in Figma">
           <IconButton onClick={handleOpenInFigma} size="small">
             <OpenInNew />
@@ -467,7 +505,9 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
         </Tooltip>
 
         {showFullscreenButton && (
-          <Tooltip title={previewState.isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+          <Tooltip
+            title={previewState.isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          >
             <IconButton onClick={handleFullscreenToggle} size="small">
               {previewState.isFullscreen ? <FullscreenExit /> : <Fullscreen />}
             </IconButton>
@@ -489,12 +529,10 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
           backgroundColor: 'background.paper',
           zIndex: 9999,
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
         }}
       >
-        <Box sx={{ flexGrow: 1 }}>
-          {previewContent}
-        </Box>
+        <Box sx={{ flexGrow: 1 }}>{previewContent}</Box>
         {controls}
       </Box>
     );
@@ -502,9 +540,7 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
 
   return (
     <Card className={className}>
-      <CardContent sx={{ p: 0 }}>
-        {previewContent}
-      </CardContent>
+      <CardContent sx={{ p: 0 }}>{previewContent}</CardContent>
       {controls}
     </Card>
   );

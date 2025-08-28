@@ -244,7 +244,7 @@ export class OptimizationWorkflowManager {
             analysis.promptFiles += 1;
             analysis.optimizationCandidates.push(...candidates);
           }
-        } catch (error) {
+        } catch (error: any) {
           logger.warn(
             `Failed to analyze file ${file}: ${error instanceof Error ? error.message : String(error)}`
           );
@@ -274,7 +274,7 @@ export class OptimizationWorkflowManager {
         `Project analysis completed: ${analysis.optimizationCandidates.length} optimization candidates found`
       );
       return analysis;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Project analysis failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -349,7 +349,7 @@ export class OptimizationWorkflowManager {
             error: result.error || 'Unknown error',
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         failedFiles.push({
           file,
@@ -611,7 +611,7 @@ export class OptimizationWorkflowManager {
     // Group files into batches
     for (let i = 0; i < candidates.length; i += options.maxFilesPerBatch) {
       const batchFiles = candidates.slice(i, i + options.maxFilesPerBatch);
-      const batchPriority = batchFiles[0].priority; // Use highest priority in batch
+      const batchPriority = batchFiles[0]?.priority ?? 'medium'; // Use highest priority in batch
 
       batches.push({
         id: batches.length + 1,
@@ -705,7 +705,7 @@ export class OptimizationWorkflowManager {
             }
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.warn(
           `Failed to scan directory ${dir}: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -786,7 +786,7 @@ export class OptimizationWorkflowManager {
       }
 
       return candidates;
-    } catch (error) {
+    } catch (error: any) {
       logger.warn(
         `Failed to analyze file ${filePath}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -849,7 +849,7 @@ export class OptimizationWorkflowManager {
             (await this.client.scorePrompt(content)).overall,
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         originalContent: '',

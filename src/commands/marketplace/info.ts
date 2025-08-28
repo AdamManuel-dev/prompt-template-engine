@@ -26,9 +26,9 @@ export class InfoCommand extends BaseCommand implements ICommand {
 
   description = 'Show detailed template information';
 
-  aliases = ['show', 'details'];
+  override aliases = ['show', 'details'];
 
-  options = [
+  override options = [
     {
       flags: '--versions',
       description: 'Show version history',
@@ -61,7 +61,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
     },
   ];
 
-  async action(args: unknown, options: unknown): Promise<void> {
+  override async action(args: unknown, options: unknown): Promise<void> {
     await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
@@ -101,7 +101,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
           return;
         }
 
-        [template] = searchResult.templates;
+        template = searchResult.templates[0]!; // Safe due to length check above
       }
 
       // Display template information
@@ -129,7 +129,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
 
       // Show installation/usage instructions
       InfoCommand.displayUsageInstructions(template, isInstalled);
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to get template info: ${error instanceof Error ? error.message : String(error)}`
       );

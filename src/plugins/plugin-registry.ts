@@ -9,6 +9,7 @@
  */
 
 import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 import { logger } from '../utils/logger';
 import { SecurePluginManager } from './secure-plugin-manager';
@@ -195,7 +196,7 @@ export class PluginRegistry {
 
   private watchForChanges: boolean;
 
-  private changeWatcher?: NodeJS.FSWatcher; // File system watcher
+  private changeWatcher?: import('fs').FSWatcher; // File system watcher
 
   constructor(
     pluginManager: SecurePluginManager,
@@ -230,7 +231,7 @@ export class PluginRegistry {
       logger.info(
         `Plugin registry initialized with ${this.registrations.size} plugins`
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize plugin registry:', error);
       throw error;
     }
@@ -300,7 +301,7 @@ export class PluginRegistry {
         `Plugin registered: ${registration.name} v${registration.version}`
       );
       return registration;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to register plugin ${pluginPath}:`, error);
       throw error;
     }
@@ -331,7 +332,7 @@ export class PluginRegistry {
       await this.saveRegistrations();
 
       logger.info(`Plugin unregistered: ${pluginName}`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to unregister plugin ${pluginName}:`, error);
       throw error;
     }
@@ -371,7 +372,7 @@ export class PluginRegistry {
       await this.saveRegistrations();
 
       logger.info(`Plugin enabled: ${pluginName}`);
-    } catch (error) {
+    } catch (error: any) {
       const registration = this.registrations.get(pluginName);
       if (registration) {
         registration.status = PluginStatus.ERROR;
@@ -414,7 +415,7 @@ export class PluginRegistry {
       await this.saveRegistrations();
 
       logger.info(`Plugin disabled: ${pluginName}`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to disable plugin ${pluginName}:`, error);
       throw error;
     }
@@ -489,8 +490,8 @@ export class PluginRegistry {
     const sortOrder = criteria.sortOrder || 'asc';
 
     results.sort((a, b) => {
-      let aValue: unknown;
-      let bValue: unknown;
+      let aValue: string | number | Date;
+      let bValue: string | number | Date;
 
       switch (sortBy) {
         case 'name':
@@ -688,7 +689,7 @@ export class PluginRegistry {
       };
 
       await fs.writeFile(registryFile, JSON.stringify(data, null, 2));
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to save plugin registry:', error);
     }
   }
@@ -721,7 +722,7 @@ export class PluginRegistry {
           continue;
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to discover plugins:', error);
     }
   }
@@ -732,9 +733,9 @@ export class PluginRegistry {
    */
   private async startWatching(): Promise<void> {
     try {
-      this.changeWatcher = fs.watch(this.registryPath, { recursive: true });
+      this.changeWatcher = fsSync.watch(this.registryPath, { recursive: true });
 
-      this.changeWatcher.on(
+      this.changeWatcher?.on(
         'change',
         async (_eventType: string, filename?: string) => {
           if (filename && filename.endsWith('plugin.json')) {
@@ -746,7 +747,7 @@ export class PluginRegistry {
           }
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to start plugin watching:', error);
     }
   }
@@ -767,7 +768,7 @@ export class PluginRegistry {
         await this.unregisterPlugin(manifest.name);
         await this.registerPlugin(pluginPath);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.debug('Failed to refresh plugin registration:', error);
     }
   }
@@ -786,7 +787,7 @@ export class PluginRegistry {
     }
 
     // Validate version format
-    if (!/^\d+\.\d+\.\d+/.test(manifest.version)) {
+    if (!/^\d+\.\d+\.\d+/.test(manifest.version as string)) {
       throw new Error(`Invalid version format: ${manifest.version}`);
     }
   }
@@ -833,7 +834,7 @@ export class PluginRegistry {
 
     return capabilities
       .map(cap => capabilityMap[cap.toLowerCase()])
-      .filter(Boolean);
+      .filter((cap): cap is PluginCapability => cap !== undefined);
   }
 
   /**
@@ -871,7 +872,7 @@ export class PluginRegistry {
         activationCount: 0,
         errorCount: 0,
       },
-      tags: manifest.keywords || [],
+      tags: (manifest as any).keywords || ([] as string[]),
       rating: 0,
     };
   }

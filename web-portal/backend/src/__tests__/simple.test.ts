@@ -19,8 +19,8 @@ describe('Basic Jest Setup', () => {
   })
 
   it('should handle environment variables', () => {
-    expect(process.env.NODE_ENV).toBe('test')
-    expect(process.env.JWT_SECRET).toBe('test-secret-key-for-testing-only')
+    expect(process.env['NODE_ENV']).toBe('test')
+    expect(process.env['JWT_SECRET']).toBe('test-secret-key-for-testing-only')
   })
 
   it('should handle mocking', () => {

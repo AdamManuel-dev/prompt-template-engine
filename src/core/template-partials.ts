@@ -161,7 +161,7 @@ export class TemplatePartials {
 
       const content = fs.readFileSync(absolutePath, 'utf-8');
       this.register(name, content);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to register partial from file: ${error}`);
     }
   }
@@ -219,7 +219,7 @@ export class TemplatePartials {
           this.register(name, content);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to load partials from directory: ${error}`);
     }
   }
@@ -559,10 +559,14 @@ export class TemplatePartials {
     let match;
     // eslint-disable-next-line no-cond-assign
     while ((match = partialPattern.exec(template)) !== null) {
-      references.add(match[1]);
+      const partialName = match[1];
+      if (!partialName) {
+        continue;
+      }
+      references.add(partialName);
 
       // Recursively extract from the partial itself
-      const partial = this.get(match[1]);
+      const partial = this.get(partialName);
       if (partial) {
         const nestedRefs = this.extractPartialReferences(partial);
         nestedRefs.forEach(ref => references.add(ref));
@@ -609,7 +613,7 @@ export class TemplatePartials {
    *   validation.missing.forEach(name => {
    *     try {
    *       partials.registerFromFile(name, `${name}.hbs`);
-   *     } catch (error) {
+   *     } catch (error: any) {
    *       console.error(`Could not load partial: ${name}`);
    *     }
    *   });

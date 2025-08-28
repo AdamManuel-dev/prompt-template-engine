@@ -84,7 +84,7 @@ export class TemplateEngine {
     // Security validation if enabled
     if (this.options.validateTemplates) {
       const validation = validateTemplate(template);
-      if (!validation.valid) {
+      if (!validation.isValid) {
         logger.error('Template validation failed:', validation.errors);
         throw new Error(
           `Template security validation failed: ${validation.errors.join(', ')}`
@@ -188,13 +188,13 @@ export class TemplateEngine {
 
     // Validate template
     const validation = validateTemplate(template);
-    securityReport.validationPassed = validation.valid;
+    securityReport.validationPassed = validation.isValid;
     securityReport.templateThreats = validation.errors.concat(
       validation.warnings
     );
 
     // Validate context for security threats
-    const _contextValidation =
+    const sanitizedContext =
       templateSanitizer.sanitizeTemplateVariables(context);
 
     // Render with security options enabled
@@ -205,7 +205,7 @@ export class TemplateEngine {
       enableSecurityMode: true,
     });
 
-    const result = await secureEngine.render(template, context);
+    const result = await secureEngine.render(template, sanitizedContext);
     securityReport.sanitizationApplied = true;
 
     return { result, securityReport };
@@ -261,13 +261,18 @@ export class TemplateEngine {
     const includes: Array<{ match: string; path: string; start: number }> = [];
     // eslint-disable-next-line no-cond-assign
     while ((match = this.includePattern.exec(template)) !== null) {
-      includes.push({ match: match[0], path: match[1], start: match.index });
+      includes.push({
+        match: match[0],
+        path: match[1]!, // Safe due to regex with capture group
+        start: match.index,
+      });
     }
 
     // Process only includes that are NOT wrapped in conditionals
     // eslint-disable-next-line no-await-in-loop
     for (let i = 0; i < includes.length; i += 1) {
       const include = includes[i];
+      if (!include) continue;
 
       // Check if this include is wrapped in a conditional
       if (this.isIncludeWrappedInConditional(include, template)) {
@@ -305,7 +310,7 @@ export class TemplateEngine {
 
         // Replace the include directive with the processed content
         result = result.replace(include.match, processedContent);
-      } catch (error) {
+      } catch (error: any) {
         const err = error as { code?: string };
         if (err.code === 'ENOENT') {
           throw new Error(`Include file not found: ${include.path}`);
@@ -353,13 +358,17 @@ export class TemplateEngine {
     const includes: Array<{ match: string; path: string }> = [];
     // eslint-disable-next-line no-cond-assign
     while ((match = this.includePattern.exec(template)) !== null) {
-      includes.push({ match: match[0], path: match[1] });
+      includes.push({
+        match: match[0],
+        path: match[1]!, // Safe due to regex with capture group
+      });
     }
 
     // Process each include
     // eslint-disable-next-line no-await-in-loop
     for (let i = 0; i < includes.length; i += 1) {
       const include = includes[i];
+      if (!include) continue;
       const absolutePath = this.resolveIncludePath(include.path);
 
       // Check for circular dependency
@@ -392,7 +401,7 @@ export class TemplateEngine {
 
         // Replace the include directive with the processed content
         result = result.replace(include.match, processedContent);
-      } catch (error) {
+      } catch (error: any) {
         const err = error as { code?: string };
         if (err.code === 'ENOENT') {
           throw new Error(`Include file not found: ${include.path}`);
@@ -444,6 +453,7 @@ export class TemplateEngine {
     // Check if the include is inside any conditional block
     for (let i = 0; i < allConditionals.length; i += 1) {
       const conditional = allConditionals[i];
+      if (!conditional) continue;
       const conditionalStart = template.indexOf(conditional.fullMatch);
       const conditionalEnd = conditionalStart + conditional.fullMatch.length;
 
@@ -485,6 +495,7 @@ export class TemplateEngine {
 
       for (let i = 0; i < eachBlocks.length; i += 1) {
         const block = eachBlocks[i];
+        if (!block) continue;
         const blockResult = this.processSingleEachBlock(block, context, depth);
         result = result.replace(block.fullMatch, blockResult.replacement);
         if (blockResult.hasChanges) {
@@ -525,6 +536,7 @@ export class TemplateEngine {
       const ifBlocks = this.findOutermostIfBlocks(result);
       for (let i = 0; i < ifBlocks.length; i += 1) {
         const block = ifBlocks[i];
+        if (!block) continue;
         // Skip conditionals inside #each blocks during the top-level pass
         if (depth === 0 && this.isInsideEachBlock(block, result)) {
           // Skip this block
@@ -546,6 +558,7 @@ export class TemplateEngine {
       const unlessBlocks = this.findOutermostUnlessBlocks(result);
       for (let i = 0; i < unlessBlocks.length; i += 1) {
         const block = unlessBlocks[i];
+        if (!block) continue;
         // Skip conditionals inside #each blocks during the top-level pass
         if (depth === 0 && this.isInsideEachBlock(block, result)) {
           // Skip this block
@@ -597,6 +610,7 @@ export class TemplateEngine {
       const ifBlocks = this.findOutermostIfBlocks(result);
       for (let i = 0; i < ifBlocks.length; i += 1) {
         const block = ifBlocks[i];
+        if (!block) continue;
         // Skip conditionals inside #each blocks during the top-level pass
         if (depth === 0 && this.isInsideEachBlock(block, result)) {
           // Skip this block
@@ -613,6 +627,7 @@ export class TemplateEngine {
       const unlessBlocks = this.findOutermostUnlessBlocks(result);
       for (let i = 0; i < unlessBlocks.length; i += 1) {
         const block = unlessBlocks[i];
+        if (!block) continue;
         // Skip conditionals inside #each blocks during the top-level pass
         if (depth === 0 && this.isInsideEachBlock(block, result)) {
           // Skip this block
@@ -654,6 +669,7 @@ export class TemplateEngine {
     // Check if our conditional block is inside any #each block
     for (let i = 0; i < eachBlocks.length; i += 1) {
       const eachBlock = eachBlocks[i];
+      if (!eachBlock) continue;
       const eachStart = template.indexOf(eachBlock.fullMatch);
       const eachEnd = eachStart + eachBlock.fullMatch.length;
 
@@ -1005,7 +1021,7 @@ export class TemplateEngine {
     let match = openPattern.exec(template);
     while (match !== null) {
       const startPos = match.index;
-      const condition = match[1];
+      const condition = match[1]!; // Safe due to regex with capture group
       let depth = 1;
       let pos = openPattern.lastIndex;
       let elsePos = -1;
@@ -1420,7 +1436,7 @@ export class TemplateEngine {
     let match = openPattern.exec(template);
     while (match !== null) {
       const startPos = match.index;
-      const arrayPath = match[1];
+      const arrayPath = match[1]!; // Safe due to regex with capture group
       let depth = 1;
       let pos = openPattern.lastIndex;
       let elsePos = -1;
@@ -1615,8 +1631,8 @@ export class TemplateEngine {
 
                 if (
                   functionCallMatches.length === 1 &&
-                  functionCallMatches[0].start === 0 &&
-                  functionCallMatches[0].end === parenArgs.length
+                  functionCallMatches[0]?.start === 0 &&
+                  functionCallMatches[0]?.end === parenArgs.length
                 ) {
                   // This is a single nested helper call, treat result as single argument
                   processedArgs = this.processEnhancedNestedHelpers(
@@ -1683,7 +1699,7 @@ export class TemplateEngine {
             const helperResult = this.helpers.execute(helperName);
             hasChanges = true;
             return String(helperResult);
-          } catch (error) {
+          } catch (error: any) {
             // If helper fails, return original match
             logger.error(`Helper error: ${error}`);
             return match;
@@ -1825,7 +1841,7 @@ export class TemplateEngine {
               const helperResult = this.helpers.execute(helperName, ...args);
               hasChanges = true;
               return String(helperResult);
-            } catch (error) {
+            } catch (error: any) {
               logger.error(`Nested helper error: ${error}`);
               return match;
             }
@@ -1844,6 +1860,7 @@ export class TemplateEngine {
       // Process matches in reverse order to handle nested calls correctly
       for (let i = functionCallMatches.length - 1; i >= 0; i -= 1) {
         const match = functionCallMatches[i];
+        if (!match) continue;
         try {
           // Recursively process nested expressions in args
           const processedArgs = match.args
@@ -1859,8 +1876,8 @@ export class TemplateEngine {
             );
             if (
               nestedMatches.length === 1 &&
-              nestedMatches[0].start === 0 &&
-              nestedMatches[0].end === (match.args || '').length
+              nestedMatches[0]?.start === 0 &&
+              nestedMatches[0]?.end === (match.args || '').length
             ) {
               // This is a single nested helper result, treat as single argument
               args = [processedArgs];
@@ -1885,7 +1902,7 @@ export class TemplateEngine {
             String(helperResult) +
             result.substring(match.end);
           hasChanges = true;
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`Function call helper error: ${error}`);
         }
       }
@@ -1919,9 +1936,14 @@ export class TemplateEngine {
 
     for (let i = 0; i < text.length; i += 1) {
       // Check if we're at the start of a helper name
-      if (/[a-zA-Z]/.test(text[i])) {
+      const char = text[i];
+      if (char && /[a-zA-Z]/.test(char)) {
         let j = i;
-        while (j < text.length && /[a-zA-Z]/.test(text[j])) j += 1;
+        while (j < text.length) {
+          const jChar = text[j];
+          if (!jChar || !/[a-zA-Z]/.test(jChar)) break;
+          j += 1;
+        }
         const helperName = text.substring(i, j);
 
         // Check if this is a valid helper name followed by an opening parenthesis
@@ -2200,7 +2222,7 @@ export class TemplateEngine {
     const helperCallPattern = /^\(([a-zA-Z]+)(?:\s+(.+))?\)$/;
     const match = condition.match(helperCallPattern);
 
-    if (match) {
+    if (match && match[1]) {
       const helperName = match[1];
       const argsString = match[2] || '';
 
@@ -2210,7 +2232,7 @@ export class TemplateEngine {
             ? this.parseHelperArgs(argsString, context)
             : [];
           return this.helpers.execute(helperName, ...args);
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`Error evaluating helper condition: ${error}`);
           return false;
         }
@@ -2233,6 +2255,9 @@ export class TemplateEngine {
     // eslint-disable-next-line no-cond-assign
     while ((match = this.includePattern.exec(template)) !== null) {
       const includePath = match[1];
+      if (!includePath) {
+        continue;
+      }
       try {
         const absolutePath = this.resolveIncludePath(includePath);
         // Check if file exists and is readable
@@ -2253,16 +2278,18 @@ export class TemplateEngine {
     // eslint-disable-next-line no-cond-assign
     while ((match = this.eachPattern.exec(template)) !== null) {
       // Add the array path variable
-      variables.add(match[1].trim());
+      if (match[1]) variables.add(match[1].trim());
 
       // Extract variables from inner template (excluding special context variables)
       const innerTemplate = match[2];
-      const innerVariables = this.extractSimpleVariables(innerTemplate);
-      innerVariables.forEach(variable => {
-        if (!['this', '@index', '@first', '@last'].includes(variable)) {
-          variables.add(variable);
-        }
-      });
+      if (innerTemplate) {
+        const innerVariables = this.extractSimpleVariables(innerTemplate);
+        innerVariables.forEach(variable => {
+          if (!['this', '@index', '@first', '@last'].includes(variable)) {
+            variables.add(variable);
+          }
+        });
+      }
     }
 
     // Extract variables from #if blocks
@@ -2270,12 +2297,14 @@ export class TemplateEngine {
     // eslint-disable-next-line no-cond-assign
     while ((match = this.ifPattern.exec(template)) !== null) {
       // Add the condition variable
-      variables.add(match[1].trim());
+      if (match[1]) variables.add(match[1].trim());
 
       // Extract variables from inner template
       const innerTemplate = match[2];
-      const innerVariables = this.extractSimpleVariables(innerTemplate);
-      innerVariables.forEach(variable => variables.add(variable));
+      if (innerTemplate) {
+        const innerVariables = this.extractSimpleVariables(innerTemplate);
+        innerVariables.forEach(variable => variables.add(variable));
+      }
     }
 
     // Extract variables from #unless blocks
@@ -2283,12 +2312,14 @@ export class TemplateEngine {
     // eslint-disable-next-line no-cond-assign
     while ((match = this.unlessPattern.exec(template)) !== null) {
       // Add the condition variable
-      variables.add(match[1].trim());
+      if (match[1]) variables.add(match[1].trim());
 
       // Extract variables from inner template
       const innerTemplate = match[2];
-      const innerVariables = this.extractSimpleVariables(innerTemplate);
-      innerVariables.forEach(variable => variables.add(variable));
+      if (innerTemplate) {
+        const innerVariables = this.extractSimpleVariables(innerTemplate);
+        innerVariables.forEach(variable => variables.add(variable));
+      }
     }
 
     // Extract regular variables
@@ -2312,7 +2343,7 @@ export class TemplateEngine {
 
     // eslint-disable-next-line no-cond-assign
     while ((match = regex.exec(template)) !== null) {
-      variables.add(match[1].trim());
+      if (match[1]) variables.add(match[1].trim());
     }
 
     return Array.from(variables);

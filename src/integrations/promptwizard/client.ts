@@ -88,7 +88,7 @@ export class PromptWizardClient implements PromptWizardService {
       }
 
       return validationResult.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Prompt optimization failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -129,7 +129,7 @@ export class PromptWizardClient implements PromptWizardService {
       }
 
       return validationResult.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Prompt scoring failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -175,7 +175,7 @@ export class PromptWizardClient implements PromptWizardService {
       }
 
       return validationResult.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Prompt comparison failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -204,7 +204,7 @@ export class PromptWizardClient implements PromptWizardService {
       }
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Example generation failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -239,7 +239,7 @@ export class PromptWizardClient implements PromptWizardService {
       }
 
       return validationResult.data;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to get job status: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -270,7 +270,7 @@ export class PromptWizardClient implements PromptWizardService {
       });
 
       return response.data.cancelled;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to cancel job: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -288,7 +288,7 @@ export class PromptWizardClient implements PromptWizardService {
         version: string;
       }>('GET', '/api/v1/health');
       return response.success && response.data?.healthy === true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Health check failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -356,7 +356,7 @@ export class PromptWizardClient implements PromptWizardService {
         await new Promise<void>(resolve => {
           setTimeout(() => resolve(), pollInterval);
         });
-      } catch (error) {
+      } catch (error: any) {
         if (attempt === maxAttempts - 1) {
           throw error;
         }
@@ -377,7 +377,7 @@ export class PromptWizardClient implements PromptWizardService {
     this.eventHandlers.forEach(handler => {
       try {
         handler(event);
-      } catch (error) {
+      } catch (error: any) {
         logger.error(
           `Error in event handler: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -422,7 +422,7 @@ export class PromptWizardClient implements PromptWizardService {
 
         const result = (await response.json()) as ServiceResponse<T>;
         return result;
-      } catch (error) {
+      } catch (error: any) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt < this.config.retries) {

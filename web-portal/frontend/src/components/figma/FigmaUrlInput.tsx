@@ -1,7 +1,7 @@
 /**
  * @fileoverview Figma URL input component with validation and preview
  * @lastmodified 2025-08-28T10:30:00Z
- * 
+ *
  * Features: URL validation, file preview, error handling, loading states
  * Main APIs: validateFigmaUrl, fetchFileInfo, onUrlChange
  * Constraints: Figma API rate limits, requires valid access token
@@ -21,7 +21,7 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
-  InputAdornment
+  InputAdornment,
 } from '@mui/material';
 import {
   CheckCircle,
@@ -29,9 +29,13 @@ import {
   Help,
   Refresh,
   OpenInNew,
-  ContentCopy
+  ContentCopy,
 } from '@mui/icons-material';
-import { FigmaUrlInfo, FigmaFileInfo, FigmaApiError } from '@cursor-prompt/shared';
+import {
+  FigmaUrlInfo,
+  FigmaFileInfo,
+  FigmaApiError,
+} from '@cursor-prompt/shared';
 import { useFigmaApi } from '../../hooks/useFigmaApi';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -52,12 +56,12 @@ const FIGMA_URL_PATTERNS = [
   /^https:\/\/www\.figma\.com\/file\/([a-zA-Z0-9]+)\/(.*)$/,
   /^https:\/\/www\.figma\.com\/design\/([a-zA-Z0-9]+)\/(.*)$/,
   /^https:\/\/figma\.com\/file\/([a-zA-Z0-9]+)\/(.*)$/,
-  /^https:\/\/figma\.com\/design\/([a-zA-Z0-9]+)\/(.*)$/
+  /^https:\/\/figma\.com\/design\/([a-zA-Z0-9]+)\/(.*)$/,
 ];
 
 const EXAMPLE_URLS = [
   'https://www.figma.com/file/abc123/Project-Name',
-  'https://www.figma.com/design/xyz789/Design-System'
+  'https://www.figma.com/design/xyz789/Design-System',
 ];
 
 export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
@@ -70,7 +74,7 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
   showHelpText = true,
   variant = 'outlined',
   fullWidth = true,
-  className
+  className,
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const [urlInfo, setUrlInfo] = useState<FigmaUrlInfo | null>(null);
@@ -89,7 +93,7 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
         nodeId: null,
         originalUrl: url,
         cleanUrl: null,
-        error: 'URL is required'
+        error: 'URL is required',
       };
     }
 
@@ -112,7 +116,7 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
         nodeId: null,
         originalUrl: url,
         cleanUrl: null,
-        error: 'Invalid Figma URL format'
+        error: 'Invalid Figma URL format',
       };
     }
 
@@ -123,7 +127,7 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
     }
 
     // Create clean URL
-    const cleanUrl = url.includes('/design/') 
+    const cleanUrl = url.includes('/design/')
       ? `https://www.figma.com/design/${fileId}/`
       : `https://www.figma.com/file/${fileId}/`;
 
@@ -133,7 +137,7 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
       nodeId,
       originalUrl: url,
       cleanUrl,
-      error: null
+      error: null,
     };
   }, []);
 
@@ -148,7 +152,7 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
           fileId: null,
           nodeId: null,
           originalUrl: debouncedUrl,
-          cleanUrl: null
+          cleanUrl: null,
         },
         null
       );
@@ -171,15 +175,16 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
     // Fetch file info from API
     if (urlValidation.fileId) {
       getFileInfo(urlValidation.fileId)
-        .then((fileInfo) => {
+        .then(fileInfo => {
           setIsValidating(false);
           onChange?.(urlValidation, fileInfo);
         })
-        .catch((err) => {
+        .catch(err => {
           setIsValidating(false);
-          const errorMessage = err instanceof FigmaApiError 
-            ? err.message 
-            : 'Failed to fetch file information';
+          const errorMessage =
+            err instanceof FigmaApiError
+              ? err.message
+              : 'Failed to fetch file information';
           setValidationError(errorMessage);
           onChange?.(urlValidation, null);
         });
@@ -194,15 +199,16 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
     if (urlInfo?.fileId) {
       setIsValidating(true);
       getFileInfo(urlInfo.fileId, true) // Force refresh
-        .then((fileInfo) => {
+        .then(fileInfo => {
           setIsValidating(false);
           onChange?.(urlInfo, fileInfo);
         })
-        .catch((err) => {
+        .catch(err => {
           setIsValidating(false);
-          const errorMessage = err instanceof FigmaApiError 
-            ? err.message 
-            : 'Failed to refresh file information';
+          const errorMessage =
+            err instanceof FigmaApiError
+              ? err.message
+              : 'Failed to refresh file information';
           setValidationError(errorMessage);
         });
     }
@@ -283,17 +289,14 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Open in Figma">
-                    <IconButton
-                      onClick={handleOpenInFigma}
-                      size="small"
-                    >
+                    <IconButton onClick={handleOpenInFigma} size="small">
                       <OpenInNew />
                     </IconButton>
                   </Tooltip>
                 </>
               )}
             </InputAdornment>
-          )
+          ),
         }}
       />
 
@@ -303,17 +306,19 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
             <Help fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
             Example URLs:
           </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, ml: 3 }}>
+          <Box
+            sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, ml: 3 }}
+          >
             {EXAMPLE_URLS.map((example, index) => (
               <Typography
                 key={index}
                 variant="body2"
                 color="text.secondary"
-                sx={{ 
-                  fontFamily: 'monospace', 
+                sx={{
+                  fontFamily: 'monospace',
                   fontSize: '0.75rem',
                   cursor: 'pointer',
-                  '&:hover': { color: 'primary.main' }
+                  '&:hover': { color: 'primary.main' },
                 }}
                 onClick={() => setInputValue(example)}
               >
@@ -326,7 +331,7 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
 
       {/* File Preview Card */}
       {showPreview && urlInfo?.isValid && !isValidating && !loading && (
-        <FigmaFilePreview 
+        <FigmaFilePreview
           fileInfo={null} // Will be passed from parent
           urlInfo={urlInfo}
           onRefresh={handleRefresh}
@@ -335,8 +340,8 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
 
       {/* Error Alert */}
       {(validationError || error) && (
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           sx={{ mt: 1 }}
           action={
             urlInfo?.isValid && (
@@ -367,7 +372,7 @@ interface FigmaFilePreviewProps {
 const FigmaFilePreview: React.FC<FigmaFilePreviewProps> = ({
   fileInfo,
   urlInfo,
-  onRefresh
+  onRefresh,
 }) => {
   if (!urlInfo.isValid) return null;
 
@@ -381,23 +386,30 @@ const FigmaFilePreview: React.FC<FigmaFilePreviewProps> = ({
           alt={`${fileInfo.name} preview`}
           sx={{
             objectFit: 'cover',
-            backgroundColor: 'grey.100'
+            backgroundColor: 'grey.100',
           }}
         />
       )}
       <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            mb: 1,
+          }}
+        >
           <Typography variant="h6" component="div" noWrap>
             {fileInfo?.name || 'Loading...'}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Chip 
+            <Chip
               label={`File ID: ${urlInfo.fileId}`}
               size="small"
               variant="outlined"
             />
             {urlInfo.nodeId && (
-              <Chip 
+              <Chip
                 label={`Node: ${urlInfo.nodeId}`}
                 size="small"
                 variant="outlined"
@@ -406,21 +418,18 @@ const FigmaFilePreview: React.FC<FigmaFilePreviewProps> = ({
             )}
           </Box>
         </Box>
-        
+
         {fileInfo && (
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <Typography variant="body2" color="text.secondary">
               Version: {fileInfo.version}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Last modified: {new Date(fileInfo.lastModified).toLocaleDateString()}
+              Last modified:{' '}
+              {new Date(fileInfo.lastModified).toLocaleDateString()}
             </Typography>
             {onRefresh && (
-              <IconButton
-                onClick={onRefresh}
-                size="small"
-                sx={{ ml: 'auto' }}
-              >
+              <IconButton onClick={onRefresh} size="small" sx={{ ml: 'auto' }}>
                 <Refresh />
               </IconButton>
             )}

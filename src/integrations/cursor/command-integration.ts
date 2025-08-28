@@ -136,7 +136,7 @@ export class CursorCommandIntegration {
       async (...args) => {
         try {
           await handler.handler(...args);
-        } catch (error) {
+        } catch (error: any) {
           vscode.window.showErrorMessage(
             `Command failed: ${error instanceof Error ? error.message : 'Unknown error'}`
           );
@@ -260,6 +260,9 @@ export class CursorCommandIntegration {
           }
 
           const template = templates[i];
+          if (!template) {
+            continue;
+          }
           progress.report({
             increment: 100 / total,
             message: `Converting ${template.name}...`,
@@ -339,6 +342,10 @@ export class CursorCommandIntegration {
 
     // Find appropriate template for error
     const error = context.errors[0];
+    if (!error) {
+      vscode.window.showWarningMessage('No error information available');
+      return;
+    }
     const errorObj = new Error(error.message);
     errorObj.name = `${error.severity}Error`;
     const errorType = this.categorizeError(errorObj);
@@ -355,9 +362,9 @@ export class CursorCommandIntegration {
     const bridgedContext = await this.bridge.bridgeContext(context);
     const variables = {
       ...bridgedContext.variables,
-      error: context.errors[0].message,
-      errorFile: context.errors[0].file,
-      errorLine: context.errors[0].line,
+      error: context.errors[0]?.message,
+      errorFile: context.errors[0]?.file,
+      errorLine: context.errors[0]?.line,
     };
 
     const prompt = await this.templateEngine.render(

@@ -177,7 +177,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
       logger.info('gRPC client initialized successfully', {
         serviceUrl: this.config.serviceUrl,
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize gRPC client', error as Error);
       throw new Error(`gRPC client initialization failed: ${error}`);
     }
@@ -298,7 +298,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
         enumerable: false,
         writable: false,
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to start gRPC stream', error as Error);
       streamEmitter.emit('error', error);
     }
@@ -358,44 +358,53 @@ export class PromptWizardGrpcClient extends EventEmitter {
       const deadline = new Date();
       deadline.setSeconds(deadline.getSeconds() + this.config.timeout / 1000);
 
-      (
+      const methodFn = (
         this.client as unknown as Record<
           string,
           (...args: unknown[]) => unknown
         >
-      )[method](request, { deadline }, (error: unknown, response: unknown) => {
-        if (error) {
-          const grpcError = this.parseGrpcError(error);
+      )[method];
+      if (!methodFn) {
+        throw new Error(`Method ${method} not found on gRPC client`);
+      }
+      methodFn.call(
+        this.client,
+        request,
+        { deadline },
+        (error: unknown, response: unknown) => {
+          if (error) {
+            const grpcError = this.parseGrpcError(error);
 
-          // Retry on specific error conditions
-          if (
-            retryCount < this.config.retries &&
-            this.isRetryableError(error)
-          ) {
-            logger.warn(
-              `gRPC ${method} failed, retrying (${retryCount + 1}/${this.config.retries})`,
-              {
-                error: grpcError.message,
-                retryCount: retryCount + 1,
-              }
-            );
+            // Retry on specific error conditions
+            if (
+              retryCount < this.config.retries &&
+              this.isRetryableError(error)
+            ) {
+              logger.warn(
+                `gRPC ${method} failed, retrying (${retryCount + 1}/${this.config.retries})`,
+                {
+                  error: grpcError.message,
+                  retryCount: retryCount + 1,
+                }
+              );
 
-            // Exponential backoff
-            const backoffDelay = 2 ** retryCount * 1000;
-            setTimeout(() => {
-              this.executeWithRetry(method, request, retryCount + 1)
-                .then(resolve)
-                .catch(reject);
-            }, backoffDelay);
-            return;
+              // Exponential backoff
+              const backoffDelay = 2 ** retryCount * 1000;
+              setTimeout(() => {
+                this.executeWithRetry(method, request, retryCount + 1)
+                  .then(resolve)
+                  .catch(reject);
+              }, backoffDelay);
+              return;
+            }
+
+            logger.error(`gRPC ${method} failed`, grpcError);
+            reject(grpcError);
+          } else {
+            resolve(this.convertGrpcResponse(method, response));
           }
-
-          logger.error(`gRPC ${method} failed`, grpcError);
-          reject(grpcError);
-        } else {
-          resolve(this.convertGrpcResponse(method, response));
         }
-      });
+      );
     });
   }
 
@@ -553,7 +562,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
     // Validate converted response with Zod schema
     try {
       return validateScoringResponse(converted);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Invalid ScoringResponse from gRPC API:', error);
       throw new Error(
         `Invalid gRPC response: ${error instanceof Error ? error.message : String(error)}`
@@ -582,7 +591,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
     // Validate converted response with Zod schema
     try {
       return validateComparisonResponse(converted);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Invalid ComparisonResponse from gRPC API:', error);
       throw new Error(
         `Invalid gRPC response: ${error instanceof Error ? error.message : String(error)}`

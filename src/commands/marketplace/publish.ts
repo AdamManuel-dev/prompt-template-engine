@@ -44,9 +44,9 @@ export class PublishCommand extends BaseCommand implements ICommand {
 
   description = 'Publish a template to the marketplace';
 
-  aliases = ['pub'];
+  override aliases = ['pub'];
 
-  options = [
+  override options = [
     {
       flags: '-p, --template-path <path>',
       description: 'Path to template directory or file',
@@ -128,7 +128,7 @@ export class PublishCommand extends BaseCommand implements ICommand {
       if (result.url) {
         logger.info(`View at: ${chalk.blue(result.url)}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(chalk.red('❌ Failed to publish template'));
       if (error instanceof Error) {
         logger.error(chalk.red(error.message));
@@ -179,7 +179,7 @@ export class PublishCommand extends BaseCommand implements ICommand {
       }
       // Load single file
       return this.parseTemplateFile(templatePath);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(
         `Failed to load template: ${error instanceof Error ? error.message : 'Unknown error'}`
       );

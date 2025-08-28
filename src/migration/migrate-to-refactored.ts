@@ -34,7 +34,7 @@ export class TemplateEngineAdapter extends TemplateEngine {
     this.refactoredEngine = new TemplateEngineRefactored(options);
   }
 
-  async render(
+  override async render(
     template: string,
     context: Record<string, unknown>
   ): Promise<string> {
@@ -45,16 +45,16 @@ export class TemplateEngineAdapter extends TemplateEngine {
     return this.refactoredEngine.renderSync(template, { variables: context });
   }
 
-  isTruthy(value: unknown): boolean {
+  override isTruthy(value: unknown): boolean {
     return this.refactoredEngine.isTruthy(value);
   }
 
-  extractVariables(template: string): string[] {
+  override extractVariables(template: string): string[] {
     return this.refactoredEngine.extractVariables(template);
   }
 
   // Override other methods to use refactored implementation
-  processConditionalBlocks(
+  override processConditionalBlocks(
     template: string,
     context: Record<string, unknown>,
     _depth = 0
@@ -63,7 +63,7 @@ export class TemplateEngineAdapter extends TemplateEngine {
     return this.refactoredEngine.renderSync(template, { variables: context });
   }
 
-  findOutermostIfBlocks(_template: string): Array<{
+  override findOutermostIfBlocks(_template: string): Array<{
     fullMatch: string;
     condition: string;
     innerTemplate: string;
@@ -76,7 +76,7 @@ export class TemplateEngineAdapter extends TemplateEngine {
     return [];
   }
 
-  findOutermostConditionalBlocks(
+  override findOutermostConditionalBlocks(
     _template: string,
     _type: string
   ): Array<{
@@ -207,7 +207,7 @@ export function runMigrations(): void {
     logger.success('All migrations completed successfully');
     logger.info('The codebase is now using refactored implementations');
     logger.info('Old implementations are wrapped with compatibility adapters');
-  } catch (error) {
+  } catch (error: any) {
     logger.error(
       `Migration failed: ${error instanceof Error ? error.message : String(error)}`
     );

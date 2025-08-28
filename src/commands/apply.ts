@@ -13,7 +13,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { spawn } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 import * as yaml from 'js-yaml';
 import chalk from 'chalk';
 import { z } from 'zod';
@@ -108,7 +108,7 @@ export async function applyCommand(
     }
 
     logger.success(chalk.green('\n✅ Template applied successfully!'));
-  } catch (error) {
+  } catch (error: any) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(chalk.red(`❌ Apply failed: ${message}`));
     throw error;
@@ -268,7 +268,7 @@ async function applyTemplate(
           } else if (applied.skipped) {
             result.filesSkipped.push(applied.path);
           }
-        } catch (error) {
+        } catch (error: any) {
           const message =
             error instanceof Error ? error.message : String(error);
           result.errors.push(
@@ -283,7 +283,7 @@ async function applyTemplate(
       for (const cmd of template.commands) {
         try {
           await executeCommand(cmd, variables, engine);
-        } catch (error) {
+        } catch (error: any) {
           const message =
             error instanceof Error ? error.message : String(error);
           result.errors.push(`Failed to execute command: ${message}`);
@@ -292,7 +292,7 @@ async function applyTemplate(
     }
 
     result.success = result.errors.length === 0;
-  } catch (error) {
+  } catch (error: any) {
     const message = error instanceof Error ? error.message : String(error);
     result.errors.push(`Template application error: ${message}`);
   }
@@ -371,14 +371,18 @@ async function executeCommand(
   try {
     const [executable, ...args] = processedCommand.split(' ');
 
+    if (!executable) {
+      throw new Error('No executable specified in command');
+    }
+
     return new Promise<void>((resolve, reject) => {
-      const child = spawn(executable, args, {
+      const child: ChildProcess = spawn(executable, args, {
         stdio: 'inherit',
         shell: true,
         cwd: process.cwd(),
       });
 
-      child.on('close', code => {
+      child.on('close', (code: number | null) => {
         if (code === 0) {
           logger.info(chalk.green(`  ✓ Command completed successfully`));
           resolve();
@@ -387,11 +391,11 @@ async function executeCommand(
         }
       });
 
-      child.on('error', error => {
+      child.on('error', (error: Error) => {
         reject(new Error(`Failed to execute command: ${error.message}`));
       });
     });
-  } catch (error) {
+  } catch (error: any) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(chalk.red(`  ✗ Command execution failed: ${message}`));
     throw error;

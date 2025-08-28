@@ -199,7 +199,7 @@ const App: React.FC = () => {
                     {/* User routes */}
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="settings" element={<SettingsPage />} />
-                    
+
                     {/* Figma integration demo */}
                     <Route path="figma" element={<FigmaIntegrationPage />} />
 

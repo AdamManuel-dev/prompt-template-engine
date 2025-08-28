@@ -109,7 +109,13 @@ export class VariableProcessor {
       const arrayMatch = segment.match(/^(\w+)\[(\d+)\]$/);
       if (arrayMatch) {
         const [, arrayName, index] = arrayMatch;
-        if (current && typeof current === 'object' && arrayName in current) {
+        if (
+          current &&
+          typeof current === 'object' &&
+          arrayName &&
+          arrayName in current &&
+          index
+        ) {
           const arrayValue = (current as Record<string, unknown>)[arrayName];
           if (Array.isArray(arrayValue)) {
             current = arrayValue[parseInt(index, 10)];
@@ -154,7 +160,7 @@ export class VariableProcessor {
 
     // eslint-disable-next-line no-cond-assign
     while ((match = this.variablePattern.exec(template)) !== null) {
-      const varName = match[1].trim();
+      const varName = match[1]?.trim() ?? '';
       if (!varName.startsWith('@') && !variables.includes(varName)) {
         variables.push(varName);
       }

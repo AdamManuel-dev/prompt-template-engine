@@ -54,9 +54,9 @@ export class VersionManager {
     }
 
     return {
-      major: parseInt(match[1], 10),
-      minor: parseInt(match[2], 10),
-      patch: parseInt(match[3], 10),
+      major: parseInt(match[1] || '0', 10),
+      minor: parseInt(match[2] || '0', 10),
+      patch: parseInt(match[3] || '0', 10),
       prerelease: match[4],
       build: match[5],
       raw: version,
@@ -75,6 +75,9 @@ export class VersionManager {
     // Handle range operator (1.2.3 - 1.5.0)
     if (trimmed.includes(' - ')) {
       const [start] = trimmed.split(' - ').map(v => v.trim());
+      if (!start) {
+        throw new Error(`Invalid version range: ${range}`);
+      }
       return {
         operator: 'range',
         version: this.parseVersion(start),
@@ -88,7 +91,11 @@ export class VersionManager {
     }
 
     const operator = this.getOperator(match[1] || '');
-    const version = this.parseVersion(match[2]);
+    const versionString = match[2];
+    if (!versionString) {
+      throw new Error(`Invalid version range: ${range}`);
+    }
+    const version = this.parseVersion(versionString);
 
     return {
       operator,
@@ -256,7 +263,7 @@ export class VersionManager {
       return null;
     }
 
-    return satisfying.sort((a, b) => this.compareVersions(b, a))[0];
+    return satisfying.sort((a, b) => this.compareVersions(b, a))[0] ?? null;
   }
 
   /**
@@ -489,7 +496,7 @@ export class VersionManager {
       return null;
     }
 
-    return this.sortVersions(versions)[0];
+    return this.sortVersions(versions)[0] ?? null;
   }
 
   /**
@@ -504,6 +511,6 @@ export class VersionManager {
       return null;
     }
 
-    return this.sortVersions(stableVersions)[0];
+    return this.sortVersions(stableVersions)[0] ?? null;
   }
 }

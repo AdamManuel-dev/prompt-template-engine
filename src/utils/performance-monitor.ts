@@ -141,8 +141,8 @@ export class PerformanceMonitor extends EventEmitter {
       totalDuration: durations.reduce((sum, d) => sum + d, 0),
       averageDuration:
         durations.reduce((sum, d) => sum + d, 0) / durations.length,
-      minDuration: durations[0],
-      maxDuration: durations[durations.length - 1],
+      minDuration: durations[0] || 0,
+      maxDuration: durations[durations.length - 1] || 0,
       successRate: successfulOps / operationMetrics.length,
       errorRate:
         (operationMetrics.length - successfulOps) / operationMetrics.length,
@@ -380,7 +380,7 @@ export class HealthChecker {
         const result = await checkFn();
         result.responseTime = Date.now() - start;
         results.push(result);
-      } catch (error) {
+      } catch (error: any) {
         results.push({
           service: name,
           status: 'unhealthy',

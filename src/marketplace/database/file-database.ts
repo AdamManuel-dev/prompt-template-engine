@@ -263,7 +263,9 @@ class FileTemplateRepository implements ITemplateRepository {
 
   async getLatestVersion(templateId: string): Promise<TemplateVersion | null> {
     const versions = await this.getVersions(templateId);
-    return versions.length > 0 ? versions[versions.length - 1] : null;
+    return (
+      (versions.length > 0 ? versions[versions.length - 1] : undefined) ?? null
+    );
   }
 
   private applyFilters(
@@ -393,7 +395,7 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
     // Simplified implementations for now - can be expanded
     this.authors = new FileRepository(
       path.join(dataDir, 'authors.json')
-    ) as IAuthorRepository;
+    ) as unknown as IAuthorRepository;
     this.reviews = new FileReviewRepository(path.join(dataDir, 'reviews.json'));
     this.installations = new FileRepository(
       path.join(dataDir, 'installations.json')
@@ -407,7 +409,7 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
       await (this.reviews as unknown as { init(): Promise<void> }).init();
       this.isConnectedFlag = true;
       logger.info('File database connected successfully');
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to connect to file database: ${error}`);
       throw error;
     }
@@ -592,7 +594,7 @@ class FileReviewRepository
     super(filePath);
   }
 
-  async init(): Promise<void> {
+  override async init(): Promise<void> {
     await super.init();
   }
 

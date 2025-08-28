@@ -234,14 +234,13 @@ export class TemplateSanitizer {
     if (effectiveConfig.enableStrictMode) {
       // Remove any remaining HTML if not in allowed tags
       const htmlTagPattern = /<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g;
-      let _match;
       const disallowedTags: string[] = [];
 
       let tagMatch;
       // eslint-disable-next-line no-cond-assign
       while ((tagMatch = htmlTagPattern.exec(sanitized)) !== null) {
-        const tagName = tagMatch[1].toLowerCase();
-        if (!effectiveConfig.allowedTags.includes(tagName)) {
+        const tagName = tagMatch[1]?.toLowerCase();
+        if (tagName && !effectiveConfig.allowedTags.includes(tagName)) {
           disallowedTags.push(tagName);
         }
       }
@@ -342,7 +341,7 @@ export class TemplateSanitizer {
    */
   validateTemplateContent(content: string): SecurityValidationResult {
     const threats: string[] = [];
-    let threatLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+    let threatLevel: 'safe' | 'warning' | 'danger' = 'safe';
 
     // Use existing content safety validator
     const contentSafety = customValidators.isContentSafe(content);
@@ -360,7 +359,7 @@ export class TemplateSanitizer {
     for (const pattern of templateInjectionPatterns) {
       if (pattern.test(content)) {
         threats.push('Template injection pattern detected');
-        threatLevel = 'high';
+        threatLevel = 'danger';
         break;
       }
     }
@@ -371,36 +370,35 @@ export class TemplateSanitizer {
       threats.push(
         `Excessive template complexity: ${templateCount} template expressions`
       );
-      threatLevel = threatLevel === 'low' ? 'medium' : threatLevel;
+      threatLevel = threatLevel === 'safe' ? 'warning' : threatLevel;
     }
 
     // Check for deeply nested structures
     const maxNesting = this.getMaxNesting(content);
     if (maxNesting > 10) {
       threats.push(`Deeply nested template structure: ${maxNesting} levels`);
-      threatLevel = threatLevel === 'low' ? 'medium' : threatLevel;
+      threatLevel = threatLevel === 'safe' ? 'warning' : threatLevel;
     }
 
     // Determine final threat level
     if (threats.length > 5) {
-      threatLevel = 'critical';
+      threatLevel = 'danger';
     } else if (
       threats.some(t => t.includes('injection') || t.includes('script'))
     ) {
-      threatLevel = 'high';
+      threatLevel = 'danger';
     } else if (threats.length > 2) {
-      threatLevel = 'medium';
+      threatLevel = 'warning';
     }
 
     return {
-      valid: threatLevel !== 'critical',
-      errors: threatLevel === 'critical' ? threats : [],
-      warnings: threatLevel !== 'critical' ? threats : [],
+      isValid: threatLevel !== 'danger',
+      errors: threatLevel === 'danger' ? threats : [],
+      warnings: threatLevel !== 'danger' ? threats : [],
+      securityLevel: threatLevel,
+      threats,
       threatLevel,
-      sanitized:
-        threatLevel !== 'critical'
-          ? this.sanitize(content).sanitized
-          : undefined,
+      safe: threatLevel !== 'danger',
     };
   }
 
@@ -585,8 +583,8 @@ export function validateTemplate(content: string): SecurityValidationResult {
 export function SanitizeTemplateContent(config?: Partial<SanitizationConfig>) {
   return function (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    target: any,
-    propertyKey: string,
+    _target: any,
+    _propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;

@@ -93,7 +93,7 @@ export class FigmaMCPProxy {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: {
           ...process.env,
-          FIGMA_ACCESS_TOKEN: process.env.FIGMA_ACCESS_TOKEN
+          FIGMA_ACCESS_TOKEN: process.env['FIGMA_ACCESS_TOKEN']
         }
       });
 

@@ -62,8 +62,12 @@ export class SecurityService {
       const salt = crypto.randomBytes(32); // 256-bit salt
       const key = crypto.scryptSync(this.encryptionKey, salt, 32);
 
-      // Use createCipherGCM instead of deprecated createCipher
-      const cipher = crypto.createCipherGCM(this.algorithm, key, iv);
+      // Use createCipheriv instead of deprecated createCipher
+      const cipher = crypto.createCipheriv(
+        this.algorithm,
+        key,
+        iv
+      ) as crypto.CipherGCM;
       cipher.setAAD(Buffer.from('encrypted-data'));
 
       let encrypted = cipher.update(plaintext, 'utf8', 'hex');
@@ -77,7 +81,7 @@ export class SecurityService {
         authTag: authTag.toString('hex'),
         salt: salt.toString('hex'),
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Encryption failed', error as Error);
       throw new Error('Failed to encrypt data');
     }
@@ -93,8 +97,12 @@ export class SecurityService {
       const authTag = Buffer.from(encryptedData.authTag, 'hex');
       const key = crypto.scryptSync(this.encryptionKey, salt, 32);
 
-      // Use createDecipherGCM instead of deprecated createDecipher
-      const decipher = crypto.createDecipherGCM(this.algorithm, key, iv);
+      // Use createDecipheriv instead of deprecated createDecipher
+      const decipher = crypto.createDecipheriv(
+        this.algorithm,
+        key,
+        iv
+      ) as crypto.DecipherGCM;
       decipher.setAAD(Buffer.from('encrypted-data'));
       decipher.setAuthTag(authTag);
 
@@ -102,7 +110,7 @@ export class SecurityService {
       decrypted += decipher.final('utf8');
 
       return decrypted;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Decryption failed', error as Error);
       throw new Error('Failed to decrypt data');
     }
@@ -453,7 +461,7 @@ export function setSecureHeaders(config?: {
  */
 export function secureFileUpload(
   allowedTypes: string[],
-  maxSizeBytes: number = 10 * 1024 * 1024
+  _maxSizeBytes: number = 10 * 1024 * 1024
 ) {
   return (request: {
     filename?: string;
@@ -506,7 +514,7 @@ export class SecretsManager {
 
     try {
       return securityService.decryptData(encrypted);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to decrypt secret: ${key}`, error as Error);
       return null;
     }

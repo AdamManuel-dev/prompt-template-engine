@@ -202,7 +202,7 @@ export class EnhancedPluginManager extends EventEmitter {
         if (enhancedPlugin) {
           await this.registerPlugin(enhancedPlugin);
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error(
           `Failed to load enhanced plugin ${basePlugin.metadata.name}: ${error}`
         );
@@ -268,7 +268,7 @@ export class EnhancedPluginManager extends EventEmitter {
       };
 
       return enhancedPlugin;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Error loading enhanced plugin ${basePlugin.metadata.name}: ${error}`
       );
@@ -286,7 +286,7 @@ export class EnhancedPluginManager extends EventEmitter {
     if (plugin.lifecycle?.onLoad) {
       try {
         await plugin.lifecycle.onLoad();
-      } catch (error) {
+      } catch (error: any) {
         logger.error(
           `Plugin ${plugin.metadata.name} onLoad hook failed: ${error}`
         );
@@ -389,7 +389,7 @@ export class EnhancedPluginManager extends EventEmitter {
 
       logger.info(`✅ Successfully unloaded plugin: ${pluginName}`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to unload plugin ${pluginName}: ${error}`);
       return false;
     }
@@ -419,7 +419,7 @@ export class EnhancedPluginManager extends EventEmitter {
         await (hook[hookName] as (...args: unknown[]) => Promise<void>)(
           ...args
         );
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Hook ${hook.name}.${hookName} failed: ${error}`);
       }
     });
@@ -440,7 +440,7 @@ export class EnhancedPluginManager extends EventEmitter {
     for (const processor of processors) {
       try {
         processedContent = await processor.process(processedContent, context);
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Processor ${processor.name} failed: ${error}`);
       }
     }
@@ -465,7 +465,7 @@ export class EnhancedPluginManager extends EventEmitter {
         if (result.warnings) {
           allWarnings.push(...result.warnings);
         }
-      } catch (error) {
+      } catch (error: any) {
         allErrors.push(`Validator ${validator.name} failed: ${error}`);
       }
     }
@@ -488,7 +488,7 @@ export class EnhancedPluginManager extends EventEmitter {
       try {
         const providerContext = await provider.provideContext();
         Object.assign(context, providerContext);
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Context provider ${provider.name} failed: ${error}`);
       }
     }

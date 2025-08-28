@@ -54,7 +54,7 @@ export class TemplateSearchService {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Template search failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -68,7 +68,7 @@ export class TemplateSearchService {
   async getTemplate(templateId: string): Promise<TemplateModel> {
     try {
       return await this.api.getTemplate(templateId);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to get template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
       );

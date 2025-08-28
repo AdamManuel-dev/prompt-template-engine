@@ -102,7 +102,7 @@ class TemplateValidator {
       if (this.strict) {
         this.performStrictValidations(template, templatePath, errors, warnings);
       }
-    } catch (error) {
+    } catch (error: any) {
       errors.push({
         code: 'VALIDATION_EXCEPTION',
         message: `Validation failed: ${error}`,
@@ -492,7 +492,7 @@ async function loadTemplate(templatePath: string): Promise<unknown> {
         // Add base path for relative file resolution
         (template as Record<string, unknown>).basePath = templatePath;
         return template;
-      } catch (error) {
+      } catch (error: any) {
         throw new FileNotFoundError(
           `Template directory must contain template.json`,
           templateJsonPath,
@@ -524,7 +524,7 @@ async function loadTemplate(templatePath: string): Promise<unknown> {
         );
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof TemplateEngineError) {
       throw error;
     }
@@ -799,7 +799,7 @@ export async function validateCommand(
           : '';
       logger.success(`✅ Template validation passed${warningText}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof TemplateEngineError) {
       logger.error(`❌ Validation failed: ${error.message}`);
       throw error;

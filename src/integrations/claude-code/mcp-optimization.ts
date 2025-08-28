@@ -301,7 +301,7 @@ export class MCPOptimizationTools {
         `MCP: optimize_prompt completed successfully - ${result.metrics.accuracyImprovement}% improvement`
       );
       return response;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `MCP: optimize_prompt failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -376,7 +376,7 @@ export class MCPOptimizationTools {
 
       logger.info(`MCP: score_prompt completed - score: ${score.overall}/100`);
       return response;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `MCP: score_prompt failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -501,7 +501,7 @@ export class MCPOptimizationTools {
         prioritizedActions,
         estimatedImprovement: improvementPotential,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `MCP: suggest_improvements failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -586,7 +586,7 @@ export class MCPOptimizationTools {
                 error: result.error,
               });
             }
-          } catch (error) {
+          } catch (error: any) {
             results.push({
               name: templateName,
               success: false,
@@ -638,7 +638,7 @@ export class MCPOptimizationTools {
                 error: result.error,
               });
             }
-          } catch (error) {
+          } catch (error: any) {
             results.push({
               name: promptData.name || 'Direct Prompt',
               success: false,
@@ -669,7 +669,7 @@ export class MCPOptimizationTools {
         `MCP: batch_optimize completed - ${successCount} optimized, ${failedCount} failed`
       );
       return response;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `MCP: batch_optimize failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -709,7 +709,7 @@ export class MCPOptimizationTools {
           'improvement_suggestions',
         ],
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         available: false,
         error: error instanceof Error ? error.message : String(error),

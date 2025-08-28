@@ -63,9 +63,9 @@ export class TemplateRegistry {
           const templateId = template.id as string;
           const registeredDate = template.registered as string;
           this.templates.set(templateId, {
-            ...template,
+            ...(template as any),
             registered: new Date(registeredDate),
-          });
+          } as RegisteredTemplate);
         }
       );
 

@@ -255,8 +255,8 @@ export class GitService {
           `rev-list --left-right --count ${branch}...${upstreamBranch}`
         );
         const [aheadStr, behindStr] = counts.split('\t');
-        ahead = parseInt(aheadStr, 10) || 0;
-        behind = parseInt(behindStr, 10) || 0;
+        ahead = parseInt(aheadStr || '0', 10) || 0;
+        behind = parseInt(behindStr || '0', 10) || 0;
       }
     } catch {
       // No upstream branch
@@ -289,10 +289,10 @@ export class GitService {
     return output.split('\n').map(line => {
       const [hash, author, date, message] = line.split('|');
       return {
-        hash: hash.substring(0, 7),
-        author,
-        date: new Date(date),
-        message,
+        hash: hash ? hash.substring(0, 7) : '',
+        author: author || '',
+        date: new Date(date || ''),
+        message: message || '',
       };
     });
   }
@@ -331,8 +331,8 @@ export class GitService {
       const match = line.match(/^(\S+)\s+(\S+)\s+\((\w+)\)$/);
       if (match) {
         remotes.push({
-          name: match[1],
-          url: match[2],
+          name: match[1] || '',
+          url: match[2] || '',
           type: match[3] as 'fetch' | 'push',
         });
       }

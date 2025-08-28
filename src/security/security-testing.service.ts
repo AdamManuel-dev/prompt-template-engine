@@ -219,7 +219,7 @@ export class SecurityTestingService {
           remediation: 'Fix random number generation implementation',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       issues.push({
         severity: 'critical',
         category: 'encryption',
@@ -334,7 +334,7 @@ export class SecurityTestingService {
 
       // Cleanup test secret
       await secretsVault.deleteSecret(secretId);
-    } catch (error) {
+    } catch (error: any) {
       issues.push({
         severity: 'critical',
         category: 'authentication',
@@ -450,7 +450,7 @@ export class SecurityTestingService {
           remediation: 'Consider enabling compression before encryption',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       issues.push({
         severity: 'critical',
         category: 'encryption',
@@ -539,8 +539,11 @@ export class SecurityTestingService {
         const maliciousQuery = "SELECT * FROM users WHERE id = '1' OR '1'='1'";
         const result = await secureDatabaseAdapter.executeQuery(
           maliciousQuery,
-          [],
-          { operation: 'select', tableName: 'users' }
+          {
+            parameters: [],
+            operation: 'select',
+            tableName: 'users',
+          }
         );
 
         if (
@@ -557,7 +560,7 @@ export class SecurityTestingService {
             remediation: 'Strengthen SQL injection detection and prevention',
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         // Expected to fail, which is good
         score += 15;
       }
@@ -590,7 +593,7 @@ export class SecurityTestingService {
           remediation: 'Review and address recent security threats',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       issues.push({
         severity: 'critical',
         category: 'encryption',
@@ -757,7 +760,7 @@ export class SecurityTestingService {
       } else {
         score += 5;
       }
-    } catch (error) {
+    } catch (error: any) {
       issues.push({
         severity: 'critical',
         category: 'headers',
@@ -813,7 +816,7 @@ export class SecurityTestingService {
         if (sanitized !== testCase.input) {
           passedTests++;
         }
-      } catch (error) {
+      } catch (error: any) {
         issues.push({
           severity: 'medium',
           category: 'injection',
@@ -894,7 +897,7 @@ export class SecurityTestingService {
       // Additional production checks
       if (
         process.env.HTTPS === 'true' ||
-        process.env.NODE_ENV !== 'development'
+        process.env.NODE_ENV === 'production'
       ) {
         score += 20;
       } else {
@@ -1015,7 +1018,7 @@ export class SecurityTestingService {
       }
 
       // Test 3: Key rotation capability
-      const activeKeys = cryptoStats.activeKeys;
+      const { activeKeys } = cryptoStats;
       if (activeKeys > 0) {
         score += 15;
 
@@ -1023,7 +1026,7 @@ export class SecurityTestingService {
         const keyIds = cryptoService.listKeys();
         if (keyIds.length > 0) {
           const testKey = keyIds[0];
-          const rotatedKey = cryptoService.rotateKeyPair(testKey);
+          const rotatedKey = cryptoService.rotateKeyPair(testKey || '');
           if (rotatedKey.keyId) {
             score += 15;
           } else {
@@ -1047,7 +1050,7 @@ export class SecurityTestingService {
       }
 
       // Test 4: Expired key cleanup
-      const expiredKeys = cryptoStats.expiredKeys;
+      const { expiredKeys } = cryptoStats;
       if (expiredKeys === 0) {
         score += 10;
       } else {
@@ -1072,7 +1075,7 @@ export class SecurityTestingService {
           remediation: 'Enable FIPS 140-2 cryptographic mode',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       issues.push({
         severity: 'critical',
         category: 'encryption',
@@ -1154,7 +1157,7 @@ export class SecurityTestingService {
       if (cryptoStats.activeKeys > 0) {
         score += 15;
       }
-    } catch (error) {
+    } catch (error: any) {
       issues.push({
         severity: 'medium',
         category: 'authentication',
@@ -1363,7 +1366,7 @@ export class SecurityTestingService {
    */
   getLatestAuditReport(): SecurityAuditReport | null {
     return this.auditHistory.length > 0
-      ? this.auditHistory[this.auditHistory.length - 1]
+      ? this.auditHistory[this.auditHistory.length - 1] || null
       : null;
   }
 

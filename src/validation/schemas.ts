@@ -460,6 +460,76 @@ export type Config = z.infer<typeof ConfigSchema>;
 export type MarketplaceManifest = z.infer<typeof MarketplaceManifestSchema>;
 export type PluginConfig = z.infer<typeof PluginConfigSchema>;
 
+// Enhanced validator class implementation
+export class EnhancedValidator {
+  static validate<T>(
+    schema: z.ZodSchema<T>,
+    data: unknown
+  ): SecurityValidationResult {
+    try {
+      schema.parse(data);
+      return {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        securityLevel: 'safe',
+        threats: [],
+        threatLevel: 'safe',
+        safe: true,
+      };
+    } catch (error: any) {
+      const errors =
+        error instanceof z.ZodError
+          ? error.issues.map(e => e.message)
+          : [(error as Error).message];
+
+      return {
+        isValid: false,
+        errors,
+        warnings: [],
+        securityLevel: 'danger',
+        threats: ['Validation failure'],
+        threatLevel: 'danger',
+        safe: false,
+      };
+    }
+  }
+
+  static validateContent(content: string): SecurityValidationResult {
+    return customValidators.isContentSafe(content);
+  }
+
+  static validatePath(path: string): SecurityValidationResult {
+    const isValid = customValidators.isPathSafe(path);
+    return {
+      isValid,
+      errors: isValid ? [] : ['Path contains unsafe characters'],
+      warnings: [],
+      securityLevel: isValid ? 'safe' : 'danger',
+      threats: isValid ? [] : ['Path traversal'],
+      threatLevel: isValid ? 'safe' : 'danger',
+      safe: isValid,
+    };
+  }
+
+  static validatePlugin(pluginCode: string): SecurityValidationResult {
+    return this.validateContent(pluginCode);
+  }
+
+  static sanitizeInput(input: string): string {
+    return input.replace(/[<>"'&]/g, char => {
+      const entityMap: Record<string, string> = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+        '&': '&amp;',
+      };
+      return entityMap[char] || char;
+    });
+  }
+}
+
 /**
  * Validation helper functions
  */
@@ -477,7 +547,7 @@ export class Validator {
       const result = schema.parse(data);
 
       return { success: true, data: result };
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         const errors = error.issues.map(e => {
           const path = e.path.join('.');
@@ -506,7 +576,7 @@ export class Validator {
       try {
         const transformed = await transform(result.data);
         return { success: true, data: transformed };
-      } catch (error) {
+      } catch (error: any) {
         return {
           success: false,
           errors: [`Transformation failed: ${(error as Error).message}`],
@@ -588,6 +658,46 @@ export const customValidators = {
   isValidEnvVar(name: string): boolean {
     return /^[A-Z_][A-Z0-9_]*$/.test(name);
   },
+
+  /**
+   * Validate content safety (XSS, SQL injection, etc.)
+   */
+  isContentSafe(content: string): SecurityValidationResult {
+    const errors: string[] = [];
+    const threats: string[] = [];
+
+    if (!patterns.xssSafe.test(content)) {
+      errors.push('Content contains XSS patterns');
+      threats.push('XSS');
+    }
+
+    if (!patterns.sqlSafe.test(content)) {
+      errors.push('Content contains SQL injection patterns');
+      threats.push('SQL Injection');
+    }
+
+    if (content.includes('\u0000')) {
+      errors.push('Content contains null bytes');
+      threats.push('Null Byte Injection');
+    }
+
+    const isValid = errors.length === 0;
+    const securityLevel: 'safe' | 'warning' | 'danger' = isValid
+      ? 'safe'
+      : threats.length > 1
+        ? 'danger'
+        : 'warning';
+
+    return {
+      isValid,
+      errors,
+      warnings: [],
+      securityLevel,
+      threats,
+      threatLevel: securityLevel,
+      safe: isValid,
+    };
+  },
 };
 
 /**
@@ -598,4 +708,72 @@ export function createValidationMiddleware<T>(schema: z.ZodSchema<T>) {
     const result = schema.parse(data);
     return result;
   };
+}
+
+/**
+ * Security validation result interface
+ */
+export interface SecurityValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  securityLevel: 'safe' | 'warning' | 'danger';
+  threats: string[];
+  threatLevel?: 'safe' | 'warning' | 'danger';
+  safe?: boolean;
+  sanitized?: any;
+}
+
+/**
+ * Enhanced validator interface
+ */
+export interface EnhancedValidator {
+  validateContent(content: string): SecurityValidationResult;
+  validatePath(path: string): SecurityValidationResult;
+  validatePlugin(pluginCode: string): SecurityValidationResult;
+  sanitizeInput(input: string): string;
+}
+
+/**
+ * Validation context interface
+ */
+export interface ValidationContext {
+  source: string;
+  userId?: string;
+  sessionId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  timestamp: Date;
+  requestId?: string;
+  metadata?: Record<string, unknown>;
+  clientId?: string;
+}
+
+/**
+ * File validation result interface
+ */
+export interface FileValidationResult extends SecurityValidationResult {
+  fileInfo?: {
+    filename?: string;
+    size?: number;
+    mimetype?: string;
+    extension?: string;
+    hash?: string;
+    isExecutable?: boolean;
+    containsMalware?: boolean;
+    isCompressed?: boolean;
+  };
+  securityChecks?: {
+    pathTraversalCheck?: boolean;
+    mimeTypeCheck?: boolean;
+    extensionCheck?: boolean;
+    contentValidation?: boolean;
+    virusScan?: boolean;
+    sizeValidation?: boolean;
+  };
+  sanitizedFilename?: string;
+  quarantined?: boolean;
+  fileSize?: number;
+  mimeType?: string;
+  extension?: string;
 }

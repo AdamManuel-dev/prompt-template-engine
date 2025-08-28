@@ -269,7 +269,7 @@ export class FileSystemRepository extends AbstractRepository<string> {
   /**
    * Copy file or directory
    */
-  async copy(source: string, destination: string): Promise<void> {
+  override async copy(source: string, destination: string): Promise<void> {
     const sourcePath = this.resolvePath(source);
     const destPath = this.resolvePath(destination);
 
@@ -319,7 +319,7 @@ export class FileSystemRepository extends AbstractRepository<string> {
   /**
    * Move file or directory
    */
-  async move(source: string, destination: string): Promise<void> {
+  override async move(source: string, destination: string): Promise<void> {
     const sourcePath = this.resolvePath(source);
     const destPath = this.resolvePath(destination);
 

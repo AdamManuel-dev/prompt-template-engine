@@ -10,7 +10,6 @@
 
 import * as os from 'os';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
 
@@ -250,7 +249,9 @@ export class ResourceMonitor extends EventEmitter {
    */
   getCurrentUsage(executionId: string): ResourceUsage | null {
     const history = this.usageHistory.get(executionId);
-    return history && history.length > 0 ? history[history.length - 1] : null;
+    return (
+      history && history.length > 0 ? history[history.length - 1] : null
+    ) as ResourceUsage | null;
   }
 
   /**
@@ -602,10 +603,9 @@ export class ResourceMonitor extends EventEmitter {
     }
 
     // System load emergency
-    if (usage.system.cpuLoad[0] > os.cpus().length * 2) {
-      emergencyConditions.push(
-        `System load critical: ${usage.system.cpuLoad[0].toFixed(2)}`
-      );
+    const firstLoad = usage.system.cpuLoad?.[0];
+    if (firstLoad !== undefined && firstLoad > os.cpus().length * 2) {
+      emergencyConditions.push(`System load critical: ${firstLoad.toFixed(2)}`);
     }
 
     // Available memory emergency
@@ -711,6 +711,10 @@ export class ResourceMonitor extends EventEmitter {
     }
 
     const lastUsage = history[history.length - 1];
+    if (!lastUsage) {
+      return 0;
+    }
+
     const timeDiff = Date.now() - lastUsage.timestamp;
 
     if (timeDiff === 0) {
@@ -733,13 +737,14 @@ export class ResourceMonitor extends EventEmitter {
     if (history.length === 0) {
       return 0;
     }
-    return Date.now() - history[0].timestamp;
+    const firstEntry = history[0];
+    return firstEntry?.timestamp ? Date.now() - firstEntry.timestamp : 0;
   }
 
   /**
    * Get function call count (would be tracked by execution context)
    */
-  private getFunctionCallCount(executionId: string): number {
+  private getFunctionCallCount(_executionId: string): number {
     // This would be maintained by the execution context
     return 0;
   }
@@ -747,7 +752,7 @@ export class ResourceMonitor extends EventEmitter {
   /**
    * Get loop iteration count (would be tracked by execution context)
    */
-  private getLoopIterationCount(executionId: string): number {
+  private getLoopIterationCount(_executionId: string): number {
     // This would be maintained by the execution context
     return 0;
   }
@@ -756,14 +761,14 @@ export class ResourceMonitor extends EventEmitter {
    * Get current call stack depth
    */
   private getCurrentCallStackDepth(): number {
-    const stack = new Error().stack;
+    const { stack } = new Error();
     return stack ? stack.split('\n').length - 1 : 0;
   }
 
   /**
    * Get file operation count (would be tracked by file system wrapper)
    */
-  private getFileOperationCount(executionId: string): number {
+  private getFileOperationCount(_executionId: string): number {
     // This would be maintained by the secure file system wrapper
     return 0;
   }
@@ -771,7 +776,7 @@ export class ResourceMonitor extends EventEmitter {
   /**
    * Get network request count (would be tracked by network wrapper)
    */
-  private getNetworkRequestCount(executionId: string): number {
+  private getNetworkRequestCount(_executionId: string): number {
     // This would be maintained by the secure network wrapper
     return 0;
   }

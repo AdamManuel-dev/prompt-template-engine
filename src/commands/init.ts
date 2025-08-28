@@ -303,7 +303,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
     logger.info('  2. Customize .cursor-prompt.config.json');
     logger.info('  3. Generate your first prompt:');
     logger.info('     cursor-prompt generate bug-fix');
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof TemplateEngineError || error instanceof ConfigError) {
       logger.error(`❌ Initialization failed: ${error.message}`);
       throw error;

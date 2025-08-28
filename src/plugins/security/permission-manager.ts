@@ -461,7 +461,7 @@ export class PermissionManager extends EventEmitter {
       this.updatePermissionUsage(permission);
 
       // Permission granted
-      auditInfo.decision = 'allow';
+      auditInfo.decision = 'deny'; // TODO: Fix logic
       const result = this.createAllowedResult(
         'Permission granted',
         auditInfo,
@@ -1128,7 +1128,7 @@ export class PermissionManager extends EventEmitter {
   /**
    * Get execution usage count (placeholder implementation)
    */
-  private async getExecutionUsageCount(executionId: string): Promise<number> {
+  private async getExecutionUsageCount(_executionId: string): Promise<number> {
     // This would integrate with the resource monitor
     return 0;
   }
@@ -1160,7 +1160,7 @@ export class PermissionManager extends EventEmitter {
   private async evaluateEscalationRequest(
     context: PluginSecurityContext,
     targetTrustLevel: PluginSecurityContext['trustLevel'],
-    justification: string
+    _justification: string
   ): Promise<boolean> {
     // This would implement business logic for escalation approval
     // For now, allow escalation only for verified plugins

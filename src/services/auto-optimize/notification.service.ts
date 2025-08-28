@@ -86,7 +86,7 @@ export class NotificationService {
       });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage = (error as Error).message;
 
       this.addToHistory({

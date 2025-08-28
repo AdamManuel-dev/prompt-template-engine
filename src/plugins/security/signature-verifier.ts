@@ -791,7 +791,7 @@ export class SignatureVerifier {
     // Validate public key format
     try {
       crypto.createPublicKey(publisher.publicKey);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error('Invalid public key format');
     }
 

@@ -236,7 +236,7 @@ export class OptimizationWizardCommand extends BaseCommand {
     // Run wizard steps
     try {
       await this.runWizard(options);
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Wizard failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -265,7 +265,7 @@ export class OptimizationWizardCommand extends BaseCommand {
         this.templateService,
         this.cacheService
       );
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -285,7 +285,7 @@ export class OptimizationWizardCommand extends BaseCommand {
   private async checkServiceHealth(): Promise<boolean> {
     try {
       return await this.client.healthCheck();
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Health check failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -671,7 +671,7 @@ export class OptimizationWizardCommand extends BaseCommand {
 
       console.log();
       await this.prompt('Press Enter to continue');
-    } catch (error) {
+    } catch (error: any) {
       spinner.fail('Quality analysis failed');
       throw error;
     }
@@ -875,7 +875,7 @@ export class OptimizationWizardCommand extends BaseCommand {
 
       console.log();
       await this.prompt('Press Enter to see detailed comparison');
-    } catch (error) {
+    } catch (error: any) {
       spinner.fail('Optimization failed');
       throw error;
     }
@@ -1026,7 +1026,7 @@ export class OptimizationWizardCommand extends BaseCommand {
 
       console.log();
       await this.prompt('Press Enter to continue');
-    } catch (error) {
+    } catch (error: any) {
       spinner.fail('Comparison failed');
       throw error;
     }
@@ -1132,6 +1132,8 @@ export class OptimizationWizardCommand extends BaseCommand {
     const latestComparison =
       this.state.comparisons[this.state.comparisons.length - 1];
 
+    if (!latestComparison) return;
+
     if (latestComparison.comparison.analysis) {
       console.log();
       console.log(chalk.cyan('🔍 Analysis Insights:'));
@@ -1192,7 +1194,7 @@ export class OptimizationWizardCommand extends BaseCommand {
     const scoreHistory = this.state.scores.map(s => s.score.overall);
     const improvement =
       scoreHistory.length > 1
-        ? scoreHistory[scoreHistory.length - 1] - scoreHistory[0]
+        ? (scoreHistory[scoreHistory.length - 1] ?? 0) - (scoreHistory[0] ?? 0)
         : 0;
 
     console.log(
@@ -1252,6 +1254,10 @@ export class OptimizationWizardCommand extends BaseCommand {
 
     const finalScore = this.state.scores[this.state.scores.length - 1];
     const originalScore = this.state.scores[0];
+    if (!finalScore || !originalScore) {
+      console.log(chalk.red('⚠️  Score data unavailable'));
+      return;
+    }
     const improvement = finalScore.score.overall - originalScore.score.overall;
 
     console.log(chalk.white('✨ Optimization Summary:'));
@@ -1339,12 +1345,12 @@ export class OptimizationWizardCommand extends BaseCommand {
         wizard: {
           completed: new Date().toISOString(),
           refinements: this.state.refinements,
-          finalScore: this.state.scores[this.state.scores.length - 1].score,
+          finalScore: this.state.scores[this.state.scores.length - 1]?.score,
         },
         original: {
           prompt: this.state.originalPrompt,
           task: this.state.task,
-          score: this.state.scores[0].score,
+          score: this.state.scores[0]?.score,
         },
         optimized: {
           prompt: this.state.currentOptimized,
@@ -1360,7 +1366,7 @@ export class OptimizationWizardCommand extends BaseCommand {
 
       fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
       this.success(`Optimized prompt saved to: ${outputPath}`);
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to save optimized prompt: ${error instanceof Error ? error.message : String(error)}`
       );

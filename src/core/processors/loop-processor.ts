@@ -268,7 +268,7 @@ export class LoopProcessor {
         const collectionMatch = fullMatch.match(/\{\{#each\s+([\w.]+)\s*\}\}/);
 
         if (collectionMatch) {
-          const collection = collectionMatch[1];
+          const collection = collectionMatch[1]!; // Safe due to regex match check
           const content = template.substring(
             openIndex + collectionMatch[0].length,
             closeIndex

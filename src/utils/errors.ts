@@ -127,7 +127,7 @@ export class TemplateProcessingError extends TemplateEngineError {
   /**
    * Create a detailed error message with location information
    */
-  toUserMessage(): string {
+  override toUserMessage(): string {
     let { message } = this;
 
     if (this.templatePath) {

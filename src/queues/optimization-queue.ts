@@ -25,7 +25,6 @@ interface BullJob {
   id: string;
   data: OptimizationJob;
   progress: (progress: number) => void;
-  progress(): number;
   opts: Record<string, unknown>;
 }
 
@@ -57,7 +56,7 @@ try {
   // _Job = bullModule.Job; // Commented out as unused
 } catch (_error) {
   // Bull not available - fallback to in-memory queue
-  Queue = null;
+  Queue = undefined;
   // _Job = null; // Not used
 }
 
@@ -241,9 +240,14 @@ export class OptimizationQueue extends EventEmitter {
             templateId,
             template,
             request,
-            options,
             jobId: job.jobId,
-          },
+            priority: job.priority,
+            status: job.status,
+            progress: job.progress,
+            createdAt: job.createdAt,
+            retryCount: job.retryCount,
+            maxRetries: job.maxRetries,
+          } as OptimizationJob,
           {
             priority: bullPriority,
             attempts: job.maxRetries,
@@ -260,7 +264,7 @@ export class OptimizationQueue extends EventEmitter {
             priority: job.priority,
           })}`
         );
-      } catch (error) {
+      } catch (error: any) {
         logger.warn(
           `Failed to add job to Bull queue, using in-memory fallback: ${error}`
         );
@@ -563,7 +567,7 @@ export class OptimizationQueue extends EventEmitter {
             : 'Pipeline processing failed';
         throw new Error(errorMessage);
       }
-    } catch (error) {
+    } catch (error: any) {
       await this.handleJobError(
         job,
         error instanceof Error ? error : new Error(String(error))
@@ -696,32 +700,39 @@ export class OptimizationQueue extends EventEmitter {
     }
 
     try {
-      this.bullQueue = new Queue(this.config.queueName, this.config.redisUrl, {
-        defaultJobOptions: {
-          removeOnComplete: this.config.bullOptions?.removeOnComplete || 100,
-          removeOnFail: this.config.bullOptions?.removeOnFail || 50,
-          attempts: this.config.bullOptions?.attempts || this.config.maxRetries,
-          backoff: this.config.bullOptions?.backoff || {
-            type: 'exponential',
-            delay: 2000,
+      this.bullQueue = new Queue(
+        this.config.queueName || 'optimization-queue',
+        {
+          defaultJobOptions: {
+            removeOnComplete: this.config.bullOptions?.removeOnComplete || 100,
+            removeOnFail: this.config.bullOptions?.removeOnFail || 50,
+            attempts:
+              this.config.bullOptions?.attempts || this.config.maxRetries,
+            backoff: this.config.bullOptions?.backoff || {
+              type: 'exponential',
+              delay: 2000,
+            },
           },
-        },
-      });
+        }
+      );
 
       this.useBull = true;
 
       // Set up Bull event listeners
-      this.bullQueue.on('completed', (job: BullJob, result: unknown) => {
+      this.bullQueue.on('completed', (...args: unknown[]) => {
+        const [job, result] = args as [BullJob, unknown];
         logger.debug(`Bull job completed: ${job.id}`);
         this.emit('job:completed', { jobId: job.id, result });
       });
 
-      this.bullQueue.on('failed', (job: BullJob, err: Error) => {
+      this.bullQueue.on('failed', (...args: unknown[]) => {
+        const [job, err] = args as [BullJob, Error];
         logger.warn(`Bull job failed: ${job.id} - ${err.message}`);
         this.emit('job:failed', { jobId: job.id, error: err.message });
       });
 
-      this.bullQueue.on('progress', (job: BullJob, progress: number) => {
+      this.bullQueue.on('progress', (...args: unknown[]) => {
+        const [job, progress] = args as [BullJob, number];
         this.emit('job:progress', { jobId: job.id, progress });
       });
 
@@ -731,7 +742,7 @@ export class OptimizationQueue extends EventEmitter {
       );
 
       logger.info('Bull queue initialized successfully');
-    } catch (error) {
+    } catch (error: any) {
       logger.warn(
         `Failed to initialize Bull queue, falling back to in-memory: ${error}`
       );
@@ -744,7 +755,7 @@ export class OptimizationQueue extends EventEmitter {
    * Process a Bull job
    */
   private async processBullJob(bullJob: BullJob): Promise<unknown> {
-    const { templateId, template, request, options: _options } = bullJob.data;
+    const { templateId, template, request } = bullJob.data;
 
     try {
       // Update job progress
@@ -767,7 +778,7 @@ export class OptimizationQueue extends EventEmitter {
           ? result.error
           : 'Pipeline processing failed'
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Bull job processing failed: ${error}`);
       throw error;
     }
@@ -834,7 +845,7 @@ export class OptimizationQueue extends EventEmitter {
       try {
         await this.bullQueue.close();
         logger.info('Bull queue closed successfully');
-      } catch (error) {
+      } catch (error: any) {
         logger.warn(`Error closing Bull queue: ${error}`);
       }
     }

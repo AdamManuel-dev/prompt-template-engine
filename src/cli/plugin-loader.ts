@@ -239,7 +239,7 @@ export class PluginLoader {
       }
 
       return normalizedPath;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Path validation failed for ${dir}: ${String(error)}`);
       return null;
     }
@@ -295,7 +295,7 @@ export class PluginLoader {
 
           const plugins = await Promise.all(pluginPromises);
           return plugins.filter((plugin): plugin is Plugin => plugin !== null);
-        } catch (error) {
+        } catch (error: any) {
           logger.error(
             `Error scanning plugin directory ${dir}:${String(error)}`
           );
@@ -374,7 +374,7 @@ export class PluginLoader {
         path: pluginPath,
         loaded: false,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to load plugin metadata from ${pluginPath}:${String(error)}`
       );
@@ -434,7 +434,7 @@ export class PluginLoader {
         path: pluginPath,
         loaded: false,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to load plugin from package.json at ${pluginPath}:${String(
           error
@@ -541,7 +541,7 @@ export class PluginLoader {
       plugin.loaded = true;
       logger.info(`Loaded plugin: ${pluginName}`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       plugin.error = error instanceof Error ? error.message : String(error);
       logger.error(`Failed to load plugin ${pluginName}:${String(error)}`);
       return false;
@@ -606,7 +606,7 @@ export class PluginLoader {
             this.commandRegistry.register(command as ICommand);
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error(
           `Failed to load commands from ${modulePath}:${String(error)}`
         );

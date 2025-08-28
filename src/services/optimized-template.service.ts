@@ -19,6 +19,8 @@ import {
 } from './template.service';
 import { OptimizationPipeline } from '../core/optimization-pipeline';
 import { OptimizationQueue } from '../queues/optimization-queue';
+import { PromptOptimizationService } from './prompt-optimization.service';
+import { OptimizationCacheService } from './optimization-cache.service';
 import { logger } from '../utils/logger';
 import { convertServiceToIndexTemplate } from '../utils/template-converter';
 
@@ -29,7 +31,7 @@ import type {
   OptimizationSettings,
   OptimizationBatch,
   TemplateComparison,
-  // OptimizationJob as TypesOptimizationJob, // Commented out as unused
+  OptimizationJob,
   OptimizationMetrics,
 } from '../types/optimized-template.types';
 
@@ -38,9 +40,9 @@ import type {
   OptimizationRequest,
   PromptWizardService,
 } from '../integrations/promptwizard/types';
+import { PromptWizardClient } from '../integrations/promptwizard/client';
 
 import type { Template, TemplateFile } from '../types/index';
-import type { OptimizationJob } from '../queues/optimization-queue';
 
 export interface OptimizedTemplateServiceConfig {
   enableOptimization: boolean;
@@ -89,19 +91,35 @@ export class OptimizedTemplateService extends EventEmitter {
     this.templateService = new TemplateService({});
 
     // Initialize services - properly typed implementations
-    this.promptWizardService = new PromptWizardService();
+    this.promptWizardService = new PromptWizardClient({
+      baseUrl: process.env.PROMPT_WIZARD_BASE_URL || 'http://localhost:8080',
+      timeout: 30000,
+    } as any);
     this.cacheService = new CacheService<OptimizationResult>({
       maxSize: 100,
       ttl: 3600000,
     });
 
-    // Note: OptimizationPipeline needs proper service instances - simplified for now
-    // this.optimizationPipeline = new OptimizationPipeline(promptService, this.templateService, {});
+    // Initialize PromptOptimizationService first
+    const promptOptimizationService = new PromptOptimizationService(
+      this.promptWizardService as any,
+      this.templateService,
+      this.cacheService as unknown as CacheService<Record<string, unknown>>
+    );
+
+    // Initialize OptimizationPipeline with proper service instances
+    this.optimizationPipeline = new OptimizationPipeline(
+      promptOptimizationService,
+      this.templateService as any,
+      this.cacheService as unknown as CacheService<Record<string, unknown>>,
+      {}
+    );
     // Initialize OptimizationQueue with dependency injection pattern
     // Note: Full service dependencies would be injected in production
+    const optimizationCacheService = new OptimizationCacheService();
     this.optimizationQueue = new OptimizationQueue(
-      this.promptWizardService,
-      this.cacheService
+      this.optimizationPipeline,
+      optimizationCacheService
     );
 
     // Initialize cache
@@ -182,7 +200,7 @@ export class OptimizedTemplateService extends EventEmitter {
       );
 
       this.emit('optimization:queued', { templateId, jobId: job.jobId });
-      return job;
+      return job as unknown as OptimizedTemplate | OptimizationJob;
     }
     // Process immediately (simplified for now - would use actual pipeline)
     if (!this.optimizationPipeline) {
@@ -283,7 +301,7 @@ export class OptimizedTemplateService extends EventEmitter {
         })) as OptimizationJob;
 
         jobs.push(job);
-      } catch (error) {
+      } catch (error: any) {
         if (options.failFast) {
           throw error;
         }
@@ -302,11 +320,11 @@ export class OptimizedTemplateService extends EventEmitter {
       config: {
         concurrency: options.concurrency || 3,
         failFast: options.failFast || false,
-        context: context || {
-          templateId: '',
-          targetModel: 'gpt-4',
-          task: 'Default optimization task',
-        },
+        context: {
+          templateId: (context as any)?.templateId || '',
+          targetModel: (context as any)?.targetModel || 'gpt-4',
+          task: (context as any)?.task || 'batch optimization',
+        } as OptimizationContext,
       },
       createdAt: new Date(),
       // settings commented out as not in OptimizationBatch interface
@@ -555,6 +573,9 @@ export class OptimizedTemplateService extends EventEmitter {
   private shouldUseExistingOptimization(optimized: OptimizedTemplate): boolean {
     const lastOptimization =
       optimized.optimizationHistory[optimized.optimizationHistory.length - 1];
+    if (!lastOptimization) {
+      return false;
+    }
     const age = Date.now() - lastOptimization.timestamp.getTime();
     const maxAge =
       this.settings.global.maxOptimizationAge || 7 * 24 * 60 * 60 * 1000; // 7 days

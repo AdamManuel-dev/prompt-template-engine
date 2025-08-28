@@ -242,7 +242,7 @@ export class AuthorizationMiddleware {
         });
 
         return result;
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Authorization failed', error as Error);
         return this.createFailureResult('Authorization system error');
       }
@@ -401,11 +401,12 @@ export class AuthorizationMiddleware {
 
       // Check permission if specified
       if (permission) {
-        const permissionCheck = await this.requirePermission(
+        const permissionCheckFn = await this.requirePermission(
           permission,
           options.resourceType,
           { conditions: options.conditions }
-        )(request);
+        );
+        const permissionCheck = await permissionCheckFn(request);
 
         return permissionCheck;
       }
@@ -498,7 +499,7 @@ export class AuthorizationMiddleware {
         session,
         permissions: user.permissions,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Authentication extraction failed', error as Error);
       return this.createFailureResult('Authentication failed');
     }
@@ -540,7 +541,7 @@ export class AuthorizationMiddleware {
       }
 
       return this.createFailureResult('Insufficient permissions for resource');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Resource access check failed', error as Error);
       return this.createFailureResult('Resource access check error');
     }
@@ -617,7 +618,7 @@ export class AuthorizationMiddleware {
         default:
           return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Condition evaluation failed', error as Error);
       return false;
     }

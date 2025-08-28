@@ -57,11 +57,11 @@ export class AuthorRefactoredCommand extends BaseCommand {
         const args = action.split(' ');
         if (args.length === 1) {
           // Default to profile if only author ID provided
-          authorId = args[0];
+          authorId = args[0] || '';
           subAction = 'profile';
         } else {
-          subAction = args[0];
-          authorId = args[1];
+          subAction = args[0] || '';
+          authorId = args[1] || '';
         }
       }
 
@@ -79,7 +79,7 @@ export class AuthorRefactoredCommand extends BaseCommand {
       // Execute the appropriate subcommand
       const command = this.subCommands.get(subAction)!;
       await command.execute(authorId, options);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Author command failed: ${error instanceof Error ? error.message : String(error)}`
       );

@@ -250,7 +250,7 @@ export class RateLimiter extends EventEmitter {
         allowed: false,
         remaining: 0,
         resetTime: Date.now() + this.config.windowMs,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }

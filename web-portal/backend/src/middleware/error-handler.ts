@@ -31,7 +31,7 @@ export function errorHandler(
     method: req.method,
     url: req.originalUrl,
     error: error.message,
-    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    stack: process.env['NODE_ENV'] === 'development' ? error.stack : undefined,
     timestamp: new Date().toISOString(),
     userAgent: req.headers['user-agent'],
     ip: req.ip
@@ -72,7 +72,7 @@ export function errorHandler(
   }
 
   // Don't expose internal errors in production
-  if (statusCode === 500 && process.env.NODE_ENV === 'production') {
+  if (statusCode === 500 && process.env['NODE_ENV'] === 'production') {
     message = 'Internal server error';
   }
 
@@ -82,7 +82,7 @@ export function errorHandler(
     error: {
       code: errorCode,
       message,
-      ...(process.env.NODE_ENV === 'development' && { 
+      ...(process.env['NODE_ENV'] === 'development' && { 
         stack: error.stack,
         details: {
           originalMessage: error.message,

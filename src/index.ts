@@ -115,7 +115,7 @@ async function initializeServices(): Promise<void> {
       if (connected) {
         logger.info('Connected to Cursor IDE');
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.debug(`Cursor integration not available: ${String(error)}`);
     }
   }
@@ -164,7 +164,7 @@ function configureProgram(): void {
     .action(async (options: InitOptions) => {
       try {
         await initCommand(options);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -239,7 +239,7 @@ function configureProgram(): void {
             format: options.format as 'markdown' | 'plain' | 'json' | undefined,
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -261,7 +261,7 @@ function configureProgram(): void {
     .action(async (options: ListOptions) => {
       try {
         await listCommand(options);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -275,7 +275,7 @@ function configureProgram(): void {
     .action(async (template: string, options: ApplyOptions) => {
       try {
         await applyCommand(template, options);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -295,7 +295,7 @@ function configureProgram(): void {
     .action(async (templatePath: string, options: CLIValidateOptions) => {
       try {
         await validateCommand(templatePath, options);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -310,7 +310,7 @@ function configureProgram(): void {
     .action(async (options: CLIConfigOptions) => {
       try {
         await configCommand(options);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -331,7 +331,7 @@ function configureProgram(): void {
         }
         await cursorIntegration.sync();
         logger.success('Templates synced with Cursor IDE');
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -360,7 +360,7 @@ function configureProgram(): void {
 
         await cursorIntegration.inject(template, variables);
         logger.success(`Template ${template} injected into Cursor`);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -389,7 +389,7 @@ function configureProgram(): void {
 
         const templates = cursorIntegration.getTemplates();
         logger.info(`\nTemplates: ${templates.length} loaded`);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -425,7 +425,7 @@ function configureProgram(): void {
             logger.info(chalk.red(`  Error: ${plugin.error}`));
           }
         });
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -444,7 +444,7 @@ function configureProgram(): void {
           logger.error(`Failed to load plugin ${name}`);
           process.exit(1);
         }
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -463,7 +463,7 @@ function configureProgram(): void {
           logger.error(`Failed to unload plugin ${name}`);
           process.exit(1);
         }
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -497,7 +497,7 @@ function configureProgram(): void {
         try {
           const command = new MarketplaceSearchCommand();
           await command.execute(query || '', options);
-        } catch (error) {
+        } catch (error: any) {
           ErrorUtils.logError(error, logger);
           process.exit(ErrorUtils.getExitCode(error));
         }
@@ -516,7 +516,7 @@ function configureProgram(): void {
       try {
         const command = new MarketplaceInstallCommand();
         await command.execute(template, options);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -535,7 +535,7 @@ function configureProgram(): void {
       try {
         const command = new MarketplaceListCommand();
         await command.execute('', options);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -555,7 +555,7 @@ function configureProgram(): void {
         try {
           const command = new MarketplaceUpdateCommand();
           await command.execute(template || '', options);
-        } catch (error) {
+        } catch (error: any) {
           ErrorUtils.logError(error, logger);
           process.exit(ErrorUtils.getExitCode(error));
         }
@@ -572,7 +572,7 @@ function configureProgram(): void {
       try {
         const command = new MarketplaceInfoCommand();
         await command.execute(template, options);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -595,7 +595,7 @@ function configureProgram(): void {
             ...options,
             rating,
           });
-        } catch (error) {
+        } catch (error: any) {
           ErrorUtils.logError(error, logger);
           process.exit(ErrorUtils.getExitCode(error));
         }
@@ -625,7 +625,7 @@ function configureProgram(): void {
         try {
           const command = new MarketplacePublishCommand();
           await command.execute(templatePath || '.', options);
-        } catch (error) {
+        } catch (error: any) {
           ErrorUtils.logError(error, logger);
           process.exit(ErrorUtils.getExitCode(error));
         }
@@ -653,7 +653,7 @@ function configureProgram(): void {
         try {
           const command = new AuthorCommand();
           await command.execute(action, { ...options, author });
-        } catch (error) {
+        } catch (error: any) {
           ErrorUtils.logError(error, logger);
           process.exit(ErrorUtils.getExitCode(error));
         }
@@ -673,7 +673,7 @@ function configureProgram(): void {
     .action(async (options: PluginOptions) => {
       try {
         await pluginCommand(options);
-      } catch (error) {
+      } catch (error: any) {
         ErrorUtils.logError(error, logger);
         process.exit(ErrorUtils.getExitCode(error));
       }
@@ -722,7 +722,7 @@ async function main(): Promise<void> {
 
     // Parse arguments and execute commands
     await program.parseAsync(process.argv);
-  } catch (error) {
+  } catch (error: any) {
     ErrorUtils.logError(error, logger);
     process.exit(ErrorUtils.getExitCode(error));
   }

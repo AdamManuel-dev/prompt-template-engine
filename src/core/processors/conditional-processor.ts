@@ -210,7 +210,7 @@ export class ConditionalProcessor {
         const conditionMatch = fullMatch.match(/\{\{#if\s+([\w.@]+)\s*\}\}/);
 
         if (conditionMatch) {
-          const condition = conditionMatch[1];
+          const condition = conditionMatch[1]!; // Safe due to regex match check
           let content: string;
           let elseContent: string | undefined;
 
@@ -329,7 +329,7 @@ export class ConditionalProcessor {
         );
 
         if (conditionMatch) {
-          const condition = conditionMatch[1];
+          const condition = conditionMatch[1]!; // Safe due to regex match check
           let content: string;
           let elseContent: string | undefined;
 

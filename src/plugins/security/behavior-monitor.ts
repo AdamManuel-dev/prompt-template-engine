@@ -432,6 +432,7 @@ export class BehaviorMonitor extends EventEmitter {
 
       if (matches.length >= pattern.minimumOccurrences) {
         const lastEvent = events[events.length - 1];
+        if (!lastEvent) continue;
         this.recordEvent({
           type: 'suspicious-behavior',
           severity:
@@ -444,9 +445,8 @@ export class BehaviorMonitor extends EventEmitter {
           pluginName: lastEvent.pluginName,
           description: `Behavior pattern detected: ${pattern.name}`,
           metadata: {
-            pattern: pattern.id,
-            matches: matches.length,
-            indicators: pattern.indicators,
+            method: `pattern:${pattern.id}`,
+            parameters: [matches.length, pattern.indicators],
           },
         });
 
@@ -515,6 +515,7 @@ export class BehaviorMonitor extends EventEmitter {
 
       if (anomaly.detected) {
         const lastEvent = events[events.length - 1];
+        if (!lastEvent) continue;
         this.recordEvent({
           type: 'suspicious-behavior',
           severity: anomaly.confidence > 0.8 ? 'high' : 'warning',
@@ -522,8 +523,8 @@ export class BehaviorMonitor extends EventEmitter {
           pluginName: lastEvent.pluginName,
           description: `Frequency anomaly detected for ${type}: ${anomaly.description}`,
           metadata: {
-            anomaly,
-            baseline,
+            method: 'frequency-anomaly',
+            parameters: [anomaly, baseline],
           },
         });
       }
@@ -534,13 +535,17 @@ export class BehaviorMonitor extends EventEmitter {
     for (const anomaly of timingAnomalies) {
       if (anomaly.detected) {
         const lastEvent = events[events.length - 1];
+        if (!lastEvent) continue;
         this.recordEvent({
           type: 'timing-attack',
           severity: 'high',
           executionId,
           pluginName: lastEvent.pluginName,
           description: `Timing anomaly detected: ${anomaly.description}`,
-          metadata: { anomaly },
+          metadata: {
+            method: 'timing-anomaly',
+            parameters: [anomaly],
+          },
         });
       }
     }
@@ -665,7 +670,14 @@ export class BehaviorMonitor extends EventEmitter {
     // Check for rapid-fire events (potential automated attack)
     const intervals: number[] = [];
     for (let i = 1; i < events.length; i++) {
-      intervals.push(events[i].timestamp - events[i - 1].timestamp);
+      const current = events[i];
+      const previous = events[i - 1];
+      if (
+        current?.timestamp !== undefined &&
+        previous?.timestamp !== undefined
+      ) {
+        intervals.push(current.timestamp - previous.timestamp);
+      }
     }
 
     const avgInterval =
@@ -696,7 +708,10 @@ export class BehaviorMonitor extends EventEmitter {
     executionId: string,
     events: SecurityEvent[]
   ): Promise<ThreatAssessment> {
-    const pluginName = events.length > 0 ? events[0].pluginName : 'unknown';
+    const pluginName =
+      events.length > 0 && events[0]?.pluginName
+        ? events[0].pluginName
+        : 'unknown';
     let overallRiskScore = 0;
     const indicators: ThreatIndicator[] = [];
     const recommendations: string[] = [];
@@ -869,6 +884,7 @@ export class BehaviorMonitor extends EventEmitter {
     if (automatedActions.length === 0) return;
 
     const action = automatedActions[0];
+    if (!action) return;
 
     // Record the action
     validActions.push({ action, timestamp: now });

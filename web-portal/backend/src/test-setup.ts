@@ -9,6 +9,6 @@
  */
 
 // Set test environment variables
-process.env.NODE_ENV = 'test'
-process.env.JWT_SECRET = 'test-secret-key-for-testing-only'
-process.env.TEST_DATABASE_URL = 'postgresql://test:test@localhost:5432/cursor_prompt_test'
+process.env['NODE_ENV'] = 'test'
+process.env['JWT_SECRET'] = 'test-secret-key-for-testing-only'
+process.env['TEST_DATABASE_URL'] = 'postgresql://test:test@localhost:5432/cursor_prompt_test'

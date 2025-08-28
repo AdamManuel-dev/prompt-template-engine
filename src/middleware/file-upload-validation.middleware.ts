@@ -12,15 +12,11 @@ import { z } from 'zod';
 import * as crypto from 'crypto';
 import * as path from 'path';
 import * as mime from 'mime-types';
-import { ValidationError } from '../errors';
 import {
   SecurePathSchema,
-  SecureStringSchema,
-  customValidators,
   EnhancedValidator,
-  SecurityValidationResult,
+  FileValidationResult,
 } from '../validation/schemas';
-import { securityService } from './security.middleware';
 import { logger } from '../utils/logger';
 
 /**
@@ -169,42 +165,13 @@ export const FileUploadSchema = z.object({
   destination: SecurePathSchema.optional(),
 });
 
-/**
- * File validation result
- */
-export interface FileValidationResult extends SecurityValidationResult {
-  fileInfo: {
-    filename: string;
-    size: number;
-    mimetype: string;
-    extension: string;
-    hash: string;
-    isExecutable: boolean;
-    containsMalware: boolean;
-    isCompressed: boolean;
-  };
-  securityChecks: {
-    pathTraversalCheck: boolean;
-    mimeTypeCheck: boolean;
-    extensionCheck: boolean;
-    contentValidation: boolean;
-    virusScan: boolean;
-    sizeValidation: boolean;
-  };
-  sanitizedFilename?: string;
-  quarantined: boolean;
-}
+// Remove duplicate interface - use the one from schemas.ts
 
 /**
  * File upload validation middleware
  */
 export class FileUploadValidationMiddleware {
   private config: FileUploadConfig;
-
-  private uploadStats: Map<
-    string,
-    { count: number; totalSize: number; lastUpload: Date }
-  > = new Map();
 
   constructor(config: Partial<FileUploadConfig> = {}) {
     this.config = { ...DEFAULT_FILE_UPLOAD_CONFIG, ...config };
@@ -215,10 +182,13 @@ export class FileUploadValidationMiddleware {
    */
   async validateFile(file: any): Promise<FileValidationResult> {
     const validationResult: FileValidationResult = {
-      valid: true,
+      isValid: true,
       errors: [],
       warnings: [],
-      threatLevel: 'low',
+      securityLevel: 'safe',
+      threatLevel: 'safe',
+      threats: [],
+      safe: true,
       fileInfo: {
         filename: file.filename || file.originalname || 'unknown',
         size: file.size || 0,
@@ -246,10 +216,11 @@ export class FileUploadValidationMiddleware {
         FileUploadSchema,
         file
       );
-      if (!schemaValidation.valid) {
-        validationResult.valid = false;
+      if (!schemaValidation.isValid) {
+        validationResult.isValid = false;
         validationResult.errors.push(...schemaValidation.errors);
-        validationResult.threatLevel = 'medium';
+        validationResult.securityLevel = 'warning';
+        validationResult.threatLevel = 'warning';
       }
 
       // Extract file information
@@ -257,12 +228,12 @@ export class FileUploadValidationMiddleware {
       const extension = path.extname(filename).toLowerCase();
       const buffer = file.buffer || null;
 
-      validationResult.fileInfo.filename = filename;
-      validationResult.fileInfo.extension = extension;
+      validationResult.fileInfo!.filename = filename;
+      validationResult.fileInfo!.extension = extension;
 
       // Generate file hash
       if (buffer) {
-        validationResult.fileInfo.hash = crypto
+        validationResult.fileInfo!.hash = crypto
           .createHash('sha256')
           .update(buffer)
           .digest('hex');
@@ -271,12 +242,13 @@ export class FileUploadValidationMiddleware {
       // 1. Path traversal validation
       if (this.config.enablePathValidation) {
         const pathValidation = this.validateFilePath(filename);
-        validationResult.securityChecks.pathTraversalCheck =
+        validationResult.securityChecks!.pathTraversalCheck =
           pathValidation.safe;
 
         if (!pathValidation.safe) {
           validationResult.errors.push(...pathValidation.threats);
-          validationResult.threatLevel = 'high';
+          validationResult.securityLevel = 'danger';
+          validationResult.threatLevel = 'danger';
         } else {
           validationResult.sanitizedFilename = pathValidation.sanitizedFilename;
         }
@@ -284,30 +256,32 @@ export class FileUploadValidationMiddleware {
 
       // 2. File size validation
       const sizeValidation = this.validateFileSize(file.size);
-      validationResult.securityChecks.sizeValidation = sizeValidation.valid;
+      validationResult.securityChecks!.sizeValidation = sizeValidation.valid;
 
       if (!sizeValidation.valid) {
         validationResult.errors.push(...sizeValidation.errors);
-        validationResult.threatLevel = 'medium';
+        validationResult.threatLevel = 'warning';
       }
 
       // 3. MIME type validation
       const mimeValidation = this.validateMimeType(file.mimetype, extension);
-      validationResult.securityChecks.mimeTypeCheck = mimeValidation.valid;
+      validationResult.securityChecks!.mimeTypeCheck = mimeValidation.valid;
 
       if (!mimeValidation.valid) {
         validationResult.errors.push(...mimeValidation.errors);
-        validationResult.threatLevel = 'high';
+        validationResult.securityLevel = 'danger';
+        validationResult.threatLevel = 'danger';
       }
 
       // 4. File extension validation
       const extensionValidation = this.validateFileExtension(extension);
-      validationResult.securityChecks.extensionCheck =
+      validationResult.securityChecks!.extensionCheck =
         extensionValidation.valid;
 
       if (!extensionValidation.valid) {
         validationResult.errors.push(...extensionValidation.errors);
-        validationResult.threatLevel = 'high';
+        validationResult.securityLevel = 'danger';
+        validationResult.threatLevel = 'danger';
       }
 
       // 5. Content validation (if buffer available)
@@ -317,11 +291,13 @@ export class FileUploadValidationMiddleware {
           file.mimetype,
           extension
         );
-        validationResult.securityChecks.contentValidation =
+        validationResult.securityChecks!.contentValidation =
           contentValidation.valid;
 
-        validationResult.fileInfo.isExecutable = contentValidation.isExecutable;
-        validationResult.fileInfo.isCompressed = contentValidation.isCompressed;
+        validationResult.fileInfo!.isExecutable =
+          contentValidation.isExecutable;
+        validationResult.fileInfo!.isCompressed =
+          contentValidation.isCompressed;
 
         if (!contentValidation.valid) {
           validationResult.errors.push(...contentValidation.threats);
@@ -332,35 +308,34 @@ export class FileUploadValidationMiddleware {
       // 6. Virus scanning (if enabled)
       if (buffer && this.config.enableVirusScanning) {
         const virusValidation = await this.scanForViruses(buffer, filename);
-        validationResult.securityChecks.virusScan = virusValidation.clean;
-        validationResult.fileInfo.containsMalware = !virusValidation.clean;
+        validationResult.securityChecks!.virusScan = virusValidation.clean;
+        validationResult.fileInfo!.containsMalware = !virusValidation.clean;
 
         if (!virusValidation.clean) {
           validationResult.errors.push(...virusValidation.threats);
-          validationResult.threatLevel = 'critical';
+          validationResult.securityLevel = 'danger';
+          validationResult.threatLevel = 'danger';
           validationResult.quarantined = true;
         }
       }
 
       // Final validation result
-      validationResult.valid = validationResult.errors.length === 0;
+      validationResult.isValid = validationResult.errors.length === 0;
 
-      // Quarantine file if critical threats detected
-      if (
-        validationResult.threatLevel === 'critical' ||
-        validationResult.threatLevel === 'high'
-      ) {
+      // Quarantine file if dangerous threats detected
+      if (validationResult.securityLevel === 'danger') {
         validationResult.quarantined = true;
       }
 
       return validationResult;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('File validation error:', error);
       return {
         ...validationResult,
-        valid: false,
+        isValid: false,
         errors: [`File validation error: ${(error as Error).message}`],
-        threatLevel: 'critical',
+        securityLevel: 'danger',
+        threatLevel: 'danger',
       };
     }
   }
@@ -495,12 +470,12 @@ export class FileUploadValidationMiddleware {
   ): Promise<{
     valid: boolean;
     threats: string[];
-    threatLevel: 'low' | 'medium' | 'high' | 'critical';
+    threatLevel: 'safe' | 'warning' | 'danger';
     isExecutable: boolean;
     isCompressed: boolean;
   }> {
     const threats: string[] = [];
-    let threatLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+    let threatLevel: 'safe' | 'warning' | 'danger' = 'safe';
     let isExecutable = false;
     let isCompressed = false;
 
@@ -514,7 +489,7 @@ export class FileUploadValidationMiddleware {
 
     if (!magicValidation.valid) {
       threats.push(...magicValidation.threats);
-      threatLevel = 'high';
+      threatLevel = 'danger';
     }
 
     isExecutable = magicValidation.isExecutable;
@@ -559,8 +534,8 @@ export class FileUploadValidationMiddleware {
    */
   private validateFileMagicBytes(
     magicBytes: Buffer,
-    mimetype: string,
-    extension: string
+    _mimetype: string,
+    _extension: string
   ): {
     valid: boolean;
     threats: string[];
@@ -622,15 +597,15 @@ export class FileUploadValidationMiddleware {
   private validateTextContent(content: string): {
     safe: boolean;
     threats: string[];
-    threatLevel: 'low' | 'medium' | 'high' | 'critical';
+    threatLevel: 'safe' | 'warning' | 'danger';
   } {
     const threats: string[] = [];
-    let threatLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+    let threatLevel: 'safe' | 'warning' | 'danger' = 'safe';
 
     // Check for script tags
     if (/<script[^>]*>.*?<\/script>/gis.test(content)) {
       threats.push('Embedded script tags detected');
-      threatLevel = 'high';
+      threatLevel = 'danger';
     }
 
     // Check for JavaScript functions
@@ -645,7 +620,7 @@ export class FileUploadValidationMiddleware {
     for (const pattern of jsPatterns) {
       if (pattern.test(content)) {
         threats.push('Dangerous JavaScript functions detected');
-        threatLevel = 'high';
+        threatLevel = 'danger';
         break;
       }
     }
@@ -661,7 +636,7 @@ export class FileUploadValidationMiddleware {
     for (const pattern of shellPatterns) {
       if (pattern.test(content)) {
         threats.push('Shell command injection patterns detected');
-        threatLevel = 'critical';
+        threatLevel = 'danger';
         break;
       }
     }
@@ -675,15 +650,15 @@ export class FileUploadValidationMiddleware {
   private validateBinaryContent(buffer: Buffer): {
     safe: boolean;
     threats: string[];
-    threatLevel: 'low' | 'medium' | 'high' | 'critical';
+    threatLevel: 'safe' | 'warning' | 'danger';
   } {
     const threats: string[] = [];
-    let threatLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+    let threatLevel: 'safe' | 'warning' | 'danger' = 'safe';
 
     // Check for embedded PE headers
     if (buffer.includes(Buffer.from('MZ'))) {
       threats.push('PE executable header found in binary data');
-      threatLevel = 'high';
+      threatLevel = 'danger';
     }
 
     // Check for script languages in binary
@@ -697,7 +672,7 @@ export class FileUploadValidationMiddleware {
     for (const marker of scriptMarkers) {
       if (buffer.includes(Buffer.from(marker))) {
         threats.push(`Script marker found in binary: ${marker}`);
-        threatLevel = 'medium';
+        threatLevel = 'warning';
       }
     }
 
@@ -709,7 +684,7 @@ export class FileUploadValidationMiddleware {
    */
   private async scanForViruses(
     buffer: Buffer,
-    filename: string
+    _filename: string
   ): Promise<{
     clean: boolean;
     threats: string[];
@@ -785,9 +760,9 @@ export class FileUploadValidationMiddleware {
             const result = await this.validateFile(file);
             validationResults.push(result);
 
-            if (!result.valid) {
+            if (!result.isValid) {
               logger.warn('File validation failed:', {
-                filename: result.fileInfo.filename,
+                filename: result.fileInfo?.filename,
                 errors: result.errors,
                 threatLevel: result.threatLevel,
               });
@@ -796,18 +771,15 @@ export class FileUploadValidationMiddleware {
                 // Move file to quarantine (implementation would depend on file storage)
                 logger.error(
                   'File quarantined due to security threats:',
-                  result.fileInfo.filename
+                  result.fileInfo?.filename
                 );
               }
 
-              if (
-                result.threatLevel === 'critical' ||
-                result.threatLevel === 'high'
-              ) {
+              if (result.securityLevel === 'danger') {
                 return res.status(400).json({
                   error: 'File validation failed',
                   details: result.errors,
-                  threatLevel: result.threatLevel,
+                  threatLevel: result.securityLevel,
                 });
               }
             }
@@ -816,7 +788,7 @@ export class FileUploadValidationMiddleware {
 
         req.fileValidationResults = validationResults;
         next();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('File validation middleware error:', error);
         res.status(500).json({
           error: 'File validation error',

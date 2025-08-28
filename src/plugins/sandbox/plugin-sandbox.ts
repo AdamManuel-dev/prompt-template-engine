@@ -312,7 +312,7 @@ export class PluginSandbox {
           this.terminateWorker(executionId);
           resolve({
             success: false,
-            error: error.message,
+            error: error instanceof Error ? error.message : String(error),
             stats: {
               executionTime: Date.now() - startTime,
               memoryUsed: 0,
@@ -336,7 +336,7 @@ export class PluginSandbox {
             });
           }
         });
-      } catch (error) {
+      } catch (error: any) {
         reject(error);
       }
     });
@@ -426,7 +426,7 @@ export class PluginSandbox {
       worker.postMessage({
         type: 'error',
         id: message.id,
-        data: error.message,
+        data: error instanceof Error ? error.message : String(error),
       });
     }
   }

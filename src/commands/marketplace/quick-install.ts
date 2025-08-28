@@ -56,9 +56,9 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
 
   description = 'One-click template installation with smart defaults';
 
-  aliases = ['qi', 'fast-install', 'add-now'];
+  override aliases = ['qi', 'fast-install', 'add-now'];
 
-  options = [
+  override options = [
     {
       flags: '--no-confirm',
       description: 'Skip all confirmation prompts',
@@ -86,7 +86,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     },
   ];
 
-  async action(args: unknown, options: unknown): Promise<void> {
+  override async action(args: unknown, options: unknown): Promise<void> {
     await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
@@ -149,7 +149,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
       // Step 4: Show success and next steps
       const duration = Date.now() - startTime;
       this.showSuccessMessage(template, duration);
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `One-click installation failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -202,6 +202,11 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     );
 
     const selectedTemplate = exactMatch || bestMatch;
+
+    if (!selectedTemplate) {
+      this.error(`No valid template found for "${templateName}"`);
+      return null;
+    }
 
     if (options.showProgress) {
       logger.info(
@@ -298,7 +303,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
         chalk.green(`\n✓ Template updated successfully in ${duration}ms!`)
       );
       QuickInstallCommand.showUsageInfo(template);
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Update failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -313,7 +318,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
     );
 
     return stableVersions.length > 0
-      ? stableVersions[0].version
+      ? stableVersions[0]!.version
       : template.currentVersion;
   }
 

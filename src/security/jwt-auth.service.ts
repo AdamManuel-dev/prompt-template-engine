@@ -10,6 +10,7 @@
 
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
+import type { StringValue } from 'ms';
 import { logger } from '../utils/logger';
 
 export interface JWTPayload {
@@ -82,7 +83,7 @@ export interface JWTAuthConfig {
  * try {
  *   const payload = await authService.verifyToken(token);
  *   console.log('User:', payload.username, 'Roles:', payload.roles);
- * } catch (error) {
+ * } catch (error: any) {
  *   console.error('Token verification failed:', error.message);
  * }
  *
@@ -169,13 +170,26 @@ export class JWTAuthService {
       };
 
       // Generate access token
-      const accessToken = jwt.sign(payload, this.config.jwtSecret, {
-        expiresIn: this.config.accessTokenExpiry,
-        algorithm: this.config.algorithm,
-      });
+      const accessOptions: jwt.SignOptions = {
+        expiresIn: (typeof this.config.accessTokenExpiry === 'string'
+          ? this.config.accessTokenExpiry
+          : '24h') as StringValue | number,
+        algorithm: this.config.algorithm as jwt.Algorithm,
+      };
+      const accessToken = jwt.sign(
+        payload,
+        this.config.jwtSecret,
+        accessOptions
+      );
 
       // Generate refresh token
       const refreshJti = crypto.randomUUID();
+      const refreshOptions: jwt.SignOptions = {
+        expiresIn: (typeof this.config.refreshTokenExpiry === 'string'
+          ? this.config.refreshTokenExpiry
+          : '7d') as StringValue | number,
+        algorithm: this.config.algorithm as jwt.Algorithm,
+      };
       const refreshToken = jwt.sign(
         {
           sub: user.id,
@@ -184,10 +198,7 @@ export class JWTAuthService {
           sessionId,
         },
         this.config.jwtSecret,
-        {
-          expiresIn: this.config.refreshTokenExpiry,
-          algorithm: this.config.algorithm,
-        }
+        refreshOptions
       );
 
       // Store refresh token metadata
@@ -234,7 +245,7 @@ export class JWTAuthService {
         expiresIn,
         tokenType: 'Bearer',
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to generate JWT token pair', error as Error);
       throw new Error('Token generation failed');
     }
@@ -293,7 +304,7 @@ export class JWTAuthService {
         valid: true,
         payload,
       };
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof jwt.TokenExpiredError) {
         return {
           valid: false,
@@ -379,7 +390,7 @@ export class JWTAuthService {
       });
 
       return newTokenPair;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Token refresh failed', error as Error);
       return null;
     }
@@ -419,7 +430,7 @@ export class JWTAuthService {
       });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Token revocation failed', error as Error);
       return false;
     }
@@ -494,7 +505,7 @@ export class JWTAuthService {
         roles: payload.roles || [],
         permissions: payload.permissions || [],
       };
-    } catch (error) {
+    } catch (error: any) {
       return null;
     }
   }
@@ -507,8 +518,10 @@ export class JWTAuthService {
     if (userTokens && userTokens.size >= this.config.maxTokensPerUser) {
       // Remove oldest token (implement LRU if needed)
       const oldestToken = Array.from(userTokens)[0];
-      this.revokedTokens.add(oldestToken);
-      userTokens.delete(oldestToken);
+      if (oldestToken) {
+        this.revokedTokens.add(oldestToken);
+        userTokens.delete(oldestToken);
+      }
 
       logger.info('Token limit enforced, oldest token revoked', {
         userId,
@@ -536,14 +549,18 @@ export class JWTAuthService {
       throw new Error(`Invalid time format: ${timeStr}`);
     }
 
-    const value = parseInt(match[1], 10);
+    const value = parseInt(match[1]!, 10);
     const unit = match[2];
 
-    if (!units[unit]) {
+    if (!units[unit!]) {
       throw new Error(`Unknown time unit: ${unit}`);
     }
 
-    return value * units[unit];
+    const unitValue = units[unit!];
+    if (unitValue === undefined) {
+      throw new Error(`Unknown time unit: ${unit}`);
+    }
+    return value * unitValue;
   }
 
   private async getUserData(userId: string): Promise<{

@@ -233,7 +233,7 @@ export class MarketplaceOptimizationService {
 
       // Enhance templates with optimization features
       return this.enhanceTemplatesWithOptimization(results.templates);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get optimized templates:', error);
       throw error;
     }
@@ -256,7 +256,7 @@ export class MarketplaceOptimizationService {
         .slice(0, limit);
 
       return this.enhanceTemplatesWithOptimization(optimized);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get featured optimized templates:', error);
       throw error;
     }
@@ -280,7 +280,7 @@ export class MarketplaceOptimizationService {
         .slice(0, limit);
 
       return this.enhanceTemplatesWithOptimization(optimized);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get trending optimized templates:', error);
       throw error;
     }
@@ -308,7 +308,7 @@ export class MarketplaceOptimizationService {
         const scoreB = b.optimizationFeatures?.qualityScore || 0;
         return scoreB - scoreA;
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get quality leaderboard:', error);
       throw error;
     }
@@ -333,7 +333,7 @@ export class MarketplaceOptimizationService {
       };
 
       return this.getOptimizedTemplates(filters, limit);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get performance champions:', error);
       throw error;
     }
@@ -357,7 +357,7 @@ export class MarketplaceOptimizationService {
       };
 
       return this.getOptimizedTemplates(filters, limit);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get cost-effective templates:', error);
       throw error;
     }
@@ -399,7 +399,7 @@ export class MarketplaceOptimizationService {
       } as TemplateSearchResult & {
         optimizationMetadata: Record<string, unknown>;
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to search optimized templates:', error);
       throw error;
     }
@@ -465,7 +465,7 @@ export class MarketplaceOptimizationService {
         performanceMetrics,
         topPerformers,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to get optimization statistics:', error);
       throw error;
     }
@@ -497,7 +497,7 @@ export class MarketplaceOptimizationService {
 
       // Update template's optimization features with new ratings
       // Implementation would depend on the data storage mechanism
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to rate optimization:', error);
       throw error;
     }

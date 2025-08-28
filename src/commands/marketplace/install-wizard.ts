@@ -25,9 +25,9 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
 
   description = 'Guided template installation with smart recommendations';
 
-  aliases = ['wizard', 'guided-install'];
+  override aliases = ['wizard', 'guided-install'];
 
-  options = [
+  override options = [
     {
       flags: '--category <category>',
       description: 'Start with specific category',
@@ -44,7 +44,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     },
   ];
 
-  async action(args: unknown, options: unknown): Promise<void> {
+  override async action(args: unknown, options: unknown): Promise<void> {
     await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
@@ -59,7 +59,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
       );
 
       await this.runWizard(options);
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Installation wizard failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -263,6 +263,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
 
         if (searchResult.templates.length > 0) {
           const template = searchResult.templates[0];
+          if (!template) continue;
           logger.info(
             `📦 ${chalk.cyan(template.displayName || template.name)}`
           );
@@ -332,6 +333,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
 
     if (selectedIndex >= 0 && selectedIndex < categories.length) {
       const selected = categories[selectedIndex];
+      if (!selected) return '';
       logger.info(chalk.green(`\n✓ Selected: ${selected.name}\n`));
       return selected.value === 'other' ? '' : selected.value;
     }
@@ -415,6 +417,10 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
     }
 
     const selectedTemplate = templates[selectedIndex];
+    if (!selectedTemplate) {
+      logger.info(chalk.red('Invalid template selection.'));
+      return;
+    }
 
     // Show detailed template information
     await this.showTemplateDetails(
@@ -466,7 +472,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
       logger.info(
         `   • Get help: ${chalk.green(`cursor-prompt help ${selectedTemplate.name}`)}`
       );
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Installation failed: ${error instanceof Error ? error.message : String(error)}`
       );

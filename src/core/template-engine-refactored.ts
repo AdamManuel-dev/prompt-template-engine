@@ -169,7 +169,7 @@ export class TemplateEngineRefactored {
 
       // Finally process variables
       return this.variableProcessor.processVariables(processed, context);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Template rendering failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -278,7 +278,7 @@ export class TemplateEngineRefactored {
         const parsedArgs = this.parseHelperArgs(args, context);
         const result = this.helpers.execute(helperName, parsedArgs);
         return String(result);
-      } catch (error) {
+      } catch (error: any) {
         logger.error(
           `Helper ${helperName} failed: ${error instanceof Error ? error.message : String(error)}`
         );

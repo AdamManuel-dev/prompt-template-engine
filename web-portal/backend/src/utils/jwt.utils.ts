@@ -36,10 +36,10 @@ export interface RefreshTokenPayload {
 // Token configuration
 const ACCESS_TOKEN_EXPIRY = '24h'; // 24 hours
 const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
+const JWT_SECRET = process.env['JWT_SECRET'] || 'your-secret-key';
+const REFRESH_SECRET = process.env['JWT_REFRESH_SECRET'] || 'your-refresh-secret-key';
 
-if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+if (!process.env['JWT_SECRET'] || !process.env['JWT_REFRESH_SECRET']) {
   console.warn('JWT secrets not configured properly. Using default values for development.');
 }
 

@@ -1,7 +1,7 @@
 /**
  * @fileoverview Design token display component for Figma integration
  * @lastmodified 2025-08-28T10:30:00Z
- * 
+ *
  * Features: Token visualization, categorization, template mapping, export options
  * Main APIs: DesignTokenDisplay, TokenGroup, TokenItem, MapToTemplate
  * Constraints: Large token sets, performance optimization, visual clarity
@@ -33,7 +33,7 @@ import {
   MenuItem,
   Alert,
   Skeleton,
-  Badge
+  Badge,
 } from '@mui/material';
 import {
   ExpandMore,
@@ -48,14 +48,14 @@ import {
   SpaceBar,
   Layers,
   Code,
-  PlayArrow
+  PlayArrow,
 } from '@mui/icons-material';
-import { 
-  DesignToken, 
-  ColorToken, 
-  TypographyToken, 
+import {
+  DesignToken,
+  ColorToken,
+  TypographyToken,
   SpacingToken,
-  FigmaTemplateParameter 
+  FigmaTemplateParameter,
 } from '@cursor-prompt/shared';
 
 interface DesignTokenDisplayProps {
@@ -82,28 +82,28 @@ const TOKEN_TYPE_CONFIG = {
   color: {
     label: 'Colors',
     icon: <Palette />,
-    color: '#f59e0b'
+    color: '#f59e0b',
   },
   typography: {
     label: 'Typography',
     icon: <TextFields />,
-    color: '#3b82f6'
+    color: '#3b82f6',
   },
   spacing: {
     label: 'Spacing',
     icon: <SpaceBar />,
-    color: '#10b981'
+    color: '#10b981',
   },
   shadow: {
     label: 'Shadows',
     icon: <Layers />,
-    color: '#8b5cf6'
+    color: '#8b5cf6',
   },
   border: {
     label: 'Borders',
     icon: <Code />,
-    color: '#ef4444'
-  }
+    color: '#ef4444',
+  },
 };
 
 export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
@@ -115,31 +115,42 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
   onExport,
   showMapping = false,
   compact = false,
-  className
+  className,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(Object.keys(TOKEN_TYPE_CONFIG));
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['color', 'typography']);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(
+    Object.keys(TOKEN_TYPE_CONFIG)
+  );
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([
+    'color',
+    'typography',
+  ]);
   const [selectedTokens, setSelectedTokens] = useState<Set<string>>(new Set());
-  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
+  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
 
   // Group and filter tokens
   const tokenGroups = useMemo((): TokenGroup[] => {
     const filteredTokens = tokens.filter(token => {
-      const matchesSearch = token.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           token.category?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch =
+        token.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        token.category?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = selectedTypes.includes(token.type);
       return matchesSearch && matchesType;
     });
 
     const groups: TokenGroup[] = [];
-    const groupedTokens = filteredTokens.reduce((acc, token) => {
-      if (!acc[token.type]) {
-        acc[token.type] = [];
-      }
-      acc[token.type].push(token);
-      return acc;
-    }, {} as Record<string, DesignToken[]>);
+    const groupedTokens = filteredTokens.reduce(
+      (acc, token) => {
+        if (!acc[token.type]) {
+          acc[token.type] = [];
+        }
+        acc[token.type].push(token);
+        return acc;
+      },
+      {} as Record<string, DesignToken[]>
+    );
 
     Object.entries(groupedTokens).forEach(([type, tokens]) => {
       const config = TOKEN_TYPE_CONFIG[type as keyof typeof TOKEN_TYPE_CONFIG];
@@ -149,7 +160,7 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
           label: config.label,
           icon: config.icon,
           tokens: tokens.sort((a, b) => a.name.localeCompare(b.name)),
-          count: tokens.length
+          count: tokens.length,
         });
       }
     });
@@ -184,7 +195,7 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
     setSelectedTokens(prev => {
       const newSet = new Set(prev);
       const allSelected = group.tokens.every(token => newSet.has(token.id));
-      
+
       if (allSelected) {
         // Deselect all in group
         group.tokens.forEach(token => newSet.delete(token.id));
@@ -192,16 +203,17 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
         // Select all in group
         group.tokens.forEach(token => newSet.add(token.id));
       }
-      
+
       return newSet;
     });
   };
 
   const handleCopyToken = async (token: DesignToken) => {
-    const value = typeof token.value === 'object' 
-      ? JSON.stringify(token.value, null, 2)
-      : token.value.toString();
-    
+    const value =
+      typeof token.value === 'object'
+        ? JSON.stringify(token.value, null, 2)
+        : token.value.toString();
+
     await navigator.clipboard.writeText(value);
     console.log(`Copied token ${token.name}: ${value}`);
   };
@@ -212,15 +224,22 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
   };
 
   const handleMapToTemplate = () => {
-    const selectedTokensList = tokens.filter(token => selectedTokens.has(token.id));
-    const mappings: FigmaTemplateParameter[] = selectedTokensList.map(token => ({
-      key: token.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(),
-      value: typeof token.value === 'object' ? JSON.stringify(token.value) : token.value.toString(),
-      source: 'design-token',
-      figmaNodeId: token.figmaNodeId,
-      tokenId: token.id
-    }));
-    
+    const selectedTokensList = tokens.filter(token =>
+      selectedTokens.has(token.id)
+    );
+    const mappings: FigmaTemplateParameter[] = selectedTokensList.map(
+      token => ({
+        key: token.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(),
+        value:
+          typeof token.value === 'object'
+            ? JSON.stringify(token.value)
+            : token.value.toString(),
+        source: 'design-token',
+        figmaNodeId: token.figmaNodeId,
+        tokenId: token.id,
+      })
+    );
+
     onMapToTemplate?.(mappings);
   };
 
@@ -230,7 +249,13 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
         <Skeleton variant="rectangular" width="100%" height={200} />
         <Box sx={{ mt: 2 }}>
           {[...Array(3)].map((_, index) => (
-            <Skeleton key={index} variant="text" width="100%" height={60} sx={{ mb: 1 }} />
+            <Skeleton
+              key={index}
+              variant="text"
+              width="100%"
+              height={60}
+              sx={{ mb: 1 }}
+            />
           ))}
         </Box>
       </Box>
@@ -270,7 +295,7 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
               Design Tokens ({tokens.length})
             </Typography>
-            
+
             {selectedTokens.size > 0 && (
               <Badge badgeContent={selectedTokens.size} color="primary">
                 <Button
@@ -289,7 +314,7 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
               variant="outlined"
               size="small"
               startIcon={<Download />}
-              onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+              onClick={e => setExportMenuAnchor(e.currentTarget)}
             >
               Export
             </Button>
@@ -301,17 +326,17 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
               size="small"
               placeholder="Search tokens..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
                     <Search />
                   </InputAdornment>
-                )
+                ),
               }}
               sx={{ flexGrow: 1 }}
             />
-            
+
             <Tooltip title="Filter by type">
               <IconButton>
                 <FilterList />
@@ -328,7 +353,7 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
                   <Switch
                     size="small"
                     checked={selectedTypes.includes(type)}
-                    onChange={(e) => {
+                    onChange={e => {
                       if (e.target.checked) {
                         setSelectedTypes(prev => [...prev, type]);
                       } else {
@@ -339,8 +364,8 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
                 }
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {React.cloneElement(config.icon, { 
-                      sx: { fontSize: 16, color: config.color } 
+                    {React.cloneElement(config.icon, {
+                      sx: { fontSize: 16, color: config.color },
                     })}
                     <Typography variant="body2">{config.label}</Typography>
                   </Box>
@@ -352,40 +377,50 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
       </Card>
 
       {/* Token Groups */}
-      {tokenGroups.map((group) => (
+      {tokenGroups.map(group => (
         <Accordion
           key={group.type}
           expanded={expandedGroups.includes(group.type)}
           onChange={() => handleGroupExpand(group.type)}
         >
           <AccordionSummary expandIcon={<ExpandMore />}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                flexGrow: 1,
+              }}
+            >
               {React.cloneElement(group.icon, {
-                sx: { color: TOKEN_TYPE_CONFIG[group.type as keyof typeof TOKEN_TYPE_CONFIG]?.color }
+                sx: {
+                  color:
+                    TOKEN_TYPE_CONFIG[
+                      group.type as keyof typeof TOKEN_TYPE_CONFIG
+                    ]?.color,
+                },
               })}
               <Typography variant="h6">{group.label}</Typography>
-              <Chip
-                label={group.count}
-                size="small"
-                variant="outlined"
-              />
+              <Chip label={group.count} size="small" variant="outlined" />
               {showMapping && (
                 <Button
                   size="small"
-                  onClick={(e) => {
+                  onClick={e => {
                     e.stopPropagation();
                     handleSelectAll(group.type);
                   }}
                   sx={{ ml: 'auto', mr: 1 }}
                 >
-                  {group.tokens.every(token => selectedTokens.has(token.id)) ? 'Deselect All' : 'Select All'}
+                  {group.tokens.every(token => selectedTokens.has(token.id))
+                    ? 'Deselect All'
+                    : 'Select All'}
                 </Button>
               )}
             </Box>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
             <List dense={compact}>
-              {group.tokens.map((token) => (
+              {group.tokens.map(token => (
                 <TokenItem
                   key={token.id}
                   token={token}
@@ -408,15 +443,9 @@ export const DesignTokenDisplay: React.FC<DesignTokenDisplayProps> = ({
         open={Boolean(exportMenuAnchor)}
         onClose={() => setExportMenuAnchor(null)}
       >
-        <MenuItem onClick={() => handleExport('json')}>
-          Export as JSON
-        </MenuItem>
-        <MenuItem onClick={() => handleExport('css')}>
-          Export as CSS
-        </MenuItem>
-        <MenuItem onClick={() => handleExport('scss')}>
-          Export as SCSS
-        </MenuItem>
+        <MenuItem onClick={() => handleExport('json')}>Export as JSON</MenuItem>
+        <MenuItem onClick={() => handleExport('css')}>Export as CSS</MenuItem>
+        <MenuItem onClick={() => handleExport('scss')}>Export as SCSS</MenuItem>
       </Menu>
     </Box>
   );
@@ -439,7 +468,7 @@ const TokenItem: React.FC<TokenItemProps> = ({
   compact,
   onToggle,
   onSelect,
-  onCopy
+  onCopy,
 }) => {
   const renderTokenValue = () => {
     switch (token.type) {
@@ -454,7 +483,7 @@ const TokenItem: React.FC<TokenItemProps> = ({
                 backgroundColor: colorToken.value,
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 1
+                borderRadius: 1,
               }}
             />
             <Typography variant="body2" fontFamily="monospace">
@@ -462,7 +491,7 @@ const TokenItem: React.FC<TokenItemProps> = ({
             </Typography>
           </Box>
         );
-      
+
       case 'typography':
         const typographyToken = token as TypographyToken;
         const typoValue = typographyToken.value;
@@ -474,17 +503,21 @@ const TokenItem: React.FC<TokenItemProps> = ({
                 fontFamily: typoValue.fontFamily,
                 fontSize: Math.min(typoValue.fontSize, 16),
                 fontWeight: typoValue.fontWeight,
-                lineHeight: typoValue.lineHeight
+                lineHeight: typoValue.lineHeight,
               }}
             >
               {typoValue.fontFamily} {typoValue.fontSize}px
             </Typography>
-            <Typography variant="caption" color="text.secondary" fontFamily="monospace">
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              fontFamily="monospace"
+            >
               {typoValue.fontWeight} / {typoValue.lineHeight}
             </Typography>
           </Box>
         );
-      
+
       case 'spacing':
         const spacingToken = token as SpacingToken;
         return (
@@ -494,7 +527,7 @@ const TokenItem: React.FC<TokenItemProps> = ({
                 width: Math.min(spacingToken.value * 2, 60),
                 height: 8,
                 backgroundColor: 'primary.main',
-                borderRadius: 1
+                borderRadius: 1,
               }}
             />
             <Typography variant="body2" fontFamily="monospace">
@@ -502,12 +535,12 @@ const TokenItem: React.FC<TokenItemProps> = ({
             </Typography>
           </Box>
         );
-      
+
       default:
         return (
           <Typography variant="body2" fontFamily="monospace">
-            {typeof token.value === 'object' 
-              ? JSON.stringify(token.value) 
+            {typeof token.value === 'object'
+              ? JSON.stringify(token.value)
               : token.value.toString()}
           </Typography>
         );
@@ -525,21 +558,21 @@ const TokenItem: React.FC<TokenItemProps> = ({
         ...(selected && {
           backgroundColor: 'action.selected',
           '&:hover': {
-            backgroundColor: 'action.selected'
-          }
-        })
+            backgroundColor: 'action.selected',
+          },
+        }),
       }}
     >
       {showMapping && (
         <Switch
           edge="start"
           checked={selected}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
           onChange={onToggle}
           size="small"
         />
       )}
-      
+
       <ListItemText
         primary={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -558,14 +591,18 @@ const TokenItem: React.FC<TokenItemProps> = ({
           <Box sx={{ mt: 0.5 }}>
             {renderTokenValue()}
             {token.description && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: 'block', mt: 0.5 }}
+              >
                 {token.description}
               </Typography>
             )}
           </Box>
         }
       />
-      
+
       <ListItemSecondaryAction>
         <Tooltip title="Copy value">
           <IconButton edge="end" size="small" onClick={onCopy}>

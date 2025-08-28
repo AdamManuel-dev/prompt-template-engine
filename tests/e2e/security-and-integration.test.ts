@@ -23,7 +23,7 @@ const execAsync = promisify(exec);
 jest.setTimeout(60000);
 
 // Reduce memory usage by limiting concurrency
-process.env.UV_THREADPOOL_SIZE = '4';
+process.env['UV_THREADPOOL_SIZE'] = '4';
 
 // Mock rate limiter to avoid open handles from intervals
 jest.mock('../../src/middleware/rate-limiter', () => {
@@ -285,12 +285,12 @@ Result: {{command}}`;
       });
 
       it('should validate API keys and tokens', async () => {
-        process.env.MARKETPLACE_API_KEY = 'valid-key-123';
+        process.env['MARKETPLACE_API_KEY'] = 'valid-key-123';
 
         // Test with valid key
         // Implementation-dependent behavior
 
-        delete process.env.MARKETPLACE_API_KEY;
+        delete process.env['MARKETPLACE_API_KEY'];
 
         // Test without key
         // Should handle gracefully or limit functionality
@@ -747,7 +747,7 @@ module.exports = {
 
     it('should handle network failures gracefully', async () => {
       // Simulate network failure for marketplace
-      process.env.MARKETPLACE_URL = 'http://invalid.localhost:99999';
+      process.env['MARKETPLACE_URL'] = 'http://invalid.localhost:99999';
 
       try {
         await execAsync(
@@ -758,7 +758,7 @@ module.exports = {
         expect(error.stderr).toMatch(/network|connection|marketplace/i);
       }
 
-      delete process.env.MARKETPLACE_URL;
+      delete process.env['MARKETPLACE_URL'];
     });
 
     it('should create backups before destructive operations', async () => {

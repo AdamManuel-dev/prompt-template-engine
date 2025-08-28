@@ -10,7 +10,6 @@
 
 import * as crypto from 'crypto';
 import { logger } from '../utils/logger';
-import { securityService } from '../middleware/security.middleware';
 
 export interface SessionData {
   sessionId: string;
@@ -106,9 +105,9 @@ export class SessionManagerService {
 
   private config: SessionConfig;
 
-  private securityCheckTimer: ReturnType<typeof setInterval>;
+  private securityCheckTimer!: ReturnType<typeof setInterval>;
 
-  private cleanupTimer: ReturnType<typeof setInterval>;
+  private cleanupTimer!: ReturnType<typeof setInterval>;
 
   constructor(config: Partial<SessionConfig> = {}) {
     this.config = {
@@ -227,7 +226,7 @@ export class SessionManagerService {
       });
 
       return sessionData;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Session creation failed', error as Error);
       throw new Error('Session creation failed');
     }
@@ -351,7 +350,7 @@ export class SessionManagerService {
         securityIssues: securityIssues.length > 0 ? securityIssues : undefined,
         requiresAction,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Session validation failed', error as Error);
       return { valid: false, error: 'Session validation failed' };
     }
@@ -407,7 +406,7 @@ export class SessionManagerService {
       });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Session termination failed', error as Error);
       return false;
     }
@@ -431,7 +430,16 @@ export class SessionManagerService {
 
     for (const sessionId of sessionIds) {
       if (sessionId !== excludeSessionId) {
-        const success = await this.terminateSession(sessionId, reason);
+        const success = await this.terminateSession(
+          sessionId,
+          reason as
+            | 'admin'
+            | 'security'
+            | 'expired'
+            | 'logout'
+            | 'idle_timeout'
+            | 'max_duration_exceeded'
+        );
         if (success) {
           terminatedCount++;
         }
@@ -549,7 +557,7 @@ export class SessionManagerService {
     return deviceInfo;
   }
 
-  private updateDeviceRiskScore(device: DeviceInfo, clientInfo: any): void {
+  private updateDeviceRiskScore(device: DeviceInfo, _clientInfo: any): void {
     // Decrease risk score for consistent usage
     const daysSinceFirstSeen =
       (Date.now() - device.firstSeen.getTime()) / (24 * 60 * 60 * 1000);
@@ -570,7 +578,7 @@ export class SessionManagerService {
       .filter((session): session is SessionData => session !== undefined)
       .sort((a, b) => a.lastAccessAt.getTime() - b.lastAccessAt.getTime());
 
-    if (sessions.length > 0) {
+    if (sessions.length > 0 && sessions[0]) {
       await this.terminateSession(sessions[0].sessionId, 'security');
       logger.info('Session terminated due to concurrent session limit', {
         userId,
@@ -610,10 +618,6 @@ export class SessionManagerService {
 
     // Check for rapid location changes (if location tracking enabled)
     if (this.config.enableLocationTracking && session.location) {
-      const recentActivities = this.sessionActivities
-        .filter(a => a.sessionId === session.sessionId)
-        .slice(-5);
-
       // Add more sophisticated anomaly detection here
     }
 

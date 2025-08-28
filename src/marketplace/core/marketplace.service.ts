@@ -227,7 +227,7 @@ export class MarketplaceService
 
       // Initialize manifest from database or create default
       await this.initializeManifest();
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to initialize marketplace database: ${error}`);
       // Fallback to file-based initialization
       await this.initializeManifest();
@@ -342,7 +342,7 @@ export class MarketplaceService
       this.setCache(cacheKey, result, 5 * 60 * 1000); // 5 minutes cache
       this.emit('search:completed', { query, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Marketplace search failed: ${error}`);
       this.emit('search:error', { query, error });
       throw error;
@@ -381,7 +381,7 @@ export class MarketplaceService
 
       this.emit('template:fetched', { templateId, template });
       return template;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to fetch template ${templateId}: ${error}`);
       this.emit('template:error', { templateId, error });
       throw error;
@@ -470,7 +470,7 @@ export class MarketplaceService
         warnings: [],
       };
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to install template ${templateId}: ${error}`);
       this.emit('install:error', { templateId, version, error });
       throw error;
@@ -541,7 +541,7 @@ export class MarketplaceService
         warnings: [],
       };
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to update template ${templateId}: ${error}`);
       this.emit('update:error', { templateId, version, error });
       throw error;
@@ -576,7 +576,7 @@ export class MarketplaceService
 
       this.emit('uninstall:completed', { templateId });
       logger.info(`Template ${templateId} uninstalled successfully`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to uninstall template ${templateId}: ${error}`);
       this.emit('uninstall:error', { templateId, error });
       throw error;
@@ -600,7 +600,7 @@ export class MarketplaceService
 
       this.emit('rating:submitted', { templateId, rating, review });
       logger.info(`Rating submitted for template ${templateId}: ${rating}/5`);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to rate template ${templateId}: ${error}`);
       this.emit('rating:error', { templateId, rating, error });
       throw error;
@@ -676,7 +676,7 @@ export class MarketplaceService
           throw new Error(`Template "${templateQuery}" not found`);
         }
 
-        [template] = searchResult.templates;
+        template = searchResult.templates[0]!;
       }
 
       // Use smart version selection
@@ -732,15 +732,15 @@ export class MarketplaceService
         const installIndex = this.manifest.templates.findIndex(
           t => t.templateId === template.id
         );
-        if (installIndex >= 0) {
-          this.manifest.templates[installIndex].autoUpdate = true;
+        if (installIndex >= 0 && this.manifest.templates[installIndex]) {
+          this.manifest.templates[installIndex]!.autoUpdate = true;
           await this.saveManifest();
         }
       }
 
       this.emit('quick-install:completed', { template, installation });
       return { template, installation };
-    } catch (error) {
+    } catch (error: any) {
       this.emit('quick-install:error', { templateQuery, options, error });
       throw error;
     }
@@ -809,7 +809,7 @@ export class MarketplaceService
 
         installedDeps.push(depInstallation);
         logger.info(`Installed dependency: ${dep.name}@${dep.version}`);
-      } catch (error) {
+      } catch (error: any) {
         if (!dep.optional) {
           throw new Error(
             `Failed to install required dependency ${dep.name}: ${error}`
@@ -970,7 +970,7 @@ export class MarketplaceService
       v => !v.version.includes('-') && !v.deprecated
     );
 
-    if (stableVersions.length > 0) {
+    if (stableVersions.length > 0 && stableVersions[0]) {
       return stableVersions[0].version;
     }
 
@@ -1006,7 +1006,7 @@ export class MarketplaceService
           try {
             // In a real implementation, we would fetch the dependency's template info
             // For now, we'll just add the direct dependency
-          } catch (error) {
+          } catch (error: any) {
             logger.warn(
               `Failed to resolve nested dependencies for ${dep.name}: ${error}`
             );
@@ -1060,7 +1060,7 @@ export class MarketplaceService
       this.setCache(cacheKey, result, 5 * 60 * 1000); // 5 minutes
       this.emit('search:tags', { tags, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Search by tags failed: ${error}`);
       this.emit('search:tags:error', { tags, error });
       throw error;
@@ -1107,7 +1107,7 @@ export class MarketplaceService
       this.setCache(cacheKey, result, 5 * 60 * 1000); // 5 minutes
       this.emit('search:category', { category, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Search by category failed: ${error}`);
       this.emit('search:category:error', { category, error });
       throw error;
@@ -1153,7 +1153,7 @@ export class MarketplaceService
       this.setCache(cacheKey, result, 10 * 60 * 1000); // 10 minutes
       this.emit('popular:fetched', { limit, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Get popular templates failed: ${error}`);
       this.emit('popular:error', { limit, error });
       throw error;
@@ -1202,7 +1202,7 @@ export class MarketplaceService
       this.setCache(cacheKey, result, 10 * 60 * 1000); // 10 minutes
       this.emit('topRated:fetched', { limit, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Get top rated templates failed: ${error}`);
       this.emit('topRated:error', { limit, error });
       throw error;
@@ -1246,7 +1246,7 @@ export class MarketplaceService
       this.setCache(cacheKey, result, 10 * 60 * 1000); // 10 minutes
       this.emit('byAuthor:fetched', { author, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Get templates by author failed: ${error}`);
       this.emit('byAuthor:error', { author, error });
       throw error;
@@ -1301,7 +1301,7 @@ export class MarketplaceService
       this.setCache(cacheKey, result, 5 * 60 * 1000); // 5 minutes (trending changes fast)
       this.emit('trending:fetched', { hours, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Get trending templates failed: ${error}`);
       this.emit('trending:error', { hours, error });
       throw error;
@@ -1370,7 +1370,7 @@ export class MarketplaceService
 
       this.emit('installTemplate:completed', { id, targetPath, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to install template to ${targetPath}: ${error}`);
       this.emit('installTemplate:error', { id, targetPath, error });
       throw error;
@@ -1427,7 +1427,7 @@ export class MarketplaceService
               success: true,
               result,
             };
-          } catch (error) {
+          } catch (error: any) {
             const errorResult = {
               id,
               success: false,
@@ -1478,7 +1478,7 @@ export class MarketplaceService
             template: result.template,
             installation: result.installation,
           };
-        } catch (error) {
+        } catch (error: any) {
           const errorResult = {
             templateQuery,
             success: false,
@@ -1547,7 +1547,7 @@ export class MarketplaceService
                 latestVersion: template.currentVersion,
               });
             }
-          } catch (error) {
+          } catch (error: any) {
             logger.warn(
               `Failed to check updates for template ${installation.templateId}: ${error}`
             );
@@ -1584,7 +1584,7 @@ export class MarketplaceService
             }
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.warn(`Could not read installed path ${installedPath}: ${error}`);
       }
 
@@ -1608,7 +1608,7 @@ export class MarketplaceService
               });
             }
           }
-        } catch (error) {
+        } catch (error: any) {
           logger.warn(`Failed to check updates for ${templateId}: ${error}`);
         }
       }
@@ -1623,7 +1623,7 @@ export class MarketplaceService
 
       this.emit('checkUpdates:completed', { installedPath, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Check updates failed: ${error}`);
       this.emit('checkUpdates:error', { installedPath, error });
       throw error;
@@ -1685,7 +1685,7 @@ export class MarketplaceService
         ...updateResult,
         duration: Date.now() - startTime,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to update template ${id}: ${error}`);
       this.emit('updateTemplate:error', { id, installedPath, error });
       throw error;
@@ -1742,7 +1742,7 @@ export class MarketplaceService
             oldVersion: update.currentVersion,
             newVersion: update.latestVersion,
           });
-        } catch (error) {
+        } catch (error: any) {
           failed.push({
             templateId: update.templateId,
             error: error instanceof Error ? error.message : String(error),
@@ -1758,7 +1758,7 @@ export class MarketplaceService
 
       this.emit('updateAll:completed', { result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Update all templates failed: ${error}`);
       this.emit('updateAll:error', { installedPath, error });
       throw error;
@@ -1815,8 +1815,8 @@ export class MarketplaceService
           const installIndex = this.manifest.templates.findIndex(
             t => t.templateId === id
           );
-          if (installIndex >= 0) {
-            this.manifest.templates[installIndex].version = version;
+          if (installIndex >= 0 && this.manifest.templates[installIndex]) {
+            this.manifest.templates[installIndex]!.version = version;
             await this.saveManifest();
           }
         }
@@ -1851,7 +1851,7 @@ export class MarketplaceService
 
       this.emit('rollback:completed', { id, version, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Rollback failed for ${id}@${version}: ${error}`);
       this.emit('rollback:error', { id, version, error });
       throw error;
@@ -1923,7 +1923,7 @@ export class MarketplaceService
 
       this.emit('rateTemplate:completed', { id, rating, userId, result });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to rate template ${id}: ${error}`);
       this.emit('rateTemplate:error', { id, rating, userId, error });
       throw error;
@@ -1977,7 +1977,7 @@ export class MarketplaceService
 
       this.emit('addReview:completed', { id, review: createdReview });
       return createdReview;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to add review for template ${id}: ${error}`);
       this.emit('addReview:error', { id, review, error });
       throw error;
@@ -2020,7 +2020,7 @@ export class MarketplaceService
       this.setCache(cacheKey, reviews, 5 * 60 * 1000); // 5 minutes
       this.emit('getReviews:completed', { id, reviews });
       return reviews;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to get reviews for template ${id}: ${error}`);
       this.emit('getReviews:error', { id, error });
       throw error;
@@ -2070,7 +2070,7 @@ export class MarketplaceService
       this.invalidateCache('trending');
 
       this.emit('recordDownload:completed', { id });
-    } catch (error) {
+    } catch (error: any) {
       logger.warn(`Failed to record download for ${id}: ${error}`);
       // Don't throw error as this is non-critical
     }
@@ -2105,7 +2105,7 @@ export class MarketplaceService
 
       this.emit('getCacheSize:completed', { totalSize });
       return totalSize;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to get cache size: ${error}`);
       throw error;
     }
@@ -2139,7 +2139,7 @@ export class MarketplaceService
 
       logger.info('All caches cleared successfully');
       this.emit('clearCache:completed');
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to clear cache: ${error}`);
       this.emit('clearCache:error', { error });
       throw error;
@@ -2262,7 +2262,7 @@ export class MarketplaceService
         version: result.version,
         url: result.url,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to publish template: ${error}`);
 
       // Emit publish error event

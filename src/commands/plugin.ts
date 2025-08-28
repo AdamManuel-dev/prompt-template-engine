@@ -273,7 +273,7 @@ async function linkDevPlugin(
     logger.info('');
     logger.info('💡 Run plugin discovery to load the plugin:');
     logger.info('   cursor-prompt plugin --list');
-  } catch (error) {
+  } catch (error: any) {
     logger.error(chalk.red('❌ Failed to link development plugin'));
     if (error instanceof Error) {
       logger.error(chalk.red(error.message));
@@ -330,7 +330,7 @@ export async function pluginCommand(options: PluginOptions): Promise<void> {
       // Default: show help
       showPluginHelp();
     }
-  } catch (error) {
+  } catch (error: any) {
     logger.error(chalk.red('❌ Plugin command failed'));
     if (error instanceof Error) {
       logger.error(chalk.red(error.message));

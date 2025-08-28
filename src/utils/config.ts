@@ -381,7 +381,7 @@ export async function loadConfig(configPath?: string): Promise<Config> {
     config = resolveConfigPaths(config, configFilePath);
 
     return config;
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof ConfigError) {
       throw error;
     } else if (error instanceof SyntaxError) {
@@ -429,7 +429,7 @@ export async function writeConfig(
     await fs.writeFile(configPath, configJson);
 
     logger.debug(`Configuration written to: ${configPath}`);
-  } catch (error) {
+  } catch (error: any) {
     throw new ConfigError(
       `Failed to write configuration: ${(error as Error).message}`,
       undefined,
@@ -474,7 +474,10 @@ export async function getConfigFilePath(
   }
 
   // Use default location
-  return path.join(process.cwd(), CONFIG_FILE_NAMES[0]);
+  return path.join(
+    process.cwd(),
+    CONFIG_FILE_NAMES[0] || '.cursor-prompt-template'
+  );
 }
 
 /**

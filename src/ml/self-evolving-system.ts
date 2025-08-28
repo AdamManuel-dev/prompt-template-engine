@@ -86,7 +86,7 @@ export class SelfEvolvingSystem extends EventEmitter {
   constructor(
     optimizationService: PromptOptimizationService,
     templateService: TemplateService,
-    cacheService: CacheService
+    cacheService: CacheService<PerformanceMetric[]>
   ) {
     super();
     this.optimizationService = optimizationService;
@@ -266,7 +266,7 @@ export class SelfEvolvingSystem extends EventEmitter {
       this.emit('evolution:completed', evolutionResult);
 
       return evolutionResult;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Evolution failed for template: ${templateId} - ${error}`);
       this.emit('evolution:failed', { templateId, error });
 
@@ -374,7 +374,8 @@ export class SelfEvolvingSystem extends EventEmitter {
     if (!versions || versions.length === 0) {
       return '1.0.0';
     }
-    return versions[versions.length - 1].version;
+    const lastVersion = versions[versions.length - 1];
+    return lastVersion?.version ?? '1.0.0';
   }
 
   /**

@@ -9,15 +9,11 @@
  */
 
 import { z } from 'zod';
-import { ValidationError } from '../errors';
 import {
   EnhancedValidator,
   SecurityValidationResult,
   ValidationContext,
   SecureStringSchema,
-  SecurePathSchema,
-  SecureUrlSchema,
-  customValidators,
 } from '../validation/schemas';
 import { securityService } from './security.middleware';
 import { logger } from '../utils/logger';
@@ -177,12 +173,14 @@ export class ApiValidationMiddleware {
           ipAddress: req.ip,
           timestamp: new Date(),
           requestId: req.id || `req_${Date.now()}`,
-          securityLevel: this.config.securityLevel,
+          source: req.originalUrl || req.url || 'unknown',
         };
 
         // Rate limiting check
         if (this.config.enableRateLimiting) {
-          const rateLimitResult = this.rateLimiter.isAllowed(context.clientId);
+          const rateLimitResult = this.rateLimiter.isAllowed(
+            context.clientId || 'unknown'
+          );
           if (!rateLimitResult.allowed) {
             this.logSecurityEvent({
               type: 'rate_limit',
@@ -201,15 +199,12 @@ export class ApiValidationMiddleware {
         }
 
         // Validate request structure
-        const requestValidation = await this.validateRequest(req, context);
-        if (!requestValidation.valid) {
-          if (
-            requestValidation.threatLevel === 'critical' ||
-            requestValidation.threatLevel === 'high'
-          ) {
+        const requestValidation = await this.validateRequest(req);
+        if (!requestValidation.isValid) {
+          if (requestValidation.threatLevel === 'danger') {
             this.logSecurityEvent({
               type: 'suspicious_content',
-              severity: requestValidation.threatLevel,
+              severity: 'high',
               clientIp: context.ipAddress,
               userAgent: context.userAgent,
               details: `Request validation failed: ${requestValidation.errors.join(', ')}`,
@@ -228,18 +223,14 @@ export class ApiValidationMiddleware {
 
         // Validate request body if present
         if (req.body && Object.keys(req.body).length > 0) {
-          const bodyValidation = await this.validateRequestBody(
-            req.body,
-            context
-          );
+          const bodyValidation = await this.validateRequestBody(req.body);
           if (
-            !bodyValidation.valid &&
-            (bodyValidation.threatLevel === 'high' ||
-              bodyValidation.threatLevel === 'critical')
+            !bodyValidation.isValid &&
+            bodyValidation.threatLevel === 'danger'
           ) {
             this.logSecurityEvent({
               type: 'suspicious_content',
-              severity: bodyValidation.threatLevel,
+              severity: 'high',
               clientIp: context.ipAddress,
               userAgent: context.userAgent,
               details: `Request body validation failed: ${bodyValidation.errors.join(', ')}`,
@@ -319,14 +310,14 @@ export class ApiValidationMiddleware {
         }
 
         // Add validation context to request
-        req.validationContext = context;
+        req.isValidationContext = context;
         req.securityHeaders = securityService.getSecureHeaders({
           enableCSP: true,
           enableHSTS: true,
         });
 
         next();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('API validation middleware error:', error);
         res.status(500).json({
           error: 'Internal validation error',
@@ -338,10 +329,7 @@ export class ApiValidationMiddleware {
   /**
    * Validate API request structure
    */
-  private async validateRequest(
-    req: any,
-    context: ValidationContext
-  ): Promise<SecurityValidationResult> {
+  private async validateRequest(req: any): Promise<SecurityValidationResult> {
     const requestData = {
       method: req.method,
       url: req.originalUrl || req.url,
@@ -354,35 +342,32 @@ export class ApiValidationMiddleware {
       contentType: req.headers['content-type'],
     };
 
-    return EnhancedValidator.validate(
-      ApiRequestValidationSchema,
-      requestData,
-      context
-    );
+    return EnhancedValidator.validate(ApiRequestValidationSchema, requestData);
   }
 
   /**
    * Validate request body with deep security scanning
    */
   private async validateRequestBody(
-    body: any,
-    context: ValidationContext
+    body: any
   ): Promise<SecurityValidationResult> {
     // Check request body size
     const bodySize = JSON.stringify(body).length;
     if (bodySize > this.config.maxRequestSize) {
       return {
-        valid: false,
+        isValid: false,
         errors: [
           `Request body too large: ${bodySize} bytes (max ${this.config.maxRequestSize})`,
         ],
         warnings: [],
-        threatLevel: 'medium',
+        threatLevel: 'warning',
+        securityLevel: 'warning',
+        threats: [`Request body too large: ${bodySize} bytes`],
       };
     }
 
     // Perform deep security scan
-    return EnhancedValidator.validate(z.unknown(), body, context);
+    return EnhancedValidator.validate(z.unknown(), body);
   }
 
   /**
@@ -587,8 +572,8 @@ export function createApiValidationMiddleware(
  */
 export function ValidateApiEndpoint(schema: z.ZodSchema<any>) {
   return function (
-    target: any,
-    propertyKey: string,
+    _target: any,
+    _propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
@@ -603,7 +588,7 @@ export function ValidateApiEndpoint(schema: z.ZodSchema<any>) {
           body: req.body,
         });
 
-        if (!validationResult.valid) {
+        if (!validationResult.isValid) {
           return res.status(400).json({
             error: 'Validation failed',
             details: validationResult.errors,
@@ -619,7 +604,7 @@ export function ValidateApiEndpoint(schema: z.ZodSchema<any>) {
         }
 
         return originalMethod.apply(this, args);
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Validation decorator error:', error);
         return res.status(500).json({
           error: 'Internal validation error',

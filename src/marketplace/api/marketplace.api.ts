@@ -354,7 +354,7 @@ export class MarketplaceAPI {
         // eslint-disable-next-line no-await-in-loop
         const response = await this.makeRequest<T>(method, endpoint, data);
         return response;
-      } catch (error) {
+      } catch (error: any) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt === this.config.retryAttempts) {

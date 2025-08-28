@@ -495,7 +495,7 @@ export class TokenReductionOptimizer {
         outputTokens: tokenCount, // Estimate
         totalCost: inputCost + outputCost,
         platform,
-        model: platform.split('-')[1],
+        model: platform.split('-')[1] || platform,
       };
     }
 

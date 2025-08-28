@@ -213,7 +213,7 @@ Format your response as a JSON array of optimization suggestions:
   private async callOpenAI(prompt: string): Promise<string> {
     try {
       const { OpenAI } = await import('openai');
-      const apiKey = process.env.OPENAI_API_KEY;
+      const apiKey = process.env['OPENAI_API_KEY'];
       
       if (!apiKey) {
         throw new Error('OPENAI_API_KEY environment variable not set');
@@ -237,7 +237,7 @@ Format your response as a JSON array of optimization suggestions:
   private async callAnthropic(prompt: string): Promise<string> {
     try {
       const { Anthropic } = await import('@anthropic-ai/sdk');
-      const apiKey = process.env.ANTHROPIC_API_KEY;
+      const apiKey = process.env['ANTHROPIC_API_KEY'];
       
       if (!apiKey) {
         throw new Error('ANTHROPIC_API_KEY environment variable not set');

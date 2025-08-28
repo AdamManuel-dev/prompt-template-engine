@@ -106,7 +106,7 @@ export class FileEncryptionService {
       const originalHash = cryptoService.generateHash(originalContent);
 
       // Encrypt the file
-      const cipher = crypto.createCipherGCM('aes-256-gcm', key, iv);
+      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
       const encryptedContent = Buffer.concat([
         cipher.update(originalContent),
         cipher.final(),
@@ -143,7 +143,7 @@ export class FileEncryptionService {
         encryptedPath: resolvedOutputPath,
         metadata,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('File encryption failed', error as Error);
       return {
         success: false,
@@ -179,8 +179,8 @@ export class FileEncryptionService {
       const iv = Buffer.from(metadata.iv, 'hex');
       const authTag = Buffer.from(metadata.authTag, 'hex');
 
-      const decipher = crypto.createDecipherGCM(metadata.algorithm, key, iv);
-      decipher.setAuthTag(authTag);
+      const decipher = crypto.createDecipheriv(metadata.algorithm, key, iv);
+      (decipher as any).setAuthTag(authTag);
 
       const decryptedContent = Buffer.concat([
         decipher.update(encryptedContent),
@@ -205,7 +205,7 @@ export class FileEncryptionService {
         encryptedPath: resolvedOutputPath,
         metadata,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('File decryption failed', error as Error);
       return {
         success: false,
@@ -244,7 +244,7 @@ export class FileEncryptionService {
       logger.info(
         `Template encryption completed: ${encrypted.length} encrypted, ${failed.length} failed`
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Template directory encryption failed', error as Error);
     }
 
@@ -282,7 +282,7 @@ export class FileEncryptionService {
       logger.info(
         `Template decryption completed: ${decrypted.length} decrypted, ${failed.length} failed`
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Template directory decryption failed', error as Error);
     }
 
@@ -300,7 +300,7 @@ export class FileEncryptionService {
       const key = await this.deriveFileKey(this.fileKeyId);
       const iv = crypto.randomBytes(16);
 
-      const cipher = crypto.createCipherGCM('aes-256-gcm', key, iv);
+      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
       const inputStream = (await import('fs')).createReadStream(inputPath);
       const outputStream = (await import('fs')).createWriteStream(outputPath, {
@@ -309,7 +309,7 @@ export class FileEncryptionService {
 
       // Create encryption transform
       const encryptTransform = new Transform({
-        transform(chunk, encoding, callback) {
+        transform(chunk, _encoding, callback) {
           callback(null, cipher.update(chunk));
         },
         flush(callback) {
@@ -354,7 +354,7 @@ export class FileEncryptionService {
         encryptedPath: outputPath,
         metadata,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Stream encryption failed', error as Error);
       return {
         success: false,
@@ -379,7 +379,7 @@ export class FileEncryptionService {
       const expectedSize = metadata.fileSize + 32; // Original size + overhead
 
       return Math.abs(stats.size - expectedSize) < 100; // Allow some variance
-    } catch (error) {
+    } catch (error: any) {
       logger.error('File integrity verification failed', error as Error);
       return false;
     }
@@ -400,7 +400,7 @@ export class FileEncryptionService {
       const newKeyId = cryptoService.rotateKeyPair(this.fileKeyId).keyId;
 
       // Re-encrypt all files with new key
-      for (const [encryptedPath, metadata] of this.metadataStore.entries()) {
+      for (const [encryptedPath, _metadata] of this.metadataStore.entries()) {
         try {
           // Decrypt with old key
           const decryptResult = await this.decryptFile(encryptedPath);
@@ -425,7 +425,7 @@ export class FileEncryptionService {
           } else {
             failed.push(encryptedPath);
           }
-        } catch (error) {
+        } catch (error: any) {
           logger.error(
             `Key rotation failed for file: ${encryptedPath}`,
             error as Error
@@ -437,7 +437,7 @@ export class FileEncryptionService {
       logger.info(
         `Key rotation completed: ${rotated.length} rotated, ${failed.length} failed`
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Key rotation process failed', error as Error);
     }
 
@@ -510,12 +510,14 @@ export class FileEncryptionService {
 
     // Use the key ID as input to HKDF
     const keyMaterial = Buffer.from(keyId, 'utf8');
-    return crypto.hkdfSync(
-      'sha384',
-      keyMaterial,
-      Buffer.from('file-salt'),
-      Buffer.from('file-encryption'),
-      32
+    return Buffer.from(
+      crypto.hkdfSync(
+        'sha384',
+        keyMaterial,
+        Buffer.from('file-salt'),
+        Buffer.from('file-encryption'),
+        32
+      )
     );
   }
 
@@ -584,7 +586,7 @@ export class FileEncryptionService {
           files.push(fullPath);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to read directory: ${directoryPath}`,
         error as Error
@@ -616,7 +618,7 @@ export class FileEncryptionService {
           files.push(fullPath);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to read directory: ${directoryPath}`,
         error as Error
@@ -664,7 +666,7 @@ export class FileEncryptionService {
 
       this.metadataStore.set(encryptedPath, metadata);
       return metadata;
-    } catch (error) {
+    } catch (error: any) {
       logger.warn(
         `Failed to load metadata for: ${encryptedPath}`,
         error as Error

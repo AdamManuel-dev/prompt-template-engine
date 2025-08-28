@@ -25,9 +25,9 @@ export class ListCommand extends BaseCommand implements ICommand {
 
   description = 'List installed templates';
 
-  aliases = ['ls', 'installed'];
+  override aliases = ['ls', 'installed'];
 
-  options = [
+  override options = [
     {
       flags: '--detailed',
       description: 'Show detailed template information',
@@ -58,7 +58,7 @@ export class ListCommand extends BaseCommand implements ICommand {
     },
   ];
 
-  async action(args: unknown, options: unknown): Promise<void> {
+  override async action(args: unknown, options: unknown): Promise<void> {
     await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
@@ -116,7 +116,7 @@ export class ListCommand extends BaseCommand implements ICommand {
               ]
             )
           );
-        } catch (error) {
+        } catch (error: any) {
           this.warn(
             `Failed to check updates: ${error instanceof Error ? error.message : String(error)}`
           );
@@ -178,7 +178,7 @@ export class ListCommand extends BaseCommand implements ICommand {
           );
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to list templates: ${error instanceof Error ? error.message : String(error)}`
       );

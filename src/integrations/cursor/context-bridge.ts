@@ -843,17 +843,17 @@ export class ContextBridge {
       const endChar = context.selection.end.character;
 
       if (startLine === endLine) {
-        return lines[startLine].substring(startChar, endChar);
+        return lines[startLine]?.substring(startChar, endChar) ?? '';
       }
 
       const selectedLines = [];
-      selectedLines.push(lines[startLine].substring(startChar));
+      selectedLines.push(lines[startLine]?.substring(startChar) ?? '');
 
       for (let i = startLine + 1; i < endLine; i++) {
         selectedLines.push(lines[i]);
       }
 
-      selectedLines.push(lines[endLine].substring(0, endChar));
+      selectedLines.push(lines[endLine]?.substring(0, endChar) ?? '');
 
       return selectedLines.join('\n');
     } catch (_error) {

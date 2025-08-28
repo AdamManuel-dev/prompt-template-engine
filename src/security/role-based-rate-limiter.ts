@@ -10,13 +10,10 @@
 
 import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
-import { rbacManager } from './rbac-manager.service';
 import {
   RateLimiter,
   RateLimitConfig,
   RateLimitResult,
-  IRateLimitStore,
-  MemoryRateLimitStore,
 } from '../middleware/rate-limiter';
 
 export interface RoleBasedRateLimitConfig {
@@ -276,7 +273,7 @@ export class RoleBasedRateLimiter extends EventEmitter {
       });
 
       return roleBasedResult;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Rate limit check failed', error as Error);
 
       // Fail securely - deny the request
@@ -405,8 +402,9 @@ export class RoleBasedRateLimiter extends EventEmitter {
     context: RateLimitContext
   ): Promise<RateLimitConfig> {
     // Check user-specific limits first
-    if (this.config.userLimits?.[context.userId]) {
-      return this.config.userLimits[context.userId];
+    const userLimit = this.config.userLimits?.[context.userId];
+    if (userLimit) {
+      return userLimit;
     }
 
     // Find highest priority role and use its limits
@@ -446,8 +444,8 @@ export class RoleBasedRateLimiter extends EventEmitter {
 
   private checkAbuse(
     userId: string,
-    ipAddress: string,
-    resource: string
+    _ipAddress: string,
+    _resource: string
   ): {
     isAbusive: boolean;
     penaltyLevel: number;
@@ -477,7 +475,7 @@ export class RoleBasedRateLimiter extends EventEmitter {
 
   private handleRateLimitViolation(
     context: RateLimitContext,
-    result: RateLimitResult
+    _result: RateLimitResult
   ): void {
     // Record abuse
     let abuseRecord = this.abuseRecords.get(context.userId);
@@ -530,7 +528,7 @@ export class RoleBasedRateLimiter extends EventEmitter {
 
   private async considerDynamicAdjustment(
     context: RateLimitContext,
-    result: RateLimitResult
+    _result: RateLimitResult
   ): Promise<RoleBasedRateLimitResult['dynamicAdjustment']> {
     // Simple dynamic adjustment logic
     if (context.priority === 'critical' || context.priority === 'high') {
@@ -553,7 +551,7 @@ export class RoleBasedRateLimiter extends EventEmitter {
   }
 
   private handleEmergencyMode(
-    context: RateLimitContext
+    _context: RateLimitContext
   ): RoleBasedRateLimitResult {
     this.stats.emergencyBlocks++;
 
@@ -577,7 +575,7 @@ export class RoleBasedRateLimiter extends EventEmitter {
   }
 
   private createAbuseResult(
-    context: RateLimitContext,
+    _context: RateLimitContext,
     penaltyLevel: number
   ): RoleBasedRateLimitResult {
     const penalizedLimit = Math.max(

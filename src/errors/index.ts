@@ -559,7 +559,7 @@ export class ErrorBoundary {
   ): Promise<T> {
     try {
       return await fn();
-    } catch (error) {
+    } catch (error: any) {
       const customError = errorTransform
         ? errorTransform(error as Error)
         : error instanceof BaseError
@@ -580,7 +580,7 @@ export class ErrorBoundary {
   ): T {
     try {
       return fn();
-    } catch (error) {
+    } catch (error: any) {
       const customError = errorTransform
         ? errorTransform(error as Error)
         : error instanceof BaseError

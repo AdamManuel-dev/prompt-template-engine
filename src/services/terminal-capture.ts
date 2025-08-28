@@ -133,7 +133,7 @@ export class TerminalCaptureService {
       result.stdout = this.truncateOutput(stdout || '');
       result.stderr = this.truncateOutput(stderr || '');
       result.exitCode = 0;
-    } catch (error) {
+    } catch (error: any) {
       const err = error as {
         stdout?: string;
         stderr?: string;
@@ -242,7 +242,7 @@ export class TerminalCaptureService {
         // Zsh history format: ": timestamp:duration;command"
         if (line.startsWith(': ')) {
           const match = line.match(/^: \d+:\d+;(.*)$/);
-          if (match) {
+          if (match && match[1]) {
             commands.push(match[1]);
           }
         } else {
@@ -265,7 +265,9 @@ export class TerminalCaptureService {
     // For now, return the last captured command from our history
     if (this.history.length > 0) {
       const last = this.history[this.history.length - 1];
-      return last.stdout || last.stderr || null;
+      if (last) {
+        return last.stdout || last.stderr || null;
+      }
     }
     return null;
   }
@@ -299,7 +301,7 @@ export class TerminalCaptureService {
    */
   getLastCommand(): CommandResult | null {
     return this.history.length > 0
-      ? this.history[this.history.length - 1]
+      ? this.history[this.history.length - 1] || null
       : null;
   }
 
@@ -414,7 +416,7 @@ export class TerminalCaptureService {
       });
 
       this.history = [...this.history, ...imported].slice(-this.maxHistorySize);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to import history: ${error}`);
     }
   }

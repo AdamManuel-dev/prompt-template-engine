@@ -404,6 +404,9 @@ export class TemplateHelpers {
     if (parts.length === 0) return '';
 
     const helperName = parts[0];
+    if (!helperName) {
+      return '';
+    }
     if (!this.has(helperName)) {
       // Not a helper, return as-is or resolve from context
       return this.resolveValue(helperName, context);

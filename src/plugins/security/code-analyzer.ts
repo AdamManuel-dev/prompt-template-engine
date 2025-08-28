@@ -388,7 +388,7 @@ export class CodeAnalyzer {
 
         clearTimeout(timeout);
         resolve(ast);
-      } catch (error) {
+      } catch (error: any) {
         clearTimeout(timeout);
         reject(error);
       }
@@ -407,7 +407,7 @@ export class CodeAnalyzer {
     try {
       traverse(ast, {
         enter: path => {
-          const node = path.node;
+          const { node } = path;
 
           // Apply built-in security rules
           if (this.config.enableDangerousFunctionDetection) {
@@ -446,7 +446,7 @@ export class CodeAnalyzer {
    */
   private detectDangerousFunctions(
     node: t.Node,
-    path: any,
+    _path: any,
     threats: SecurityThreat[]
   ): void {
     if (node.type === 'CallExpression' && node.callee.type === 'Identifier') {
@@ -498,7 +498,9 @@ export class CodeAnalyzer {
         },
       ];
 
-      const found = dangerousFunctions.find(fn => fn.name === node.callee.name);
+      const found = dangerousFunctions.find(
+        fn => node.callee.type === 'Identifier' && fn.name === node.callee.name
+      );
       if (found) {
         threats.push({
           type: 'dangerous-function',
@@ -517,7 +519,7 @@ export class CodeAnalyzer {
    */
   private detectGlobalAccess(
     node: t.Node,
-    path: any,
+    _path: any,
     threats: SecurityThreat[]
   ): void {
     if (node.type === 'MemberExpression' && node.object.type === 'Identifier') {
@@ -565,7 +567,8 @@ export class CodeAnalyzer {
       ];
 
       const found = dangerousGlobals.find(
-        glob => glob.name === node.object.name
+        glob =>
+          node.object.type === 'Identifier' && glob.name === node.object.name
       );
       if (found) {
         threats.push({
@@ -585,7 +588,7 @@ export class CodeAnalyzer {
    */
   private detectNetworkAccess(
     node: t.Node,
-    path: any,
+    _path: any,
     threats: SecurityThreat[]
   ): void {
     const networkPatterns = [
@@ -597,7 +600,9 @@ export class CodeAnalyzer {
     ];
 
     if (node.type === 'CallExpression' && node.callee.type === 'Identifier') {
-      const found = networkPatterns.find(p => p.pattern === node.callee.name);
+      const found = networkPatterns.find(
+        p => p.pattern === (node.callee as any).name
+      );
       if (found) {
         threats.push({
           type: 'network-access',
@@ -616,7 +621,7 @@ export class CodeAnalyzer {
    */
   private detectFileAccess(
     node: t.Node,
-    path: any,
+    _path: any,
     threats: SecurityThreat[]
   ): void {
     if (
@@ -640,7 +645,7 @@ export class CodeAnalyzer {
    */
   private detectProcessAccess(
     node: t.Node,
-    path: any,
+    _path: any,
     threats: SecurityThreat[]
   ): void {
     if (
@@ -669,7 +674,7 @@ export class CodeAnalyzer {
    */
   private detectInjectionPatterns(
     node: t.Node,
-    path: any,
+    _path: any,
     threats: SecurityThreat[]
   ): void {
     if (node.type === 'TemplateLiteral') {
@@ -696,7 +701,7 @@ export class CodeAnalyzer {
    */
   private applyCustomRules(
     node: t.Node,
-    path: any,
+    _path: any,
     threats: SecurityThreat[]
   ): void {
     for (const rule of this.securityRules) {
@@ -705,10 +710,10 @@ export class CodeAnalyzer {
 
         if (rule.pattern instanceof RegExp) {
           // For regex patterns, check the node's source code
-          const code = path.getSource?.() || '';
+          const code = (_path as any).getSource?.() || '';
           matches = rule.pattern.test(code);
         } else if (typeof rule.pattern === 'function') {
-          matches = rule.pattern(node, path);
+          matches = rule.pattern(node, _path as any);
         }
 
         if (matches) {
@@ -791,7 +796,7 @@ export class CodeAnalyzer {
 
     traverse(ast, {
       enter: path => {
-        const node = path.node;
+        const { node } = path;
 
         // Count functions
         if (t.isFunction(node)) {
@@ -835,7 +840,7 @@ export class CodeAnalyzer {
       },
 
       exit: path => {
-        const node = path.node;
+        const { node } = path;
 
         if (
           t.isFunction(node) ||
@@ -892,7 +897,7 @@ export class CodeAnalyzer {
     // AST-based analysis
     traverse(ast, {
       enter: path => {
-        const node = path.node;
+        const { node } = path;
 
         // Dynamic property access (obj['prop'] instead of obj.prop)
         if (

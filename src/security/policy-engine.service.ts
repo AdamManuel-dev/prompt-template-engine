@@ -10,7 +10,6 @@
 
 import * as crypto from 'crypto';
 import { logger } from '../utils/logger';
-import { rbacManager } from './rbac-manager.service';
 import { auditLogger } from './audit-logger.service';
 import type { AccessContext } from './rbac-manager.service';
 
@@ -130,6 +129,9 @@ export interface PolicyEvaluationContext extends AccessContext {
   // Custom attributes
   custom?: Record<string, any>;
 }
+
+export type PolicyContext = PolicyEvaluationContext;
+export type PolicyDecision = PolicyEvaluationResult;
 
 export interface PolicyEvaluationResult {
   decision: PolicyEffect;
@@ -259,7 +261,7 @@ export class PolicyEngineService {
           break; // First allow wins
         } else if (
           policyResult.decision === 'deny' &&
-          finalDecision !== 'allow'
+          finalDecision === 'deny'
         ) {
           finalDecision = 'deny';
           decisionReason = policyResult.reason;
@@ -310,7 +312,7 @@ export class PolicyEngineService {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Policy evaluation failed', error as Error);
 
       // Fail securely with deny
@@ -379,7 +381,7 @@ export class PolicyEngineService {
       });
 
       return policy;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Policy creation failed', error as Error);
       throw error;
     }
@@ -420,7 +422,7 @@ export class PolicyEngineService {
       });
 
       return updatedPolicy;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Policy update failed', error as Error);
       throw error;
     }
@@ -442,7 +444,7 @@ export class PolicyEngineService {
       logger.info('Policy deleted', { policyId, name: policy.name });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Policy deletion failed', error as Error);
       throw error;
     }
@@ -780,7 +782,7 @@ export class PolicyEngineService {
           });
           return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Condition evaluation failed', error as Error);
       return false;
     }

@@ -188,7 +188,13 @@ export class AnthropicAdapter {
       tokenEstimate: totalTokens,
       adaptationNotes,
       warnings,
-      xmlStructure: xmlStructure.applied ? xmlStructure : undefined,
+      xmlStructure: xmlStructure.applied
+        ? (xmlStructure as {
+            thinkingEnabled: boolean;
+            reasoningSteps: string[];
+            structuredSections: string[];
+          })
+        : undefined,
     };
   }
 
@@ -484,10 +490,11 @@ export class AnthropicAdapter {
         lastRole = message.role;
       } else if (
         result.length > 0 &&
-        result[result.length - 1].role === message.role
+        result[result.length - 1]?.role === message.role
       ) {
         // Combine with previous message of same role
-        result[result.length - 1].content += `\n\n${message.content}`;
+        const lastMessage = result[result.length - 1];
+        if (lastMessage) lastMessage.content += `\n\n${message.content}`;
       }
     }
 
@@ -575,7 +582,7 @@ export class AnthropicAdapter {
     if (request.messages) {
       // Check alternating pattern
       for (let i = 1; i < request.messages.length; i++) {
-        if (request.messages[i].role === request.messages[i - 1].role) {
+        if (request.messages[i]?.role === request.messages[i - 1]?.role) {
           errors.push(
             'Messages must alternate between user and assistant roles'
           );
@@ -591,7 +598,7 @@ export class AnthropicAdapter {
       }
 
       // Must start with user message
-      if (request.messages[0].role !== 'user') {
+      if (request.messages[0]?.role !== 'user') {
         errors.push('Conversation must start with a user message');
       }
     }

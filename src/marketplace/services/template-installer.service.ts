@@ -163,7 +163,7 @@ export class TemplateInstallerService {
         duration: Date.now() - startTime,
         warnings: [],
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to install template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -216,7 +216,7 @@ export class TemplateInstallerService {
       try {
         const result = await this.install(templateId, options);
         results.push(result);
-      } catch (error) {
+      } catch (error: any) {
         if (!options.continueOnError) {
           throw error;
         }

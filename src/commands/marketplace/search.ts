@@ -28,9 +28,9 @@ export class SearchCommand extends BaseCommand implements ICommand {
 
   description = 'Search templates in the marketplace';
 
-  aliases = ['find', 's'];
+  override aliases = ['find', 's'];
 
-  options = [
+  override options = [
     {
       flags: '-q, --query <query>',
       description: 'Search query text',
@@ -96,7 +96,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
     },
   ];
 
-  async action(args: unknown, options: unknown): Promise<void> {
+  override async action(args: unknown, options: unknown): Promise<void> {
     await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
@@ -129,7 +129,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
           )
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Search failed: ${error instanceof Error ? error.message : String(error)}`
       );

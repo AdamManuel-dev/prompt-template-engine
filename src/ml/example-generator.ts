@@ -163,6 +163,7 @@ export class ExampleGenerator {
     for (let i = 0; i < count; i++) {
       const patternIndex = i % this.edgeCasePatterns.length;
       const pattern = this.edgeCasePatterns[patternIndex];
+      if (!pattern) continue;
       const input = pattern.pattern();
 
       examples.push({
@@ -305,6 +306,7 @@ export class ExampleGenerator {
 
     return examples.filter((_example, index) => {
       const validation = validationResults[index];
+      if (!validation) return false;
       if (!validation.valid) {
         logger.warn(
           `Filtering out invalid example: ${validation.errors.join(', ')}`
@@ -418,8 +420,10 @@ export class ExampleGenerator {
     for (let i = 0; i < 20; i++) {
       const range =
         unicodeRanges[Math.floor(Math.random() * unicodeRanges.length)];
+      if (!range) continue;
       const codePoint =
-        Math.floor(Math.random() * (range[1] - range[0])) + range[0];
+        Math.floor(Math.random() * ((range[1] ?? 0) - (range[0] ?? 0))) +
+        (range[0] ?? 0);
       result += String.fromCodePoint(codePoint);
     }
     return result;
@@ -447,7 +451,11 @@ export class ExampleGenerator {
       () => `${this.generateString(5, 10)}|${this.generateString(5, 10)}`,
     ];
 
-    return formats[Math.floor(Math.random() * formats.length)]();
+    const selectedFormat = formats[Math.floor(Math.random() * formats.length)];
+    if (!selectedFormat) {
+      throw new Error('No format generator available');
+    }
+    return selectedFormat();
   }
 
   private generateAdversarialInput(
@@ -463,9 +471,11 @@ export class ExampleGenerator {
       'A'.repeat(100000),
     ];
 
-    return adversarialPatterns[
-      Math.floor(Math.random() * adversarialPatterns.length)
-    ];
+    return (
+      adversarialPatterns[
+        Math.floor(Math.random() * adversarialPatterns.length)
+      ] || ''
+    );
   }
 
   private generateBoundaryInput(
@@ -482,7 +492,7 @@ export class ExampleGenerator {
       this.generateString(minLength + 1, minLength + 1),
     ];
 
-    return boundaries[Math.floor(Math.random() * boundaries.length)];
+    return boundaries[Math.floor(Math.random() * boundaries.length)] || '';
   }
 
   private generateExpectedOutput(template: Template, input: string): string {
@@ -519,24 +529,28 @@ export class ExampleGenerator {
     }
 
     for (let j = 0; j <= str1.length; j++) {
-      matrix[0][j] = j;
+      if (matrix[0]) matrix[0][j] = j;
     }
 
     for (let i = 1; i <= str2.length; i++) {
       for (let j = 1; j <= str1.length; j++) {
         if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
+          const prevDiag = matrix[i - 1]?.[j - 1];
+          matrix[i]![j] = prevDiag ?? 0;
         } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
+          const prevDiag = matrix[i - 1]?.[j - 1];
+          const prevLeft = matrix[i]?.[j - 1];
+          const prevUp = matrix[i - 1]?.[j];
+          matrix[i]![j] = Math.min(
+            (prevDiag ?? 0) + 1,
+            (prevLeft ?? 0) + 1,
+            (prevUp ?? 0) + 1
           );
         }
       }
     }
 
-    return matrix[str2.length][str1.length];
+    return matrix[str2.length]?.[str1.length] ?? 0;
   }
 
   private calculateComplexity(input: string): number {

@@ -274,7 +274,7 @@ export class OptimizationPipeline extends EventEmitter {
 
       this.emit('pipeline:completed', pipelineResult);
       return pipelineResult;
-    } catch (error) {
+    } catch (error: any) {
       const totalDuration = Date.now() - startTime;
 
       const pipelineResult: PipelineResult = {
@@ -348,7 +348,7 @@ export class OptimizationPipeline extends EventEmitter {
       this.emit('stage:completed', stageResult);
 
       return stageResult;
-    } catch (error) {
+    } catch (error: any) {
       const duration = Date.now() - startTime;
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -725,7 +725,7 @@ export class OptimizationPipeline extends EventEmitter {
       );
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to save optimization results for ${templateId}: ${error instanceof Error ? error.message : String(error)}`
       );

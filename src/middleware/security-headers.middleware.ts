@@ -10,7 +10,6 @@
 
 import * as crypto from 'crypto';
 import { logger } from '../utils/logger';
-import { cryptoService } from '../security/cryptographic.service';
 
 export interface SecurityHeadersConfig {
   // Content Security Policy
@@ -125,7 +124,7 @@ export class SecurityHeadersMiddleware {
         }
 
         next();
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Security headers middleware error', error as Error);
         // Continue processing even if security headers fail
         next();
@@ -486,7 +485,7 @@ export function cspReportHandler() {
       });
 
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('CSP report handler error', error as Error);
       res.status(400).json({ error: 'Invalid report format' });
     }
@@ -496,7 +495,7 @@ export function cspReportHandler() {
 /**
  * Security headers testing utility
  */
-export function testSecurityHeaders(url: string): Promise<{
+export function testSecurityHeaders(_url: string): Promise<{
   grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
   headers: Record<string, string>;
   missing: string[];
@@ -506,7 +505,7 @@ export function testSecurityHeaders(url: string): Promise<{
     // This is a simplified implementation
     // In a real scenario, you'd make an HTTP request and analyze headers
 
-    const mockHeaders = {
+    const mockHeaders: Record<string, string> = {
       'Content-Security-Policy': "default-src 'self'",
       'Strict-Transport-Security': 'max-age=31536000',
       'X-Frame-Options': 'DENY',

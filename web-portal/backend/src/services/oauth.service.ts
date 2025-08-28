@@ -64,41 +64,41 @@ export class OAuthService {
    */
   private initializeProviders(): void {
     // Google OAuth configuration
-    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    if (process.env['GOOGLE_CLIENT_ID'] && process.env['GOOGLE_CLIENT_SECRET']) {
       this.providers.set('google', {
         id: 'google',
         name: 'Google',
         enabled: true,
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        clientId: process.env['GOOGLE_CLIENT_ID'],
+        clientSecret: process.env['GOOGLE_CLIENT_SECRET'],
         scopes: ['profile', 'email'],
-        callbackUrl: process.env.GOOGLE_CALLBACK_URL || '/api/auth/oauth/google/callback',
+        callbackUrl: process.env['GOOGLE_CALLBACK_URL'] || '/api/auth/oauth/google/callback',
       });
     }
 
     // GitHub OAuth configuration
-    if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    if (process.env['GITHUB_CLIENT_ID'] && process.env['GITHUB_CLIENT_SECRET']) {
       this.providers.set('github', {
         id: 'github',
         name: 'GitHub',
         enabled: true,
-        clientId: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        clientId: process.env['GITHUB_CLIENT_ID'],
+        clientSecret: process.env['GITHUB_CLIENT_SECRET'],
         scopes: ['user:email'],
-        callbackUrl: process.env.GITHUB_CALLBACK_URL || '/api/auth/oauth/github/callback',
+        callbackUrl: process.env['GITHUB_CALLBACK_URL'] || '/api/auth/oauth/github/callback',
       });
     }
 
     // Microsoft OAuth configuration
-    if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
+    if (process.env['MICROSOFT_CLIENT_ID'] && process.env['MICROSOFT_CLIENT_SECRET']) {
       this.providers.set('microsoft', {
         id: 'microsoft',
         name: 'Microsoft',
         enabled: true,
-        clientId: process.env.MICROSOFT_CLIENT_ID,
-        clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+        clientId: process.env['MICROSOFT_CLIENT_ID'],
+        clientSecret: process.env['MICROSOFT_CLIENT_SECRET'],
         scopes: ['profile', 'email'],
-        callbackUrl: process.env.MICROSOFT_CALLBACK_URL || '/api/auth/oauth/microsoft/callback',
+        callbackUrl: process.env['MICROSOFT_CALLBACK_URL'] || '/api/auth/oauth/microsoft/callback',
       });
     }
 

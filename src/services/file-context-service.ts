@@ -123,7 +123,7 @@ export class FileContextService {
           this.ignorer.add(globalContent);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       // No .gitignore found or error reading it
       this.ignorer = null;
       if (
@@ -198,7 +198,7 @@ export class FileContextService {
         isDirectory: stats.isDirectory(),
         extension: stats.isFile() ? path.extname(filePath) : undefined,
       };
-    } catch (error) {
+    } catch (error: any) {
       if (
         error instanceof FileSystemError &&
         error.type === FileSystemErrorType.FILE_NOT_FOUND
@@ -329,7 +329,7 @@ export class FileContextService {
         size: stats.size,
         lines,
       };
-    } catch (error) {
+    } catch (error: any) {
       if (
         error instanceof FileSystemError &&
         error.type === FileSystemErrorType.FILE_NOT_FOUND

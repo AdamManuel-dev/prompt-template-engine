@@ -158,7 +158,7 @@ export class UnifiedOptimizationService extends EventEmitter {
       });
 
       logger.info('PromptWizard client initialized successfully');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize PromptWizard client', error as Error);
     }
   }
@@ -279,7 +279,7 @@ export class UnifiedOptimizationService extends EventEmitter {
       this.emit('optimization:completed', { jobId, templatePath, result });
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       const result: OptimizationJobResult = {
         jobId,
         status: 'failed',
@@ -355,7 +355,7 @@ export class UnifiedOptimizationService extends EventEmitter {
     const cacheKey = `history:${templatePath}`;
     const cachedHistory = (await this.cacheService.get(
       cacheKey
-    )) as OptimizationHistory | null;
+    )) as unknown as OptimizationHistory | null;
 
     if (cachedHistory) {
       this.optimizationHistory.set(templatePath, cachedHistory);
@@ -495,7 +495,7 @@ export class UnifiedOptimizationService extends EventEmitter {
     // Try persistent cache
     const persistentResult = (await this.cacheService.get(
       cacheKey
-    )) as OptimizationJobResult | null;
+    )) as unknown as OptimizationJobResult | null;
     if (persistentResult) {
       // Update in-memory cache
       this.inMemoryCache.set(cacheKey, persistentResult);
@@ -514,7 +514,7 @@ export class UnifiedOptimizationService extends EventEmitter {
     // Cache persistently
     await this.cacheService.set(
       cacheKey,
-      result,
+      result as unknown as Record<string, unknown>,
       this.config.cache.ttlMs / 1000
     );
   }
@@ -559,7 +559,11 @@ export class UnifiedOptimizationService extends EventEmitter {
 
     // Persist history
     const cacheKey = `history:${templatePath}`;
-    this.cacheService.set(cacheKey, history, 86400); // 24 hours
+    this.cacheService.set(
+      cacheKey,
+      history as unknown as Record<string, unknown>,
+      86400
+    ); // 24 hours
   }
 
   private calculateTokenReduction(original: string, optimized: string): number {
@@ -697,7 +701,7 @@ export class UnifiedOptimizationService extends EventEmitter {
         const result = await this.optimize(templateData.path, options);
         results[templateData.index] = result;
         return result;
-      } catch (error) {
+      } catch (error: any) {
         const errorResult = {
           jobId: this.generateJobId(),
           status: 'failed' as const,
@@ -747,7 +751,7 @@ export class UnifiedOptimizationService extends EventEmitter {
 
       // For smaller templates, use regular processing
       return this.optimize(templatePath, options);
-    } catch (error) {
+    } catch (error: any) {
       return {
         jobId,
         status: 'failed',

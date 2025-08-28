@@ -84,7 +84,7 @@ export class CryptographicService {
   private validateFIPSCompliance(): void {
     if (
       this.config.enableFIPS &&
-      !crypto.constants.OPENSSL_VERSION_TEXT?.includes('fips')
+      typeof crypto.constants.OPENSSL_VERSION_NUMBER === 'number'
     ) {
       logger.warn(
         'FIPS 140-2 mode requested but OpenSSL FIPS module not detected'
@@ -128,7 +128,11 @@ export class CryptographicService {
       const iv = this.generateSecureRandom(16); // 128-bit IV
       const key = this.deriveDataKey('encryption', 32);
 
-      const cipher = crypto.createCipherGCM(algorithm, key, iv);
+      const cipher = crypto.createCipheriv(
+        algorithm,
+        key,
+        iv
+      ) as crypto.CipherGCM;
 
       if (associatedData) {
         cipher.setAAD(associatedData);
@@ -151,7 +155,7 @@ export class CryptographicService {
         authTag: authTag.toString('base64'),
         algorithm,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('AES-256-GCM encryption failed', error as Error);
       throw new Error('Encryption operation failed');
     }
@@ -168,16 +172,16 @@ export class CryptographicService {
       const { data, iv, authTag, algorithm } = encryptedPayload;
       const key = this.deriveDataKey('encryption', 32);
 
-      const decipher = crypto.createDecipherGCM(
+      const decipher = crypto.createDecipheriv(
         algorithm,
         key,
         Buffer.from(iv, 'base64')
       );
 
-      decipher.setAuthTag(Buffer.from(authTag, 'base64'));
+      (decipher as any).setAuthTag(Buffer.from(authTag, 'base64'));
 
       if (associatedData) {
-        decipher.setAAD(associatedData);
+        (decipher as any).setAAD(associatedData);
       }
 
       const decrypted = Buffer.concat([
@@ -186,7 +190,7 @@ export class CryptographicService {
       ]);
 
       return decrypted;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('AES-256-GCM decryption failed', error as Error);
       throw new Error('Decryption operation failed');
     }
@@ -226,7 +230,7 @@ export class CryptographicService {
       logger.info(`RSA-${keySize} key pair generated: ${id}`);
 
       return keyPair;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('RSA key pair generation failed', error as Error);
       throw new Error('Key pair generation failed');
     }
@@ -261,7 +265,7 @@ export class CryptographicService {
         keyId,
         timestamp: Date.now(),
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Data signing failed', error as Error);
       throw new Error('Digital signature operation failed');
     }
@@ -296,7 +300,7 @@ export class CryptographicService {
 
       logger.info(`Signature verification result: ${isValid} for key ${keyId}`);
       return isValid;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Signature verification failed', error as Error);
       return false;
     }
@@ -313,12 +317,14 @@ export class CryptographicService {
     const info = Buffer.from(`promptwizard-${purpose}-2025`, 'utf8');
 
     // HKDF-SHA256 key derivation (FIPS approved)
-    return crypto.hkdfSync(
-      this.config.hashAlgorithm,
-      this.masterKey,
-      salt,
-      info,
-      length
+    return Buffer.from(
+      crypto.hkdfSync(
+        this.config.hashAlgorithm,
+        this.masterKey,
+        salt,
+        info,
+        length
+      )
     );
   }
 
@@ -326,12 +332,14 @@ export class CryptographicService {
    * Derive passphrase for key encryption
    */
   private deriveKeyPassphrase(keyId: string): string {
-    const derived = crypto.hkdfSync(
-      'sha256',
-      this.masterKey,
-      Buffer.from('key-passphrase-salt'),
-      Buffer.from(`${keyId}-passphrase`),
-      32
+    const derived = Buffer.from(
+      crypto.hkdfSync(
+        'sha256',
+        this.masterKey,
+        Buffer.from('key-passphrase-salt'),
+        Buffer.from(`${keyId}-passphrase`),
+        32
+      )
     );
     return derived.toString('hex');
   }
@@ -377,7 +385,7 @@ export class CryptographicService {
         Buffer.from(expectedHMAC, 'hex'),
         Buffer.from(actualHMAC, 'hex')
       );
-    } catch (error) {
+    } catch (error: any) {
       logger.error('HMAC verification failed', error as Error);
       return false;
     }

@@ -16,7 +16,6 @@ import {
   SecureCommandArgSchema,
   SecureUrlSchema,
 } from '../validation/schemas';
-import { logger } from '../utils/logger';
 
 // Type definition for command handler
 type CommandHandler<TInput, TOutput> = (input: TInput) => Promise<TOutput>;
@@ -40,7 +39,7 @@ export function createValidator<T>(
     try {
       const data = schema.parse(input);
       return { success: true, data };
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         const errors = error.issues.map(err => {
           const path = err.path.join('.');
@@ -178,12 +177,12 @@ export function conditionalValidator<T>(
  * Compose multiple validators
  */
 export function composeValidators<T>(
-  ...validators: Array<(input: unknown) => ValidationResult<any>>
+  ...isValidators: Array<(input: unknown) => ValidationResult<any>>
 ): (input: unknown) => ValidationResult<T> {
   return (input: unknown): ValidationResult<T> => {
     let currentData = input;
 
-    for (const validator of validators) {
+    for (const validator of isValidators) {
       const result = validator(currentData);
       if (!result.success) {
         return result;
@@ -386,11 +385,11 @@ export const securityValidators = {
   commandExecution: createTypedValidator(
     z.object({
       command: z.enum(['generate', 'apply', 'list', 'init', 'validate'], {
-        errorMap: () => ({ message: 'Invalid command' }),
+        message: 'Invalid command',
       }),
       args: z.array(SecureCommandArgSchema).max(20, 'Too many arguments'),
       options: z
-        .record(z.union([z.string(), z.number(), z.boolean()]))
+        .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
         .optional(),
     })
   ),

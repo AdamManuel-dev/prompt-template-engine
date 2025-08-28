@@ -1,7 +1,7 @@
 /**
  * @fileoverview Figma Integration demo page for testing new components
  * @lastmodified 2025-08-28T10:30:00Z
- * 
+ *
  * Features: URL input, design tokens display, preview, template mapping
  * Main APIs: FigmaUrlInput, DesignTokenDisplay, FigmaPreview integration
  * Constraints: Development/demo purposes, real API integration ready
@@ -24,21 +24,21 @@ import {
   Alert,
   CircularProgress,
   Divider,
-  Chip
+  Chip,
 } from '@mui/material';
 import {
   Link as LinkIcon,
   Palette,
   Visibility,
   PlayArrow,
-  CheckCircle
+  CheckCircle,
 } from '@mui/icons-material';
-import { 
-  FigmaUrlInfo, 
-  FigmaFileInfo, 
-  DesignToken, 
+import {
+  FigmaUrlInfo,
+  FigmaFileInfo,
+  DesignToken,
   FigmaPreview,
-  FigmaTemplateParameter 
+  FigmaTemplateParameter,
 } from '@cursor-prompt/shared';
 import { FigmaUrlInput } from '../figma/FigmaUrlInput';
 import { DesignTokenDisplay } from '../figma/DesignTokenDisplay';
@@ -50,26 +50,26 @@ const DEMO_STEPS = [
     id: 'url',
     label: 'Enter Figma URL',
     description: 'Paste a Figma file URL to begin extraction',
-    icon: <LinkIcon />
+    icon: <LinkIcon />,
   },
   {
     id: 'tokens',
     label: 'Extract Design Tokens',
     description: 'View and select design tokens from your Figma file',
-    icon: <Palette />
+    icon: <Palette />,
   },
   {
     id: 'preview',
     label: 'Visual Preview',
     description: 'See a preview of your Figma design',
-    icon: <Visibility />
+    icon: <Visibility />,
   },
   {
     id: 'mapping',
     label: 'Template Mapping',
     description: 'Map tokens to template parameters',
-    icon: <PlayArrow />
-  }
+    icon: <PlayArrow />,
+  },
 ];
 
 interface FigmaIntegrationState {
@@ -102,45 +102,48 @@ export const FigmaIntegrationPage: React.FC = () => {
     loading: {
       fileInfo: false,
       tokens: false,
-      preview: false
+      preview: false,
     },
     errors: {
       fileInfo: null,
       tokens: null,
-      preview: null
-    }
+      preview: null,
+    },
   });
 
   const { getDesignTokens, getPreview } = useFigmaApi();
 
-  const handleUrlChange = useCallback((urlInfo: FigmaUrlInfo, fileInfo: FigmaFileInfo | null) => {
-    setState(prev => ({
-      ...prev,
-      urlInfo,
-      fileInfo,
-      activeStep: urlInfo.isValid && fileInfo ? 1 : 0,
-      tokens: [],
-      preview: null,
-      mappings: [],
-      errors: {
-        fileInfo: null,
-        tokens: null,
-        preview: null
-      }
-    }));
+  const handleUrlChange = useCallback(
+    (urlInfo: FigmaUrlInfo, fileInfo: FigmaFileInfo | null) => {
+      setState(prev => ({
+        ...prev,
+        urlInfo,
+        fileInfo,
+        activeStep: urlInfo.isValid && fileInfo ? 1 : 0,
+        tokens: [],
+        preview: null,
+        mappings: [],
+        errors: {
+          fileInfo: null,
+          tokens: null,
+          preview: null,
+        },
+      }));
 
-    // Auto-load tokens and preview if valid
-    if (urlInfo.isValid && urlInfo.fileId && fileInfo) {
-      loadDesignTokens(urlInfo.fileId);
-      loadPreview(urlInfo.fileId, urlInfo.nodeId);
-    }
-  }, []);
+      // Auto-load tokens and preview if valid
+      if (urlInfo.isValid && urlInfo.fileId && fileInfo) {
+        loadDesignTokens(urlInfo.fileId);
+        loadPreview(urlInfo.fileId, urlInfo.nodeId);
+      }
+    },
+    []
+  );
 
   const loadDesignTokens = async (fileId: string) => {
     setState(prev => ({
       ...prev,
       loading: { ...prev.loading, tokens: true },
-      errors: { ...prev.errors, tokens: null }
+      errors: { ...prev.errors, tokens: null },
     }));
 
     try {
@@ -149,13 +152,16 @@ export const FigmaIntegrationPage: React.FC = () => {
         ...prev,
         tokens,
         activeStep: Math.max(prev.activeStep, 1),
-        loading: { ...prev.loading, tokens: false }
+        loading: { ...prev.loading, tokens: false },
       }));
     } catch (error: any) {
       setState(prev => ({
         ...prev,
         loading: { ...prev.loading, tokens: false },
-        errors: { ...prev.errors, tokens: error.message || 'Failed to load design tokens' }
+        errors: {
+          ...prev.errors,
+          tokens: error.message || 'Failed to load design tokens',
+        },
       }));
     }
   };
@@ -164,7 +170,7 @@ export const FigmaIntegrationPage: React.FC = () => {
     setState(prev => ({
       ...prev,
       loading: { ...prev.loading, preview: true },
-      errors: { ...prev.errors, preview: null }
+      errors: { ...prev.errors, preview: null },
     }));
 
     try {
@@ -173,44 +179,55 @@ export const FigmaIntegrationPage: React.FC = () => {
         ...prev,
         preview,
         activeStep: Math.max(prev.activeStep, 2),
-        loading: { ...prev.loading, preview: false }
+        loading: { ...prev.loading, preview: false },
       }));
     } catch (error: any) {
       setState(prev => ({
         ...prev,
         loading: { ...prev.loading, preview: false },
-        errors: { ...prev.errors, preview: error.message || 'Failed to load preview' }
+        errors: {
+          ...prev.errors,
+          preview: error.message || 'Failed to load preview',
+        },
       }));
     }
   };
 
-  const handleTokenMapping = useCallback((mappings: FigmaTemplateParameter[]) => {
-    setState(prev => ({
-      ...prev,
-      mappings,
-      activeStep: Math.max(prev.activeStep, 3)
-    }));
-  }, []);
+  const handleTokenMapping = useCallback(
+    (mappings: FigmaTemplateParameter[]) => {
+      setState(prev => ({
+        ...prev,
+        mappings,
+        activeStep: Math.max(prev.activeStep, 3),
+      }));
+    },
+    []
+  );
 
-  const handleExportTokens = useCallback((format: 'json' | 'css' | 'scss') => {
-    const exportData = {
-      fileId: state.urlInfo?.fileId,
-      fileName: state.fileInfo?.name,
-      tokens: state.tokens,
-      format,
-      exportedAt: new Date().toISOString()
-    };
+  const handleExportTokens = useCallback(
+    (format: 'json' | 'css' | 'scss') => {
+      const exportData = {
+        fileId: state.urlInfo?.fileId,
+        fileName: state.fileInfo?.name,
+        tokens: state.tokens,
+        format,
+        exportedAt: new Date().toISOString(),
+      };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `figma-tokens-${state.urlInfo?.fileId}.${format === 'json' ? 'json' : 'css'}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [state]);
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `figma-tokens-${state.urlInfo?.fileId}.${format === 'json' ? 'json' : 'css'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    },
+    [state]
+  );
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -219,9 +236,13 @@ export const FigmaIntegrationPage: React.FC = () => {
         <Typography variant="h3" gutterBottom>
           Figma Integration Demo
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
-          Test the Figma MCP integration by pasting a Figma URL to extract design tokens,
-          view previews, and map them to template parameters.
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{ maxWidth: 600, mx: 'auto' }}
+        >
+          Test the Figma MCP integration by pasting a Figma URL to extract
+          design tokens, view previews, and map them to template parameters.
         </Typography>
       </Box>
 
@@ -234,7 +255,9 @@ export const FigmaIntegrationPage: React.FC = () => {
                 <StepLabel
                   icon={index < state.activeStep ? <CheckCircle /> : step.icon}
                   optional={
-                    <Typography variant="caption">{step.description}</Typography>
+                    <Typography variant="caption">
+                      {step.description}
+                    </Typography>
                   }
                 >
                   {step.label}
@@ -270,7 +293,9 @@ export const FigmaIntegrationPage: React.FC = () => {
                   <Typography variant="h6" gutterBottom>
                     File Information
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box
+                    sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
+                  >
                     <Typography variant="body2">
                       <strong>Name:</strong> {state.fileInfo.name}
                     </Typography>
@@ -279,7 +304,9 @@ export const FigmaIntegrationPage: React.FC = () => {
                     </Typography>
                     <Typography variant="body2">
                       <strong>Last Modified:</strong>{' '}
-                      {new Date(state.fileInfo.lastModified).toLocaleDateString()}
+                      {new Date(
+                        state.fileInfo.lastModified
+                      ).toLocaleDateString()}
                     </Typography>
                     <Box sx={{ mt: 1 }}>
                       <Chip
@@ -317,7 +344,7 @@ export const FigmaIntegrationPage: React.FC = () => {
                           p: 1,
                           mb: 1,
                           backgroundColor: 'action.hover',
-                          borderRadius: 1
+                          borderRadius: 1,
                         }}
                       >
                         <Typography variant="body2" fontWeight="medium">
@@ -350,9 +377,11 @@ export const FigmaIntegrationPage: React.FC = () => {
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 2. Design Tokens
-                {state.loading.tokens && <CircularProgress size={16} sx={{ ml: 1 }} />}
+                {state.loading.tokens && (
+                  <CircularProgress size={16} sx={{ ml: 1 }} />
+                )}
               </Typography>
-              
+
               {state.errors.tokens && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {state.errors.tokens}
@@ -363,7 +392,7 @@ export const FigmaIntegrationPage: React.FC = () => {
                 tokens={state.tokens}
                 loading={state.loading.tokens}
                 error={state.errors.tokens}
-                onTokenSelect={(token) => console.log('Token selected:', token)}
+                onTokenSelect={token => console.log('Token selected:', token)}
                 onMapToTemplate={handleTokenMapping}
                 onExport={handleExportTokens}
                 showMapping={true}
@@ -377,7 +406,9 @@ export const FigmaIntegrationPage: React.FC = () => {
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 3. Visual Preview
-                {state.loading.preview && <CircularProgress size={16} sx={{ ml: 1 }} />}
+                {state.loading.preview && (
+                  <CircularProgress size={16} sx={{ ml: 1 }} />
+                )}
               </Typography>
 
               {state.errors.preview && (
@@ -393,13 +424,13 @@ export const FigmaIntegrationPage: React.FC = () => {
                   preview={state.preview}
                   loading={state.loading.preview}
                   error={state.errors.preview}
-                  onPreviewLoad={(preview) => {
+                  onPreviewLoad={preview => {
                     setState(prev => ({ ...prev, preview }));
                   }}
-                  onError={(error) => {
+                  onError={error => {
                     setState(prev => ({
                       ...prev,
-                      errors: { ...prev.errors, preview: error }
+                      errors: { ...prev.errors, preview: error },
                     }));
                   }}
                   showControls={true}
@@ -414,7 +445,13 @@ export const FigmaIntegrationPage: React.FC = () => {
       </Grid>
 
       {/* Demo Instructions */}
-      <Card sx={{ mt: 4, backgroundColor: 'info.light', color: 'info.contrastText' }}>
+      <Card
+        sx={{
+          mt: 4,
+          backgroundColor: 'info.light',
+          color: 'info.contrastText',
+        }}
+      >
         <CardContent>
           <Typography variant="h6" gutterBottom>
             📝 Demo Instructions
@@ -425,29 +462,34 @@ export const FigmaIntegrationPage: React.FC = () => {
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2">
-                <strong>🔗 URL Input:</strong> Validates Figma URLs and extracts file/node IDs
+                <strong>🔗 URL Input:</strong> Validates Figma URLs and extracts
+                file/node IDs
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2">
-                <strong>🎨 Design Tokens:</strong> Extracts colors, typography, spacing from Figma
+                <strong>🎨 Design Tokens:</strong> Extracts colors, typography,
+                spacing from Figma
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2">
-                <strong>👁️ Preview:</strong> Shows Figma file/node screenshots with zoom controls
+                <strong>👁️ Preview:</strong> Shows Figma file/node screenshots
+                with zoom controls
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2">
-                <strong>📋 Mapping:</strong> Maps design tokens to template parameters
+                <strong>📋 Mapping:</strong> Maps design tokens to template
+                parameters
               </Typography>
             </Grid>
           </Grid>
           <Divider sx={{ my: 2, borderColor: 'info.dark' }} />
           <Typography variant="caption">
-            Note: This demo currently uses mock data. The MCP server integration is ready but requires
-            the Figma MCP server to be running and configured with proper API tokens.
+            Note: This demo currently uses mock data. The MCP server integration
+            is ready but requires the Figma MCP server to be running and
+            configured with proper API tokens.
           </Typography>
         </CardContent>
       </Card>

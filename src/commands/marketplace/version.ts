@@ -22,9 +22,9 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
   description = 'Template version management and analysis';
 
-  aliases = ['ver', 'versions'];
+  override aliases = ['ver', 'versions'];
 
-  options = [
+  override options = [
     {
       flags: '--compare <version1,version2>',
       description: 'Compare two versions',
@@ -56,7 +56,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
     },
   ];
 
-  async action(args: unknown, options: unknown): Promise<void> {
+  override async action(args: unknown, options: unknown): Promise<void> {
     await this.execute(args as string, options as MarketplaceCommandOptions);
   }
 
@@ -117,7 +117,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
       // Show general version management help
       VersionCommand.showHelp();
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Version command failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -139,6 +139,11 @@ export class VersionCommand extends BaseCommand implements ICommand {
     }
 
     const [version1, version2] = versions;
+
+    if (!version1 || !version2) {
+      this.error('Invalid version strings provided');
+      return;
+    }
 
     try {
       const comparison = versionManager.compareVersions(version1, version2);
@@ -197,7 +202,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
           )}`
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Invalid version format: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -280,11 +285,11 @@ export class VersionCommand extends BaseCommand implements ICommand {
     if (hasUpdates) {
       let recommended: string;
       if (upgradeOptions.patch.length > 0) {
-        recommended = upgradeOptions.patch[upgradeOptions.patch.length - 1];
+        recommended = upgradeOptions.patch[upgradeOptions.patch.length - 1]!;
       } else if (upgradeOptions.minor.length > 0) {
-        recommended = upgradeOptions.minor[upgradeOptions.minor.length - 1];
+        recommended = upgradeOptions.minor[upgradeOptions.minor.length - 1]!;
       } else {
-        [recommended] = upgradeOptions.major;
+        recommended = upgradeOptions.major[0]!;
       }
 
       logger.info(chalk.bold('\n💡 Recommended:'));
@@ -365,8 +370,8 @@ export class VersionCommand extends BaseCommand implements ICommand {
       logger.info(chalk.bold('\n📝 Recent Versions:'));
       versions.slice(0, 8).forEach((version, index: number) => {
         const diffFromPrevious =
-          index < versions.length - 1
-            ? versionManager.diff(versions[index + 1].version, version.version)
+          index < versions.length - 1 && versions[index + 1]?.version
+            ? versionManager.diff(versions[index + 1]!.version, version.version)
             : 'initial';
 
         const icon = VersionCommand.getVersionIcon(diffFromPrevious);
@@ -409,7 +414,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
           )}`
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to analyze template: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -487,7 +492,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
       }
 
       logger.info(chalk.gray(`\n📊 Total: ${versions.length} versions`));
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to list versions: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -575,7 +580,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
           )}`
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to get latest version: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -683,7 +688,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
           )}`
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       this.error(
         `Failed to check compatibility: ${error instanceof Error ? error.message : String(error)}`
       );

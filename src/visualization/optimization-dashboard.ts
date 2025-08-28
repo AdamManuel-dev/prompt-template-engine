@@ -190,7 +190,7 @@ export class OptimizationDashboard extends EventEmitter {
 
       logger.info('Optimization dashboard initialized');
       this.emit('initialized');
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to initialize optimization dashboard:', error);
       throw error;
     }
@@ -250,7 +250,7 @@ export class OptimizationDashboard extends EventEmitter {
       }
 
       this.emit('metricsUpdated', this.metricsData);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to refresh metrics:', error);
       this.emit('error', error);
     }
@@ -292,7 +292,7 @@ export class OptimizationDashboard extends EventEmitter {
       }
 
       await this.renderFooter();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to render dashboard:', error);
     }
   }
@@ -342,7 +342,7 @@ export class OptimizationDashboard extends EventEmitter {
 
       logger.info(`Dashboard data exported to ${outputPath}`);
       return outputPath;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to export dashboard data:', error);
       throw error;
     }

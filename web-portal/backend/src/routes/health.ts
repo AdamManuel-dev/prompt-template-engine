@@ -312,7 +312,7 @@ router.get('/version', (req: Request, res: Response) => {
       version: packageJson.version || '1.0.0',
       description: packageJson.description || 'API for non-developer template engine access',
       nodeVersion: process.version,
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env['NODE_ENV'] || 'development',
       buildTime: new Date().toISOString(), // In production, this would be build time
       uptime: process.uptime()
     },

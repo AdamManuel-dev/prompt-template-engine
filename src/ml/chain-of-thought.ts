@@ -269,7 +269,7 @@ export class ChainOfThoughtOptimizer {
 
     for (const pattern of goalPatterns) {
       const match = prompt.match(pattern);
-      if (match) return match[1].trim();
+      if (match && match[1]) return match[1].trim();
     }
 
     // Fall back to template description
@@ -375,10 +375,14 @@ export class ChainOfThoughtOptimizer {
     for (let i = 0; i < steps.length; i++) {
       if (processed.has(i)) continue;
 
-      const similar: ReasoningStep[] = [steps[i]];
+      const currentStep = steps[i];
+      if (!currentStep) continue;
+
+      const similar: ReasoningStep[] = [currentStep];
       for (let j = i + 1; j < steps.length; j++) {
-        if (this.areSimilarSteps(steps[i], steps[j])) {
-          similar.push(steps[j]);
+        const otherStep = steps[j];
+        if (otherStep && this.areSimilarSteps(currentStep, otherStep)) {
+          similar.push(otherStep);
           processed.add(j);
         }
       }
@@ -386,7 +390,7 @@ export class ChainOfThoughtOptimizer {
       if (similar.length > 1) {
         consolidated.push(this.mergeSteps(similar));
       } else {
-        consolidated.push(steps[i]);
+        consolidated.push(currentStep);
       }
     }
 
@@ -550,7 +554,7 @@ export class ChainOfThoughtOptimizer {
       if (
         !referenced.has(step.id) &&
         step.type !== 'conclusion' &&
-        steps[steps.length - 1].id !== step.id
+        steps[steps.length - 1]?.id !== step.id
       ) {
         issues.push({
           stepId: step.id,
@@ -568,13 +572,17 @@ export class ChainOfThoughtOptimizer {
     const issues: ValidationIssue[] = [];
 
     for (let i = 0; i < steps.length - 1; i++) {
+      const stepI = steps[i];
+      if (!stepI) continue;
+
       for (let j = i + 1; j < steps.length; j++) {
-        if (this.areSimilarSteps(steps[i], steps[j])) {
+        const stepJ = steps[j];
+        if (stepJ && this.areSimilarSteps(stepI, stepJ)) {
           issues.push({
-            stepId: steps[j].id,
+            stepId: stepJ.id,
             type: 'redundancy',
             severity: 'low',
-            description: `Similar to step ${steps[i].id}`,
+            description: `Similar to step ${stepI.id}`,
           });
         }
       }
@@ -732,9 +740,9 @@ export class ChainOfThoughtOptimizer {
       steps.reduce((sum, s) => sum + s.confidence, 0) / steps.length;
 
     return {
-      id: steps[0].id,
-      content: steps[0].content, // Use first step's content as primary
-      type: steps[0].type,
+      id: steps[0]?.id || '',
+      content: steps[0]?.content || '', // Use first step's content as primary
+      type: steps[0]?.type || 'premise',
       dependencies: Array.from(allDependencies),
       confidence: avgConfidence,
       metadata: {
@@ -851,6 +859,9 @@ export class ChainOfThoughtOptimizer {
     // Check if steps form a logical progression
     for (let i = 1; i < steps.length; i++) {
       const currentStep = steps[i];
+      if (!currentStep) {
+        continue;
+      }
       const hasDependency = currentStep.dependencies.some(depId =>
         steps.slice(0, i).some(s => s.id === depId)
       );

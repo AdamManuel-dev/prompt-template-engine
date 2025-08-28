@@ -33,7 +33,7 @@ export class AuthorProfileCommand extends BaseCommand {
   ): Promise<void> {
     try {
       await this.showProfile(authorId, options);
-    } catch (error) {
+    } catch (error: any) {
       logger.error(
         `Failed to show author profile: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -198,7 +198,7 @@ export class AuthorProfileCommand extends BaseCommand {
       logger.info(
         chalk.gray(`  • Follow author:   marketplace:author follow ${authorId}`)
       );
-    } catch (error) {
+    } catch (error: any) {
       throw error;
     }
   }
@@ -219,7 +219,7 @@ export class AuthorProfileCommand extends BaseCommand {
     return `${stars}${emptyStars} ${rating.toFixed(1)}`;
   }
 
-  private getBadgeIcon(type: string): string {
+  private getBadgeIcon(type: string | undefined): string {
     const icons: Record<string, string> = {
       contributor: '🤝',
       popular: '🔥',
@@ -230,6 +230,6 @@ export class AuthorProfileCommand extends BaseCommand {
       partner: '🤝',
       default: '🏆',
     };
-    return icons[type] || icons.default;
+    return (type && icons[type]) || icons.default!;
   }
 }

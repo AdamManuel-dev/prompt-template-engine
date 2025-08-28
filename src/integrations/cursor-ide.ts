@@ -166,7 +166,7 @@ export class CursorIntegration
 
         return true;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to connect to Cursor IDE:${String(error)}`);
     }
 
@@ -198,7 +198,7 @@ export class CursorIntegration
         try {
           const message = JSON.parse(data.toString()) as CursorMessage;
           this.handleMessage(message);
-        } catch (error) {
+        } catch (error: any) {
           logger.error(`Failed to parse WebSocket message:${String(error)}`);
         }
       });
@@ -362,7 +362,7 @@ export class CursorIntegration
 
         req.end();
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`HTTP request failed:${String(error)}`);
       throw error;
     }
@@ -423,7 +423,7 @@ export class CursorIntegration
           metadata.description = parsed.description;
           metadata.tags = parsed.tags;
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.debug(`Failed to parse frontmatter: ${String(error)}`);
       }
     }
@@ -476,7 +476,7 @@ export class CursorIntegration
     this.syncInterval = setInterval(async () => {
       try {
         await this.sync();
-      } catch (error) {
+      } catch (error: any) {
         logger.error(`Auto-sync failed:${String(error)}`);
       }
     }, interval);
