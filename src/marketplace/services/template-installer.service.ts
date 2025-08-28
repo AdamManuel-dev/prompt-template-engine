@@ -17,6 +17,7 @@ import {
   InstallationResult,
   TemplateDependency,
 } from '../models/template.model';
+import { MarketplaceTemplate, MarketplaceTemplateVersion } from '../../types';
 import { logger } from '../../utils/logger';
 
 export interface InstallOptions {
@@ -48,10 +49,47 @@ export class TemplateInstallerService {
       if (!options.force) {
         const existing = await this.registry.getTemplate(templateId);
         if (existing) {
+          // Convert RegisteredTemplate to MarketplaceTemplate format
+          const templateModel = existing.metadata;
+          const templateAsMarketplace: MarketplaceTemplate = {
+            id: templateModel.id,
+            name: templateModel.name,
+            description: templateModel.description,
+            category: templateModel.category,
+            tags: templateModel.tags,
+            author: templateModel.author,
+            currentVersion: existing.currentVersion || existing.version,
+            downloads: templateModel.downloads || 0,
+            repository:
+              typeof templateModel.repository === 'string'
+                ? templateModel.repository
+                : templateModel.repository?.type,
+            rating:
+              typeof templateModel.rating === 'number'
+                ? templateModel.rating
+                : templateModel.rating.average,
+            reviewCount:
+              typeof templateModel.rating === 'object'
+                ? templateModel.rating.total
+                : 0,
+            createdAt: templateModel.created.toISOString(),
+            updatedAt: templateModel.updated.toISOString(),
+            updated: templateModel.updated.toISOString(),
+            featured: templateModel.featured,
+            verified: templateModel.verified,
+            deprecated: templateModel.deprecated,
+            versions: templateModel.versions.map(
+              v =>
+                ({
+                  ...v,
+                  created: v.created.toISOString(),
+                }) as MarketplaceTemplateVersion
+            ),
+          };
           return {
             success: false,
-            template: existing as any,
-            version: existing.version || 'unknown',
+            template: templateAsMarketplace,
+            version: existing.currentVersion || existing.version || 'unknown',
             installPath: this.getTemplatePath(templateId),
             duration: Date.now() - startTime,
             warnings: ['Template already installed. Use --force to reinstall.'],
@@ -82,9 +120,44 @@ export class TemplateInstallerService {
         await this.installDependencies(template.dependencies);
       }
 
+      // Convert TemplateModel to MarketplaceTemplate format
+      const templateAsMarketplace: MarketplaceTemplate = {
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        category: template.category,
+        tags: template.tags,
+        author: template.author,
+        currentVersion: template.currentVersion,
+        downloads: template.downloads || 0,
+        repository:
+          typeof template.repository === 'string'
+            ? template.repository
+            : template.repository?.type,
+        rating:
+          typeof template.rating === 'number'
+            ? template.rating
+            : template.rating.average,
+        reviewCount:
+          typeof template.rating === 'object' ? template.rating.total : 0,
+        createdAt: template.created.toISOString(),
+        updatedAt: template.updated.toISOString(),
+        updated: template.updated.toISOString(),
+        featured: template.featured,
+        verified: template.verified,
+        deprecated: template.deprecated,
+        versions: template.versions.map(
+          v =>
+            ({
+              ...v,
+              created: v.created.toISOString(),
+            }) as MarketplaceTemplateVersion
+        ),
+      };
+
       return {
         success: true,
-        template: template as any,
+        template: templateAsMarketplace,
         version: options.version || template.currentVersion || 'latest',
         installPath: targetPath,
         duration: Date.now() - startTime,
@@ -148,9 +221,26 @@ export class TemplateInstallerService {
           throw error;
         }
 
+        // Create a minimal MarketplaceTemplate for failed installations
+        const failedTemplate: MarketplaceTemplate = {
+          id: templateId,
+          name: templateId,
+          description: 'Failed installation',
+          category: 'other',
+          tags: [],
+          author: { id: 'unknown', name: 'unknown' },
+          currentVersion: '0.0.0',
+          versions: [],
+          downloads: 0,
+          rating: 0,
+          reviewCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
         results.push({
           success: false,
-          template: { id: templateId } as any,
+          template: failedTemplate,
           version: 'unknown',
           installPath: '',
           duration: 0,

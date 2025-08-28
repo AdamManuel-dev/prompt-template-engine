@@ -146,10 +146,12 @@ export class MarketplaceAPI {
   async rateTemplate(
     templateId: string,
     rating: number,
-    review?: Partial<TemplateReview>
+    review?: Partial<TemplateReview>,
+    userId?: string
   ): Promise<void> {
     const payload = {
       rating,
+      userId: userId || review?.userId,
       ...review,
     };
 

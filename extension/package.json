@@ -9,12 +9,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:cursorPrompt.generateTemplate",
-    "onCommand:cursorPrompt.applyTemplate",
-    "onCommand:cursorPrompt.syncTemplates",
-    "onCommand:cursorPrompt.showTemplates"
-  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [

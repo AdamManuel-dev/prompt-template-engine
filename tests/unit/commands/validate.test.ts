@@ -772,15 +772,26 @@ describe('Validate Command', () => {
     });
 
     describe('unsupported formats', () => {
-      it('should reject YAML templates', async () => {
-        mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
+      it('should accept YAML templates', async () => {
+        const validYamlTemplate = {
+          name: 'yaml-template',
+          version: '1.0.0',
+          description: 'A YAML template for testing',
+        };
 
-        await expect(validateCommand('/test/template.yaml')).rejects.toThrow(
-          expect.objectContaining({
-            message: expect.stringContaining(
-              'YAML templates not yet supported'
-            ),
-          })
+        mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
+        mockedFs.readFile.mockResolvedValue(
+          'name: yaml-template\nversion: "1.0.0"\ndescription: "A YAML template for testing"'
+        );
+
+        // Mock yaml.load to return the expected object
+        const yaml = require('js-yaml');
+        jest.spyOn(yaml, 'load').mockReturnValue(validYamlTemplate);
+
+        await validateCommand('/test/template.yaml');
+
+        expect(mockedLogger.success).toHaveBeenCalledWith(
+          expect.stringContaining('✅ Template validation passed')
         );
       });
 

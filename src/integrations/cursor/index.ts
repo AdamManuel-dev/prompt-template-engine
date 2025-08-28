@@ -11,8 +11,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as chokidar from 'chokidar';
+import * as vscode from 'vscode';
 import { TemplateToRulesConverter } from './template-to-rules-converter';
 import { ContextBridge } from './context-bridge';
+import { CursorRule } from '../../types';
 import { logger } from '../../utils/logger';
 
 export interface CursorIntegrationConfig {
@@ -26,6 +28,11 @@ export interface CursorIntegrationConfig {
   projectRoot?: string; // Project root directory
 }
 
+interface CommandIntegration {
+  registerCommands(): Promise<void>;
+  dispose(): void;
+}
+
 // Forward declaration for self-referencing type
 export class CursorIntegration {
   // eslint-disable-next-line no-use-before-define
@@ -35,7 +42,7 @@ export class CursorIntegration {
 
   private bridge: ContextBridge;
 
-  private commandIntegration?: any; // Dynamic import, type not available at compile time
+  private commandIntegration?: CommandIntegration; // Dynamic import with proper interface
 
   private syncTimer?: ReturnType<typeof setTimeout>;
 
@@ -80,7 +87,7 @@ export class CursorIntegration {
    * @returns Promise that resolves when initialization is complete
    * @throws Error if initialization fails
    */
-  async initialize(context?: any): Promise<void> {
+  async initialize(context?: vscode.ExtensionContext): Promise<void> {
     if (this.isInitialized) {
       logger.warn('Cursor integration already initialized');
       return;
@@ -96,10 +103,13 @@ export class CursorIntegration {
           const { CursorCommandIntegration } = await import(
             './command-integration'
           );
-          this.commandIntegration = new CursorCommandIntegration(context, {
-            enableQuickFix: this.config.enableQuickFix,
-            enableAutoSuggest: this.config.enableAutoSuggest,
-          });
+          this.commandIntegration = new CursorCommandIntegration(
+            context as vscode.ExtensionContext,
+            {
+              enableQuickFix: this.config.enableQuickFix,
+              enableAutoSuggest: this.config.enableAutoSuggest,
+            }
+          ) as CommandIntegration;
           await this.commandIntegration.registerCommands();
           logger.info('Cursor commands registered');
         } catch (_error) {
@@ -136,7 +146,7 @@ export class CursorIntegration {
     try {
       // Try multiple template directories as fallbacks
       const templateDirs = ['.cursor/templates', './templates'];
-      let allRules: any[] = [];
+      let allRules: CursorRule[] = [];
 
       for (const templateDir of templateDirs) {
         try {
@@ -210,7 +220,7 @@ export class CursorIntegration {
    * Get command integration instance for VS Code command access
    * @returns Command integration instance or undefined if not in VS Code context
    */
-  getCommandIntegration(): any | undefined {
+  getCommandIntegration(): unknown | undefined {
     return this.commandIntegration;
   }
 

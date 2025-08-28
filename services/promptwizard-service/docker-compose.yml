@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  promptwizard-service:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=true
+      - REDIS_URL=redis://redis:6379
+      - JOB_QUEUE_URL=redis://redis:6379/1
+      - SECRET_KEY=development-secret-change-in-production
+      - LOG_LEVEL=INFO
+    depends_on:
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - promptwizard-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - promptwizard-network
+    command: redis-server --appendonly yes
+
+  # Optional: Redis Commander for debugging
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - promptwizard-network
+    profiles:
+      - debug
+
+volumes:
+  redis_data:
+
+networks:
+  promptwizard-network:
+    driver: bridge

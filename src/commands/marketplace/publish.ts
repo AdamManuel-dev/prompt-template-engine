@@ -16,8 +16,16 @@ import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { AuthorService } from '../../marketplace/core/author.service';
 import { TemplateValidator } from '../../core/template-validator';
-import { TemplateModel } from '../../marketplace/models/template.model';
-import { MarketplaceCommandOptions } from '../../types';
+import {
+  TemplateModel,
+  TemplateCategory,
+  AuthorInfo,
+  TemplateStats,
+  TemplateMetadata,
+  TemplateVariable,
+  TemplateExample,
+} from '../../marketplace/models/template.model';
+import { MarketplaceCommandOptions, Template } from '../../types';
 import { logger } from '../../utils/logger';
 
 export interface PublishOptions extends MarketplaceCommandOptions {
@@ -142,7 +150,7 @@ export class PublishCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async loadTemplate(templatePath: string): Promise<any> {
+  private async loadTemplate(templatePath: string): Promise<Template> {
     try {
       const stats = await fs.stat(templatePath);
 
@@ -187,7 +195,7 @@ export class PublishCommand extends BaseCommand implements ICommand {
     }
   }
 
-  private async parseTemplateFile(filePath: string): Promise<any> {
+  private async parseTemplateFile(filePath: string): Promise<Template> {
     const content = await fs.readFile(filePath, 'utf-8');
 
     if (filePath.endsWith('.json')) {
@@ -203,7 +211,7 @@ export class PublishCommand extends BaseCommand implements ICommand {
   }
 
   private async validateTemplate(
-    template: any,
+    template: Template,
     force?: boolean
   ): Promise<void> {
     const validator = new TemplateValidator();
@@ -235,34 +243,79 @@ export class PublishCommand extends BaseCommand implements ICommand {
   }
 
   private async enhanceTemplateForPublishing(
-    template: any,
+    template: Template,
     options: PublishOptions
   ): Promise<TemplateModel> {
     const currentUser = await this.getCurrentUser();
 
     // Create enhanced template model
-    const enhanced: Partial<TemplateModel> = {
+    const author: AuthorInfo = {
+      id: currentUser.id,
+      name: currentUser.username,
+      verified: false,
+      reputation: 0,
+      totalTemplates: 0,
+      totalDownloads: 0,
+    };
+
+    const stats: TemplateStats = {
+      downloads: 0,
+      weeklyDownloads: 0,
+      monthlyDownloads: 0,
+      forks: 0,
+      favorites: 0,
+      issues: 0,
+      lastDownload: new Date(),
+      trending: false,
+      popularityScore: 0,
+    };
+
+    const metadata: TemplateMetadata = {
+      license: 'MIT',
+      keywords: template.tags || [],
+      minEngineVersion: '1.0.0',
+      platform: ['all'],
+    };
+
+    // Convert template variables to marketplace format
+    const variables: TemplateVariable[] = template.variables
+      ? Object.entries(template.variables).map(([name, value]) => ({
+          name,
+          type: 'string' as const,
+          description: `Variable: ${name}`,
+          required: false,
+          defaultValue: String(value),
+        }))
+      : [];
+
+    const examples: TemplateExample[] = [];
+
+    const enhanced: TemplateModel = {
       ...template,
-      author: {
-        id: currentUser.id,
-        name: currentUser.username,
-      },
-      category: options.category || template.category,
+      id: template.id || `template-${Date.now()}`,
+      displayName: template.name,
+      author,
+      category: (options.category as TemplateCategory) || 'other',
       tags: options.tags
         ? options.tags.split(',').map(tag => tag.trim())
         : template.tags || [],
-      description: options.description || template.description,
+      description: options.description || template.description || '',
+      longDescription: template.description,
       currentVersion: options.version || '1.0.0',
       versions: [
         {
           version: options.version || '1.0.0',
           description: options.description || template.description || '',
-          content: template.content || template,
-          dependencies: template.dependencies || [],
-          variables: template.variables || [],
-          hooks: template.hooks || [],
-          publishedAt: new Date(),
+          content: template.content || '',
+          dependencies: [],
+          variables,
+          examples,
           changelog: 'Initial release',
+          compatibility: ['all'],
+          size: (template.content || '').length,
+          created: new Date(),
+          downloads: 0,
+          deprecated: false,
         },
       ],
       created: new Date(),
@@ -271,18 +324,11 @@ export class PublishCommand extends BaseCommand implements ICommand {
       verified: false,
       deprecated: false,
       rating: 0,
-      stats: {
-        downloads: 0,
-        likes: 0,
-        views: 0,
-      },
-      metadata: {
-        isPrivate: options.private || false,
-        isDraft: options.draft || false,
-      },
+      stats,
+      metadata,
     };
 
-    return enhanced as TemplateModel;
+    return enhanced;
   }
 
   private async getCurrentUser(): Promise<{ id: string; username: string }> {

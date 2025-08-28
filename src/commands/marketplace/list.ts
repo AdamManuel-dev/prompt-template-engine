@@ -17,6 +17,7 @@ import {
   RegisteredTemplate,
 } from '../../marketplace/core/template.registry';
 import { MarketplaceCommandOptions, MarketplaceTemplate } from '../../types';
+import { TemplateModel } from '../../marketplace/models/template.model';
 import { logger } from '../../utils/logger';
 
 export class ListCommand extends BaseCommand implements ICommand {
@@ -385,7 +386,9 @@ export class ListCommand extends BaseCommand implements ICommand {
     return num.toString();
   }
 
-  private static formatBadges(template: MarketplaceTemplate): string {
+  private static formatBadges(
+    template: MarketplaceTemplate | TemplateModel
+  ): string {
     const badges: string[] = [];
 
     if (template.featured) {
@@ -396,7 +399,10 @@ export class ListCommand extends BaseCommand implements ICommand {
       badges.push(chalk.green('✓'));
     }
 
-    if (template.stats && (template.stats as any).trending) {
+    if (
+      template.stats &&
+      ('trending' in template.stats ? template.stats.trending : false)
+    ) {
       badges.push(chalk.red('🔥'));
     }
 

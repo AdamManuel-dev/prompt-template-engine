@@ -3,11 +3,11 @@
 
 echo "🚀 Running pre-commit hooks..."
 
-# 1. Run linting
+# 1. Run linting with zero warnings allowed
 echo "🔍 Linting..."
-yarn lint
+yarn lint --max-warnings 0
 if [ $? -ne 0 ]; then
-  echo "❌ ESLint found issues. Fix them before committing."
+  echo "❌ ESLint found issues or warnings. Fix them before committing."
   exit 1
 fi
 
@@ -19,12 +19,13 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# 3. TypeScript type check
+# 3. TypeScript type check (strict mode)
 echo "📘 Checking TypeScript types..."
-npm run type-check --silent 2>/dev/null
+npm run type-check:strict --silent 2>/dev/null
 if [ $? -ne 0 ]; then
-  echo "⚠️  TypeScript errors found but allowing commit."
-  echo "   Please fix TypeScript errors: npm run type-check"
+  echo "❌ TypeScript errors found. Fix them before committing."
+  echo "   Run: npm run type-check:strict"
+  exit 1
 fi
 
 # 4. Check for large files

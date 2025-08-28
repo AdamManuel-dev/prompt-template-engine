@@ -1,0 +1,375 @@
+/**
+ * @fileoverview Kubernetes Service configurations for PromptWizard networking
+ * @lastmodified 2024-08-26T15:40:00Z
+ * 
+ * Features: Load balancing, service discovery, port management, health checking
+ * Main APIs: HTTP, gRPC, WebSocket, metrics endpoints with proper routing
+ * Constraints: Requires proper DNS configuration, ingress controller
+ * Patterns: Service mesh ready, health check endpoints, metrics collection
+ */
+
+# Main service for HTTP and WebSocket traffic
+apiVersion: v1
+kind: Service
+metadata:
+  name: promptwizard-service
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: service
+    version: v1
+  annotations:
+    description: "Main PromptWizard service for HTTP and WebSocket traffic"
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "30"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "10"
+    service.beta.kubernetes.io/aws-load-balancer-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-unhealthy-threshold: "3"
+spec:
+  type: ClusterIP  # Use ClusterIP with Ingress for better control
+  sessionAffinity: None  # Stateless service, no session affinity needed
+  selector:
+    app: promptwizard
+    component: service
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8000
+    protocol: TCP
+  - name: websocket
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+
+---
+# Separate service for gRPC traffic (different load balancing requirements)
+apiVersion: v1
+kind: Service
+metadata:
+  name: promptwizard-grpc
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: grpc-service
+    version: v1
+  annotations:
+    description: "PromptWizard gRPC service with HTTP/2 support"
+    # gRPC requires specific annotations for proper load balancing
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  selector:
+    app: promptwizard
+    component: service
+  ports:
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+    protocol: TCP
+    # gRPC uses HTTP/2, ensure proper handling
+  - name: grpc-web
+    port: 8081
+    targetPort: 50051
+    protocol: TCP
+
+---
+# Headless service for StatefulSet-style communication (if needed)
+apiVersion: v1
+kind: Service
+metadata:
+  name: promptwizard-headless
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: headless-service
+    version: v1
+  annotations:
+    description: "Headless service for direct pod communication"
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service
+  publishNotReadyAddresses: false  # Only route to ready pods
+  selector:
+    app: promptwizard
+    component: service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+    protocol: TCP
+  - name: websocket
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+
+---
+# External service for LoadBalancer (if not using Ingress)
+apiVersion: v1
+kind: Service
+metadata:
+  name: promptwizard-external
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: external-service
+    version: v1
+  annotations:
+    description: "External LoadBalancer service for public access"
+    # AWS Load Balancer Controller annotations
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "pod"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-attributes: >-
+      load_balancing.cross_zone.enabled=true,
+      access_logs.s3.enabled=true,
+      access_logs.s3.bucket=promptwizard-lb-logs,
+      idle_timeout.timeout_seconds=60
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:region:account:certificate/cert-id"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+    service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout: "60"
+    # Health check configuration
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "HTTP"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/api/v1/health"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "traffic-port"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "30"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "10"
+    service.beta.kubernetes.io/aws-load-balancer-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-unhealthy-threshold: "3"
+spec:
+  type: LoadBalancer
+  loadBalancerClass: service.k8s.aws/nlb
+  selector:
+    app: promptwizard
+    component: service
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8000
+    protocol: TCP
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+    protocol: TCP
+  - name: websocket
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+
+---
+# Service for metrics collection (Prometheus)
+apiVersion: v1
+kind: Service
+metadata:
+  name: promptwizard-metrics
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: metrics
+    version: v1
+  annotations:
+    description: "Metrics endpoint for Prometheus scraping"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  selector:
+    app: promptwizard
+    component: service
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+
+---
+# Service Monitor for Prometheus Operator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: promptwizard-service-monitor
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: service-monitor
+    version: v1
+  annotations:
+    description: "Prometheus ServiceMonitor for PromptWizard metrics"
+spec:
+  selector:
+    matchLabels:
+      app: promptwizard
+      component: metrics
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    honorLabels: true
+    # Add custom metric relabeling if needed
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'go_.*'
+      action: drop  # Drop Go runtime metrics to reduce cardinality
+  namespaceSelector:
+    matchNames:
+    - promptwizard
+
+---
+# Ingress configuration for HTTP/HTTPS traffic
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: promptwizard-ingress
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: ingress
+    version: v1
+  annotations:
+    description: "Ingress controller configuration for PromptWizard"
+    # Nginx Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    
+    # CORS configuration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.company.com,https://api.company.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS, PUT, DELETE"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Content-Type-Options nosniff;
+      add_header X-Frame-Options DENY;
+      add_header X-XSS-Protection "1; mode=block";
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    
+    # AWS ALB Controller annotations (alternative to nginx)
+    # kubernetes.io/ingress.class: alb
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/target-type: pod
+    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    # alb.ingress.kubernetes.io/ssl-redirect: '443'
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/cert-id
+spec:
+  ingressClassName: nginx  # or 'alb' for AWS ALB
+  tls:
+  - hosts:
+    - api.promptwizard.company.com
+    - ws.promptwizard.company.com
+    secretName: promptwizard-tls
+  rules:
+  # API endpoints
+  - host: api.promptwizard.company.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: promptwizard-service
+            port:
+              number: 80
+      # Health check endpoint
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: promptwizard-service
+            port:
+              number: 80
+      # Metrics endpoint (restricted access)
+      - path: /metrics
+        pathType: Exact
+        backend:
+          service:
+            name: promptwizard-metrics
+            port:
+              number: 9090
+  
+  # WebSocket endpoints
+  - host: ws.promptwizard.company.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: promptwizard-service
+            port:
+              number: 8080
+
+---
+# Network Policy for ingress traffic control
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: promptwizard-ingress-policy
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: promptwizard
+      component: service
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow ingress controller access
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8000
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 50051
+  
+  # Allow Prometheus scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  
+  # Allow health checks from load balancer
+  - from: []  # Allow from any source for health checks
+    ports:
+    - protocol: TCP
+      port: 8000
+    # Only allow specific paths via ingress controller configuration

@@ -1,0 +1,278 @@
+/**
+ * @fileoverview Prometheus configuration for PromptWizard monitoring
+ * @lastmodified 2024-08-26T16:00:00Z
+ * 
+ * Features: Service discovery, alerting rules, metric collection from all components
+ * Main APIs: Prometheus metrics API, service discovery, alertmanager integration
+ * Constraints: Requires proper service discovery configuration, alertmanager setup
+ * Patterns: Multi-target scraping, rule-based alerting, efficient metric collection
+ */
+
+# Global Prometheus configuration
+global:
+  scrape_interval: 15s        # Default scrape interval
+  evaluation_interval: 15s    # How frequently to evaluate rules
+  scrape_timeout: 10s         # Timeout for individual scrapes
+  
+  # External labels attached to all time series
+  external_labels:
+    cluster: 'promptwizard-production'
+    environment: 'production'
+    region: 'us-west-2'
+    datacenter: 'aws-us-west-2a'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+      timeout: 10s
+      api_version: v2
+      path_prefix: /
+
+# Rule files - load alerting and recording rules
+rule_files:
+  - "rules/*.yml"
+  - "recording-rules/*.yml"
+
+# Scrape job configurations
+scrape_configs:
+  # PromptWizard main service metrics
+  - job_name: 'promptwizard-service'
+    static_configs:
+      - targets: 
+        - 'promptwizard-service:9090'
+    scrape_interval: 10s
+    scrape_timeout: 8s
+    metrics_path: /metrics
+    honor_labels: true
+    
+    # Custom relabeling
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 'promptwizard-service:9090'
+    
+    # Metric relabeling
+    metric_relabel_configs:
+      # Drop high-cardinality Go metrics
+      - source_labels: [__name__]
+        regex: 'go_gc_.*'
+        action: drop
+      
+      # Add service label
+      - target_label: service
+        replacement: promptwizard
+
+  # Redis cluster metrics
+  - job_name: 'redis-cluster'
+    static_configs:
+      - targets:
+        - 'redis-master:9121'
+        - 'redis-slave-1:9121'
+        - 'redis-slave-2:9121'
+        - 'redis-sentinel-1:9121'
+        - 'redis-sentinel-2:9121'
+        - 'redis-sentinel-3:9121'
+    scrape_interval: 30s
+    metrics_path: /metrics
+    
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: 'redis-([^:]+):.*'
+        target_label: redis_role
+        replacement: '${1}'
+
+  # Kubernetes cluster metrics
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+      - role: node
+        namespaces:
+          names:
+            - promptwizard
+    
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics
+
+  # Kubernetes pods with prometheus.io annotations
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - promptwizard
+    
+    relabel_configs:
+      # Only scrape pods with prometheus.io/scrape annotation
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      
+      # Use custom path if specified
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      
+      # Use custom port if specified
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      
+      # Add pod metadata as labels
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+  # Application-specific metrics
+  - job_name: 'promptwizard-grpc'
+    static_configs:
+      - targets: ['promptwizard-service:50051']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+    
+    # gRPC-specific configuration
+    params:
+      format: ['prometheus']
+
+  # WebSocket connection metrics
+  - job_name: 'promptwizard-websocket'
+    static_configs:
+      - targets: ['promptwizard-service:8080']
+    scrape_interval: 15s
+    metrics_path: /ws-metrics
+    scheme: http
+
+  # External dependencies monitoring
+  - job_name: 'external-apis'
+    static_configs:
+      - targets: 
+        - 'api.openai.com'
+        - 'api.anthropic.com'
+        - 'generativelanguage.googleapis.com'
+    scrape_interval: 60s
+    metrics_path: /health
+    scheme: https
+    
+    # Custom metrics collection for external APIs
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '(.+)'
+        target_label: external_service
+        replacement: '${1}'
+
+  # Infrastructure metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets:
+        - 'node-exporter:9100'
+    scrape_interval: 30s
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets:
+        - 'cadvisor:8080'
+    scrape_interval: 30s
+    
+    # Drop high cardinality cAdvisor metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'container_network_.*'
+        action: drop
+      - source_labels: [__name__]
+        regex: 'container_fs_.*'
+        action: drop
+
+  # Custom business metrics
+  - job_name: 'business-metrics'
+    http_sd_configs:
+      - url: 'http://service-discovery:8080/targets'
+        refresh_interval: 60s
+    
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__meta_sd_tags]
+        regex: '.*,business,.*'
+        action: keep
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: "https://prometheus-remote-storage.company.com/api/v1/write"
+    basic_auth:
+      username: "promptwizard"
+      password_file: "/etc/prometheus/remote-storage-password"
+    
+    # Write relabeling
+    write_relabel_configs:
+      # Only send critical metrics to remote storage
+      - source_labels: [__name__]
+        regex: 'up|http_requests_total|http_request_duration_seconds.*|promptwizard_.*'
+        action: keep
+    
+    queue_config:
+      capacity: 10000
+      max_shards: 200
+      min_shards: 1
+      max_samples_per_send: 2000
+      batch_send_deadline: 5s
+      min_backoff: 30ms
+      max_backoff: 100ms
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus/data
+    retention.time: 30d
+    retention.size: 50GB
+    wal-compression: true
+  
+  # Exemplar storage
+  exemplars:
+    max_exemplars: 100000
+
+# Query configuration
+query:
+  timeout: 2m
+  max_concurrent: 20
+  max_samples: 50000000
+
+# Web configuration
+web:
+  console_templates: /etc/prometheus/consoles
+  console_libraries: /etc/prometheus/console_libraries
+  enable_lifecycle: true
+  enable_admin_api: true
+  max_connections: 512
+  
+  # CORS configuration
+  cors_origin: "https://grafana.company.com"
+
+# Additional feature flags
+feature_flags:
+  - promql-at-modifier
+  - promql-negative-offset

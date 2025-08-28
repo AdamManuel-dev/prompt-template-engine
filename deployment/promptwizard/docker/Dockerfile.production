@@ -1,0 +1,141 @@
+/**
+ * @fileoverview Production Dockerfile for PromptWizard service with security hardening
+ * @lastmodified 2024-08-26T15:30:00Z
+ * 
+ * Features: Multi-stage build, security hardening, health checks, non-root user
+ * Main APIs: HTTP API server, gRPC server, WebSocket server
+ * Constraints: Requires Python 3.11+, Redis connection, proper environment variables
+ * Patterns: Follows container security best practices, minimal attack surface
+ */
+
+# Multi-stage production build with security hardening
+# Build stage - Install dependencies and prepare application
+FROM python:3.11-slim as builder
+
+# Security: Set secure build environment
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_REQUIRE_VIRTUALENV=1
+
+# Install build dependencies with pinned versions for security
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential=12.9 \
+    curl=7.88.1-10+deb12u* \
+    git=1:2.39.2-1.1 \
+    ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* /var/tmp/*
+
+# Create and configure virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH" \
+    VIRTUAL_ENV="/opt/venv"
+
+# Copy and install Python dependencies
+COPY services/promptwizard-service/requirements.txt /tmp/requirements.txt
+COPY services/promptwizard-service/requirements-prod.txt /tmp/requirements-prod.txt
+
+# Install dependencies with security checks
+RUN pip install --upgrade pip==23.3.2 setuptools==69.0.3 wheel==0.42.0 \
+    && pip install --requirement /tmp/requirements.txt \
+    && pip install --requirement /tmp/requirements-prod.txt \
+    && pip check \
+    && rm -rf /tmp/*
+
+# Security scanning stage (optional but recommended)
+FROM builder as security-scan
+RUN pip install safety bandit \
+    && safety check --json --output /tmp/safety-report.json || true \
+    && bandit -r /opt/venv -f json -o /tmp/bandit-report.json || true
+
+# Production runtime stage
+FROM python:3.11-slim as production
+
+# Security: Set production environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONHASHSEED=random \
+    PATH="/opt/venv/bin:$PATH" \
+    VIRTUAL_ENV="/opt/venv" \
+    PORT=8000 \
+    WORKERS=4 \
+    LOG_LEVEL=INFO \
+    ENVIRONMENT=production
+
+# Install minimal runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl=7.88.1-10+deb12u* \
+    ca-certificates \
+    tini \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* /var/tmp/*
+
+# Security: Create non-root user with specific UID/GID
+RUN groupadd -r -g 1000 promptwizard \
+    && useradd -r -u 1000 -g promptwizard -s /sbin/nologin \
+       -c "PromptWizard Service User" promptwizard
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Create application directory structure
+WORKDIR /app
+
+# Copy application code with proper ownership
+COPY --chown=promptwizard:promptwizard services/promptwizard-service/app/ ./app/
+COPY --chown=promptwizard:promptwizard services/promptwizard-service/main.py .
+COPY --chown=promptwizard:promptwizard services/promptwizard-service/grpc_server.py .
+COPY --chown=promptwizard:promptwizard services/promptwizard-service/websocket_server.py .
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs /app/data /app/tmp \
+    && chown -R promptwizard:promptwizard /app \
+    && chmod -R 755 /app \
+    && chmod -R 750 /app/logs /app/data /app/tmp
+
+# Security: Remove unnecessary packages and files
+RUN apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* /var/tmp/* \
+    && find /app -name "*.pyc" -delete \
+    && find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# Security: Set file permissions
+RUN chmod -R go-w /app \
+    && chmod 755 /app/main.py
+
+# Switch to non-root user
+USER promptwizard:promptwizard
+
+# Health check with proper timeout and retry logic
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f -H "User-Agent: HealthCheck/1.0" \
+        http://localhost:${PORT}/api/v1/health \
+        && curl -f -H "User-Agent: HealthCheck/1.0" \
+        http://localhost:${PORT}/api/v1/ready \
+        || exit 1
+
+# Expose ports
+EXPOSE ${PORT}
+EXPOSE 50051
+EXPOSE 8080
+
+# Security: Use tini as PID 1 to handle signal forwarding
+ENTRYPOINT ["tini", "--"]
+
+# Start command with proper signal handling
+CMD ["python", "main.py"]
+
+# Metadata labels for container registry
+LABEL maintainer="promptwizard-team@company.com" \
+      version="1.0.0" \
+      description="Production PromptWizard service with security hardening" \
+      org.opencontainers.image.source="https://github.com/company/cursor-prompt-template-engine" \
+      org.opencontainers.image.vendor="Company" \
+      org.opencontainers.image.licenses="MIT"

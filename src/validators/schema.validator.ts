@@ -263,7 +263,7 @@ export class SchemaValidator extends BaseValidator {
             {
               type: 'object',
               properties: schema.properties,
-              additionalProperties: schema.additionalProperties,
+              additionalProperties: schema.additionalProperties ?? false,
             },
             path
           )

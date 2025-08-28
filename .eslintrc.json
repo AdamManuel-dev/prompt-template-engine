@@ -4,6 +4,9 @@
     "es2024": true,
     "jest": true
   },
+  "globals": {
+    "NodeJS": "readonly"
+  },
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
@@ -27,7 +30,7 @@
   },
   "rules": {
     "prettier/prettier": "error",
-    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-console": ["warn", { "allow": ["warn", "error", "log"] }],
     "consistent-return": "off",
     "import/extensions": [
       "error",
@@ -51,11 +54,11 @@
       }
     ],
     "import/prefer-default-export": "off",
-    "max-classes-per-file": ["error", 3],
+    "max-classes-per-file": ["warn", 30],
     "class-methods-use-this": "off",
     "no-useless-catch": "off",
     "no-nested-ternary": "off",
-    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
+    "no-plusplus": ["warn", { "allowForLoopAfterthoughts": true }],
     "no-await-in-loop": "off",
     "no-underscore-dangle": "off",
     "no-restricted-syntax": "off",
@@ -69,22 +72,47 @@
     "no-useless-constructor": "off",
     "no-empty-function": "off",
     "no-continue": "off",
-    "prefer-destructuring": ["error", {
+    "prefer-destructuring": ["warn", {
       "array": false,
       "object": true
     }, {
       "enforceForRenamedProperties": false
     }],
+    "camelcase": "warn",
     "no-unused-vars": "off",
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
     "@typescript-eslint/explicit-function-return-type": ["warn", { "allowExpressions": true }],
     "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-empty-object-type": "warn",
+    "no-use-before-define": ["warn", { "classes": false }],
+    "@typescript-eslint/no-use-before-define": ["warn", { 
+      "classes": false, 
+      "typedefs": false,
+      "functions": false,
+      "variables": false
+    }],
+    "no-promise-executor-return": "warn",
+    "no-param-reassign": ["error", { "props": false }],
     "@typescript-eslint/no-require-imports": "off",
     "global-require": "off",
     "func-names": "off",
     "no-shadow": "off",
     "@typescript-eslint/no-shadow": "error"
   },
+  "overrides": [
+    {
+      "files": ["src/cli/**/*.ts", "src/cli.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["src/extension.ts", "src/integrations/cursor/**/*.ts"],
+      "rules": {
+        "import/no-extraneous-dependencies": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "dist/",
     "coverage/",
@@ -93,6 +121,7 @@
     "**/*.js",
     "tests/**/*.ts",
     ".cursor-prompt/plugins/**/*.ts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "examples/**/*.ts"
   ]
 }

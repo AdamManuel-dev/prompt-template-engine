@@ -150,7 +150,7 @@ export class TemplateTransforms {
       });
     });
     this.register('unique', (value: unknown) =>
-      Array.isArray(value) ? [...new Set(value)] : value
+      Array.isArray(value) ? Array.from(new Set(value)) : value
     );
     this.register('join', (value: unknown, separator: unknown = ',') =>
       Array.isArray(value) ? value.join(String(separator)) : String(value)

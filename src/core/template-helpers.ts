@@ -1,6 +1,6 @@
 /**
  * @fileoverview Template helper functions for cursor-prompt-template-engine
- * @lastmodified 2025-08-22T16:30:00Z
+ * @lastmodified 2025-08-26T11:27:59Z
  *
  * Features: Comparison, math, string, and utility helper functions
  * Main APIs: TemplateHelpers class with various helper methods
@@ -8,21 +8,85 @@
  * Patterns: Pure functions for template transformations
  */
 
+/**
+ * Function signature for template helper functions.
+ * Helpers accept variable arguments and return a value for template rendering.
+ *
+ * @example
+ * ```typescript
+ * const addHelper: HelperFunction = (a: unknown, b: unknown) => Number(a) + Number(b);
+ * ```
+ */
 export type HelperFunction = (...args: unknown[]) => unknown;
 
+/**
+ * Context object containing variables and data available to helper functions.
+ * Used for resolving variable references and providing runtime context.
+ *
+ * @example
+ * ```typescript
+ * const context: HelperContext = {
+ *   user: { name: "Alice", age: 30 },
+ *   settings: { theme: "dark" }
+ * };
+ * ```
+ */
 export interface HelperContext {
   [key: string]: unknown;
 }
 
+/**
+ * Template helpers provide utility functions for use within template expressions.
+ * Includes comparison, mathematical, string manipulation, array operations, and utility functions.
+ * All helpers are designed to be safe for template use with proper type coercion and error handling.
+ *
+ * @example
+ * ```typescript
+ * const helpers = new TemplateHelpers();
+ *
+ * // Register custom helper
+ * helpers.register('multiply', (a, b) => Number(a) * Number(b));
+ *
+ * // Execute helper in template context
+ * const result = helpers.parseAndExecute('add 5 3', { value: 10 });
+ * // Returns: 8
+ *
+ * // Use in template expressions
+ * const template = '{{add user.age 5}}';
+ * const context = { user: { age: 25 } };
+ * // Would resolve to: 30
+ * ```
+ */
 export class TemplateHelpers {
   private helpers: Map<string, HelperFunction> = new Map();
 
+  /**
+   * Creates a new TemplateHelpers instance with all default helpers pre-registered.
+   * Default helpers include comparison, math, string, array, date/time, type checking, and utility functions.
+   *
+   * @example
+   * ```typescript
+   * const helpers = new TemplateHelpers();
+   * console.log(helpers.getHelperNames()); // Lists all available helpers
+   * ```
+   */
   constructor() {
     this.registerDefaultHelpers();
   }
 
   /**
-   * Register default helper functions
+   * Registers all default helper functions available in the template engine.
+   * This includes comprehensive sets of helpers for various operations:
+   * - Comparison: eq, neq, lt, gt, and, or, not
+   * - Math: add, subtract, multiply, divide, mod, round, floor, ceil, abs, min, max
+   * - String: uppercase, lowercase, capitalize, titlecase, concat, trim, replace, substring, length, contains, startsWith, endsWith, split, join
+   * - Array: first, last, reverse, sort, unique
+   * - Date/time: now, date
+   * - Type checking: isArray, isObject, isString, isNumber, isBoolean, isDefined, isUndefined, isNull, isEmpty
+   * - Utility: default, json, parseJson
+   *
+   * @private
+   * @see {@link register} for adding custom helpers
    */
   private registerDefaultHelpers(): void {
     // Comparison helpers
@@ -128,7 +192,7 @@ export class TemplateHelpers {
       Array.isArray(arr) ? [...arr].sort() : []
     );
     this.register('unique', (arr: unknown) =>
-      Array.isArray(arr) ? [...new Set(arr)] : []
+      Array.isArray(arr) ? Array.from(new Set(arr)) : []
     );
 
     // Date/time helpers
@@ -177,14 +241,62 @@ export class TemplateHelpers {
   }
 
   /**
-   * Register a custom helper function
+   * Registers a custom helper function that can be used in template expressions.
+   * Helper functions should handle type coercion and error cases gracefully.
+   *
+   * @param name - Unique name for the helper function
+   * @param fn - Function implementation that accepts variable arguments and returns a value
+   *
+   * @example
+   * ```typescript
+   * // Register a simple math helper
+   * helpers.register('square', (num: unknown) => {
+   *   const n = Number(num);
+   *   return n * n;
+   * });
+   *
+   * // Register a string formatter helper
+   * helpers.register('formatName', (first: unknown, last: unknown) => {
+   *   return `${String(first).trim()} ${String(last).trim()}`;
+   * });
+   *
+   * // Register a conditional helper
+   * helpers.register('ifThen', (condition: unknown, trueValue: unknown, falseValue: unknown) => {
+   *   return condition ? trueValue : falseValue;
+   * });
+   * ```
+   *
+   * @throws {Error} If attempting to register over an existing helper name
+   * @see {@link execute} for calling registered helpers
+   * @see {@link has} for checking helper existence
    */
   register(name: string, fn: HelperFunction): void {
     this.helpers.set(name, fn);
   }
 
   /**
-   * Execute a helper function
+   * Executes a registered helper function with the provided arguments.
+   * Arguments are passed directly to the helper function without modification.
+   *
+   * @param name - Name of the helper function to execute
+   * @param args - Arguments to pass to the helper function
+   * @returns Result returned by the helper function
+   *
+   * @example
+   * ```typescript
+   * // Execute built-in helpers
+   * const sum = helpers.execute('add', 10, 5); // Returns: 15
+   * const upper = helpers.execute('uppercase', 'hello'); // Returns: "HELLO"
+   * const isEqual = helpers.execute('eq', 'test', 'test'); // Returns: true
+   *
+   * // Execute custom helper
+   * helpers.register('greet', (name: unknown) => `Hello, ${name}!`);
+   * const greeting = helpers.execute('greet', 'World'); // Returns: "Hello, World!"
+   * ```
+   *
+   * @throws {Error} When the specified helper function is not registered
+   * @see {@link register} for registering helper functions
+   * @see {@link parseAndExecute} for parsing and executing from template expressions
    */
   execute(name: string, ...args: unknown[]): unknown {
     const helper = this.helpers.get(name);
@@ -195,22 +307,95 @@ export class TemplateHelpers {
   }
 
   /**
-   * Check if a helper exists
+   * Checks whether a helper function with the specified name is registered.
+   * Useful for conditional helper usage and validation.
+   *
+   * @param name - Name of the helper function to check
+   * @returns True if the helper is registered, false otherwise
+   *
+   * @example
+   * ```typescript
+   * console.log(helpers.has('add')); // true (built-in helper)
+   * console.log(helpers.has('myCustomHelper')); // false (unless registered)
+   *
+   * // Conditional helper usage
+   * if (helpers.has('formatCurrency')) {
+   *   const formatted = helpers.execute('formatCurrency', 123.45);
+   * } else {
+   *   console.log('Currency formatter not available');
+   * }
+   * ```
+   *
+   * @see {@link register} for registering helpers
+   * @see {@link getHelperNames} for getting all available helper names
    */
   has(name: string): boolean {
     return this.helpers.has(name);
   }
 
   /**
-   * Get all registered helper names
+   * Retrieves the names of all registered helper functions.
+   * Includes both built-in helpers and any custom helpers that have been registered.
+   *
+   * @returns Array of helper function names
+   *
+   * @example
+   * ```typescript
+   * const helpers = new TemplateHelpers();
+   * const allHelpers = helpers.getHelperNames();
+   *
+   * console.log('Available helpers:', allHelpers);
+   * // Output: ['eq', 'neq', 'add', 'subtract', 'uppercase', 'lowercase', ...]
+   *
+   * // Check for specific helper categories
+   * const mathHelpers = allHelpers.filter(name =>
+   *   ['add', 'subtract', 'multiply', 'divide', 'mod', 'round'].includes(name)
+   * );
+   * ```
+   *
+   * @see {@link has} for checking individual helper existence
+   * @see {@link register} for adding new helpers
    */
   getHelperNames(): string[] {
     return Array.from(this.helpers.keys());
   }
 
   /**
-   * Parse and execute a helper expression
-   * Format: {{helperName arg1 arg2 ...}}
+   * Parses a template expression and executes the corresponding helper function.
+   * Handles both helper function calls and simple variable resolution.
+   * Supports quoted string arguments, numeric literals, and context variable references.
+   *
+   * @param expression - Template expression to parse (without outer curly braces)
+   * @param context - Context object for resolving variable references
+   * @returns Result of helper execution or resolved variable value
+   *
+   * @example
+   * ```typescript
+   * const context = {
+   *   user: { name: 'Alice', age: 30 },
+   *   items: ['apple', 'banana', 'cherry']
+   * };
+   *
+   * // Helper function calls
+   * helpers.parseAndExecute('add user.age 5', context); // Returns: 35
+   * helpers.parseAndExecute('uppercase user.name', context); // Returns: "ALICE"
+   * helpers.parseAndExecute('first items', context); // Returns: "apple"
+   *
+   * // With string literals
+   * helpers.parseAndExecute('concat "Hello " user.name', context); // Returns: "Hello Alice"
+   *
+   * // Complex expressions
+   * helpers.parseAndExecute('eq user.age 30', context); // Returns: true
+   * helpers.parseAndExecute('length items', context); // Returns: 3
+   *
+   * // Variable resolution (non-helper)
+   * helpers.parseAndExecute('user.name', context); // Returns: "Alice"
+   * ```
+   *
+   * @throws {Error} When helper function is not found or execution fails
+   * @see {@link execute} for direct helper execution
+   * @see {@link parseExpression} for expression parsing logic
+   * @see {@link resolveValue} for variable resolution
    */
   parseAndExecute(expression: string, context: HelperContext): unknown {
     const trimmed = expression.trim();
@@ -231,7 +416,23 @@ export class TemplateHelpers {
   }
 
   /**
-   * Parse an expression into parts, handling quoted strings
+   * Parses a template expression string into individual parts (helper name and arguments).
+   * Handles quoted strings (both single and double quotes) and properly splits on whitespace.
+   * Supports escaped quotes within quoted strings.
+   *
+   * @param expression - Expression string to parse
+   * @returns Array of parsed parts where first element is helper name, rest are arguments
+   *
+   * @example
+   * ```typescript
+   * parseExpression('add 5 10'); // Returns: ['add', '5', '10']
+   * parseExpression('concat "Hello world" user.name'); // Returns: ['concat', 'Hello world', 'user.name']
+   * parseExpression('eq status "active"'); // Returns: ['eq', 'status', 'active']
+   * parseExpression('replace text "old value" "new value"'); // Returns: ['replace', 'text', 'old value', 'new value']
+   * ```
+   *
+   * @private
+   * @see {@link parseAndExecute} for usage of parsed expressions
    */
   // eslint-disable-next-line class-methods-use-this
   private parseExpression(expression: string): string[] {
@@ -274,7 +475,50 @@ export class TemplateHelpers {
   }
 
   /**
-   * Resolve a value from context or return as literal
+   * Resolves a value from the template context or returns it as a literal.
+   * Handles various data types including numbers, booleans, null, undefined, and nested object paths.
+   * Performs automatic type conversion for numeric strings and boolean literals.
+   *
+   * @param value - String value to resolve (could be literal or context reference)
+   * @param context - Template context for variable resolution
+   * @returns Resolved value with appropriate type conversion
+   *
+   * @example
+   * ```typescript
+   * const context = {
+   *   user: { profile: { isActive: true, score: 95 } },
+   *   status: 'active',
+   *   count: 42
+   * };
+   *
+   * // Numeric literals
+   * resolveValue('123', context); // Returns: 123 (number)
+   * resolveValue('45.67', context); // Returns: 45.67 (number)
+   * resolveValue('-10', context); // Returns: -10 (number)
+   *
+   * // Boolean literals
+   * resolveValue('true', context); // Returns: true (boolean)
+   * resolveValue('false', context); // Returns: false (boolean)
+   *
+   * // Special values
+   * resolveValue('null', context); // Returns: null
+   * resolveValue('undefined', context); // Returns: undefined
+   *
+   * // Context variable resolution
+   * resolveValue('status', context); // Returns: "active"
+   * resolveValue('count', context); // Returns: 42
+   *
+   * // Nested path resolution
+   * resolveValue('user.profile.isActive', context); // Returns: true
+   * resolveValue('user.profile.score', context); // Returns: 95
+   *
+   * // Unresolvable values return as strings
+   * resolveValue('nonexistent.path', context); // Returns: "nonexistent.path"
+   * resolveValue('literal text', context); // Returns: "literal text"
+   * ```
+   *
+   * @private
+   * @see {@link parseAndExecute} for usage in expression evaluation
    */
   // eslint-disable-next-line class-methods-use-this
   private resolveValue(value: string, context: HelperContext): unknown {

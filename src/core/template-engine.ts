@@ -13,10 +13,23 @@ import * as path from 'path';
 import { TemplateHelpers } from './template-helpers';
 import { TemplatePartials } from './template-partials';
 import { TemplateTransforms } from './template-transforms';
+import {
+  templateSanitizer,
+  validateTemplate,
+  SanitizationConfig,
+} from './template-sanitizer';
 import { logger } from '../utils/logger';
 
 export interface TemplateContext {
   [key: string]: unknown;
+}
+
+export interface TemplateEngineOptions {
+  enableSanitization?: boolean;
+  sanitizationConfig?: Partial<SanitizationConfig>;
+  maxIncludeDepth?: number;
+  validateTemplates?: boolean;
+  enableSecurityMode?: boolean;
 }
 
 export class TemplateEngine {
@@ -43,10 +56,20 @@ export class TemplateEngine {
 
   private maxIncludeDepth = 10;
 
-  constructor() {
+  private options: TemplateEngineOptions;
+
+  constructor(options: TemplateEngineOptions = {}) {
     this.helpers = new TemplateHelpers();
     this.partials = new TemplatePartials();
     this.transforms = new TemplateTransforms();
+    this.options = {
+      enableSanitization: true,
+      validateTemplates: true,
+      enableSecurityMode: true,
+      maxIncludeDepth: 10,
+      ...options,
+    };
+    this.maxIncludeDepth = this.options.maxIncludeDepth || 10;
   }
 
   /**
@@ -58,13 +81,52 @@ export class TemplateEngine {
    * @throws Error if include files not found or processing fails
    */
   async render(template: string, context: TemplateContext): Promise<string> {
+    // Security validation if enabled
+    if (this.options.validateTemplates) {
+      const validation = validateTemplate(template);
+      if (!validation.valid) {
+        logger.error('Template validation failed:', validation.errors);
+        throw new Error(
+          `Template security validation failed: ${validation.errors.join(', ')}`
+        );
+      }
+
+      if (validation.warnings && validation.warnings.length > 0) {
+        logger.warn('Template security warnings:', validation.warnings);
+      }
+    }
+
+    // Sanitize template content if enabled
+    let processedTemplate = template;
+    if (this.options.enableSanitization) {
+      const sanitizationResult = templateSanitizer.sanitize(
+        template,
+        this.options.sanitizationConfig
+      );
+
+      if (sanitizationResult.threatsRemoved.length > 0) {
+        logger.warn(
+          'Template threats removed during sanitization:',
+          sanitizationResult.threatsRemoved
+        );
+      }
+
+      processedTemplate = sanitizationResult.sanitized;
+    }
+
+    // Sanitize context variables if security mode is enabled
+    let sanitizedContext = context;
+    if (this.options.enableSecurityMode) {
+      sanitizedContext = templateSanitizer.sanitizeTemplateVariables(context);
+    }
+
     // Reset included files tracking for new render
     this.includedFiles.clear();
 
     // First process unconditional includes (not wrapped in conditionals)
     let processed = await this.processUnconditionalIncludes(
-      template,
-      context,
+      processedTemplate,
+      sanitizedContext,
       0,
       []
     );
@@ -72,23 +134,81 @@ export class TemplateEngine {
     // Then process conditional blocks (which will handle conditional includes internally)
     processed = await this.processConditionalBlocksWithIncludes(
       processed,
-      context
+      sanitizedContext
     );
 
     // Then process any standalone #each blocks not inside conditionals
-    processed = this.processEachBlocks(processed, context);
+    processed = this.processEachBlocks(processed, sanitizedContext);
 
     // Process partials after conditionals and loops to ensure correct context
-    processed = this.processPartials(processed, context);
+    processed = this.processPartials(processed, sanitizedContext);
 
     // Process helper functions
-    processed = this.processHelpers(processed, context);
+    processed = this.processHelpers(processed, sanitizedContext);
 
     // Process variable transformations
-    processed = this.processTransforms(processed, context);
+    processed = this.processTransforms(processed, sanitizedContext);
 
     // Finally process regular variables
-    return this.processVariables(processed, context);
+    const finalResult = this.processVariables(processed, sanitizedContext);
+
+    // Final sanitization pass if enabled
+    if (this.options.enableSanitization) {
+      const finalSanitization = templateSanitizer.sanitize(finalResult, {
+        ...this.options.sanitizationConfig,
+        enableStrictMode: false, // Less strict for final pass
+      });
+      return finalSanitization.sanitized;
+    }
+
+    return finalResult;
+  }
+
+  /**
+   * Render template with enhanced security validation
+   */
+  async renderSecure(
+    template: string,
+    context: TemplateContext
+  ): Promise<{
+    result: string;
+    securityReport: {
+      templateThreats: string[];
+      contextThreats: string[];
+      sanitizationApplied: boolean;
+      validationPassed: boolean;
+    };
+  }> {
+    const securityReport = {
+      templateThreats: [] as string[],
+      contextThreats: [] as string[],
+      sanitizationApplied: false,
+      validationPassed: false,
+    };
+
+    // Validate template
+    const validation = validateTemplate(template);
+    securityReport.validationPassed = validation.valid;
+    securityReport.templateThreats = validation.errors.concat(
+      validation.warnings
+    );
+
+    // Validate context for security threats
+    const contextValidation =
+      templateSanitizer.sanitizeTemplateVariables(context);
+
+    // Render with security options enabled
+    const secureEngine = new TemplateEngine({
+      ...this.options,
+      enableSanitization: true,
+      validateTemplates: true,
+      enableSecurityMode: true,
+    });
+
+    const result = await secureEngine.render(template, context);
+    securityReport.sanitizationApplied = true;
+
+    return { result, securityReport };
   }
 
   /**
@@ -155,6 +275,16 @@ export class TemplateEngine {
       }
 
       const absolutePath = this.resolveIncludePath(include.path);
+
+      // Check for circular dependency
+      if (includeStack.includes(absolutePath)) {
+        throw new Error(
+          `Circular dependency detected: ${absolutePath} is already included in the call stack`
+        );
+      }
+
+      // Debug logging
+      // console.log(`[UNCONDITIONAL] Processing include: ${absolutePath}, stack: [${includeStack.join(', ')}], depth: ${depth}`);
 
       try {
         // Read the included template
@@ -231,6 +361,16 @@ export class TemplateEngine {
     for (let i = 0; i < includes.length; i += 1) {
       const include = includes[i];
       const absolutePath = this.resolveIncludePath(include.path);
+
+      // Check for circular dependency
+      if (includeStack.includes(absolutePath)) {
+        throw new Error(
+          `Circular dependency detected: ${absolutePath} is already included in the call stack`
+        );
+      }
+
+      // Debug logging
+      // console.log(`Processing include: ${absolutePath}, stack: [${includeStack.join(', ')}], depth: ${depth}`);
 
       try {
         // Read the included template

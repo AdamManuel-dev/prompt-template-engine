@@ -16,6 +16,12 @@ Complete API reference for using the template engine programmatically in Node.js
 ### [Configuration Schema](./configuration-schema.md)
 Comprehensive configuration options and file formats.
 
+### [PromptWizard API](./promptwizard-api.md)
+Complete API reference for PromptWizard integration, types, and interfaces.
+
+### [Optimization Commands](./optimization-commands.md)
+Full specification of PromptWizard CLI commands and options.
+
 ## Quick Reference
 
 ### Core Commands

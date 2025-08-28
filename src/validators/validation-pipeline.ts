@@ -198,7 +198,10 @@ export class ValidationPipeline {
 
     // Use last post-processor result
     if (postResults.length > 0) {
-      result = postResults[postResults.length - 1];
+      const lastResult = postResults[postResults.length - 1];
+      if (lastResult) {
+        result = lastResult;
+      }
     }
 
     return result;

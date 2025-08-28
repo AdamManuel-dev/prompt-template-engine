@@ -120,6 +120,14 @@ export abstract class BaseCommand implements ICommand {
   }
 
   /**
+   * Exit the process with an error code (mockable for tests)
+   */
+  // eslint-disable-next-line class-methods-use-this
+  protected exit(code: number): never {
+    process.exit(code);
+  }
+
+  /**
    * Prompt for user confirmation
    */
   // eslint-disable-next-line class-methods-use-this

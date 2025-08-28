@@ -157,6 +157,254 @@ export class ConfigManager implements IConfigManager {
           },
         },
       },
+      promptwizard: {
+        type: 'object',
+        properties: {
+          enabled: {
+            type: 'boolean',
+            default: false,
+            description: 'Enable PromptWizard optimization features',
+          },
+          serviceUrl: {
+            type: 'string',
+            default: 'http://localhost:8000',
+            description: 'PromptWizard Python service URL',
+          },
+          apiKey: {
+            type: 'string',
+            description: 'API authentication token',
+          },
+          verifySSL: {
+            type: 'boolean',
+            default: true,
+            description: 'Enable SSL/TLS verification',
+          },
+          timeout: {
+            type: 'number',
+            default: 120000,
+            min: 30000,
+            max: 600000,
+            description: 'Request timeout in milliseconds',
+          },
+          retries: {
+            type: 'number',
+            default: 3,
+            min: 0,
+            max: 10,
+            description: 'Number of retry attempts',
+          },
+          autoOptimize: {
+            type: 'boolean',
+            default: false,
+            description: 'Automatically optimize templates on save',
+          },
+          defaultModel: {
+            type: 'string',
+            enum: [
+              'gpt-4',
+              'gpt-3.5-turbo',
+              'claude-3-opus',
+              'claude-3-sonnet',
+              'gemini-pro',
+            ],
+            default: 'gpt-4',
+            description: 'Default target model for optimization',
+          },
+          mutateRefineIterations: {
+            type: 'number',
+            default: 3,
+            min: 1,
+            max: 10,
+            description: 'Number of refinement iterations',
+          },
+          fewShotCount: {
+            type: 'number',
+            default: 5,
+            min: 0,
+            max: 20,
+            description: 'Number of few-shot examples to generate',
+          },
+          generateReasoning: {
+            type: 'boolean',
+            default: true,
+            description: 'Generate reasoning chains in optimized prompts',
+          },
+          maxPromptLength: {
+            type: 'number',
+            default: 10000,
+            min: 1000,
+            description: 'Maximum prompt length for optimization',
+          },
+          minConfidence: {
+            type: 'number',
+            default: 0.7,
+            min: 0,
+            max: 1,
+            description: 'Minimum confidence threshold for results',
+          },
+          grpc: {
+            type: 'object',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                default: false,
+                description: 'Enable gRPC protocol support',
+              },
+              serviceUrl: {
+                type: 'string',
+                default: 'localhost:50051',
+                description: 'gRPC service URL',
+              },
+              secure: {
+                type: 'boolean',
+                default: false,
+                description: 'Use secure connection (TLS)',
+              },
+              keepAlive: {
+                type: 'boolean',
+                default: true,
+                description: 'Enable keep-alive',
+              },
+              maxReceiveMessageLength: {
+                type: 'number',
+                default: 4194304,
+                min: 1024,
+                description: 'Max receive message size in bytes',
+              },
+              maxSendMessageLength: {
+                type: 'number',
+                default: 4194304,
+                min: 1024,
+                description: 'Max send message size in bytes',
+              },
+            },
+          },
+          websocket: {
+            type: 'object',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                default: false,
+                description: 'Enable WebSocket streaming',
+              },
+              serviceUrl: {
+                type: 'string',
+                default: 'ws://localhost:8001/ws/optimize',
+                description: 'WebSocket service URL',
+              },
+              reconnectInterval: {
+                type: 'number',
+                default: 5000,
+                min: 1000,
+                description: 'Reconnection interval in milliseconds',
+              },
+              maxReconnectAttempts: {
+                type: 'number',
+                default: 10,
+                min: 0,
+                description: 'Maximum reconnection attempts',
+              },
+              heartbeatInterval: {
+                type: 'number',
+                default: 30000,
+                min: 5000,
+                description: 'Heartbeat interval in milliseconds',
+              },
+            },
+          },
+          cache: {
+            type: 'object',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                default: true,
+                description: 'Enable optimization result caching',
+              },
+              ttl: {
+                type: 'number',
+                default: 86400,
+                min: 300,
+                description: 'Cache TTL in seconds',
+              },
+              maxSize: {
+                type: 'number',
+                default: 1000,
+                min: 10,
+                description: 'Maximum cache entries',
+              },
+              redis: {
+                type: 'object',
+                properties: {
+                  enabled: {
+                    type: 'boolean',
+                    default: false,
+                    description: 'Enable Redis distributed caching',
+                  },
+                  url: {
+                    type: 'string',
+                    default: 'redis://localhost:6379',
+                    description: 'Redis connection URL',
+                  },
+                  keyPrefix: {
+                    type: 'string',
+                    default: 'promptwizard:',
+                    description: 'Redis key prefix',
+                  },
+                },
+              },
+            },
+          },
+          rateLimiting: {
+            type: 'object',
+            properties: {
+              maxRequests: {
+                type: 'number',
+                default: 100,
+                min: 1,
+                description: 'Maximum requests per window',
+              },
+              windowMs: {
+                type: 'number',
+                default: 3600000,
+                min: 60000,
+                description: 'Rate limiting window in milliseconds',
+              },
+              skipCached: {
+                type: 'boolean',
+                default: true,
+                description: 'Skip rate limiting for cached results',
+              },
+            },
+          },
+          analytics: {
+            type: 'object',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                default: true,
+                description: 'Enable analytics tracking',
+              },
+              trackUsage: {
+                type: 'boolean',
+                default: true,
+                description: 'Track usage metrics',
+              },
+              reportInterval: {
+                type: 'number',
+                default: 3600,
+                min: 300,
+                description: 'Report interval in seconds',
+              },
+              backend: {
+                type: 'string',
+                enum: ['memory', 'redis', 'file'],
+                default: 'memory',
+                description: 'Analytics storage backend',
+              },
+            },
+          },
+        },
+      },
     };
   }
 

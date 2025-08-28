@@ -16,6 +16,7 @@ import * as path from 'path';
 import { spawn } from 'child_process';
 import * as yaml from 'js-yaml';
 import chalk from 'chalk';
+import { z } from 'zod';
 import { logger } from '../utils/logger';
 import { TemplateEngine } from '../core/template-engine';
 import {
@@ -442,7 +443,7 @@ function reportApplyResults(result: ApplyResult): void {
  */
 export const applyCommandWithValidation = withValidation(
   ApplyCommandSchema,
-  async (validatedInput: any) => {
+  async (validatedInput: z.infer<typeof ApplyCommandSchema>) => {
     const { template, force, dryRun } = validatedInput;
 
     // Convert to ApplyOptions

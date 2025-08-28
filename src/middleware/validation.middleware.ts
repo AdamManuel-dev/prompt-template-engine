@@ -10,6 +10,13 @@
 
 import { z } from 'zod';
 import { ValidationError } from '../errors';
+import {
+  SecureStringSchema,
+  SecurePathSchema,
+  SecureCommandArgSchema,
+  SecureUrlSchema,
+} from '../validation/schemas';
+import { logger } from '../utils/logger';
 
 // Type definition for command handler
 type CommandHandler<TInput, TOutput> = (input: TInput) => Promise<TOutput>;
@@ -102,11 +109,11 @@ function sanitizeData<T>(data: T): T {
   }
 
   if (data && typeof data === 'object') {
-    const sanitized: any = {};
+    const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       sanitized[key] = sanitizeData(value);
     }
-    return sanitized;
+    return sanitized as T;
   }
 
   return data;
@@ -241,7 +248,7 @@ export function createTypedValidator<T>(
 /**
  * Environment variable validation
  */
-export function validateEnv<T extends Record<string, any>>(
+export function validateEnv<T extends Record<string, unknown>>(
   schema: z.ZodSchema<T>
 ): T {
   const result = createValidator(schema)(process.env);
@@ -328,3 +335,150 @@ export const validators = {
       )
   ),
 };
+
+/**
+ * Security-focused validation functions
+ */
+export const securityValidators = {
+  /**
+   * Validate user input for XSS and SQL injection
+   */
+  userInput: createTypedValidator(SecureStringSchema),
+
+  /**
+   * Validate file paths for path traversal and command injection
+   */
+  filePath: createTypedValidator(SecurePathSchema),
+
+  /**
+   * Validate command arguments for shell injection
+   */
+  commandArg: createTypedValidator(SecureCommandArgSchema),
+
+  /**
+   * Validate URLs for protocol restrictions and path traversal
+   */
+  url: createTypedValidator(SecureUrlSchema),
+
+  /**
+   * Comprehensive template content validation
+   */
+  templateContent: createTypedValidator(
+    z.object({
+      name: SecureStringSchema.max(100, 'Template name too long'),
+      content: SecureStringSchema.max(50000, 'Template content too long'),
+      description: SecureStringSchema.optional(),
+      author: SecureStringSchema.max(100, 'Author name too long').optional(),
+      version: z
+        .string()
+        .regex(/^\d+\.\d+\.\d+$/, 'Invalid version format')
+        .optional(),
+      tags: z
+        .array(SecureStringSchema.max(50, 'Tag too long'))
+        .max(10, 'Too many tags')
+        .optional(),
+    })
+  ),
+
+  /**
+   * Command execution validation with strict security
+   */
+  commandExecution: createTypedValidator(
+    z.object({
+      command: z.enum(['generate', 'apply', 'list', 'init', 'validate'], {
+        errorMap: () => ({ message: 'Invalid command' }),
+      }),
+      args: z.array(SecureCommandArgSchema).max(20, 'Too many arguments'),
+      options: z
+        .record(z.union([z.string(), z.number(), z.boolean()]))
+        .optional(),
+    })
+  ),
+};
+
+/**
+ * Deep security scan for any input
+ */
+export function performSecurityScan(input: unknown): {
+  safe: boolean;
+  threats: string[];
+  sanitized?: unknown;
+} {
+  const threats: string[] = [];
+
+  function scanValue(value: unknown, path: string = ''): void {
+    if (typeof value === 'string') {
+      // Check for XSS patterns
+      if (/<script|javascript:|on\w+\s*=|data:/i.test(value)) {
+        threats.push(`XSS pattern detected at ${path}`);
+      }
+
+      // Check for SQL injection patterns
+      if (
+        /(union|select|insert|delete|update|drop|create|alter|exec|execute)\s/i.test(
+          value
+        )
+      ) {
+        threats.push(`SQL injection pattern detected at ${path}`);
+      }
+
+      // Check for path traversal
+      if (/\.\.\/|\.\.\\/g.test(value)) {
+        threats.push(`Path traversal detected at ${path}`);
+      }
+
+      // Check for command injection
+      if (/[;&|`$(){}[\\]<>]/.test(value)) {
+        threats.push(`Command injection pattern detected at ${path}`);
+      }
+
+      // Check for null bytes
+      if (value.includes('\x00')) {
+        threats.push(`Null byte detected at ${path}`);
+      }
+    } else if (Array.isArray(value)) {
+      value.forEach((item, index) => scanValue(item, `${path}[${index}]`));
+    } else if (value && typeof value === 'object') {
+      Object.entries(value).forEach(([key, val]) =>
+        scanValue(val, path ? `${path}.${key}` : key)
+      );
+    }
+  }
+
+  scanValue(input);
+
+  return {
+    safe: threats.length === 0,
+    threats,
+    sanitized: threats.length > 0 ? sanitizeData(input) : input,
+  };
+}
+
+/**
+ * Rate limiting validation
+ */
+export function createRateLimitValidator(
+  maxRequests: number,
+  windowMs: number
+) {
+  const requests = new Map<string, number[]>();
+
+  return (clientId: string): { allowed: boolean; retryAfter?: number } => {
+    const now = Date.now();
+    const clientRequests = requests.get(clientId) || [];
+
+    // Clean old requests
+    const validRequests = clientRequests.filter(time => now - time < windowMs);
+
+    if (validRequests.length >= maxRequests) {
+      const oldestRequest = Math.min(...validRequests);
+      const retryAfter = Math.ceil((oldestRequest + windowMs - now) / 1000);
+      return { allowed: false, retryAfter };
+    }
+
+    validRequests.push(now);
+    requests.set(clientId, validRequests);
+
+    return { allowed: true };
+  };
+}

@@ -21,17 +21,6 @@ export type RateLimitAlgorithm =
   | 'leaky-bucket';
 
 /**
- * Rate limit result
- */
-export interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-  resetTime: number;
-  retryAfter?: number;
-  error?: string;
-}
-
-/**
  * Rate limit data structure
  */
 export interface RateLimitData {
@@ -86,6 +75,17 @@ export interface RateLimitConfig {
   // Whitelist/blacklist
   whitelist?: string[];
   blacklist?: string[];
+}
+
+/**
+ * Rate limit result
+ */
+export interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetTime: number;
+  retryAfter?: number;
+  error?: string;
 }
 
 /**
@@ -186,7 +186,7 @@ export class RateLimiter extends EventEmitter {
   constructor(config: Partial<RateLimitConfig> = {}) {
     super();
 
-    // Handle 'max' option alias (Required by TODO)
+    // Handle 'max' option alias for backward compatibility
     const processedConfig = { ...config };
     if (config.max !== undefined) {
       processedConfig.maxRequests = config.max;
@@ -242,8 +242,10 @@ export class RateLimiter extends EventEmitter {
         default:
           throw new Error(`Unknown algorithm: ${this.config.algorithm}`);
       }
-    } catch (error: any) {
-      logger.error(`Rate limit check failed: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      logger.error(`Rate limit check failed: ${errorMessage}`);
       return {
         allowed: false,
         remaining: 0,
@@ -510,14 +512,14 @@ export function withRateLimit(config: Partial<RateLimitConfig> = {}) {
   const limiter = new RateLimiter(config);
 
   return function (
-    _target: any,
+    _target: unknown,
     _propertyName: string,
     descriptor: PropertyDescriptor
   ) {
     const method = descriptor.value;
     const newDescriptor = { ...descriptor };
 
-    newDescriptor.value = async function (...args: any[]) {
+    newDescriptor.value = async function (...args: unknown[]) {
       // Use 'this' context or first argument as identifier
       const identifier =
         this?.constructor?.name || args[0]?.toString() || 'anonymous';

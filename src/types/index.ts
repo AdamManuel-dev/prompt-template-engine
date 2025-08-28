@@ -22,10 +22,15 @@ export type TemplateType =
  * Template file definition
  */
 export interface TemplateFile {
+  path: string;
   source: string;
   destination: string;
   transform?: boolean;
   condition?: string;
+  content?: string;
+  name?: string;
+  encoding?: string;
+  mode?: string;
   permissions?: string;
 }
 
@@ -36,9 +41,19 @@ export interface TemplateVariable {
   type: 'string' | 'number' | 'boolean' | 'choice';
   description: string;
   default?: unknown;
+  defaultValue?: unknown;
   required?: boolean;
   choices?: string[];
   validation?: string;
+}
+
+/**
+ * Template command definition
+ */
+export interface TemplateCommand {
+  command: string;
+  description?: string;
+  when?: string;
 }
 
 /**
@@ -699,21 +714,65 @@ export interface MarketplaceRateOptions extends MarketplaceCommandOptions {
  * Template definition with all properties
  */
 export interface Template {
+  id?: string;
   name: string;
   version?: string;
   description?: string;
   author?: string;
   tags?: string[];
   content?: string;
+  basePath?: string;
   variables?: Record<string, unknown>;
-  commands?: Record<string, string>;
+  commands?: Record<string, string> | TemplateCommand[];
   requirements?: string[];
   examples?: string[];
+  reasoning?: string;
   filePatterns?: string[];
   contextFiles?: string[];
   references?: string[];
   priority?: 'low' | 'medium' | 'high';
   alwaysApply?: boolean;
+  category?: string;
+  language?: string;
+  domain?: string;
+  useCase?: string;
+  path?: string;
+  files?:
+    | Array<{
+        source: string;
+        destination: string;
+        transform?: boolean;
+        condition?: string;
+      }>
+    | TemplateFile[];
+  metadata?: {
+    author?: string;
+    tags?: string[];
+    created?: string;
+    updated?: string;
+    category?: string;
+    [key: string]: unknown;
+  };
+  // Optimization tracking fields
+  isOptimized?: boolean;
+  optimizationLevel?: 'none' | 'basic' | 'advanced' | 'aggressive';
+  originalTemplateId?: string;
+  // A/B testing support
+  abTestVariants?: Array<{
+    name: string;
+    version: string;
+    content: string;
+    files?: TemplateFile[];
+    weight?: number;
+  }>;
+  activeVariant?: string;
+  // Version comparison
+  parentVersions?: Array<{
+    version: string;
+    templateId: string;
+    optimizationId?: string;
+    relationship: 'original' | 'optimized' | 'variant';
+  }>;
 }
 
 /**
@@ -741,7 +800,7 @@ export interface CursorRule {
 }
 
 /**
- * Plugin API interface (forward declaration for mutual reference)
+ * Plugin API interface
  */
 export interface PluginAPI {
   getVersion: () => string;
@@ -788,6 +847,8 @@ export interface IPlugin {
   dispose?: () => Promise<void> | void;
   execute?: (args: unknown) => Promise<unknown> | unknown;
   hooks?: Record<string, (context: unknown) => Promise<unknown> | unknown>;
+  // eslint-disable-next-line no-use-before-define
+  getPlugin?: (name: string) => IPlugin | null;
 }
 
 /**

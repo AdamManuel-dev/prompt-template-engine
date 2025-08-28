@@ -70,6 +70,13 @@ cursor-prompt sync
 cursor-prompt watch
 ```
 
+### PromptWizard Optimization
+- [Optimize single prompts](./optimize-prompts.md#single-optimization)
+- [Batch optimize multiple prompts](./optimize-prompts.md#batch-optimization)
+- [Compare prompt versions](./optimize-prompts.md#compare-versions)
+- [Score prompt quality](./optimize-prompts.md#quality-scoring)
+- [Set up PromptWizard service](./setup-promptwizard.md)
+
 ## Navigation
 
 | Guide | Purpose | Complexity |
@@ -77,6 +84,8 @@ cursor-prompt watch
 | [Common Tasks](./common-tasks.md) | Daily workflow tasks | Beginner |
 | [Template Management](./template-management.md) | Create and manage templates | Intermediate |
 | [Marketplace](./marketplace.md) | Use community templates | Beginner |
+| [Optimize Prompts](./optimize-prompts.md) | PromptWizard optimization workflows | Intermediate |
+| [Setup PromptWizard](./setup-promptwizard.md) | Configure optimization service | Advanced |
 | [Troubleshooting](./troubleshooting.md) | Solve common problems | Intermediate |
 
 ---

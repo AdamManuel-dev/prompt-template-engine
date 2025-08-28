@@ -11,10 +11,17 @@ Welcome to the Cursor Prompt Template Engine documentation. This index provides 
 - [Architecture Overview](./ARCHITECTURE.md) - System design and structure
 
 ### Core Documentation
-- [API Reference](./API.md) - Complete API documentation
+- [API Reference](./API.md) - Complete API documentation with Security API
 - [Plugin API Reference](./api/PLUGIN_API.md) - Plugin development API
 - [Configuration Guide](./CONFIGURATION.md) - Configuration options
 - [Template Syntax](./api/TEMPLATE_SYNTAX.md) - Template language reference
+
+### Security Documentation
+- [Security API](./API.md#security-api) - Enterprise authentication, RBAC, and encryption
+- [JWT Authentication](./API.md#jwtauthservice) - Token-based authentication system
+- [Role-Based Access Control](./API.md#rbacmanagerservice) - Permission management
+- [Data Encryption](./API.md#cryptographicservice) - FIPS 140-2 compliant encryption
+- [Audit Logging](./API.md#auditloggerservice) - Compliance and monitoring
 
 ### Integration Guides
 - [Cursor IDE Integration](./CURSOR_INTEGRATION.md) - Working with Cursor IDE
@@ -48,6 +55,14 @@ Welcome to the Cursor Prompt Template Engine documentation. This index provides 
 3. [API Reference](./API.md)
 4. [Architecture](./ARCHITECTURE.md)
 5. [Module Documentation](./modules/)
+
+### For Security & DevOps
+1. [Security API Overview](./API.md#security-api) - Enterprise security features
+2. [Authentication Setup](./API.md#jwtauthservice) - JWT token configuration
+3. [RBAC Implementation](./API.md#rbacmanagerservice) - Role-based permissions
+4. [Encryption Services](./API.md#cryptographicservice) - Data protection
+5. [Audit & Compliance](./API.md#auditloggerservice) - Security monitoring
+6. [Error Handling](./API.md#error-handling) - Security error management
 6. [Contributing](../CONTRIBUTING.md)
 
 ## 📖 Documentation by Category

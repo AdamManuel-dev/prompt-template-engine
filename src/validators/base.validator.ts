@@ -60,8 +60,8 @@ export default abstract class BaseValidator implements Validator {
     return {
       path: path || '',
       message,
-      code,
-      context,
+      code: code || 'VALIDATION_ERROR',
+      context: context || {},
     };
   }
 
@@ -77,8 +77,8 @@ export default abstract class BaseValidator implements Validator {
     return {
       path: path || '',
       message,
-      code,
-      context,
+      code: code || 'VALIDATION_WARNING',
+      context: context || {},
     };
   }
 }
