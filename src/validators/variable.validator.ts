@@ -31,7 +31,7 @@ export default class VariableValidator extends BaseValidator {
 
     // Check files for variable usage
     template.files?.forEach(file => {
-      const vars = VariableValidator.extractVariables(file.content);
+      const vars = VariableValidator.extractVariables(file.content || '');
       vars.forEach(v => usedVariables.add(v));
 
       if (file.path) {
@@ -100,7 +100,7 @@ export default class VariableValidator extends BaseValidator {
 
     // Check for used but undefined variables
     usedVariables.forEach(varName => {
-      if (!template.variables[varName]) {
+      if (!template.variables?.[varName]) {
         errors.push(
           BaseValidator.error(
             `Variable ${varName} is used but not defined`,

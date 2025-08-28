@@ -12,7 +12,12 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import matter from 'gray-matter';
-import { Template, CursorRule, RuleFrontmatter } from '../../types';
+import {
+  Template,
+  TemplateVariable,
+  CursorRule,
+  RuleFrontmatter,
+} from '../../types';
 import { logger } from '../../utils/logger';
 
 export interface ConversionOptions {
@@ -112,11 +117,12 @@ export class TemplateToRulesConverter {
       Object.entries(template.variables).forEach(([key, config]) => {
         const description =
           typeof config === 'object' && config !== null
-            ? (config as any).description
+            ? (config as TemplateVariable).description
             : '';
         const defaultValue =
           typeof config === 'object' && config !== null
-            ? (config as any).default
+            ? (config as TemplateVariable).defaultValue ||
+              (config as TemplateVariable).default
             : config;
         sections.push(`- **${key}**: ${description || 'No description'}`);
         if (defaultValue !== undefined) {
@@ -184,9 +190,10 @@ export class TemplateToRulesConverter {
     // Extract from content using regex
     if (template.content) {
       const refPattern = /@([^\s]+\.(ts|tsx|js|jsx|md|json|yaml|yml))/g;
-      let match;
-      while ((match = refPattern.exec(template.content)) !== null) {
+      let match = refPattern.exec(template.content);
+      while (match !== null) {
         references.add(match[1]);
+        match = refPattern.exec(template.content);
       }
     }
 

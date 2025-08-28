@@ -1,20 +1,63 @@
 /**
- * @fileoverview Variable processor for template engine
- * @lastmodified 2025-08-22T21:30:00Z
+ * @fileoverview Variable processor for template engine - handles variable resolution and replacement
+ * @lastmodified 2025-08-26T11:10:32Z
  *
- * Features: Variable resolution and replacement in templates
- * Main APIs: processVariables(), resolveVariable()
- * Constraints: Handles nested object paths and array indices
- * Patterns: Single responsibility processor pattern
+ * Features: Variable resolution with nested paths, array indices, and special variables
+ * Main APIs: processVariables(), resolveVariable(), extractSimpleVariables()
+ * Constraints: Handles nested object paths up to any depth, supports array notation [index]
+ * Patterns: Single responsibility processor with regex-based parsing and recursive resolution
+ * Performance: O(n*m) where n=template length, m=average variable path depth
  */
 
 import { TemplateContext } from '../../types';
 
+/**
+ * Variable processor handles template variable resolution and replacement.
+ * Supports nested object paths, array indices, and special loop variables.
+ *
+ * @example
+ * ```typescript
+ * const processor = new VariableProcessor();
+ * const template = "Hello {{user.name}}, you have {{messages[0].count}} messages";
+ * const context = {
+ *   variables: {
+ *     user: { name: "Alice" },
+ *     messages: [{ count: 5 }]
+ *   }
+ * };
+ * const result = processor.processVariables(template, context);
+ * // Returns: "Hello Alice, you have 5 messages"
+ * ```
+ */
 export class VariableProcessor {
+  /**
+   * Regular expression pattern for matching template variables.
+   * Matches {{variable}}, {{object.property}}, {{array[0]}}, and {{@special}}
+   * @private
+   */
   private variablePattern = /\{\{(\s*[@\w.[\]0-9]+\s*)\}\}/g;
 
   /**
-   * Process variables in template
+   * Processes all variables in a template string, replacing them with resolved values.
+   * Handles nested object paths, array indices, and special variables like @index, @first, etc.
+   *
+   * @param template - Template string containing variables in {{variable}} format
+   * @param context - Template context containing variables and metadata
+   * @returns Processed template with variables replaced by their resolved values
+   *
+   * @example
+   * ```typescript
+   * const template = "{{user.name}} has {{@index}} items";
+   * const context = {
+   *   variables: { user: { name: "John" } },
+   *   _index: 3
+   * };
+   * const result = processor.processVariables(template, context);
+   * // Returns: "John has 3 items"
+   * ```
+   *
+   * @see {@link resolveVariable} for variable resolution logic
+   * @see {@link extractSimpleVariables} for variable extraction
    */
   public processVariables(template: string, context: TemplateContext): string {
     return template.replace(this.variablePattern, (match, key) => {
@@ -25,7 +68,27 @@ export class VariableProcessor {
   }
 
   /**
-   * Resolve variable from context
+   * Resolves a variable key to its value from the template context.
+   * Supports nested object paths, array indices, and special variables.
+   *
+   * @param key - Variable key to resolve (e.g., "user.name", "items[0]", "@index")
+   * @param context - Template context containing variables and metadata
+   * @returns Resolved variable value or undefined if not found
+   *
+   * @example
+   * ```typescript
+   * // Nested object path
+   * resolveVariable("user.profile.name", context) // Returns nested value
+   *
+   * // Array index notation
+   * resolveVariable("items[0]", context) // Returns first array item
+   *
+   * // Special variables
+   * resolveVariable("@index", context) // Returns current loop index
+   * resolveVariable("@first", context) // Returns true if first iteration
+   * ```
+   *
+   * @see {@link resolveSpecialVariable} for special variable handling
    */
   public resolveVariable(key: string, context: TemplateContext): unknown {
     // Handle special @ variables
@@ -35,7 +98,7 @@ export class VariableProcessor {
 
     // Handle nested path resolution
     const path = key.split('.');
-    let current: any = context.variables;
+    let current: unknown = context.variables;
 
     for (const segment of path) {
       if (current === null || current === undefined) {
@@ -46,9 +109,20 @@ export class VariableProcessor {
       const arrayMatch = segment.match(/^(\w+)\[(\d+)\]$/);
       if (arrayMatch) {
         const [, arrayName, index] = arrayMatch;
-        current = current[arrayName]?.[parseInt(index, 10)];
+        if (current && typeof current === 'object' && arrayName in current) {
+          const arrayValue = (current as Record<string, unknown>)[arrayName];
+          if (Array.isArray(arrayValue)) {
+            current = arrayValue[parseInt(index, 10)];
+          } else {
+            current = undefined;
+          }
+        } else {
+          current = undefined;
+        }
+      } else if (current && typeof current === 'object' && segment in current) {
+        current = (current as Record<string, unknown>)[segment];
       } else {
-        current = current[segment];
+        current = undefined;
       }
     }
 
@@ -56,13 +130,30 @@ export class VariableProcessor {
   }
 
   /**
-   * Extract simple variables from template
+   * Extracts all non-special variable names from a template string.
+   * Excludes special variables that start with @ (e.g., @index, @first).
+   *
+   * @param template - Template string to extract variables from
+   * @returns Array of unique variable names found in the template
+   *
+   * @example
+   * ```typescript
+   * const template = "Hello {{name}}, {{@index}} of {{total}} items";
+   * const variables = processor.extractSimpleVariables(template);
+   * // Returns: ["name", "total"] (excludes @index)
+   * ```
+   *
+   * @see {@link processVariables} for variable processing
    */
   public extractSimpleVariables(template: string): string[] {
     const variables: string[] = [];
-    const matches = template.matchAll(this.variablePattern);
+    let match: RegExpExecArray | null;
 
-    for (const match of matches) {
+    // Reset regex state
+    this.variablePattern.lastIndex = 0;
+
+    // eslint-disable-next-line no-cond-assign
+    while ((match = this.variablePattern.exec(template)) !== null) {
       const varName = match[1].trim();
       if (!varName.startsWith('@') && !variables.includes(varName)) {
         variables.push(varName);
@@ -72,6 +163,27 @@ export class VariableProcessor {
     return variables;
   }
 
+  /**
+   * Resolves special variables that start with @ and provide loop context information.
+   * These variables are automatically available within loop iterations.
+   *
+   * @param key - Special variable key (must start with @)
+   * @param context - Template context containing loop metadata
+   * @returns Resolved special variable value or undefined if not recognized
+   *
+   * @example
+   * ```typescript
+   * // In a loop context with _index = 0, _total = 3
+   * resolveSpecialVariable("@index", context) // Returns 0
+   * resolveSpecialVariable("@first", context) // Returns true
+   * resolveSpecialVariable("@last", context)  // Returns false
+   * resolveSpecialVariable("@odd", context)   // Returns false
+   * resolveSpecialVariable("@even", context)  // Returns true
+   * ```
+   *
+   * @private
+   * @see {@link resolveVariable} for general variable resolution
+   */
   private resolveSpecialVariable(
     key: string,
     context: TemplateContext

@@ -93,8 +93,8 @@ export interface ExtensionPoint<T = unknown> {
   getSorted(): T[]; // For extensions with priority
 }
 
-// Forward declaration for self-referencing type
 export class EnhancedPluginManager extends EventEmitter {
+  // eslint-disable-next-line no-use-before-define
   private static instance: EnhancedPluginManager | undefined;
 
   private pluginLoader: PluginLoader;
@@ -175,8 +175,8 @@ export class EnhancedPluginManager extends EventEmitter {
         const extensions = this.getAll();
         // Sort by priority if the extension has a priority property
         return extensions.sort((a, b) => {
-          const priorityA = (a as any).priority || 0;
-          const priorityB = (b as any).priority || 0;
+          const priorityA = (a as { priority?: number }).priority || 0;
+          const priorityB = (b as { priority?: number }).priority || 0;
           return priorityB - priorityA; // Higher priority first
         });
       },
@@ -400,7 +400,7 @@ export class EnhancedPluginManager extends EventEmitter {
    */
   async executeMarketplaceHooks(
     hookName: keyof MarketplaceHook,
-    ...args: any[]
+    ...args: unknown[]
   ): Promise<void> {
     const hooks = this.marketplaceHooks.getAll();
     const relevantHooks = hooks.filter(

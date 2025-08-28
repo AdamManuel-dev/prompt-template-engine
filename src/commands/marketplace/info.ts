@@ -14,7 +14,11 @@ import { ICommand } from '../../cli/command-registry';
 import { MarketplaceService } from '../../marketplace/core/marketplace.service';
 import { TemplateRegistry } from '../../marketplace/core/template.registry';
 import { MarketplaceCommandOptions } from '../../types';
-import { TemplateModel } from '../../marketplace/models/template.model';
+import {
+  TemplateModel,
+  AuthorInfo,
+  TemplateRating,
+} from '../../marketplace/models/template.model';
 import { logger } from '../../utils/logger';
 
 export class InfoCommand extends BaseCommand implements ICommand {
@@ -159,7 +163,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
     logger.info(`   Category: ${chalk.magenta(template.category)}`);
     logger.info(`   Current Version: ${chalk.yellow(template.currentVersion)}`);
     logger.info(
-      `   Author: ${chalk.blue(typeof template.author === 'string' ? template.author : ((template.author as any)?.name ?? 'Unknown'))}${(template.author as any)?.verified ? ' ✓' : ''}`
+      `   Author: ${chalk.blue(typeof template.author === 'string' ? template.author : ((template.author as AuthorInfo)?.name ?? 'Unknown'))}${(template.author as AuthorInfo)?.verified ? ' ✓' : ''}`
     );
     logger.info(`   License: ${chalk.gray(template.metadata.license)}`);
     logger.info(
@@ -172,7 +176,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
     // Rating and stats
     logger.info(chalk.bold('\n⭐ Rating & Stats:'));
     logger.info(
-      `   Rating: ${InfoCommand.formatRating(typeof template.rating === 'number' ? template.rating : ((template.rating as any)?.average ?? 0))} (${(template.rating as any)?.total ?? 0} reviews)`
+      `   Rating: ${InfoCommand.formatRating(typeof template.rating === 'number' ? template.rating : ((template.rating as TemplateRating)?.average ?? 0))} (${(template.rating as TemplateRating)?.total ?? 0} reviews)`
     );
     logger.info(
       `   Downloads: ${chalk.cyan(InfoCommand.formatNumber(template.stats?.downloads || 0))}`
@@ -204,15 +208,15 @@ export class InfoCommand extends BaseCommand implements ICommand {
       );
     }
 
-    if ((template.author as any)?.website) {
+    if ((template.author as AuthorInfo)?.website) {
       logger.info(
-        `   Author Website: ${chalk.blue((template.author as any).website)}`
+        `   Author Website: ${chalk.blue((template.author as AuthorInfo).website)}`
       );
     }
 
-    if ((template.author as any)?.github) {
+    if ((template.author as AuthorInfo)?.github) {
       logger.info(
-        `   GitHub: ${chalk.blue(`https://github.com/${(template.author as any).github}`)}`
+        `   GitHub: ${chalk.blue(`https://github.com/${(template.author as AuthorInfo).github}`)}`
       );
     }
   }
@@ -351,9 +355,9 @@ export class InfoCommand extends BaseCommand implements ICommand {
         }
       });
 
-      if ((template.rating as any)?.total > 3) {
+      if ((template.rating as TemplateRating)?.total > 3) {
         logger.info(
-          `\n   ${chalk.gray(`... and ${(template.rating as any).total - 3} more reviews`)}`
+          `\n   ${chalk.gray(`... and ${(template.rating as TemplateRating).total - 3} more reviews`)}`
         );
       }
     } catch {
@@ -398,16 +402,16 @@ export class InfoCommand extends BaseCommand implements ICommand {
     }
 
     // Author stats
-    if ((template.author as any)?.totalTemplates !== undefined) {
+    if ((template.author as AuthorInfo)?.totalTemplates !== undefined) {
       logger.info(chalk.bold('\n👤 Author Statistics:'));
       logger.info(
-        `   Templates: ${chalk.cyan((template.author as any).totalTemplates)}`
+        `   Templates: ${chalk.cyan((template.author as AuthorInfo).totalTemplates)}`
       );
       logger.info(
-        `   Total Downloads: ${chalk.cyan(InfoCommand.formatNumber((template.author as any).totalDownloads))}`
+        `   Total Downloads: ${chalk.cyan(InfoCommand.formatNumber((template.author as AuthorInfo).totalDownloads))}`
       );
       logger.info(
-        `   Reputation: ${chalk.cyan((template.author as any).reputation)}`
+        `   Reputation: ${chalk.cyan((template.author as AuthorInfo).reputation)}`
       );
     }
   }

@@ -21,7 +21,12 @@ import {
   QueryFilter,
   QueryOptions,
 } from './database.interface';
-import { TemplateModel, TemplateManifest } from '../models/template.model';
+import {
+  TemplateModel,
+  TemplateManifest,
+  TemplateVersion,
+  TemplateReview,
+} from '../models/template.model';
 import { logger } from '../../utils/logger';
 
 /**
@@ -237,7 +242,10 @@ class FileTemplateRepository implements ITemplateRepository {
     });
   }
 
-  async createVersion(templateId: string, version: any): Promise<void> {
+  async createVersion(
+    templateId: string,
+    version: TemplateVersion
+  ): Promise<void> {
     // For simplicity, versions are embedded in the template
     const template = await this.findById(templateId);
     if (template) {
@@ -247,12 +255,12 @@ class FileTemplateRepository implements ITemplateRepository {
     }
   }
 
-  async getVersions(templateId: string): Promise<any[]> {
+  async getVersions(templateId: string): Promise<TemplateVersion[]> {
     const template = await this.findById(templateId);
     return template?.versions || [];
   }
 
-  async getLatestVersion(templateId: string): Promise<any | null> {
+  async getLatestVersion(templateId: string): Promise<TemplateVersion | null> {
     const versions = await this.getVersions(templateId);
     return versions.length > 0 ? versions[versions.length - 1] : null;
   }
@@ -263,7 +271,10 @@ class FileTemplateRepository implements ITemplateRepository {
   ): TemplateModel[] {
     return results.filter(item =>
       filters.every(filter => {
-        const value = this.getNestedValue(item, filter.field);
+        const value = this.getNestedValue(
+          item as Record<string, unknown>,
+          filter.field
+        );
         return this.matchesFilter(value, filter.operator, filter.value);
       })
     );
@@ -275,8 +286,14 @@ class FileTemplateRepository implements ITemplateRepository {
   ): TemplateModel[] {
     return results.sort((a, b) => {
       for (const sortRule of sort) {
-        const aVal = this.getNestedValue(a, sortRule.field);
-        const bVal = this.getNestedValue(b, sortRule.field);
+        const aVal = this.getNestedValue(
+          a as Record<string, unknown>,
+          sortRule.field
+        );
+        const bVal = this.getNestedValue(
+          b as Record<string, unknown>,
+          sortRule.field
+        );
 
         // Handle undefined values
         if (aVal === undefined && bVal === undefined) continue;
@@ -284,8 +301,10 @@ class FileTemplateRepository implements ITemplateRepository {
         if (bVal === undefined) return sortRule.direction === 'desc' ? -1 : 1;
 
         let comparison = 0;
-        if (aVal < bVal) comparison = -1;
-        else if (aVal > bVal) comparison = 1;
+        if (aVal !== null && bVal !== null) {
+          if (aVal < bVal) comparison = -1;
+          else if (aVal > bVal) comparison = 1;
+        }
 
         if (sortRule.direction === 'desc') comparison *= -1;
         if (comparison !== 0) return comparison;
@@ -294,14 +313,24 @@ class FileTemplateRepository implements ITemplateRepository {
     });
   }
 
-  private getNestedValue(obj: any, path: string): any {
-    return path.split('.').reduce((curr, key) => curr?.[key], obj);
+  private getNestedValue(
+    obj: Record<string, unknown>,
+    propertyPath: string
+  ): unknown {
+    return propertyPath
+      .split('.')
+      .reduce((curr: Record<string, unknown> | unknown, key: string) => {
+        if (curr && typeof curr === 'object' && curr !== null) {
+          return (curr as Record<string, unknown>)[key];
+        }
+        return undefined;
+      }, obj);
   }
 
   private matchesFilter(
-    value: any,
+    value: unknown,
     operator: string,
-    filterValue: any
+    filterValue: unknown
   ): boolean {
     switch (operator) {
       case 'eq':
@@ -309,13 +338,21 @@ class FileTemplateRepository implements ITemplateRepository {
       case 'ne':
         return value !== filterValue;
       case 'gt':
-        return value > filterValue;
+        return typeof value === 'number' && typeof filterValue === 'number'
+          ? value > filterValue
+          : false;
       case 'gte':
-        return value >= filterValue;
+        return typeof value === 'number' && typeof filterValue === 'number'
+          ? value >= filterValue
+          : false;
       case 'lt':
-        return value < filterValue;
+        return typeof value === 'number' && typeof filterValue === 'number'
+          ? value < filterValue
+          : false;
       case 'lte':
-        return value <= filterValue;
+        return typeof value === 'number' && typeof filterValue === 'number'
+          ? value <= filterValue
+          : false;
       case 'like':
         return String(value)
           .toLowerCase()
@@ -355,19 +392,18 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
     // Simplified implementations for now - can be expanded
     this.authors = new FileRepository(
       path.join(dataDir, 'authors.json')
-    ) as any;
-    this.reviews = new FileRepository(
-      path.join(dataDir, 'reviews.json')
-    ) as any;
+    ) as IAuthorRepository;
+    this.reviews = new FileReviewRepository(path.join(dataDir, 'reviews.json'));
     this.installations = new FileRepository(
       path.join(dataDir, 'installations.json')
-    ) as any;
+    ) as unknown as IInstallationRepository;
   }
 
   async connect(): Promise<void> {
     try {
       await fs.mkdir(path.dirname(this.manifestPath), { recursive: true });
       await this.templates.init();
+      await (this.reviews as unknown as { init(): Promise<void> }).init();
       this.isConnectedFlag = true;
       logger.info('File database connected successfully');
     } catch (error) {
@@ -541,6 +577,132 @@ class FileRepository<T extends { id: string }> {
   async delete(id: string): Promise<void> {
     this.items.delete(id);
     await this.save();
+  }
+}
+
+/**
+ * File-based review repository with template filtering
+ */
+class FileReviewRepository
+  extends FileRepository<TemplateReview>
+  implements IReviewRepository
+{
+  constructor(filePath: string) {
+    super(filePath);
+  }
+
+  async init(): Promise<void> {
+    await super.init();
+  }
+
+  async findByTemplate(
+    templateId: string,
+    options?: QueryOptions
+  ): Promise<TemplateReview[]> {
+    await this.init();
+    const allReviews = await this.findMany();
+    const reviews = allReviews.filter(
+      review => review.templateId === templateId
+    );
+
+    if (options?.sort) {
+      reviews.sort((a, b) => {
+        for (const sortOption of options.sort!) {
+          const aVal = this.getFieldValue(
+            a as Record<string, unknown>,
+            sortOption.field
+          );
+          const bVal = this.getFieldValue(
+            b as Record<string, unknown>,
+            sortOption.field
+          );
+
+          if (aVal !== bVal) {
+            // Type-safe comparison
+            let result = 0;
+            if (sortOption.direction === 'desc') {
+              if (bVal != null && aVal != null && typeof bVal === typeof aVal) {
+                if (typeof bVal === 'number' && typeof aVal === 'number') {
+                  result = bVal > aVal ? 1 : -1;
+                } else if (typeof bVal === 'string' && typeof aVal === 'string') {
+                  result = bVal > aVal ? 1 : -1;
+                } else {
+                  result = String(bVal) > String(aVal) ? 1 : -1;
+                }
+              } else {
+                result = bVal != null && aVal == null ? 1 : -1;
+              }
+            } else {
+              if (aVal != null && bVal != null && typeof aVal === typeof bVal) {
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                  result = aVal > bVal ? 1 : -1;
+                } else if (typeof aVal === 'string' && typeof bVal === 'string') {
+                  result = aVal > bVal ? 1 : -1;
+                } else {
+                  result = String(aVal) > String(bVal) ? 1 : -1;
+                }
+              } else {
+                result = aVal != null && bVal == null ? 1 : -1;
+              }
+            }
+            return result;
+          }
+        }
+        return 0;
+      });
+    }
+
+    return reviews;
+  }
+
+  async findByAuthor(
+    authorId: string,
+    _options?: QueryOptions
+  ): Promise<TemplateReview[]> {
+    await this.init();
+    const allReviews = await this.findMany();
+    return allReviews.filter(review => review.userId === authorId);
+  }
+
+  async getAverageRating(templateId: string): Promise<number> {
+    const reviews = await this.findByTemplate(templateId);
+    if (reviews.length === 0) return 0;
+
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return sum / reviews.length;
+  }
+
+  async getRatingDistribution(
+    templateId: string
+  ): Promise<Record<number, number>> {
+    const reviews = await this.findByTemplate(templateId);
+    const distribution: Record<number, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+
+    reviews.forEach(review => {
+      distribution[review.rating] = (distribution[review.rating] || 0) + 1;
+    });
+
+    return distribution;
+  }
+
+  async getReviewCount(templateId: string): Promise<number> {
+    const reviews = await this.findByTemplate(templateId);
+    return reviews.length;
+  }
+
+  private getFieldValue(obj: Record<string, unknown>, field: string): unknown {
+    return field.split('.').reduce((o: unknown, key: string) => {
+      if (o && typeof o === 'object' && key in o) {
+        return (o as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, obj);
   }
 }
 

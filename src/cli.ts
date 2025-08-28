@@ -17,7 +17,13 @@ import { TemplateService } from './services/template.service';
 // import { TemplateEngine } from './core/template-engine'; // Using service's renderTemplate instead
 import { CursorIntegration } from './integrations/cursor';
 import { logger } from './utils/logger';
-// import type { Template } from './types'; // Currently unused
+import type { Template } from './types';
+
+// PromptWizard CLI Commands
+import OptimizeCommand from './cli/commands/optimize';
+import CompareCommand from './cli/commands/compare';
+import ScoreCommand from './cli/commands/score';
+import OptimizationWizardCommand from './cli/commands/wizard';
 
 // Read package.json for version
 const packageJson = JSON.parse(
@@ -66,7 +72,8 @@ program
         variables
       );
       // For CLI output, combine all file contents
-      const content = renderedTemplate.files.map(f => f.content).join('\n');
+      const content =
+        renderedTemplate.files?.map(f => f.content).join('\n') || '';
 
       // Output result
       if (options.output) {
@@ -111,13 +118,14 @@ program
       if (options.tags) {
         const tags = options.tags.split(',').map((t: string) => t.trim());
         filtered = templates.filter(
-          (t: any) => t.tags && tags.some((tag: string) => t.tags.includes(tag))
+          (t: Template) =>
+            t.tags && tags.some((tag: string) => t.tags?.includes(tag))
         );
       }
 
       // Display templates
       if (options.detailed) {
-        filtered.forEach((template: any) => {
+        filtered.forEach((template: Template) => {
           console.log(chalk.cyan(`\n📝 ${template.name}`));
           console.log(
             `   ${chalk.gray(template.description || 'No description')}`
@@ -125,7 +133,7 @@ program
           if (template.version) {
             console.log(`   ${chalk.gray(`Version: ${template.version}`)}`);
           }
-          if (template.tags?.length > 0) {
+          if (template.tags && template.tags.length > 0) {
             console.log(
               `   ${chalk.gray(`Tags: ${template.tags.join(', ')}`)}`
             );
@@ -133,7 +141,7 @@ program
         });
       } else {
         console.log(chalk.cyan('\nAvailable Templates:'));
-        filtered.forEach((template: any) => {
+        filtered.forEach((template: Template) => {
           console.log(
             `  • ${template.name} ${chalk.gray(template.description ? `- ${template.description}` : '')}`
           );
@@ -378,6 +386,132 @@ program
     } catch (error) {
       logger.error('Failed to start watch mode');
       console.error(chalk.red(`❌ Error: ${error}`));
+      process.exit(1);
+    }
+  });
+
+// PromptWizard Optimization Commands
+// Optimize command
+program
+  .command('prompt:optimize')
+  .aliases(['optimize', 'opt'])
+  .description('Optimize prompts using Microsoft PromptWizard')
+  .option('-t, --template <name>', 'Template name or path to optimize')
+  .option('--task <description>', 'Task description for optimization')
+  .option('-m, --model <model>', 'Target model for optimization', 'gpt-4')
+  .option('-i, --iterations <number>', 'Number of refinement iterations', '3')
+  .option(
+    '-e, --examples <number>',
+    'Number of few-shot examples to generate',
+    '5'
+  )
+  .option('--reasoning', 'Generate reasoning steps in optimized prompt', true)
+  .option('--batch', 'Batch optimize multiple templates')
+  .option('-o, --output <path>', 'Output path for optimized template(s)')
+  .option('--skip-cache', 'Skip cache and force fresh optimization')
+  .option(
+    '--priority <level>',
+    'Optimization priority (low, normal, high, critical)',
+    'normal'
+  )
+  .action(async options => {
+    try {
+      const command = new OptimizeCommand();
+      await command.action([], options);
+    } catch (error) {
+      logger.error(
+        `Optimize command failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      process.exit(1);
+    }
+  });
+
+// Compare command
+program
+  .command('prompt:compare')
+  .aliases(['compare', 'diff'])
+  .description('Compare original and optimized prompts with detailed metrics')
+  .option('-o, --original <prompt>', 'Original prompt text or template name')
+  .option('-p, --optimized <prompt>', 'Optimized prompt text or template name')
+  .option(
+    '--task <description>',
+    'Task description for context-aware comparison'
+  )
+  .option(
+    '-f, --format <type>',
+    'Output format (table, json, markdown)',
+    'table'
+  )
+  .option('--output <path>', 'Save comparison report to file')
+  .option('--detailed', 'Show detailed analysis and recommendations')
+  .option('--show-diff', 'Show line-by-line diff of prompts', true)
+  .action(async options => {
+    try {
+      const command = new CompareCommand();
+      await command.action([], options);
+    } catch (error) {
+      logger.error(
+        `Compare command failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      process.exit(1);
+    }
+  });
+
+// Score command
+program
+  .command('prompt:score')
+  .aliases(['score', 'rate'])
+  .description('Score prompt quality and get improvement suggestions')
+  .option('-p, --prompt <text>', 'Prompt text to score')
+  .option('-t, --template <name>', 'Template name to score')
+  .option('--task <description>', 'Task description for context-aware scoring')
+  .option(
+    '-f, --format <type>',
+    'Output format (table, json, markdown, badge)',
+    'table'
+  )
+  .option('--output <path>', 'Save scoring report to file')
+  .option(
+    '--threshold <number>',
+    'Quality threshold (0-100) for pass/fail reporting',
+    '70'
+  )
+  .option('--detailed', 'Show detailed breakdown and suggestions', true)
+  .option('--batch', 'Score all templates in batch')
+  .action(async options => {
+    try {
+      const command = new ScoreCommand();
+      await command.action([], options);
+    } catch (error) {
+      logger.error(
+        `Score command failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      process.exit(1);
+    }
+  });
+
+// Wizard command
+program
+  .command('prompt:wizard')
+  .aliases(['wizard', 'guide'])
+  .description(
+    'Interactive optimization wizard with guided step-by-step refinement'
+  )
+  .option('-t, --template <name>', 'Start with specific template')
+  .option('--skip-intro', 'Skip introductory explanation')
+  .option(
+    '-m, --mode <type>',
+    'Wizard mode (beginner, advanced, expert)',
+    'beginner'
+  )
+  .action(async options => {
+    try {
+      const command = new OptimizationWizardCommand();
+      await command.action([], options);
+    } catch (error) {
+      logger.error(
+        `Wizard command failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       process.exit(1);
     }
   });

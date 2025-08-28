@@ -1,0 +1,256 @@
+/**
+ * @fileoverview Kubernetes ConfigMap for PromptWizard service configuration
+ * @lastmodified 2024-08-26T15:35:00Z
+ * 
+ * Features: Non-sensitive configuration data, environment-specific settings
+ * Main APIs: Application configuration, logging, monitoring settings
+ * Constraints: No sensitive data, public configuration only
+ * Patterns: Externalized configuration, environment separation
+ */
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promptwizard-config
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: config
+    version: v1
+  annotations:
+    description: "Non-sensitive configuration for PromptWizard service"
+data:
+  # Application Configuration
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  PORT: "8000"
+  GRPC_PORT: "50051"
+  WS_PORT: "8080"
+  WORKERS: "4"
+  
+  # Redis Configuration (non-sensitive)
+  REDIS_URL: "redis://redis-master:6379"
+  REDIS_SENTINEL_URLS: "redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379"
+  REDIS_MASTER_NAME: "mymaster"
+  JOB_QUEUE_URL: "redis://redis-master:6379/1"
+  REDIS_MAX_CONNECTIONS: "100"
+  REDIS_RETRY_ON_TIMEOUT: "true"
+  
+  # Performance Configuration
+  POOL_SIZE: "20"
+  MAX_OVERFLOW: "30"
+  CACHE_TTL: "3600"
+  REQUEST_TIMEOUT: "30"
+  MAX_WORKERS: "10"
+  
+  # Monitoring Configuration
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  METRICS_PATH: "/metrics"
+  HEALTH_CHECK_PATH: "/api/v1/health"
+  READY_CHECK_PATH: "/api/v1/ready"
+  
+  # Tracing Configuration
+  JAEGER_AGENT_HOST: "jaeger-agent"
+  JAEGER_AGENT_PORT: "6831"
+  JAEGER_SAMPLER_TYPE: "probabilistic"
+  JAEGER_SAMPLER_PARAM: "0.1"
+  TRACING_ENABLED: "true"
+  
+  # Security Configuration (non-sensitive)
+  CORS_ORIGINS: "*"
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_PERIOD: "60"
+  MAX_REQUEST_SIZE: "10485760"  # 10MB
+  
+  # Optimization Configuration
+  TEMPLATE_CACHE_SIZE: "1000"
+  OPTIMIZATION_TIMEOUT: "300"
+  BATCH_SIZE: "10"
+  CONCURRENT_OPTIMIZATIONS: "5"
+  
+  # Feature Flags
+  FEATURE_GRPC_ENABLED: "true"
+  FEATURE_WEBSOCKET_ENABLED: "true"
+  FEATURE_BATCH_OPTIMIZATION: "true"
+  FEATURE_CACHE_OPTIMIZATION: "true"
+  
+  # External Service URLs (non-sensitive)
+  OPENAI_API_URL: "https://api.openai.com/v1"
+  ANTHROPIC_API_URL: "https://api.anthropic.com/v1"
+  GOOGLE_API_URL: "https://generativelanguage.googleapis.com/v1"
+
+---
+# Logging Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promptwizard-logging-config
+  namespace: promptwizard
+  labels:
+    app: promptwizard
+    component: logging
+    version: v1
+data:
+  logging.conf: |
+    [loggers]
+    keys=root,promptwizard,grpc,websocket
+    
+    [handlers]
+    keys=console,file,json
+    
+    [formatters]
+    keys=detailed,json
+    
+    [logger_root]
+    level=INFO
+    handlers=console,json
+    
+    [logger_promptwizard]
+    level=INFO
+    handlers=console,json
+    qualname=promptwizard
+    propagate=0
+    
+    [logger_grpc]
+    level=INFO
+    handlers=console,json
+    qualname=grpc
+    propagate=0
+    
+    [logger_websocket]
+    level=INFO
+    handlers=console,json
+    qualname=websocket
+    propagate=0
+    
+    [handler_console]
+    class=StreamHandler
+    level=INFO
+    formatter=detailed
+    args=(sys.stdout,)
+    
+    [handler_file]
+    class=handlers.RotatingFileHandler
+    level=INFO
+    formatter=detailed
+    args=('/app/logs/promptwizard.log', 'a', 10485760, 5)
+    
+    [handler_json]
+    class=StreamHandler
+    level=INFO
+    formatter=json
+    args=(sys.stdout,)
+    
+    [formatter_detailed]
+    format=%(asctime)s [%(levelname)s] %(name)s: %(message)s
+    datefmt=%Y-%m-%d %H:%M:%S
+    
+    [formatter_json]
+    format={"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s", "module": "%(module)s", "funcName": "%(funcName)s", "lineNo": "%(lineno)d"}
+    datefmt=%Y-%m-%dT%H:%M:%S
+
+---
+# Prometheus Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: promptwizard
+  labels:
+    app: prometheus
+    component: config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'promptwizard-production'
+        environment: 'production'
+    
+    rule_files:
+      - "rules.yml"
+    
+    scrape_configs:
+      # PromptWizard service metrics
+      - job_name: 'promptwizard-service'
+        static_configs:
+          - targets: ['promptwizard-service:9090']
+        scrape_interval: 10s
+        metrics_path: /metrics
+        
+      # Redis metrics
+      - job_name: 'redis'
+        static_configs:
+          - targets: ['redis-master:9121', 'redis-slave-1:9121', 'redis-slave-2:9121']
+        scrape_interval: 30s
+        
+      # Kubernetes metrics
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - promptwizard
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+
+  rules.yml: |
+    groups:
+    - name: promptwizard.rules
+      rules:
+      # Service availability
+      - alert: PromptWizardServiceDown
+        expr: up{job="promptwizard-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: promptwizard
+        annotations:
+          summary: "PromptWizard service is down"
+          description: "PromptWizard service has been down for more than 1 minute"
+      
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          team: promptwizard
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second"
+      
+      # High response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: promptwizard
+        annotations:
+          summary: "High response time"
+          description: "95th percentile response time is {{ $value }}s"
+      
+      # Redis connection issues
+      - alert: RedisConnectionFailure
+        expr: redis_connected_clients == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: promptwizard
+        annotations:
+          summary: "Redis connection failure"
+          description: "No Redis connections detected"

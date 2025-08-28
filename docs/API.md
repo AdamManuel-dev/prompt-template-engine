@@ -7,8 +7,10 @@ Complete API documentation for the Cursor Prompt Template Engine.
 - [CLI Commands](#cli-commands)
 - [Core Classes](#core-classes)
 - [Services](#services)
+- [Security API](#security-api)
 - [Interfaces](#interfaces)
 - [Configuration](#configuration)
+- [Error Handling](#error-handling)
 
 ## CLI Commands
 
@@ -314,6 +316,208 @@ class TemplateService {
 }
 ```
 
+## Security API
+
+The Cursor Prompt Template Engine includes a comprehensive enterprise-grade security system with authentication, authorization, encryption, and audit capabilities.
+
+### JWTAuthService
+
+JWT-based authentication with role claims and comprehensive security controls.
+
+```typescript
+class JWTAuthService {
+  constructor(config?: Partial<JWTAuthConfig>)
+  
+  async generateToken(user: UserInfo, deviceInfo?: DeviceInfo): Promise<TokenPair>
+  
+  async verifyToken(token: string): Promise<JWTPayload>
+  
+  async refreshToken(refreshToken: string, deviceInfo?: DeviceInfo): Promise<TokenPair>
+  
+  async revokeToken(token: string, reason?: string): Promise<void>
+  
+  async revokeAllUserTokens(userId: string): Promise<void>
+  
+  validateTokenStructure(token: string): TokenValidation
+}
+```
+
+**Example:**
+```typescript
+const authService = new JWTAuthService({
+  jwtSecret: process.env.JWT_SECRET,
+  accessTokenExpiry: '15m',
+  refreshTokenExpiry: '7d'
+});
+
+// Generate tokens for user
+const tokens = await authService.generateToken({
+  userId: '12345',
+  username: 'john_doe',
+  email: 'john@example.com',
+  roles: ['user', 'admin'],
+  permissions: ['read:templates', 'write:templates']
+});
+
+// Verify token
+const payload = await authService.verifyToken(tokens.accessToken);
+```
+
+### RBACManagerService
+
+Role-Based Access Control with hierarchical permissions and dynamic policies.
+
+```typescript
+class RBACManagerService {
+  async createRole(role: RoleDefinition): Promise<void>
+  
+  async assignRole(userId: string, roleId: string, conditions?: RoleCondition[]): Promise<void>
+  
+  async checkPermission(userId: string, resource: string, action: string, context?: unknown): Promise<boolean>
+  
+  async getUserPermissions(userId: string): Promise<string[]>
+  
+  async getRoleHierarchy(roleId: string): Promise<Role[]>
+}
+```
+
+**Example:**
+```typescript
+const rbac = new RBACManagerService();
+
+// Create role with permissions
+await rbac.createRole({
+  id: 'template-admin',
+  name: 'Template Administrator',
+  permissions: ['templates:create', 'templates:edit', 'templates:delete'],
+  inherits: ['template-user']
+});
+
+// Check user permissions
+const canEdit = await rbac.checkPermission('user123', 'templates', 'edit');
+```
+
+### CryptographicService
+
+FIPS 140-2 compliant encryption service for data protection.
+
+```typescript
+class CryptographicService {
+  async encrypt(data: string, algorithm?: string): Promise<EncryptionResult>
+  
+  async decrypt(encryptedData: EncryptionResult): Promise<string>
+  
+  async generateKeyPair(): Promise<KeyPair>
+  
+  async sign(data: string, privateKey: string): Promise<string>
+  
+  async verify(data: string, signature: string, publicKey: string): Promise<boolean>
+  
+  generateSecureRandom(length: number): string
+}
+```
+
+**Example:**
+```typescript
+const crypto = new CryptographicService();
+
+// Encrypt sensitive data
+const encrypted = await crypto.encrypt(sensitiveData, 'AES-256-GCM');
+
+// Generate digital signature
+const keyPair = await crypto.generateKeyPair();
+const signature = await crypto.sign(document, keyPair.privateKey);
+```
+
+### SecretVaultService
+
+Enterprise secrets management with encryption and rotation.
+
+```typescript
+class SecretVaultService {
+  async storeSecret(key: string, value: string, metadata?: SecretMetadata): Promise<void>
+  
+  async getSecret(key: string): Promise<string | null>
+  
+  async rotateSecret(key: string): Promise<string>
+  
+  async listSecrets(pattern?: string): Promise<SecretInfo[]>
+  
+  async deleteSecret(key: string): Promise<void>
+}
+```
+
+### AuditLoggerService
+
+Comprehensive audit logging for compliance and security monitoring.
+
+```typescript
+class AuditLoggerService {
+  async logSecurityEvent(event: SecurityEvent): Promise<void>
+  
+  async logAccessAttempt(userId: string, resource: string, action: string, result: 'granted' | 'denied'): Promise<void>
+  
+  async queryAuditLogs(criteria: AuditQueryCriteria): Promise<AuditLog[]>
+  
+  async generateComplianceReport(startDate: Date, endDate: Date, format?: 'json' | 'csv' | 'xml'): Promise<string>
+}
+```
+
+### Authorization Middleware
+
+Express.js middleware for request authorization.
+
+```typescript
+// Protect routes with permissions
+app.use('/api/templates', 
+  authMiddleware(),
+  requirePermission('templates', 'read')
+);
+
+// Protect with role requirements
+app.use('/api/admin/*',
+  authMiddleware(),
+  requireRole('admin')
+);
+
+// Custom authorization logic
+app.use('/api/user/:userId/*',
+  authMiddleware(),
+  requireOwnership('userId')
+);
+```
+
+### Security Configuration
+
+```typescript
+interface SecurityConfig {
+  jwt: {
+    secret: string;
+    accessTokenExpiry: string;
+    refreshTokenExpiry: string;
+    algorithm: 'HS256' | 'RS256';
+  };
+  
+  encryption: {
+    algorithm: 'AES-256-GCM';
+    keyDerivation: 'PBKDF2';
+    iterations: number;
+  };
+  
+  rbac: {
+    enableHierarchy: boolean;
+    cachePermissions: boolean;
+    strictMode: boolean;
+  };
+  
+  audit: {
+    logLevel: 'minimal' | 'standard' | 'comprehensive';
+    retentionDays: number;
+    enableCompliance: boolean;
+  };
+}
+```
+
 ## Interfaces
 
 ### TemplateContext
@@ -554,6 +758,103 @@ const rendered = await engine.render(template.content, {
 });
 ```
 
+## Error Handling
+
+The Cursor Prompt Template Engine provides comprehensive error handling with specific error types for different failure scenarios.
+
+### Error Types
+
+#### TemplateProcessingError
+Thrown when template processing fails due to syntax errors or rendering issues.
+
+```typescript
+class TemplateProcessingError extends Error {
+  constructor(message: string, templatePath?: string, line?: number)
+}
+
+// Example
+try {
+  const result = await service.renderTemplate(template, variables);
+} catch (error) {
+  if (error instanceof TemplateProcessingError) {
+    console.error('Template processing failed:', error.message);
+    console.error('Template path:', error.templatePath);
+  }
+}
+```
+
+#### ValidationError
+Thrown when input validation fails or template validation errors occur.
+
+```typescript
+class ValidationError extends Error {
+  constructor(message: string, field?: string, value?: unknown)
+}
+
+// Example
+try {
+  await service.validateTemplate(template);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error('Validation failed:', error.message);
+  }
+}
+```
+
+#### FileNotFoundError
+Thrown when template files or resources cannot be found.
+
+```typescript
+class FileNotFoundError extends Error {
+  constructor(path: string)
+}
+```
+
+#### AuthenticationError
+Thrown when authentication fails or tokens are invalid.
+
+```typescript
+class AuthenticationError extends Error {
+  constructor(message: string, code?: string)
+}
+```
+
+#### AuthorizationError  
+Thrown when user lacks required permissions for an action.
+
+```typescript
+class AuthorizationError extends Error {
+  constructor(message: string, resource?: string, action?: string)
+}
+```
+
+### Error Handling Best Practices
+
+1. **Always use try-catch blocks** when calling async methods
+2. **Check error types** using `instanceof` for specific handling
+3. **Log errors appropriately** with context information
+4. **Provide user-friendly error messages** in CLI commands
+5. **Use error codes** for programmatic error handling
+
+**Example:**
+```typescript
+try {
+  const template = await service.loadTemplate(templatePath);
+  const result = await service.renderTemplate(template, variables);
+  console.log(result);
+} catch (error) {
+  if (error instanceof FileNotFoundError) {
+    console.error(`Template not found: ${templatePath}`);
+  } else if (error instanceof ValidationError) {
+    console.error(`Invalid template variables: ${error.message}`);
+  } else if (error instanceof TemplateProcessingError) {
+    console.error(`Template processing failed: ${error.message}`);
+  } else {
+    console.error(`Unexpected error: ${error.message}`);
+  }
+}
+```
+
 ---
 
-*API Version: 1.0.0 | Last Updated: 2025-08-22*
+*API Version: 1.0.0 | Last Updated: 2025-08-27*

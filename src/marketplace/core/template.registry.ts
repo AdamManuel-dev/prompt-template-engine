@@ -58,10 +58,12 @@ export class TemplateRegistry {
       const registryData = await fs.readFile(this.registryPath, 'utf8');
       const registry = JSON.parse(registryData);
 
-      (registry.templates || []).forEach((template: any) => {
-        this.templates.set(template.id, {
+      (registry.templates || []).forEach((template: Record<string, unknown>) => {
+        const templateId = template.id as string;
+        const registeredDate = template.registered as string;
+        this.templates.set(templateId, {
           ...template,
-          registered: new Date(template.registered),
+          registered: new Date(registeredDate),
         });
       });
 

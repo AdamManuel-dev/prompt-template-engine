@@ -24,6 +24,7 @@ import { applyCommand, ApplyOptions } from './commands/apply';
 import { validateCommand } from './commands/validate';
 import { configCommand } from './commands/config';
 import { pluginCommand, PluginOptions } from './commands/plugin';
+import { createOptimizeCommand } from './commands/optimize';
 import { CommandRegistry } from './cli/command-registry';
 import { PluginLoader } from './cli/plugin-loader';
 import { ConfigManager } from './config/config-manager';
@@ -315,6 +316,9 @@ function configureProgram(): void {
       }
     });
 
+  // Add optimize command
+  program.addCommand(createOptimizeCommand());
+
   // Cursor IDE integration commands
   program
     .command('cursor:sync')
@@ -478,15 +482,27 @@ function configureProgram(): void {
       'sort by field (downloads, rating, created, updated)'
     )
     .option('-o, --order <order>', 'sort order (asc, desc)', 'desc')
-    .action(async (query: string | undefined, options: any) => {
-      try {
-        const command = new MarketplaceSearchCommand();
-        await command.execute(query || '', options);
-      } catch (error) {
-        ErrorUtils.logError(error, logger);
-        process.exit(ErrorUtils.getExitCode(error));
+    .action(
+      async (
+        query: string | undefined,
+        options: {
+          category?: string;
+          tag?: string;
+          author?: string;
+          limit?: string;
+          sort?: string;
+          order?: 'asc' | 'desc';
+        }
+      ) => {
+        try {
+          const command = new MarketplaceSearchCommand();
+          await command.execute(query || '', options);
+        } catch (error) {
+          ErrorUtils.logError(error, logger);
+          process.exit(ErrorUtils.getExitCode(error));
+        }
       }
-    });
+    );
 
   program
     .command('marketplace:install <template>')
@@ -596,15 +612,25 @@ function configureProgram(): void {
     .option('--private', 'publish as private template')
     .option('--draft', 'publish as draft (not publicly visible)')
     .option('-f, --force', 'force publish even with warnings')
-    .action(async (templatePath: string | undefined, options: any) => {
-      try {
-        const command = new MarketplacePublishCommand();
-        await command.execute(templatePath || '.', options);
-      } catch (error) {
-        ErrorUtils.logError(error, logger);
-        process.exit(ErrorUtils.getExitCode(error));
+    .action(
+      async (
+        templatePath: string | undefined,
+        options: {
+          version?: string;
+          private?: boolean;
+          draft?: boolean;
+          force?: boolean;
+        }
+      ) => {
+        try {
+          const command = new MarketplacePublishCommand();
+          await command.execute(templatePath || '.', options);
+        } catch (error) {
+          ErrorUtils.logError(error, logger);
+          process.exit(ErrorUtils.getExitCode(error));
+        }
       }
-    });
+    );
 
   program
     .command('marketplace:author <action> [author]')
@@ -614,7 +640,16 @@ function configureProgram(): void {
     .option('-f, --follow', 'follow author')
     .option('-u, --unfollow', 'unfollow author')
     .action(
-      async (action: string, author: string | undefined, options: any) => {
+      async (
+        action: string,
+        author: string | undefined,
+        options: {
+          follow?: string;
+          unfollow?: string;
+          templates?: string;
+          stats?: string;
+        }
+      ) => {
         try {
           const command = new AuthorCommand();
           await command.execute(action, { ...options, author });

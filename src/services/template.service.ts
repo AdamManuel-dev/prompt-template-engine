@@ -1,11 +1,11 @@
 /**
- * @fileoverview Template service for business logic abstraction
- * @lastmodified 2025-08-22T12:00:00Z
+ * @fileoverview Template service for business logic abstraction with optimization support
+ * @lastmodified 2025-08-26T16:50:00Z
  *
- * Features: Template management, rendering, and validation
- * Main APIs: loadTemplate, renderTemplate, validateTemplate
- * Constraints: Abstracts file system operations from commands
- * Patterns: Service layer pattern, dependency injection ready
+ * Features: Template management, rendering, validation, optimization tracking, A/B testing, version comparison
+ * Main APIs: loadTemplate, renderTemplate, validateTemplate, addOptimizationData, compareTemplateVersions
+ * Constraints: Abstracts file system operations from commands, maintains backward compatibility
+ * Patterns: Service layer pattern, dependency injection ready, optimization-aware template management
  */
 
 import * as fs from 'fs';
@@ -19,13 +19,23 @@ import {
   ValidationError,
 } from '../utils/errors';
 import { CacheService } from './cache.service';
+import type {
+  OptimizedTemplate,
+  OptimizationHistory,
+  OptimizationMetrics,
+  TemplateComparison,
+} from '../types/optimized-template.types';
 
 export interface TemplateFile {
   path: string;
   name?: string;
-  content: string;
+  content?: string;
   encoding?: string;
   mode?: string;
+  source: string;
+  destination: string;
+  transform?: boolean;
+  condition?: string;
 }
 
 export interface TemplateCommand {
@@ -50,20 +60,43 @@ export interface VariableConfig {
 
 export interface Template {
   name: string;
-  version: string;
+  version?: string;
   description?: string;
   basePath?: string;
-  files: TemplateFile[];
-  variables: Record<string, VariableConfig>;
-  commands: TemplateCommand[];
+  files?: TemplateFile[];
+  variables?: Record<string, VariableConfig>;
+  commands?: TemplateCommand[];
   metadata?: {
     author?: string;
     tags?: string[];
     created?: string;
     updated?: string;
     category?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
+  // Optimization tracking fields
+  isOptimized?: boolean;
+  optimizationLevel?: 'none' | 'basic' | 'advanced' | 'aggressive';
+  originalTemplateId?: string;
+  optimizationHistory?: OptimizationHistory[];
+  currentOptimizationMetrics?: OptimizationMetrics;
+  // A/B testing support
+  abTestVariants?: Array<{
+    name: string;
+    version: string;
+    content: string;
+    files?: TemplateFile[];
+    metrics?: OptimizationMetrics;
+    weight?: number;
+  }>;
+  activeVariant?: string;
+  // Version comparison
+  parentVersions?: Array<{
+    version: string;
+    templateId: string;
+    optimizationId?: string;
+    relationship: 'original' | 'optimized' | 'variant';
+  }>;
 }
 
 export interface TemplateServiceOptions {
@@ -72,6 +105,33 @@ export interface TemplateServiceOptions {
   validationStrict?: boolean;
 }
 
+/**
+ * Service class for template management, rendering, and optimization tracking
+ * Provides a high-level abstraction over the template engine with caching,
+ * validation, and optimization features for production use.
+ * 
+ * @class TemplateService
+ * @version 1.0.0
+ * @since 1.0.0
+ * 
+ * @example <caption>Basic template service usage</caption>
+ * const service = new TemplateService({
+ *   templatePaths: ['./templates'],
+ *   cacheEnabled: true,
+ *   validationStrict: true
+ * });
+ * 
+ * const template = await service.loadTemplate('my-template.yaml');
+ * const result = await service.renderTemplate(template, { name: 'World' });
+ * 
+ * @example <caption>Template optimization tracking</caption>
+ * await service.addOptimizationData(templateId, {
+ *   inputTokens: 150,
+ *   outputTokens: 300,
+ *   processingTime: 1200,
+ *   qualityScore: 0.85
+ * });
+ */
 export class TemplateService {
   private readonly engine: TemplateEngine;
 
@@ -79,6 +139,24 @@ export class TemplateService {
 
   private readonly templateCache: CacheService<Template>;
 
+  /**
+   * Creates a new TemplateService instance with configuration options
+   * 
+   * @param {TemplateServiceOptions} [options={}] - Configuration options for the service
+   * @param {string[]} [options.templatePaths=['./templates', '.cursor/templates']] - Paths to search for templates
+   * @param {boolean} [options.cacheEnabled=true] - Whether to enable template caching
+   * @param {boolean} [options.validationStrict=false] - Whether to use strict validation mode
+   * 
+   * @example <caption>Create with custom configuration</caption>
+   * const service = new TemplateService({
+   *   templatePaths: ['./my-templates', './shared-templates'],
+   *   cacheEnabled: true,
+   *   validationStrict: true
+   * });
+   * 
+   * @example <caption>Create with defaults</caption>
+   * const service = new TemplateService();
+   */
   constructor(options: TemplateServiceOptions = {}) {
     this.engine = new TemplateEngine();
     this.options = {
@@ -96,7 +174,35 @@ export class TemplateService {
   }
 
   /**
-   * Load a template from file system
+   * Loads a template from the file system with automatic caching and validation
+   * Supports both YAML and JSON template formats with front-matter parsing.
+   * Templates are cached for improved performance when caching is enabled.
+   * 
+   * @param {string} templatePath - Path to the template file (relative or absolute)
+   * @returns {Promise<Template>} Parsed template object with metadata and content
+   * @throws {FileNotFoundError} When the template file doesn't exist
+   * @throws {TemplateProcessingError} When template parsing fails
+   * @throws {ValidationError} When template validation fails in strict mode
+   * 
+   * @example <caption>Load a YAML template</caption>
+   * const template = await service.loadTemplate('./templates/bug-fix.yaml');
+   * console.log(`Loaded template: ${template.name}`);
+   * 
+   * @example <caption>Load with error handling</caption>
+   * try {
+   *   const template = await service.loadTemplate('./templates/feature.yaml');
+   *   // Process template...
+   * } catch (error) {
+   *   if (error instanceof FileNotFoundError) {
+   *     console.error('Template file not found');
+   *   } else if (error instanceof ValidationError) {
+   *     console.error('Template validation failed:', error.message);
+   *   }
+   * }
+   * 
+   * @see {@link renderTemplate} - For rendering loaded templates
+   * @see {@link validateTemplate} - For template validation
+   * @since 1.0.0
    */
   async loadTemplate(templatePath: string): Promise<Template> {
     // Use cache's getOrCompute for automatic caching
@@ -161,9 +267,11 @@ export class TemplateService {
           files: [
             {
               path: `${frontmatter.name || path.basename(filePath, ext)}.md`,
+              source: `${frontmatter.name || path.basename(filePath, ext)}.md`,
+              destination: `${frontmatter.name || path.basename(filePath, ext)}.md`,
               content: parsed.content,
               name: frontmatter.name || path.basename(filePath, ext),
-            },
+            } as any,
           ],
           variables: TemplateService.parseVariables(
             frontmatter.variables || {}
@@ -189,9 +297,11 @@ export class TemplateService {
             files: [
               {
                 path: `${frontmatter.name || path.basename(filePath, ext)}.md`,
+                source: `${frontmatter.name || path.basename(filePath, ext)}.md`,
+                destination: `${frontmatter.name || path.basename(filePath, ext)}.md`,
                 content: parsed.content,
                 name: frontmatter.name || path.basename(filePath, ext),
-              },
+              } as any,
             ],
             variables: TemplateService.parseVariables(
               frontmatter.variables || {}
@@ -213,9 +323,11 @@ export class TemplateService {
             files: [
               {
                 path: `${parsed.name}.md`,
+                source: `${parsed.name}.md`,
+                destination: `${parsed.name}.md`,
                 content: parsed.content || '',
                 name: parsed.name,
-              },
+              } as any,
             ],
             variables: TemplateService.parseVariables(parsed.variables || {}),
             commands: parsed.commands || [],
@@ -265,7 +377,7 @@ export class TemplateService {
 
     // Load file contents if they reference external files
     template.files = await Promise.all(
-      template.files.map(async file => {
+      (template.files || []).map(async file => {
         if (!file.content && file.path) {
           const filePath = path.join(dirPath, file.path);
           try {
@@ -284,7 +396,44 @@ export class TemplateService {
   }
 
   /**
-   * Render a template with given variables
+   * Renders a template with the provided variables and returns the processed template
+   * Validates variables against template requirements and applies template transformations.
+   * Supports variable substitution, conditionals, loops, includes, and custom helpers.
+   * 
+   * @param {Template} template - The template object to render (loaded via loadTemplate)
+   * @param {Record<string, unknown>} variables - Variables to substitute in the template
+   * @returns {Promise<Template>} Rendered template with processed content and commands
+   * @throws {ValidationError} When provided variables don't match template requirements
+   * @throws {TemplateProcessingError} When template rendering fails
+   * 
+   * @example <caption>Basic template rendering</caption>
+   * const template = await service.loadTemplate('./templates/bug-fix.yaml');
+   * const rendered = await service.renderTemplate(template, {
+   *   issueNumber: '123',
+   *   description: 'Fix authentication bug',
+   *   severity: 'high'
+   * });
+   * 
+   * @example <caption>Complex template with conditionals</caption>
+   * const rendered = await service.renderTemplate(template, {
+   *   user: { name: 'John', role: 'admin' },
+   *   features: ['auth', 'dashboard', 'reporting'],
+   *   environment: 'production'
+   * });
+   * 
+   * @example <caption>Error handling for missing variables</caption>
+   * try {
+   *   const rendered = await service.renderTemplate(template, variables);
+   * } catch (error) {
+   *   if (error instanceof ValidationError) {
+   *     console.error('Missing required variables:', error.message);
+   *   }
+   * }
+   * 
+   * @see {@link loadTemplate} - For loading templates before rendering
+   * @see {@link validateTemplate} - For validating templates before rendering
+   * @see {@link TemplateEngine} - For low-level template rendering
+   * @since 1.0.0
    */
   async renderTemplate(
     template: Template,
@@ -303,20 +452,25 @@ export class TemplateService {
 
     // Render all files
     const renderedFiles = await Promise.all(
-      template.files.map(async file => ({
+      (template.files || []).map(async file => ({
         ...file,
-        content: await this.engine.render(file.content, context),
-        path: await this.engine.render(file.path || file.name || '', context),
+        content: await this.engine.render(file.content!, context),
+        path: await this.engine.render(
+          file.path || file.name || file.source || 'template.md',
+          context
+        ),
       }))
     );
 
     // Render commands
-    const renderedCommands = await Promise.all(
-      template.commands.map(async cmd => ({
-        ...cmd,
-        command: await this.engine.render(cmd.command, context),
-      }))
-    );
+    const renderedCommands = template.commands
+      ? await Promise.all(
+          template.commands.map(async cmd => ({
+            ...cmd,
+            command: await this.engine.render(cmd.command, context),
+          }))
+        )
+      : [];
 
     return {
       ...template,
@@ -350,7 +504,7 @@ export class TemplateService {
     }
 
     // Validate file structures
-    template.files.forEach((file, index) => {
+    template.files?.forEach((file, index) => {
       if (!file.path && !file.name) {
         errors.push(`File at index ${index} has no path or name`);
       }
@@ -628,9 +782,309 @@ export class TemplateService {
   }
 
   /**
+   * Check if template is optimized
+   */
+  isTemplateOptimized(template: Template): boolean {
+    return template.isOptimized === true;
+  }
+
+  /**
+   * Get optimization metrics for template
+   */
+  getOptimizationMetrics(template: Template): OptimizationMetrics | null {
+    return template.currentOptimizationMetrics || null;
+  }
+
+  /**
+   * Get optimization history for template
+   */
+  getOptimizationHistory(template: Template): OptimizationHistory[] {
+    return template.optimizationHistory || [];
+  }
+
+  /**
+   * Add optimization data to template
+   */
+  async addOptimizationData(
+    template: Template,
+    optimizationData: {
+      metrics: OptimizationMetrics;
+      history: OptimizationHistory;
+      level?: 'none' | 'basic' | 'advanced' | 'aggressive';
+    }
+  ): Promise<Template> {
+    const updatedTemplate: Template = {
+      ...template,
+      isOptimized: true,
+      optimizationLevel: optimizationData.level || 'basic',
+      currentOptimizationMetrics: optimizationData.metrics,
+      optimizationHistory: [
+        ...(template.optimizationHistory || []),
+        optimizationData.history,
+      ],
+      metadata: {
+        ...template.metadata,
+        lastOptimized: new Date().toISOString(),
+        optimizationVersion: optimizationData.history.version,
+      },
+    };
+
+    // Clear cache to ensure updated template is loaded fresh
+    if (this.options.cacheEnabled) {
+      this.templateCache.delete(template.name);
+    }
+
+    return updatedTemplate;
+  }
+
+  /**
+   * Compare two template versions
+   */
+  async compareTemplateVersions(
+    originalTemplate: Template,
+    comparisonTemplate: Template
+  ): Promise<TemplateComparison> {
+    const originalContent = this.getTemplateContent(originalTemplate);
+    const comparisonContent = this.getTemplateContent(comparisonTemplate);
+
+    // Calculate basic metrics
+    const tokenDiff = comparisonContent.length - originalContent.length;
+    const tokenReduction =
+      originalContent.length > 0
+        ? Math.abs(tokenDiff) / originalContent.length
+        : 0;
+
+    const comparison: TemplateComparison = {
+      original: originalTemplate as any,
+      optimized: {
+        ...comparisonTemplate,
+        isOptimized: true,
+        optimizationMetrics: comparisonTemplate.currentOptimizationMetrics || {
+          accuracyImprovement: 0,
+          tokenReduction,
+          costReduction: 1,
+          processingTime: 0,
+          apiCallsUsed: 0,
+        },
+        optimizationHistory: comparisonTemplate.optimizationHistory || [],
+        optimizationContext: {
+          targetModel: 'unknown',
+          task: 'Template comparison',
+        },
+        optimizationLevel: comparisonTemplate.optimizationLevel || 'basic',
+        currentOptimizationMetrics:
+          comparisonTemplate.currentOptimizationMetrics || {
+            accuracyImprovement: 0,
+            tokenReduction,
+            costReduction: 1,
+            processingTime: 0,
+            apiCallsUsed: 0,
+          },
+      } as OptimizedTemplate,
+      comparison: {
+        overallImprovement:
+          comparisonTemplate.currentOptimizationMetrics?.accuracyImprovement ||
+          0,
+        metrics: comparisonTemplate.currentOptimizationMetrics || {
+          accuracyImprovement: 0,
+          tokenReduction,
+          costReduction: 1,
+          processingTime: 0,
+          apiCallsUsed: 0,
+        },
+        contentDiff: {
+          additions: this.findContentDifferences(
+            originalContent,
+            comparisonContent,
+            'additions'
+          ),
+          deletions: this.findContentDifferences(
+            originalContent,
+            comparisonContent,
+            'deletions'
+          ),
+          modifications: this.findContentModifications(
+            originalContent,
+            comparisonContent
+          ),
+        },
+        structuralChanges: {
+          variablesAdded: this.getVariableDifferences(
+            originalTemplate,
+            comparisonTemplate,
+            'added'
+          ),
+          variablesRemoved: this.getVariableDifferences(
+            originalTemplate,
+            comparisonTemplate,
+            'removed'
+          ),
+          sectionsReorganized: this.detectSectionReorganization(
+            originalTemplate,
+            comparisonTemplate
+          ),
+          logicSimplified: this.detectLogicSimplification(
+            originalTemplate,
+            comparisonTemplate
+          ),
+        },
+        qualityAssessment: {
+          clarity: this.assessQualityMetric(
+            originalTemplate,
+            comparisonTemplate,
+            'clarity'
+          ),
+          conciseness: this.assessQualityMetric(
+            originalTemplate,
+            comparisonTemplate,
+            'conciseness'
+          ),
+          completeness: this.assessQualityMetric(
+            originalTemplate,
+            comparisonTemplate,
+            'completeness'
+          ),
+          accuracy: this.assessQualityMetric(
+            originalTemplate,
+            comparisonTemplate,
+            'accuracy'
+          ),
+        },
+      },
+      recommendation: this.generateComparisonRecommendation(
+        comparisonTemplate.currentOptimizationMetrics
+      ),
+    };
+
+    return comparison;
+  }
+
+  /**
+   * Create A/B test variant of template
+   */
+  async createAbTestVariant(
+    template: Template,
+    variantName: string,
+    variantContent: string,
+    variantFiles?: TemplateFile[],
+    weight: number = 0.5
+  ): Promise<Template> {
+    const variant = {
+      name: variantName,
+      version: `${template.version}-${variantName}`,
+      content: variantContent,
+      files: variantFiles,
+      weight,
+    };
+
+    const updatedTemplate: Template = {
+      ...template,
+      abTestVariants: [...(template.abTestVariants || []), variant],
+      metadata: {
+        ...template.metadata,
+        hasAbTest: true,
+        variantCount: (template.abTestVariants?.length || 0) + 1,
+      },
+    };
+
+    return updatedTemplate;
+  }
+
+  /**
+   * Get active A/B test variant
+   */
+  getActiveAbTestVariant(template: Template): {
+    name: string;
+    version: string;
+    content: string;
+    files?: TemplateFile[];
+    metrics?: OptimizationMetrics;
+    weight?: number;
+  } | null {
+    if (!template.abTestVariants || template.abTestVariants.length === 0) {
+      return null;
+    }
+
+    if (template.activeVariant) {
+      return (
+        template.abTestVariants.find(v => v.name === template.activeVariant) ||
+        null
+      );
+    }
+
+    // Return weighted random variant
+    const totalWeight = template.abTestVariants.reduce(
+      (sum, v) => sum + (v.weight || 1),
+      0
+    );
+    const random = Math.random() * totalWeight;
+    let currentWeight = 0;
+
+    for (const variant of template.abTestVariants) {
+      currentWeight += variant.weight || 1;
+      if (random <= currentWeight) {
+        return variant;
+      }
+    }
+
+    return template.abTestVariants[0];
+  }
+
+  /**
+   * Set active A/B test variant
+   */
+  async setActiveAbTestVariant(
+    template: Template,
+    variantName: string
+  ): Promise<Template> {
+    const variant = template.abTestVariants?.find(v => v.name === variantName);
+    if (!variant) {
+      throw new ValidationError(
+        `A/B test variant '${variantName}' not found in template '${template.name}'`
+      );
+    }
+
+    return {
+      ...template,
+      activeVariant: variantName,
+    };
+  }
+
+  /**
+   * Generate diff between template versions
+   */
+  async generateVersionDiff(
+    originalTemplate: Template,
+    modifiedTemplate: Template
+  ): Promise<{
+    contentChanges: string[];
+    structuralChanges: string[];
+    metadataChanges: string[];
+  }> {
+    const contentChanges = this.compareTemplateContent(
+      originalTemplate,
+      modifiedTemplate
+    );
+    const structuralChanges = this.compareTemplateStructure(
+      originalTemplate,
+      modifiedTemplate
+    );
+    const metadataChanges = this.compareTemplateMetadata(
+      originalTemplate,
+      modifiedTemplate
+    );
+
+    return {
+      contentChanges,
+      structuralChanges,
+      metadataChanges,
+    };
+  }
+
+  /**
    * Get cache statistics
    */
-  getCacheStats() {
+  getCacheStats(): { hits: number; misses: number; size: number } {
     return this.templateCache.getStats();
   }
 
@@ -638,7 +1092,7 @@ export class TemplateService {
    * Parse variables from various formats
    */
   private static parseVariables(
-    variables: any
+    variables: Record<string, unknown>
   ): Record<string, VariableConfig> {
     if (Array.isArray(variables)) {
       // Handle array format from markdown frontmatter
@@ -666,6 +1120,234 @@ export class TemplateService {
       return variables as Record<string, VariableConfig>;
     }
     return {};
+  }
+
+  // Helper methods for comparison and analysis
+  private getTemplateContent(template: Template): string {
+    return template.files?.[0]?.content || template.description || '';
+  }
+
+  private findContentDifferences(
+    original: string,
+    comparison: string,
+    type: 'additions' | 'deletions'
+  ): string[] {
+    // Simplified diff implementation - in production, use a proper diff library
+    const originalLines = original.split('\n');
+    const comparisonLines = comparison.split('\n');
+
+    if (type === 'additions') {
+      return comparisonLines.filter(line => !originalLines.includes(line));
+    }
+    return originalLines.filter(line => !comparisonLines.includes(line));
+  }
+
+  private findContentModifications(
+    original: string,
+    comparison: string
+  ): Array<{ original: string; modified: string }> {
+    // Simplified modification detection
+    const originalLines = original.split('\n');
+    const comparisonLines = comparison.split('\n');
+    const modifications: Array<{ original: string; modified: string }> = [];
+
+    const maxLines = Math.max(originalLines.length, comparisonLines.length);
+    for (let i = 0; i < maxLines; i++) {
+      const origLine = originalLines[i] || '';
+      const compLine = comparisonLines[i] || '';
+
+      if (origLine !== compLine && origLine.length > 0 && compLine.length > 0) {
+        modifications.push({ original: origLine, modified: compLine });
+      }
+    }
+
+    return modifications;
+  }
+
+  private getVariableDifferences(
+    original: Template,
+    comparison: Template,
+    type: 'added' | 'removed'
+  ): string[] {
+    const originalVars = Object.keys(original.variables || {});
+    const comparisonVars = Object.keys(comparison.variables || {});
+
+    if (type === 'added') {
+      return comparisonVars.filter(v => !originalVars.includes(v));
+    }
+    return originalVars.filter(v => !comparisonVars.includes(v));
+  }
+
+  private detectSectionReorganization(
+    original: Template,
+    comparison: Template
+  ): boolean {
+    // Simple heuristic: check if file order changed
+    const originalFiles = (original.files || []).map(f => f.name || f.path);
+    const comparisonFiles = (comparison.files || []).map(f => f.name || f.path);
+
+    return originalFiles.join(',') !== comparisonFiles.join(',');
+  }
+
+  private detectLogicSimplification(
+    original: Template,
+    comparison: Template
+  ): boolean {
+    const originalContent = this.getTemplateContent(original);
+    const comparisonContent = this.getTemplateContent(comparison);
+
+    // Heuristic: fewer conditional statements or loops
+    const originalComplexity = (originalContent.match(/{%|{{|}}/g) || [])
+      .length;
+    const comparisonComplexity = (comparisonContent.match(/{%|{{|}}/g) || [])
+      .length;
+
+    return comparisonComplexity < originalComplexity;
+  }
+
+  private assessQualityMetric(
+    original: Template,
+    comparison: Template,
+    metric: 'clarity' | 'conciseness' | 'completeness' | 'accuracy'
+  ): number {
+    const originalContent = this.getTemplateContent(original);
+    const comparisonContent = this.getTemplateContent(comparison);
+
+    switch (metric) {
+      case 'conciseness':
+        return originalContent.length > 0
+          ? (originalContent.length - comparisonContent.length) /
+              originalContent.length
+          : 0;
+      case 'completeness':
+        return (comparison.variables
+          ? Object.keys(comparison.variables).length
+          : 0) -
+          (original.variables ? Object.keys(original.variables).length : 0) >
+          0
+          ? 0.1
+          : 0;
+      case 'clarity':
+      case 'accuracy':
+      default:
+        // Would need more sophisticated analysis - return neutral for now
+        return 0;
+    }
+  }
+
+  private generateComparisonRecommendation(metrics?: OptimizationMetrics): {
+    useOptimized: boolean;
+    confidence: number;
+    reasons: string[];
+    warnings?: string[];
+  } {
+    const reasons: string[] = [];
+    const warnings: string[] = [];
+    let useOptimized = false;
+    let confidence = 0.5;
+
+    if (metrics) {
+      if (metrics.accuracyImprovement > 0.1) {
+        reasons.push('Significant accuracy improvement detected');
+        useOptimized = true;
+        confidence += 0.2;
+      }
+
+      if (metrics.tokenReduction > 0.2) {
+        reasons.push('Substantial token reduction achieved');
+        useOptimized = true;
+        confidence += 0.15;
+      }
+
+      if (metrics.costReduction > 1.5) {
+        reasons.push('Cost reduction benefits');
+        useOptimized = true;
+        confidence += 0.1;
+      }
+
+      if (metrics.confidence && metrics.confidence < 0.7) {
+        warnings.push(
+          'Low optimization confidence - manual review recommended'
+        );
+        confidence -= 0.2;
+      }
+    } else {
+      warnings.push('No optimization metrics available');
+      confidence = 0.3;
+    }
+
+    return {
+      useOptimized,
+      confidence: Math.max(0, Math.min(1, confidence)),
+      reasons,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    };
+  }
+
+  private compareTemplateContent(
+    original: Template,
+    modified: Template
+  ): string[] {
+    const changes: string[] = [];
+    const originalContent = this.getTemplateContent(original);
+    const modifiedContent = this.getTemplateContent(modified);
+
+    if (originalContent !== modifiedContent) {
+      changes.push(
+        `Content length changed from ${originalContent.length} to ${modifiedContent.length} characters`
+      );
+
+      if (originalContent.length > modifiedContent.length) {
+        changes.push('Content was shortened');
+      } else {
+        changes.push('Content was expanded');
+      }
+    }
+
+    return changes;
+  }
+
+  private compareTemplateStructure(
+    original: Template,
+    modified: Template
+  ): string[] {
+    const changes: string[] = [];
+
+    const origLen = original.files?.length || 0;
+    const modLen = modified.files?.length || 0;
+    if (origLen !== modLen) {
+      changes.push(`File count changed from ${origLen} to ${modLen}`);
+    }
+
+    const originalVarCount = Object.keys(original.variables || {}).length;
+    const modifiedVarCount = Object.keys(modified.variables || {}).length;
+
+    if (originalVarCount !== modifiedVarCount) {
+      changes.push(
+        `Variable count changed from ${originalVarCount} to ${modifiedVarCount}`
+      );
+    }
+
+    return changes;
+  }
+
+  private compareTemplateMetadata(
+    original: Template,
+    modified: Template
+  ): string[] {
+    const changes: string[] = [];
+
+    if (original.version !== modified.version) {
+      changes.push(
+        `Version changed from ${original.version} to ${modified.version}`
+      );
+    }
+
+    if (original.description !== modified.description) {
+      changes.push('Description was updated');
+    }
+
+    return changes;
   }
 
   /**

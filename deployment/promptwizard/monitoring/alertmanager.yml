@@ -1,0 +1,382 @@
+/**
+ * @fileoverview Alertmanager configuration for PromptWizard monitoring and alerting
+ * @lastmodified 2024-08-26T16:00:00Z
+ * 
+ * Features: Multi-channel alerting, escalation policies, alert grouping, inhibition rules
+ * Main APIs: Webhook, Slack, email, PagerDuty integrations with smart routing
+ * Constraints: Requires webhook endpoints, notification service credentials
+ * Patterns: Alert severity-based routing, escalation chains, noise reduction
+ */
+
+# Global alerting configuration
+global:
+  # Default SMTP configuration
+  smtp_smarthost: 'smtp.company.com:587'
+  smtp_from: 'alerts@company.com'
+  smtp_auth_username: 'alerts@company.com'
+  smtp_auth_password_file: '/etc/alertmanager/smtp-password'
+  smtp_require_tls: true
+  
+  # Default notification template
+  smtp_hello: 'alertmanager.promptwizard.company.com'
+  
+  # External URL for constructing links in notifications
+  external_url: 'https://alertmanager.promptwizard.company.com'
+  
+  # Slack API URL for webhooks
+  slack_api_url_file: '/etc/alertmanager/slack-api-url'
+  
+  # HTTP configuration
+  http_config:
+    tls_config:
+      insecure_skip_verify: false
+
+# Templates for custom notification formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Alert routing tree
+route:
+  # Default receiver for unmatched alerts
+  receiver: 'default-team'
+  
+  # How long to wait before sending a notification
+  group_wait: 10s
+  
+  # How long to wait before sending notification about new alerts
+  group_interval: 10s
+  
+  # How long to wait before re-sending a notification
+  repeat_interval: 1h
+  
+  # Group alerts by these labels
+  group_by: ['alertname', 'cluster', 'service']
+  
+  # Routing tree for different alert types
+  routes:
+    # Critical system alerts - immediate escalation
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      group_interval: 5s
+      repeat_interval: 15m
+      routes:
+        # Service down alerts
+        - match:
+            alertname: PromptWizardServiceDown
+          receiver: 'service-down-escalation'
+          group_wait: 0s
+          repeat_interval: 5m
+        
+        # Security alerts
+        - match_re:
+            alertname: '.*Security.*'
+          receiver: 'security-team'
+          group_wait: 0s
+          repeat_interval: 10m
+    
+    # High severity alerts
+    - match:
+        severity: warning
+      receiver: 'high-severity-alerts'
+      group_wait: 30s
+      repeat_interval: 30m
+      
+      routes:
+        # Performance issues
+        - match_re:
+            alertname: '.*Performance.*|.*Latency.*|.*ResponseTime.*'
+          receiver: 'performance-team'
+        
+        # Database/Redis issues
+        - match_re:
+            service: 'redis|database'
+          receiver: 'infrastructure-team'
+    
+    # Business logic alerts
+    - match:
+        team: promptwizard
+      receiver: 'promptwizard-team'
+      group_by: ['alertname', 'instance']
+      routes:
+        # Optimization pipeline alerts
+        - match_re:
+            alertname: '.*Optimization.*'
+          receiver: 'optimization-alerts'
+        
+        # API rate limiting alerts
+        - match_re:
+            alertname: '.*RateLimit.*'
+          receiver: 'api-team'
+    
+    # Infrastructure alerts
+    - match:
+        component: infrastructure
+      receiver: 'infrastructure-team'
+      group_by: ['alertname', 'instance', 'region']
+      repeat_interval: 2h
+    
+    # Development environment (less noisy)
+    - match:
+        environment: development
+      receiver: 'dev-alerts'
+      group_interval: 5m
+      repeat_interval: 4h
+    
+    # Maintenance window - suppress non-critical alerts
+    - match:
+        maintenance: 'true'
+      receiver: 'maintenance-team'
+      group_wait: 1h
+      repeat_interval: 6h
+
+# Alert receivers configuration
+receivers:
+  # Default catch-all receiver
+  - name: 'default-team'
+    slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhooks/default'
+        channel: '#alerts-general'
+        title: '{{ .GroupLabels.alertname }} - {{ .GroupLabels.environment }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Environment:* {{ .Labels.environment }}
+          *Instance:* {{ .Labels.instance }}
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        send_resolved: true
+  
+  # Critical alerts with multi-channel notification
+  - name: 'critical-alerts'
+    # Slack notification
+    slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhooks/critical'
+        channel: '#alerts-critical'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          @channel
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Environment:* {{ .Labels.environment }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+    
+    # Email notification
+    email_configs:
+      - to: 'oncall@company.com'
+        subject: '🚨 CRITICAL Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Critical Alert Triggered</h2>
+          {{ range .Alerts }}
+          <h3>{{ .Annotations.summary }}</h3>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+          <p><strong>Environment:</strong> {{ .Labels.environment }}</p>
+          <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          {{ if .Annotations.runbook_url }}
+          <p><strong>Runbook:</strong> <a href="{{ .Annotations.runbook_url }}">{{ .Annotations.runbook_url }}</a></p>
+          {{ end }}
+          <p><strong>Time:</strong> {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}</p>
+          {{ end }}
+        send_resolved: true
+    
+    # PagerDuty integration
+    pagerduty_configs:
+      - routing_key_file: '/etc/alertmanager/pagerduty-key'
+        description: '{{ .GroupLabels.alertname }} in {{ .GroupLabels.environment }}'
+        severity: 'critical'
+        client: 'PromptWizard Alertmanager'
+        client_url: 'https://alertmanager.promptwizard.company.com'
+        details:
+          environment: '{{ .GroupLabels.environment }}'
+          cluster: '{{ .GroupLabels.cluster }}'
+          service: '{{ .GroupLabels.service }}'
+  
+  # Service down escalation chain
+  - name: 'service-down-escalation'
+    # Immediate Slack alert
+    slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhooks/critical'
+        channel: '#alerts-critical'
+        title: '🚨 SERVICE DOWN: {{ .GroupLabels.alertname }}'
+        text: |
+          @channel SERVICE IS DOWN!
+          {{ range .Alerts }}
+          *Service:* {{ .Labels.service }}
+          *Instance:* {{ .Labels.instance }}
+          *Environment:* {{ .Labels.environment }}
+          *Started:* {{ .StartsAt.Format "15:04:05 UTC" }}
+          {{ end }}
+        color: 'danger'
+    
+    # Immediate PagerDuty
+    pagerduty_configs:
+      - routing_key_file: '/etc/alertmanager/pagerduty-high-priority'
+        description: 'PromptWizard Service Down - {{ .GroupLabels.environment }}'
+        severity: 'critical'
+        urgency: 'high'
+    
+    # SMS notification for on-call
+    webhook_configs:
+      - url: 'https://sms-gateway.company.com/send'
+        http_config:
+          basic_auth:
+            username: 'alertmanager'
+            password_file: '/etc/alertmanager/sms-password'
+        send_resolved: true
+  
+  # Security team alerts
+  - name: 'security-team'
+    slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhooks/security'
+        channel: '#security-alerts'
+        title: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          @here Security incident detected
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Environment:* {{ .Labels.environment }}
+          *Source:* {{ .Labels.instance }}
+          {{ end }}
+        color: 'warning'
+        send_resolved: true
+    
+    email_configs:
+      - to: 'security@company.com'
+        subject: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Security Alert</h2>
+          {{ range .Alerts }}
+          <p><strong>Alert:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Environment:</strong> {{ .Labels.environment }}</p>
+          <p><strong>Source:</strong> {{ .Labels.instance }}</p>
+          <p><strong>Time:</strong> {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}</p>
+          {{ end }}
+  
+  # PromptWizard team alerts
+  - name: 'promptwizard-team'
+    slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhooks/promptwizard'
+        channel: '#promptwizard-alerts'
+        title: 'PromptWizard: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Environment:* {{ .Labels.environment }}
+          *Dashboard:* <https://grafana.company.com/d/promptwizard-overview|View Dashboard>
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+        send_resolved: true
+  
+  # High severity alerts
+  - name: 'high-severity-alerts'
+    slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhooks/default'
+        channel: '#alerts-high'
+        title: '⚠️ {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Environment:* {{ .Labels.environment }}
+          *Severity:* {{ .Labels.severity }}
+          {{ end }}
+        color: 'warning'
+        send_resolved: true
+  
+  # Development alerts (less noisy)
+  - name: 'dev-alerts'
+    slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhooks/dev'
+        channel: '#dev-alerts'
+        title: 'Dev: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          {{ .Annotations.summary }}
+          {{ end }}
+        color: 'good'
+        send_resolved: false  # Don't spam with resolved alerts in dev
+
+# Inhibition rules - suppress certain alerts when others are firing
+inhibit_rules:
+  # Suppress instance-level alerts when service is down
+  - source_match:
+      alertname: PromptWizardServiceDown
+    target_match_re:
+      alertname: '.*Instance.*|.*Node.*'
+    equal: ['environment', 'cluster']
+  
+  # Suppress warning alerts when critical alerts are firing
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname', 'environment', 'instance']
+  
+  # Suppress HTTP errors when service is down
+  - source_match:
+      alertname: PromptWizardServiceDown
+    target_match_re:
+      alertname: '.*HTTP.*|.*API.*'
+    equal: ['service', 'environment']
+  
+  # Suppress Redis connection alerts when Redis is down
+  - source_match:
+      alertname: RedisDown
+    target_match_re:
+      alertname: '.*Redis.*Connection.*'
+    equal: ['environment', 'cluster']
+
+# Mute/silence configuration
+mute_time_intervals:
+  # Maintenance window - Tuesday 2-4 AM UTC
+  - name: 'maintenance-window'
+    time_intervals:
+      - times:
+        - start_time: '02:00'
+          end_time: '04:00'
+        weekdays: ['tuesday']
+        location: 'UTC'
+  
+  # Weekend non-critical suppression
+  - name: 'weekend-non-critical'
+    time_intervals:
+      - times:
+        - start_time: '18:00'
+          end_time: '09:00'
+        weekdays: ['saturday', 'sunday']
+        location: 'UTC'
+
+# Web configuration
+web:
+  external_url: 'https://alertmanager.promptwizard.company.com'
+  route_prefix: '/'
+  
+# Storage configuration
+storage:
+  path: '/alertmanager/data'
+
+# Cluster configuration for high availability
+cluster:
+  listen_address: '0.0.0.0:9094'
+  advertise_address: '0.0.0.0:9094'
+  peers:
+    - alertmanager-1:9094
+    - alertmanager-2:9094
+    - alertmanager-3:9094
+  
+  # Cluster communication settings
+  peer_timeout: 15s
+  gossip_interval: 200ms
+  push_pull_interval: 60s
+  settle_timeout: 45s

@@ -8,7 +8,7 @@
  * Patterns: Singleton logger with configurable levels
  */
 
-import chalk from 'chalk';
+import * as chalk from 'chalk';
 
 /**
  * Log levels in order of severity
@@ -58,14 +58,35 @@ class Logger {
   /**
    * Format log message with prefix and timestamp
    */
-  private formatMessage(level: string, message: string): string {
+  private formatMessage(
+    level: string,
+    message: string,
+    ...args: unknown[]
+  ): string {
     const parts = [this.config.prefix];
 
     if (this.config.timestamps) {
       parts.push(`[${Logger.getTimestamp()}]`);
     }
 
-    parts.push(`[${level}]`, message);
+    let formattedMessage = message;
+    if (args.length > 0) {
+      // Handle additional arguments by stringifying them
+      const additionalInfo = args
+        .map(arg => {
+          if (typeof arg === 'object' && arg !== null) {
+            if (arg instanceof Error) {
+              return arg.message;
+            }
+            return JSON.stringify(arg, null, 2);
+          }
+          return String(arg);
+        })
+        .join(' ');
+      formattedMessage = `${message} ${additionalInfo}`;
+    }
+
+    parts.push(`[${level}]`, formattedMessage);
     return parts.join(' ');
   }
 
@@ -76,13 +97,14 @@ class Logger {
     level: LogLevel,
     levelName: string,
     message: string,
-    colorFn?: (str: string) => string
+    colorFn?: (str: string) => string,
+    ...args: unknown[]
   ): void {
     if (level < this.config.level) {
       return;
     }
 
-    const formattedMessage = this.formatMessage(levelName, message);
+    const formattedMessage = this.formatMessage(levelName, message, ...args);
     const output =
       this.config.colors && colorFn
         ? colorFn(formattedMessage)
@@ -100,36 +122,36 @@ class Logger {
   /**
    * Log debug message
    */
-  debug(message: string): void {
-    this.log(LogLevel.DEBUG, 'DEBUG', message, chalk.gray);
+  debug(message: string, ...args: unknown[]): void {
+    this.log(LogLevel.DEBUG, 'DEBUG', message, chalk.gray, ...args);
   }
 
   /**
    * Log info message
    */
-  info(message: string): void {
-    this.log(LogLevel.INFO, 'INFO', message, chalk.cyan);
+  info(message: string, ...args: unknown[]): void {
+    this.log(LogLevel.INFO, 'INFO', message, chalk.cyan, ...args);
   }
 
   /**
    * Log warning message
    */
-  warn(message: string): void {
-    this.log(LogLevel.WARN, 'WARN', message, chalk.yellow);
+  warn(message: string, ...args: unknown[]): void {
+    this.log(LogLevel.WARN, 'WARN', message, chalk.yellow, ...args);
   }
 
   /**
    * Log error message
    */
-  error(message: string): void {
-    this.log(LogLevel.ERROR, 'ERROR', message, chalk.red);
+  error(message: string, ...args: unknown[]): void {
+    this.log(LogLevel.ERROR, 'ERROR', message, chalk.red, ...args);
   }
 
   /**
    * Log success message
    */
-  success(message: string): void {
-    this.log(LogLevel.INFO, 'SUCCESS', message, chalk.green);
+  success(message: string, ...args: unknown[]): void {
+    this.log(LogLevel.INFO, 'SUCCESS', message, chalk.green, ...args);
   }
 
   /**
@@ -151,8 +173,13 @@ class Logger {
 export const logger = new Logger();
 
 // Export convenience functions bound to logger instance
-export const debug = (message: string): void => logger.debug(message);
-export const info = (message: string): void => logger.info(message);
-export const warn = (message: string): void => logger.warn(message);
-export const error = (message: string): void => logger.error(message);
-export const success = (message: string): void => logger.success(message);
+export const debug = (message: string, ...args: unknown[]): void =>
+  logger.debug(message, ...args);
+export const info = (message: string, ...args: unknown[]): void =>
+  logger.info(message, ...args);
+export const warn = (message: string, ...args: unknown[]): void =>
+  logger.warn(message, ...args);
+export const error = (message: string, ...args: unknown[]): void =>
+  logger.error(message, ...args);
+export const success = (message: string, ...args: unknown[]): void =>
+  logger.success(message, ...args);

@@ -19,3 +19,15 @@ export type {
 
 export { ConfigService } from './config.service';
 export type { ConfigOptions, ConfigServiceOptions } from './config.service';
+
+export { PromptOptimizationService } from './prompt-optimization.service';
+export type {
+  OptimizationOptions,
+  OptimizationRequest,
+  OptimizationResult,
+  BatchOptimizationRequest,
+  BatchOptimizationResult,
+} from './prompt-optimization.service';
+
+export { OptimizedTemplateService } from './optimized-template.service';
+export type { OptimizedTemplateServiceConfig } from './optimized-template.service';

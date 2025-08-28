@@ -21,6 +21,33 @@ export type RateLimitAlgorithm =
   | 'leaky-bucket';
 
 /**
+ * Rate limit data structure
+ */
+export interface RateLimitData {
+  count: number;
+  resetTime: number;
+  firstHit: number;
+
+  // Token bucket specific
+  tokens?: number;
+  lastRefill?: number;
+
+  // Sliding window specific
+  hits?: Array<{ timestamp: number; count: number }>;
+}
+
+/**
+ * Rate limit storage interface
+ */
+export interface IRateLimitStore {
+  get(key: string): Promise<RateLimitData | null>;
+  set(key: string, data: RateLimitData): Promise<void>;
+  increment(key: string, ttl: number): Promise<number>;
+  reset(key: string): Promise<void>;
+  cleanup(): Promise<void>;
+}
+
+/**
  * Rate limit configuration
  */
 export interface RateLimitConfig {
@@ -59,33 +86,6 @@ export interface RateLimitResult {
   resetTime: number;
   retryAfter?: number;
   error?: string;
-}
-
-/**
- * Rate limit storage interface
- */
-export interface IRateLimitStore {
-  get(key: string): Promise<RateLimitData | null>;
-  set(key: string, data: RateLimitData): Promise<void>;
-  increment(key: string, ttl: number): Promise<number>;
-  reset(key: string): Promise<void>;
-  cleanup(): Promise<void>;
-}
-
-/**
- * Rate limit data structure
- */
-export interface RateLimitData {
-  count: number;
-  resetTime: number;
-  firstHit: number;
-
-  // Token bucket specific
-  tokens?: number;
-  lastRefill?: number;
-
-  // Sliding window specific
-  hits?: Array<{ timestamp: number; count: number }>;
 }
 
 /**
@@ -186,7 +186,7 @@ export class RateLimiter extends EventEmitter {
   constructor(config: Partial<RateLimitConfig> = {}) {
     super();
 
-    // Handle 'max' option alias (Required by TODO)
+    // Handle 'max' option alias for backward compatibility
     const processedConfig = { ...config };
     if (config.max !== undefined) {
       processedConfig.maxRequests = config.max;
@@ -242,8 +242,9 @@ export class RateLimiter extends EventEmitter {
         default:
           throw new Error(`Unknown algorithm: ${this.config.algorithm}`);
       }
-    } catch (error: any) {
-      logger.error(`Rate limit check failed: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(`Rate limit check failed: ${errorMessage}`);
       return {
         allowed: false,
         remaining: 0,
@@ -510,13 +511,13 @@ export function withRateLimit(config: Partial<RateLimitConfig> = {}) {
   const limiter = new RateLimiter(config);
 
   return function (
-    _target: any,
+    _target: unknown,
     _propertyName: string,
     descriptor: PropertyDescriptor
   ) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       // Use 'this' context or first argument as identifier
       const identifier =
         this?.constructor?.name || args[0]?.toString() || 'anonymous';
@@ -531,7 +532,9 @@ export function withRateLimit(config: Partial<RateLimitConfig> = {}) {
 
       // Apply delay if configured
       if (config.delayAfterHit && config.delayAfterHit > 0) {
-        await new Promise(resolve => setTimeout(resolve, config.delayAfterHit));
+        await new Promise(resolve => {
+          setTimeout(resolve, config.delayAfterHit);
+        });
       }
 
       return method.apply(this, args);
@@ -563,7 +566,9 @@ export function createRateLimitMiddleware(
 
     // Apply delay if configured
     if (config.delayAfterHit && config.delayAfterHit > 0) {
-      await new Promise(resolve => setTimeout(resolve, config.delayAfterHit));
+      await new Promise(resolve => {
+        setTimeout(resolve, config.delayAfterHit);
+      });
     }
 
     return operation();
