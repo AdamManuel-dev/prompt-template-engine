@@ -150,18 +150,18 @@ class MemoryStorage implements AnalyticsStorage {
     let filtered = [...this.events];
 
     if (filters) {
-      if (filters['start'] && filters['end']) {
+      if (filters.start && filters.end) {
         filtered = filtered.filter(
           e =>
-            e.timestamp >= (filters['start'] as Date) &&
-            e.timestamp <= (filters['end'] as Date)
+            e.timestamp >= (filters.start as Date) &&
+            e.timestamp <= (filters.end as Date)
         );
       }
-      if (filters['type']) {
-        filtered = filtered.filter(e => e.type === filters['type']);
+      if (filters.type) {
+        filtered = filtered.filter(e => e.type === filters.type);
       }
-      if (filters['userId']) {
-        filtered = filtered.filter(e => e.userId === filters['userId']);
+      if (filters.userId) {
+        filtered = filtered.filter(e => e.userId === filters.userId);
       }
     }
 
@@ -338,18 +338,18 @@ class FileStorage implements AnalyticsStorage {
     let filtered = [...this.events];
 
     if (filters) {
-      if (filters['start'] && filters['end']) {
+      if (filters.start && filters.end) {
         filtered = filtered.filter(
           e =>
-            e.timestamp >= (filters['start'] as Date) &&
-            e.timestamp <= (filters['end'] as Date)
+            e.timestamp >= (filters.start as Date) &&
+            e.timestamp <= (filters.end as Date)
         );
       }
-      if (filters['type']) {
-        filtered = filtered.filter(e => e.type === filters['type']);
+      if (filters.type) {
+        filtered = filtered.filter(e => e.type === filters.type);
       }
-      if (filters['userId']) {
-        filtered = filtered.filter(e => e.userId === filters['userId']);
+      if (filters.userId) {
+        filtered = filtered.filter(e => e.userId === filters.userId);
       }
     }
 
@@ -539,7 +539,7 @@ export class OptimizationTracker extends EventEmitter {
       request: this.sanitizeRequest(request),
       metadata: {
         source: 'cli',
-        version: process.env['npm_package_version'] || 'unknown',
+        version: process.env.npm_package_version || 'unknown',
         ...metadata,
       },
     };
@@ -1062,7 +1062,6 @@ export class OptimizationTracker extends EventEmitter {
 
     return recommendations;
   }
-
 }
 
 /**

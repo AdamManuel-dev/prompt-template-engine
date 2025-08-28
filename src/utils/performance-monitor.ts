@@ -330,7 +330,7 @@ export class OptimizationMetricsCollector {
           report.cache.length + report.queue.length + report.pipeline.length;
         if (totalOps > 0) {
           logger.info(
-            `Performance report: ${totalOps} operations, ${report.system['recentErrors']} recent errors`
+            `Performance report: ${totalOps} operations, ${report.system.recentErrors} recent errors`
           );
         }
       },

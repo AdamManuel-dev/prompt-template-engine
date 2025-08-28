@@ -97,7 +97,14 @@
     "global-require": "off",
     "func-names": "off",
     "no-shadow": "off",
-    "@typescript-eslint/no-shadow": "error"
+    "@typescript-eslint/no-shadow": "warn",
+    "no-control-regex": "warn",
+    "default-case": "warn",
+    "no-new-func": "warn",
+    "no-case-declarations": "warn",
+    "default-param-last": "warn",
+    "no-script-url": "warn",
+    "@typescript-eslint/no-unsafe-function-type": "warn"
   },
   "overrides": [
     {

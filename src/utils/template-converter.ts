@@ -91,7 +91,10 @@ export function convertIndexToServiceTemplate(
   const files =
     indexTemplate.files?.map(file => ({
       path: ('path' in file ? file.path : undefined) || file.source,
-      name: ('name' in file ? file.name : undefined) || ('path' in file ? file.path : undefined) || file.source,
+      name:
+        ('name' in file ? file.name : undefined) ||
+        ('path' in file ? file.path : undefined) ||
+        file.source,
       content:
         ('content' in file ? file.content : undefined) ||
         indexTemplate.content ||

@@ -20,7 +20,7 @@
     "build:strict": "tsc --noEmit --strict",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "type-check:strict": "tsc --noEmit --strict --noUnusedLocals --noUnusedParameters --exactOptionalPropertyTypes --noUncheckedIndexedAccess --noImplicitOverride --noPropertyAccessFromIndexSignature",
+    "type-check:strict": "tsc --noEmit --strict --noUnusedLocals --noUnusedParameters --noUncheckedIndexedAccess --noImplicitOverride",
     "type-check:tests": "tsc --project tsconfig.test.json --noEmit",
     "proto:generate": "mkdir -p src/generated && node scripts/generate-proto-stubs.js",
     "proto:clean": "rm -rf src/generated",

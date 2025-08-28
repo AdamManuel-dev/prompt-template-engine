@@ -22,6 +22,7 @@ const patterns = {
   variableName: /^[a-zA-Z_$][a-zA-Z0-9_$]*$/,
   // File path: strict validation with no path traversal, no null bytes
   safePath:
+    // eslint-disable-next-line no-control-regex
     /^(?![./])(?!.*\.\.)(?!.*[\u0000-\u001f\u007f-\u009f])[a-zA-Z0-9][a-zA-Z0-9._/-]{0,254}$/,
   // Absolute path validation for system operations
   absolutePath: /^\/(?:[a-zA-Z0-9._-]+\/?)*[a-zA-Z0-9._-]*$/,
