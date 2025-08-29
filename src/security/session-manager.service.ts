@@ -28,7 +28,7 @@ export interface SessionData {
   lastAccessAt: Date;
   expiresAt: Date;
   isActive: boolean;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   securityFlags: {
     suspiciousActivity: boolean;
     ipChanged: boolean;
@@ -226,7 +226,7 @@ export class SessionManagerService {
       });
 
       return sessionData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Session creation failed', error as Error);
       throw new Error('Session creation failed');
     }
@@ -350,7 +350,7 @@ export class SessionManagerService {
         securityIssues: securityIssues.length > 0 ? securityIssues : undefined,
         requiresAction,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Session validation failed', error as Error);
       return { valid: false, error: 'Session validation failed' };
     }
@@ -406,7 +406,7 @@ export class SessionManagerService {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Session termination failed', error as Error);
       return false;
     }
@@ -530,7 +530,7 @@ export class SessionManagerService {
   private async registerNewDevice(
     deviceId: string,
     fingerprint: string,
-    clientInfo: any
+    clientInfo: unknown
   ): Promise<DeviceInfo> {
     const deviceInfo: DeviceInfo = {
       deviceId,
@@ -557,7 +557,10 @@ export class SessionManagerService {
     return deviceInfo;
   }
 
-  private updateDeviceRiskScore(device: DeviceInfo, _clientInfo: any): void {
+  private updateDeviceRiskScore(
+    device: DeviceInfo,
+    _clientInfo: unknown
+  ): void {
     // Decrease risk score for consistent usage
     const daysSinceFirstSeen =
       (Date.now() - device.firstSeen.getTime()) / (24 * 60 * 60 * 1000);
@@ -679,7 +682,7 @@ export class SessionManagerService {
     return 'Unknown';
   }
 
-  private calculateInitialRiskScore(clientInfo: any): number {
+  private calculateInitialRiskScore(clientInfo: unknown): number {
     let riskScore = 0;
 
     // New device gets some risk

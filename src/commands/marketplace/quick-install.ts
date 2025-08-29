@@ -149,7 +149,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
       // Step 4: Show success and next steps
       const duration = Date.now() - startTime;
       this.showSuccessMessage(template, duration);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `One-click installation failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -303,7 +303,7 @@ export class QuickInstallCommand extends BaseCommand implements ICommand {
         chalk.green(`\n✓ Template updated successfully in ${duration}ms!`)
       );
       QuickInstallCommand.showUsageInfo(template);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Update failed: ${error instanceof Error ? error.message : String(error)}`
       );

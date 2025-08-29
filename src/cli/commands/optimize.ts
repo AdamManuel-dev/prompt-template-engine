@@ -240,7 +240,7 @@ export class OptimizeCommand extends BaseCommand {
         this.templateService,
         this.cacheService
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -273,7 +273,7 @@ export class OptimizeCommand extends BaseCommand {
         this.success('PromptWizard service is healthy');
       }
       return isHealthy;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Health check failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -388,7 +388,7 @@ export class OptimizeCommand extends BaseCommand {
       if (options.output) {
         await this.saveOptimizedTemplate(result, options.output);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       spinner.fail(
         `Optimization failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -440,7 +440,7 @@ export class OptimizeCommand extends BaseCommand {
             templateInfo.path
           );
           templates.push(template);
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.warn(
             `Failed to load template ${templateInfo.name}: ${error instanceof Error ? error.message : String(error)}`
           );
@@ -509,7 +509,7 @@ export class OptimizeCommand extends BaseCommand {
       if (options.output) {
         await this.saveBatchResults(batchResult, options.output);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       spinner.fail(
         `Batch optimization failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -734,7 +734,7 @@ export class OptimizeCommand extends BaseCommand {
 
       fs.writeFileSync(outputPath, JSON.stringify(templateData, null, 2));
       this.success(`Optimized template saved to: ${outputPath}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to save optimized template: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -788,7 +788,7 @@ export class OptimizeCommand extends BaseCommand {
 
       fs.writeFileSync(outputPath, JSON.stringify(batchResult, null, 2));
       this.success(`Batch results saved to: ${outputPath}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to save batch results: ${error instanceof Error ? error.message : String(error)}`
       );

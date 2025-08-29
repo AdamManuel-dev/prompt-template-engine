@@ -136,7 +136,7 @@ export class CursorCommandIntegration {
       async (...args) => {
         try {
           await handler.handler(...args);
-        } catch (error: any) {
+        } catch (error: unknown) {
           vscode.window.showErrorMessage(
             `Command failed: ${error instanceof Error ? error.message : 'Unknown error'}`
           );

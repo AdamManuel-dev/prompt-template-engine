@@ -103,7 +103,7 @@ async function findTemplate(
           }
           return matches[0];
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.debug(`Glob search failed in ${searchPath}: ${error}`);
       }
 
@@ -141,7 +141,7 @@ function extractMetadata(content: string): Record<string, unknown> {
           metadata[key.trim()] = valueParts.join(':').trim();
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.debug(`Failed to parse frontmatter: ${error}`);
     }
   }
@@ -293,7 +293,7 @@ async function handleOutput(
     try {
       await clipboardy.write(output);
       logger.success('📋 Output copied to clipboard');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(`⚠️  Failed to copy to clipboard: ${error}`);
     }
   }
@@ -341,7 +341,7 @@ export async function generateCommand(options: GenerateOptions): Promise<void> {
     await handleOutput(output, options);
 
     logger.success('✅ Template generated successfully');
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof TemplateEngineError) {
       logger.error(`❌ Generation failed: ${error.message}`);
       throw error;

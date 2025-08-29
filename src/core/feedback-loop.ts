@@ -404,7 +404,7 @@ export class FeedbackLoop extends EventEmitter {
           `Re-optimization failed for template ${templateId}: ${result.error}`
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Re-optimization process failed for template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -551,7 +551,7 @@ export class FeedbackLoop extends EventEmitter {
             }
           );
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(
           `Scheduled review failed for template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -583,7 +583,7 @@ export class FeedbackLoop extends EventEmitter {
           this.performanceMetrics.set(templateId, metrics);
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(
         `Failed to initialize from cache: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -602,7 +602,7 @@ export class FeedbackLoop extends EventEmitter {
         cacheKey,
         updated as unknown as Record<string, unknown>
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(
         `Failed to cache feedback: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -623,7 +623,7 @@ export class FeedbackLoop extends EventEmitter {
         cacheKey,
         updated as unknown as Record<string, unknown>
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(
         `Failed to cache performance metric: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -644,7 +644,7 @@ export class FeedbackLoop extends EventEmitter {
       // If template service has a get method, use it
       // Note: TemplateService interface may need extension
       return null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to retrieve template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
       );

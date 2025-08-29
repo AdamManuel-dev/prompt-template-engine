@@ -202,7 +202,7 @@ export class MarketplaceRefactoredService {
       await fs.promises.rm(templatePath, { recursive: true, force: true });
 
       logger.info(`Template ${templateId} uninstalled successfully`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to uninstall template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -230,7 +230,7 @@ export class MarketplaceRefactoredService {
         templateId,
         userId: 'current-user', // Would need proper user context
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to rate template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
       );

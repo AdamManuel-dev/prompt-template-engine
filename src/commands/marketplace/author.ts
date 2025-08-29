@@ -165,7 +165,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
 
       // Show general help
       AuthorCommand.showHelp();
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Author command failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -282,7 +282,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       if (options.format === 'json') {
         logger.info(`\n${JSON.stringify(profile, null, 2)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to fetch profile for ${username}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -358,7 +358,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       if (options.format === 'json') {
         logger.info(`\n${JSON.stringify(templates, null, 2)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to fetch templates for ${username}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -393,7 +393,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
           chalk.yellow(`➖ Unfollowed ${profile.displayName} (@${username})`)
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to toggle follow for ${username}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -435,7 +435,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       if (options.format === 'json') {
         logger.info(`\n${JSON.stringify(activities, null, 2)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to fetch activity for ${username}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -495,7 +495,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       if (options.format === 'json') {
         logger.info(`\n${JSON.stringify(result, null, 2)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Author search failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -537,7 +537,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       if (options.format === 'json') {
         logger.info(`\n${JSON.stringify(authors, null, 2)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to fetch featured authors: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -579,7 +579,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       if (options.format === 'json') {
         logger.info(`\n${JSON.stringify(authors, null, 2)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to fetch trending authors: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -660,7 +660,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       if (options.format === 'json') {
         logger.info(`\n${JSON.stringify(stats, null, 2)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to fetch stats for ${username}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -701,7 +701,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       if (options.format === 'json') {
         logger.info(`\n${JSON.stringify(badges, null, 2)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to fetch badges for ${username}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -746,7 +746,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       if (options.format === 'json') {
         logger.info(`\n${JSON.stringify(result, null, 2)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to fetch followers for ${username}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -793,7 +793,7 @@ export class AuthorCommand extends BaseCommand implements ICommand {
       if (options.format === 'json') {
         logger.info(`\n${JSON.stringify(result, null, 2)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to fetch following for ${username}: ${error instanceof Error ? error.message : String(error)}`
       );

@@ -158,7 +158,7 @@ export class AutoOptimizeManager {
       // Services are initialized in their constructors
 
       logger.info('Auto-optimize manager initialized successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         'Failed to initialize auto-optimize manager',
         error as Error
@@ -201,7 +201,7 @@ export class AutoOptimizeManager {
           'Templates will be optimized automatically on save'
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to start auto-optimization', error as Error);
       throw error;
     }
@@ -234,7 +234,7 @@ export class AutoOptimizeManager {
           'Templates will no longer be optimized automatically'
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to stop auto-optimization', error as Error);
       throw error;
     }
@@ -313,7 +313,7 @@ export class AutoOptimizeManager {
       this.processingTimers.set(debounceKey, timer);
 
       logger.debug('Template file change detected', { filePath, eventType });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error handling file change', error as Error);
     }
   }
@@ -508,7 +508,7 @@ export class AutoOptimizeManager {
           `${path.basename(job.templatePath)} optimized successfully`
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Optimization job failed', error as Error, {
         jobId: job.id,
       });
@@ -558,7 +558,7 @@ export class AutoOptimizeManager {
 
       fs.writeFileSync(optimizedPath, finalContent, 'utf-8');
       logger.info('Saved optimized template', { optimizedPath });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to save optimized template', error as Error);
     }
   }
@@ -626,7 +626,7 @@ export class AutoOptimizeManager {
         // Windows notification (requires additional setup)
         logger.info(`Notification: ${title} - ${message}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.debug('Failed to send notification', error as Error);
     }
   }

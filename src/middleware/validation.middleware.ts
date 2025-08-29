@@ -39,7 +39,7 @@ export function createValidator<T>(
     try {
       const data = schema.parse(input);
       return { success: true, data };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const errors = error.issues.map(err => {
           const path = err.path.join('.');
@@ -177,7 +177,7 @@ export function conditionalValidator<T>(
  * Compose multiple validators
  */
 export function composeValidators<T>(
-  ...isValidators: Array<(input: unknown) => ValidationResult<any>>
+  ...isValidators: Array<(input: unknown) => ValidationResult<unknown>>
 ): (input: unknown) => ValidationResult<T> {
   return (input: unknown): ValidationResult<T> => {
     let currentData = input;

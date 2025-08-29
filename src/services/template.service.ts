@@ -143,9 +143,9 @@ export class TemplateService {
    * Creates a new TemplateService instance with configuration options
    *
    * @param {TemplateServiceOptions} [options={}] - Configuration options for the service
-   * @param {string[]} [options.templatePaths=['./templates', '.cursor/templates']] - Paths to search for templates
-   * @param {boolean} [options.cacheEnabled=true] - Whether to enable template caching
-   * @param {boolean} [options.validationStrict=false] - Whether to use strict validation mode
+   * @param {string[]} [options['templatePaths']=['./templates', '.cursor/templates']] - Paths to search for templates
+   * @param {boolean} [options['cacheEnabled']=true] - Whether to enable template caching
+   * @param {boolean} [options['validationStrict']=false] - Whether to use strict validation mode
    *
    * @example <caption>Create with custom configuration</caption>
    * const service = new TemplateService({
@@ -192,7 +192,7 @@ export class TemplateService {
    * try {
    *   const template = await service.loadTemplate('./templates/feature.yaml');
    *   // Process template...
-   * } catch (error: any) {
+   * } catch (error: unknown) {
    *   if (error instanceof FileNotFoundError) {
    *     console.error('Template file not found');
    *   } else if (error instanceof ValidationError) {
@@ -424,7 +424,7 @@ export class TemplateService {
    * @example <caption>Error handling for missing variables</caption>
    * try {
    *   const rendered = await service.renderTemplate(template, variables);
-   * } catch (error: any) {
+   * } catch (error: unknown) {
    *   if (error instanceof ValidationError) {
    *     console.error('Missing required variables:', error.message);
    *   }

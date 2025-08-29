@@ -45,7 +45,7 @@ export class AuthorTemplatesCommand extends BaseCommand {
   ): Promise<void> {
     try {
       await this.showAuthorTemplates(authorId, options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to show author templates: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -159,7 +159,7 @@ export class AuthorTemplatesCommand extends BaseCommand {
       logger.info(
         chalk.gray('  • View template info:  marketplace:info <template-id>')
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }

@@ -77,15 +77,15 @@ export interface EmergencyIncident {
     securityViolations?: string[];
     suspiciousActivities?: string[];
     stackTrace?: string;
-    networkActivity?: any[];
-    fileAccess?: any[];
+    networkActivity?: unknown[];
+    fileAccess?: unknown[];
   };
   context: {
     userId?: string;
     sessionId?: string;
     ipAddress?: string;
     userAgent?: string;
-    systemState?: any;
+    systemState?: unknown;
   };
   forensicData?: {
     memoryDump?: string;
@@ -216,12 +216,12 @@ interface ExecutionContext {
   pluginName: string;
   startTime: Date;
   worker?: Worker;
-  vmContext?: any;
+  vmContext?: unknown;
   monitoring: {
     violations: string[];
-    resourceUsage: any[];
-    networkActivity: any[];
-    fileAccess: any[];
+    resourceUsage: unknown[];
+    networkActivity: unknown[];
+    fileAccess: unknown[];
   };
 }
 
@@ -259,7 +259,7 @@ export class EmergencyController extends EventEmitter {
     pluginId: string,
     pluginName: string,
     worker?: Worker,
-    vmContext?: any
+    vmContext?: unknown
   ): void {
     const context: ExecutionContext = {
       executionId,
@@ -318,7 +318,7 @@ export class EmergencyController extends EventEmitter {
   /**
    * Record resource usage for monitoring
    */
-  recordResourceUsage(executionId: string, usage: any): void {
+  recordResourceUsage(executionId: string, usage: unknown): void {
     const context = this.activeExecutions.get(executionId);
     if (!context) return;
 
@@ -365,7 +365,7 @@ export class EmergencyController extends EventEmitter {
     trigger: EmergencyTrigger,
     severity: EmergencySeverity,
     description: string,
-    additionalEvidence?: any
+    additionalEvidence?: unknown
   ): Promise<EmergencyResponse> {
     const startTime = Date.now();
 
@@ -404,7 +404,7 @@ export class EmergencyController extends EventEmitter {
         try {
           const result = await this.executeEmergencyAction(action, incident);
           actionResults.push(result);
-        } catch (error: any) {
+        } catch (error: unknown) {
           actionResults.push({
             action,
             success: false,
@@ -438,7 +438,7 @@ export class EmergencyController extends EventEmitter {
         `Emergency response completed for ${executionId}: ${response.success ? 'SUCCESS' : 'PARTIAL'} (${response.responseTime}ms)`
       );
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Emergency response error for ${executionId}: ${error.message}`
       );
@@ -487,7 +487,7 @@ export class EmergencyController extends EventEmitter {
       this.emit('quarantine', { pluginId, reason });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to quarantine plugin ${pluginId}: ${error.message}`);
       return false;
     }
@@ -535,7 +535,7 @@ export class EmergencyController extends EventEmitter {
     trigger: EmergencyTrigger,
     severity: EmergencySeverity,
     description: string,
-    additionalEvidence?: any
+    additionalEvidence?: unknown
   ): Promise<EmergencyIncident> {
     const context = this.activeExecutions.get(executionId);
     const incident: EmergencyIncident = {
@@ -635,7 +635,7 @@ export class EmergencyController extends EventEmitter {
         executionTime: Date.now() - startTime,
         details: `Action ${action} executed successfully`,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         action,
         success: false,
@@ -786,7 +786,7 @@ export class EmergencyController extends EventEmitter {
       }
 
       this.activeExecutions.delete(context.executionId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Error terminating execution ${context.executionId}: ${error.message}`
       );
@@ -796,7 +796,7 @@ export class EmergencyController extends EventEmitter {
   /**
    * Capture system state for forensics
    */
-  private async captureSystemState(): Promise<any> {
+  private async captureSystemState(): Promise<unknown> {
     return {
       timestamp: Date.now(),
       memoryUsage: process.memoryUsage(),
@@ -813,8 +813,8 @@ export class EmergencyController extends EventEmitter {
   private async captureForensicData(
     executionId: string,
     context?: ExecutionContext
-  ): Promise<any> {
-    const forensicData: any = {
+  ): Promise<unknown> {
+    const forensicData: unknown = {
       executionId,
       timestamp: Date.now(),
       systemState: await this.captureSystemState(),
@@ -853,7 +853,7 @@ export class EmergencyController extends EventEmitter {
   /**
    * Send external notifications
    */
-  private async sendExternalNotifications(alert: any): Promise<void> {
+  private async sendExternalNotifications(alert: unknown): Promise<void> {
     // This would implement external notification mechanisms
     // For now, just log the alert
     logger.error(
@@ -930,7 +930,7 @@ export class EmergencyController extends EventEmitter {
 
       await fs.mkdir(path.dirname(incidentPath), { recursive: true });
       await fs.writeFile(incidentPath, JSON.stringify(incident, null, 2));
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to persist incident ${incident.id}: ${error.message}`
       );
@@ -950,7 +950,7 @@ export class EmergencyController extends EventEmitter {
         path.join(path.dirname(this.config.incidentLogPath), 'incidents'),
         { recursive: true }
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to initialize emergency directories: ${error.message}`
       );

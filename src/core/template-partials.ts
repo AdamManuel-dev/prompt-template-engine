@@ -161,7 +161,7 @@ export class TemplatePartials {
 
       const content = fs.readFileSync(absolutePath, 'utf-8');
       this.register(name, content);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to register partial from file: ${error}`);
     }
   }
@@ -219,7 +219,7 @@ export class TemplatePartials {
           this.register(name, content);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to load partials from directory: ${error}`);
     }
   }
@@ -613,7 +613,7 @@ export class TemplatePartials {
    *   validation.missing.forEach(name => {
    *     try {
    *       partials.registerFromFile(name, `${name}.hbs`);
-   *     } catch (error: any) {
+   *     } catch (error: unknown) {
    *       console.error(`Could not load partial: ${name}`);
    *     }
    *   });

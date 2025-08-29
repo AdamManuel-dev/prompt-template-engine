@@ -65,11 +65,10 @@ export class CryptographicService {
     };
 
     // Derive master key from environment or generate secure default
-    const keyMaterial =
-      process.env.CRYPTO_MASTER_KEY || this.generateSecureKey(32);
+    const keyMaterial = CRYPTO_MASTER_KEY.$2 || this.generateSecureKey(32);
     this.masterKey = crypto.scryptSync(keyMaterial, 'fips-salt-2025', 32);
 
-    if (!process.env.CRYPTO_MASTER_KEY) {
+    if (!CRYPTO_MASTER_KEY.$2) {
       logger.warn(
         'Using generated master key - set CRYPTO_MASTER_KEY for production'
       );
@@ -155,7 +154,7 @@ export class CryptographicService {
         authTag: authTag.toString('base64'),
         algorithm,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('AES-256-GCM encryption failed', error as Error);
       throw new Error('Encryption operation failed');
     }
@@ -190,7 +189,7 @@ export class CryptographicService {
       ]);
 
       return decrypted;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('AES-256-GCM decryption failed', error as Error);
       throw new Error('Decryption operation failed');
     }
@@ -230,7 +229,7 @@ export class CryptographicService {
       logger.info(`RSA-${keySize} key pair generated: ${id}`);
 
       return keyPair;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('RSA key pair generation failed', error as Error);
       throw new Error('Key pair generation failed');
     }
@@ -265,7 +264,7 @@ export class CryptographicService {
         keyId,
         timestamp: Date.now(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Data signing failed', error as Error);
       throw new Error('Digital signature operation failed');
     }
@@ -300,7 +299,7 @@ export class CryptographicService {
 
       logger.info(`Signature verification result: ${isValid} for key ${keyId}`);
       return isValid;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Signature verification failed', error as Error);
       return false;
     }
@@ -385,7 +384,7 @@ export class CryptographicService {
         Buffer.from(expectedHMAC, 'hex'),
         Buffer.from(actualHMAC, 'hex')
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('HMAC verification failed', error as Error);
       return false;
     }

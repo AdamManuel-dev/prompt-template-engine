@@ -33,7 +33,7 @@ export class AuthorProfileCommand extends BaseCommand {
   ): Promise<void> {
     try {
       await this.showProfile(authorId, options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to show author profile: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -198,7 +198,7 @@ export class AuthorProfileCommand extends BaseCommand {
       logger.info(
         chalk.gray(`  • Follow author:   marketplace:author follow ${authorId}`)
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }

@@ -273,7 +273,7 @@ export class RoleBasedRateLimiter extends EventEmitter {
       });
 
       return roleBasedResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Rate limit check failed', error as Error);
 
       // Fail securely - deny the request

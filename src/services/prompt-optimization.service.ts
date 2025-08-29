@@ -469,7 +469,7 @@ export class PromptOptimizationService extends EventEmitter {
 
           return result;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn(`Cache lookup failed: ${error}`);
       }
     }
@@ -708,7 +708,7 @@ export class PromptOptimizationService extends EventEmitter {
             options: request.options,
           });
           results.push(result);
-        } catch (error: any) {
+        } catch (error: unknown) {
           errors.push({
             templateId: id,
             error: error instanceof Error ? error.message : String(error),
@@ -769,7 +769,7 @@ export class PromptOptimizationService extends EventEmitter {
         await this.client.getJobStatus(jobId);
         // Convert to QueueJob format or return null if no meaningful conversion
         return null;
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn(`Failed to get job status from client: ${error}`);
         return null;
       }
@@ -1104,7 +1104,7 @@ export class PromptOptimizationService extends EventEmitter {
    *     await optimizationService.cleanup();
    *     console.log('Service shutdown completed');
    *     process.exit(0);
-   *   } catch (error: any) {
+   *   } catch (error: unknown) {
    *     console.error('Shutdown error:', error);
    *     process.exit(1);
    *   }
@@ -1128,7 +1128,7 @@ export class PromptOptimizationService extends EventEmitter {
       this.resultCache.clear();
 
       logger.info('PromptOptimizationService shutdown completed');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Error during service cleanup: ${error}`);
       throw error;
     }

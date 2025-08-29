@@ -230,7 +230,7 @@ export class CommandRegistry implements ICommandRegistry {
     cmd.action(async (...args) => {
       try {
         await command.action(args[0], args[1]);
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(
           `Error executing command ${command.name}:${String(error)}`
         );
@@ -333,7 +333,7 @@ export class CommandRegistry implements ICommandRegistry {
       } else {
         logger.warn(`Invalid command structure in: ${filePath}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to load plugin from ${filePath}:${String(error)}`);
     }
   }

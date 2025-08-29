@@ -348,7 +348,7 @@ export class SecurityManager extends EventEmitter {
       );
 
       return assessment;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Security assessment failed for ${plugin.name}: ${error.message}`
       );
@@ -478,7 +478,7 @@ export class SecurityManager extends EventEmitter {
       );
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Secure plugin execution failed for ${plugin.name}: ${error.message}`
       );
@@ -692,14 +692,14 @@ export class SecurityManager extends EventEmitter {
         }
       );
 
-      this.behaviorMonitor.on('securityAlert', (alert: any) => {
+      this.behaviorMonitor.on('securityAlert', (alert: unknown) => {
         this.emit('securityAlert', alert);
       });
     }
 
     // Permission manager events
     if (this.config.enablePermissionManagement) {
-      this.permissionManager.on('permissionAudit', (event: any) => {
+      this.permissionManager.on('permissionAudit', (event: unknown) => {
         this.logSecurityEvent(
           'permission',
           'permission-audit',
@@ -711,7 +711,7 @@ export class SecurityManager extends EventEmitter {
 
     // Resource monitor events
     if (this.config.enableResourceMonitoring) {
-      this.resourceMonitor.on('violation', (violation: any) => {
+      this.resourceMonitor.on('violation', (violation: unknown) => {
         this.logSecurityEvent(
           'resource',
           'resource-violation',

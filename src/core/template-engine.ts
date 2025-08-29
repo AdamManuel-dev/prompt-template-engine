@@ -310,7 +310,7 @@ export class TemplateEngine {
 
         // Replace the include directive with the processed content
         result = result.replace(include.match, processedContent);
-      } catch (error: any) {
+      } catch (error: unknown) {
         const err = error as { code?: string };
         if (err.code === 'ENOENT') {
           throw new Error(`Include file not found: ${include.path}`);
@@ -401,7 +401,7 @@ export class TemplateEngine {
 
         // Replace the include directive with the processed content
         result = result.replace(include.match, processedContent);
-      } catch (error: any) {
+      } catch (error: unknown) {
         const err = error as { code?: string };
         if (err.code === 'ENOENT') {
           throw new Error(`Include file not found: ${include.path}`);
@@ -1309,7 +1309,7 @@ export class TemplateEngine {
       );
     });
 
-    return { replacement: processedItems.join(''), hasChanges: true };
+    return { replacement: processedItems.join('\n'), hasChanges: true };
   }
 
   /**
@@ -1406,7 +1406,7 @@ export class TemplateEngine {
       );
     });
 
-    return { replacement: processedItems.join(''), hasChanges: true };
+    return { replacement: processedItems.join('\n'), hasChanges: true };
   }
 
   /**
@@ -1699,7 +1699,7 @@ export class TemplateEngine {
             const helperResult = this.helpers.execute(helperName);
             hasChanges = true;
             return String(helperResult);
-          } catch (error: any) {
+          } catch (error: unknown) {
             // If helper fails, return original match
             logger.error(`Helper error: ${error}`);
             return match;
@@ -1841,7 +1841,7 @@ export class TemplateEngine {
               const helperResult = this.helpers.execute(helperName, ...args);
               hasChanges = true;
               return String(helperResult);
-            } catch (error: any) {
+            } catch (error: unknown) {
               logger.error(`Nested helper error: ${error}`);
               return match;
             }
@@ -1902,7 +1902,7 @@ export class TemplateEngine {
             String(helperResult) +
             result.substring(match.end);
           hasChanges = true;
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error(`Function call helper error: ${error}`);
         }
       }
@@ -2232,7 +2232,7 @@ export class TemplateEngine {
             ? this.parseHelperArgs(argsString, context)
             : [];
           return this.helpers.execute(helperName, ...args);
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error(`Error evaluating helper condition: ${error}`);
           return false;
         }

@@ -380,7 +380,7 @@ export class HealthChecker {
         const result = await checkFn();
         result.responseTime = Date.now() - start;
         results.push(result);
-      } catch (error: any) {
+      } catch (error: unknown) {
         results.push({
           service: name,
           status: 'unhealthy',

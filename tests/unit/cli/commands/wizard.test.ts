@@ -85,7 +85,7 @@ describe('OptimizationWizardCommand', () => {
   let mockClient: jest.Mocked<PromptWizardClient>;
   
   // Mock console methods
-  const mockLog = jest.spyOn(console, 'log').mockImplementation();
+  let mockLog: jest.SpyInstance;
 
   const mockTemplate = {
     name: 'Test Template',
@@ -165,6 +165,9 @@ describe('OptimizationWizardCommand', () => {
   };
 
   beforeEach(() => {
+    // Setup console spy
+    mockLog = jest.spyOn(console, 'log').mockImplementation();
+    
     jest.clearAllMocks();
     
     // Setup mocked services
@@ -189,11 +192,18 @@ describe('OptimizationWizardCommand', () => {
 
     // Mock constructors
     (TemplateService as jest.MockedClass<typeof TemplateService>).mockImplementation(() => mockTemplateService);
-    (CacheService as jest.MockedClass<typeof CacheService>).mockImplementation(() => mockCacheService);
+    (CacheService as jest.MockedClass<typeof CacheService>).mockImplementation(() => mockCacheService as any);
     (PromptOptimizationService as jest.MockedClass<typeof PromptOptimizationService>).mockImplementation(() => mockOptimizationService);
     (PromptWizardClient as jest.MockedClass<typeof PromptWizardClient>).mockImplementation(() => mockClient);
 
     wizardCommand = new OptimizationWizardCommand();
+    
+    // Mock interactive methods to prevent hanging
+    (wizardCommand as any).prompt = jest.fn().mockResolvedValue('p');
+    (wizardCommand as any).confirm = jest.fn().mockResolvedValue(false);
+    (wizardCommand as any).exit = jest.fn().mockImplementation(() => {
+      throw new Error('Process exit called');
+    });
   });
 
   afterEach(() => {

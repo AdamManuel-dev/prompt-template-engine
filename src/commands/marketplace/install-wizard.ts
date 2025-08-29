@@ -59,7 +59,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
       );
 
       await this.runWizard(options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Installation wizard failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -472,7 +472,7 @@ export class InstallWizardCommand extends BaseCommand implements ICommand {
       logger.info(
         `   • Get help: ${chalk.green(`cursor-prompt help ${selectedTemplate.name}`)}`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Installation failed: ${error instanceof Error ? error.message : String(error)}`
       );

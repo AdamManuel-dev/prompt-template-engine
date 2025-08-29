@@ -92,9 +92,13 @@ program
         // eslint-disable-next-line no-console
         console.log(content);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to generate prompt');
-      console.error(chalk.red(`❌ Error: ${error}`));
+      console.error(
+        chalk.red(
+          `❌ Error: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
       process.exit(1);
     }
   });
@@ -160,9 +164,13 @@ program
 
       // eslint-disable-next-line no-console
       console.log(chalk.gray(`\nTotal: ${filtered.length} template(s)`));
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to list templates');
-      console.error(chalk.red(`❌ Error: ${error}`));
+      console.error(
+        chalk.red(
+          `❌ Error: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
       process.exit(1);
     }
   });
@@ -189,9 +197,13 @@ program
 
       // Dispose the integration to clean up resources
       integration.dispose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to sync templates');
-      console.error(chalk.red(`❌ Error: ${error}`));
+      console.error(
+        chalk.red(
+          `❌ Error: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
       process.exit(1);
     }
   });
@@ -320,9 +332,13 @@ content: |
           '  4. Run "cursor-prompt generate <template>" to generate prompts'
         )
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to initialize');
-      console.error(chalk.red(`❌ Error: ${error}`));
+      console.error(
+        chalk.red(
+          `❌ Error: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
       process.exit(1);
     }
   });
@@ -374,9 +390,13 @@ program
         }
         process.exit(1);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to validate template');
-      console.error(chalk.red(`❌ Error: ${error}`));
+      console.error(
+        chalk.red(
+          `❌ Error: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
       process.exit(1);
     }
   });
@@ -415,9 +435,13 @@ program
 
       // Prevent the process from exiting
       setInterval(() => {}, 1000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to start watch mode');
-      console.error(chalk.red(`❌ Error: ${error}`));
+      console.error(
+        chalk.red(
+          `❌ Error: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
       process.exit(1);
     }
   });
@@ -450,7 +474,7 @@ program
     try {
       const command = new OptimizeCommand();
       await command.action([], options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Optimize command failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -481,7 +505,7 @@ program
     try {
       const command = new CompareCommand();
       await command.action([], options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Compare command failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -514,7 +538,7 @@ program
     try {
       const command = new ScoreCommand();
       await command.action([], options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Score command failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -540,7 +564,7 @@ program
     try {
       const command = new OptimizationWizardCommand();
       await command.action([], options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Wizard command failed: ${error instanceof Error ? error.message : String(error)}`
       );

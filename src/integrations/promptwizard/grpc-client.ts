@@ -177,7 +177,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
       logger.info('gRPC client initialized successfully', {
         serviceUrl: this.config.serviceUrl,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to initialize gRPC client', error as Error);
       throw new Error(`gRPC client initialization failed: ${error}`);
     }
@@ -298,7 +298,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
         enumerable: false,
         writable: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to start gRPC stream', error as Error);
       streamEmitter.emit('error', error);
     }
@@ -562,7 +562,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
     // Validate converted response with Zod schema
     try {
       return validateScoringResponse(converted);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Invalid ScoringResponse from gRPC API:', error);
       throw new Error(
         `Invalid gRPC response: ${error instanceof Error ? error.message : String(error)}`
@@ -591,7 +591,7 @@ export class PromptWizardGrpcClient extends EventEmitter {
     // Validate converted response with Zod schema
     try {
       return validateComparisonResponse(converted);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Invalid ComparisonResponse from gRPC API:', error);
       throw new Error(
         `Invalid gRPC response: ${error instanceof Error ? error.message : String(error)}`

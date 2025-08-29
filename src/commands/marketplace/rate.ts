@@ -156,7 +156,7 @@ export class RateCommand extends BaseCommand implements ICommand {
         comment: options.comment,
         version: installedTemplate.version,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Rating failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -238,7 +238,7 @@ export class RateCommand extends BaseCommand implements ICommand {
       }
 
       logger.info(`\n💡 Thank you for helping the community!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (
         error instanceof Error &&
         error.message.includes('already reviewed')
@@ -299,7 +299,7 @@ export class RateCommand extends BaseCommand implements ICommand {
       if (reviews.length >= 10) {
         logger.info(chalk.gray('\n💡 Showing latest 10 reviews'));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.warn(
         `Failed to load reviews: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -369,7 +369,7 @@ export class RateCommand extends BaseCommand implements ICommand {
       // Implementation would call API to delete review
       // await marketplace.api.deleteReview(templateId);
       this.info('Review deletion not yet implemented');
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to delete review: ${error instanceof Error ? error.message : String(error)}`
       );

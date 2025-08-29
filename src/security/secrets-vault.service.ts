@@ -76,8 +76,8 @@ export class SecretsVaultService {
     this.config = {
       provider: config.provider || 'local',
       encryptionEnabled: config.encryptionEnabled ?? true,
-      vaultUrl: config.vaultUrl || process.env.VAULT_URL || '',
-      token: config.token || process.env.VAULT_TOKEN || '',
+      vaultUrl: config.vaultUrl || VAULT_URL.$2 || '',
+      token: config.token || VAULT_TOKEN.$2 || '',
       storePath: config.storePath || path.join(process.cwd(), '.vault'),
       defaultRotationPolicy: config.defaultRotationPolicy || {
         enabled: true,
@@ -103,7 +103,7 @@ export class SecretsVaultService {
       logger.info(
         `Secrets vault initialized with ${this.config.provider} provider`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to initialize secrets vault', error as Error);
       throw new Error('Secrets vault initialization failed');
     }
@@ -174,7 +174,7 @@ export class SecretsVaultService {
       logger.info(`Secret stored: ${name} (${secretId})`);
 
       return secretId;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logAuditEvent(
         'CREATE',
         name,
@@ -255,7 +255,7 @@ export class SecretsVaultService {
 
       this.logAuditEvent('READ', secretId, userId, true);
       return decryptedValue;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logAuditEvent(
         'READ',
         secretId,
@@ -326,7 +326,7 @@ export class SecretsVaultService {
       logger.info(`Secret rotated: ${secretEntry.metadata.name} (${secretId})`);
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logAuditEvent(
         'ROTATE',
         secretId,
@@ -365,7 +365,7 @@ export class SecretsVaultService {
       logger.info(`Secret deleted: ${secretEntry.metadata.name} (${secretId})`);
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logAuditEvent(
         'DELETE',
         secretId,
@@ -443,7 +443,7 @@ export class SecretsVaultService {
         } else {
           failed++;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`Auto-rotation failed for ${metadata.id}`, error as Error);
         failed++;
       }
@@ -596,7 +596,7 @@ export class SecretsVaultService {
   private async ensureStorageDirectory(): Promise<void> {
     try {
       await fs.mkdir(this.storePath, { recursive: true, mode: 0o700 });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to create vault storage directory', error as Error);
       throw error;
     }
@@ -619,7 +619,7 @@ export class SecretsVaultService {
       }
 
       logger.info(`Loaded ${this.secrets.size} secrets from storage`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn('Failed to load secrets from storage', error as Error);
       // Continue with empty vault
     }
@@ -636,7 +636,7 @@ export class SecretsVaultService {
       await fs.writeFile(filePath, JSON.stringify(secretEntry, null, 2), {
         mode: 0o600,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to persist secret to storage', error as Error);
       throw error;
     }
@@ -651,7 +651,7 @@ export class SecretsVaultService {
 
     try {
       await fs.unlink(filePath);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn('Failed to remove secret from storage', error as Error);
       // Continue - secret already removed from memory
     }
@@ -671,7 +671,7 @@ export class SecretsVaultService {
               `Scheduled rotation: ${stats.rotated} rotated, ${stats.failed} failed`
             );
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error('Scheduled rotation failed', error as Error);
         }
       },

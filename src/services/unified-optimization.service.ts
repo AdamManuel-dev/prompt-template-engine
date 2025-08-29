@@ -158,7 +158,7 @@ export class UnifiedOptimizationService extends EventEmitter {
       });
 
       logger.info('PromptWizard client initialized successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to initialize PromptWizard client', error as Error);
     }
   }
@@ -279,7 +279,7 @@ export class UnifiedOptimizationService extends EventEmitter {
       this.emit('optimization:completed', { jobId, templatePath, result });
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const result: OptimizationJobResult = {
         jobId,
         status: 'failed',
@@ -701,7 +701,7 @@ export class UnifiedOptimizationService extends EventEmitter {
         const result = await this.optimize(templateData.path, options);
         results[templateData.index] = result;
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         const errorResult = {
           jobId: this.generateJobId(),
           status: 'failed' as const,
@@ -751,7 +751,7 @@ export class UnifiedOptimizationService extends EventEmitter {
 
       // For smaller templates, use regular processing
       return this.optimize(templatePath, options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         jobId,
         status: 'failed',

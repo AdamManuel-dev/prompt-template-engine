@@ -82,7 +82,7 @@ export class CursorExtensionBridge
       await this.registerAllCommands();
       this.initialized = true;
       this.emit('initialized');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to initialize Cursor extension bridge:${String(error)}`
       );
@@ -96,14 +96,14 @@ export class CursorExtensionBridge
     const possiblePaths = [
       // macOS
       '/Applications/Cursor.app',
-      path.join(process.env.HOME || '', 'Applications', 'Cursor.app'),
+      path.join(HOME.$2 || '', 'Applications', 'Cursor.app'),
       // Windows
-      path.join(process.env.LOCALAPPDATA || '', 'Programs', 'cursor'),
-      path.join(process.env.PROGRAMFILES || '', 'Cursor'),
+      path.join(LOCALAPPDATA.$2 || '', 'Programs', 'cursor'),
+      path.join(PROGRAMFILES.$2 || '', 'Cursor'),
       // Linux
       '/usr/share/cursor',
       '/opt/cursor',
-      path.join(process.env.HOME || '', '.local', 'share', 'cursor'),
+      path.join(HOME.$2 || '', '.local', 'share', 'cursor'),
     ];
 
     // eslint-disable-next-line no-restricted-syntax
@@ -140,7 +140,7 @@ export class CursorExtensionBridge
       }
 
       logger.info(`Loaded ${this.commands.size} extension commands`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to load extension manifest:${String(error)}`);
     }
   }
@@ -308,7 +308,7 @@ export class CursorExtensionBridge
     return async (...args: unknown[]) => {
       try {
         await this.executeCommand(commandId, args);
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`Command ${commandId} failed:${String(error)}`);
         throw error;
       }
@@ -370,7 +370,7 @@ export class CursorExtensionBridge
       name: templateName,
       content,
       metadata: {
-        author: process.env.USER || 'unknown',
+        author: USER.$2 || 'unknown',
         version: '1.0.0',
         description: 'Generated from Cursor IDE',
         tags: ['generated'],

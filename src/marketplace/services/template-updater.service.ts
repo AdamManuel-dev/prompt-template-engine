@@ -124,7 +124,7 @@ export class TemplateUpdaterService {
               },
             ],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to update template ${templateId}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -168,7 +168,7 @@ export class TemplateUpdaterService {
               ]
             : [],
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn(
           `Failed to check updates for ${template.id}: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -194,7 +194,7 @@ export class TemplateUpdaterService {
           } else {
             logger.warn('Update check missing templateId');
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           results.push({
             success: false,
             templateId: check.templateId,

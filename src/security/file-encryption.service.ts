@@ -143,7 +143,7 @@ export class FileEncryptionService {
         encryptedPath: resolvedOutputPath,
         metadata,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('File encryption failed', error as Error);
       return {
         success: false,
@@ -205,7 +205,7 @@ export class FileEncryptionService {
         encryptedPath: resolvedOutputPath,
         metadata,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('File decryption failed', error as Error);
       return {
         success: false,
@@ -244,7 +244,7 @@ export class FileEncryptionService {
       logger.info(
         `Template encryption completed: ${encrypted.length} encrypted, ${failed.length} failed`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Template directory encryption failed', error as Error);
     }
 
@@ -282,7 +282,7 @@ export class FileEncryptionService {
       logger.info(
         `Template decryption completed: ${decrypted.length} decrypted, ${failed.length} failed`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Template directory decryption failed', error as Error);
     }
 
@@ -354,7 +354,7 @@ export class FileEncryptionService {
         encryptedPath: outputPath,
         metadata,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Stream encryption failed', error as Error);
       return {
         success: false,
@@ -379,7 +379,7 @@ export class FileEncryptionService {
       const expectedSize = metadata.fileSize + 32; // Original size + overhead
 
       return Math.abs(stats.size - expectedSize) < 100; // Allow some variance
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('File integrity verification failed', error as Error);
       return false;
     }
@@ -425,7 +425,7 @@ export class FileEncryptionService {
           } else {
             failed.push(encryptedPath);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error(
             `Key rotation failed for file: ${encryptedPath}`,
             error as Error
@@ -437,7 +437,7 @@ export class FileEncryptionService {
       logger.info(
         `Key rotation completed: ${rotated.length} rotated, ${failed.length} failed`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Key rotation process failed', error as Error);
     }
 
@@ -586,7 +586,7 @@ export class FileEncryptionService {
           files.push(fullPath);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to read directory: ${directoryPath}`,
         error as Error
@@ -618,7 +618,7 @@ export class FileEncryptionService {
           files.push(fullPath);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to read directory: ${directoryPath}`,
         error as Error
@@ -666,7 +666,7 @@ export class FileEncryptionService {
 
       this.metadataStore.set(encryptedPath, metadata);
       return metadata;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(
         `Failed to load metadata for: ${encryptedPath}`,
         error as Error

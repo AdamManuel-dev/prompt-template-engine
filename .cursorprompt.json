@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "templates": {
+    "paths": [
+      "./templates"
+    ],
+    "watch": true
+  },
+  "cursor": {
+    "autoSync": true,
+    "rulesDir": ".cursor/rules",
+    "legacySupport": true
+  }
+}

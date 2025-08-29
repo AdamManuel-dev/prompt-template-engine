@@ -231,7 +231,7 @@ export class PluginRegistry {
       logger.info(
         `Plugin registry initialized with ${this.registrations.size} plugins`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to initialize plugin registry:', error);
       throw error;
     }
@@ -301,7 +301,7 @@ export class PluginRegistry {
         `Plugin registered: ${registration.name} v${registration.version}`
       );
       return registration;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to register plugin ${pluginPath}:`, error);
       throw error;
     }
@@ -332,7 +332,7 @@ export class PluginRegistry {
       await this.saveRegistrations();
 
       logger.info(`Plugin unregistered: ${pluginName}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to unregister plugin ${pluginName}:`, error);
       throw error;
     }
@@ -372,7 +372,7 @@ export class PluginRegistry {
       await this.saveRegistrations();
 
       logger.info(`Plugin enabled: ${pluginName}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const registration = this.registrations.get(pluginName);
       if (registration) {
         registration.status = PluginStatus.ERROR;
@@ -415,7 +415,7 @@ export class PluginRegistry {
       await this.saveRegistrations();
 
       logger.info(`Plugin disabled: ${pluginName}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to disable plugin ${pluginName}:`, error);
       throw error;
     }
@@ -689,7 +689,7 @@ export class PluginRegistry {
       };
 
       await fs.writeFile(registryFile, JSON.stringify(data, null, 2));
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to save plugin registry:', error);
     }
   }
@@ -722,7 +722,7 @@ export class PluginRegistry {
           continue;
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to discover plugins:', error);
     }
   }
@@ -747,7 +747,7 @@ export class PluginRegistry {
           }
         }
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn('Failed to start plugin watching:', error);
     }
   }
@@ -768,7 +768,7 @@ export class PluginRegistry {
         await this.unregisterPlugin(manifest.name);
         await this.registerPlugin(pluginPath);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.debug('Failed to refresh plugin registration:', error);
     }
   }

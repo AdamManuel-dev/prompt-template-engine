@@ -290,7 +290,7 @@ export class AuditLoggerService extends EventEmitter {
         systemInfo: {
           component: 'cursor-prompt-template-engine',
           version: '1.0.0',
-          environment: process.env.NODE_ENV || 'development',
+          environment: NODE_ENV.$2 || 'development',
         },
       };
 
@@ -340,7 +340,7 @@ export class AuditLoggerService extends EventEmitter {
       });
 
       return eventId;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to log audit event', error as Error);
 
       // Log the logging failure as a system event
@@ -431,8 +431,8 @@ export class AuditLoggerService extends EventEmitter {
       const orderDirection = query.orderDirection || 'desc';
 
       filteredEvents.sort((a, b) => {
-        let aValue: any;
-        let bValue: any;
+        let aValue: unknown;
+        let bValue: unknown;
 
         switch (orderBy) {
           case 'timestamp':
@@ -473,7 +473,7 @@ export class AuditLoggerService extends EventEmitter {
         total,
         hasMore,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Audit log query failed', error as Error);
       throw error;
     }
@@ -642,7 +642,7 @@ export class AuditLoggerService extends EventEmitter {
       });
 
       return report;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Compliance report generation failed', error as Error);
       throw error;
     }
@@ -719,7 +719,7 @@ export class AuditLoggerService extends EventEmitter {
       }
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Integrity verification failed', error as Error);
       return {
         verified: false,
@@ -754,7 +754,7 @@ export class AuditLoggerService extends EventEmitter {
         default:
           throw new Error(`Unsupported export format: ${format}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Audit log export failed', error as Error);
       throw error;
     }
@@ -817,7 +817,7 @@ export class AuditLoggerService extends EventEmitter {
         },
         retentionClass: 'extended',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Avoid infinite recursion
       logger.error('Failed to log system event', error as Error);
     }
@@ -1094,7 +1094,7 @@ export class AuditLoggerService extends EventEmitter {
         reportId: report.reportId,
         totalEvents: report.summary.totalEvents,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Automated report generation failed', error as Error);
     }
   }

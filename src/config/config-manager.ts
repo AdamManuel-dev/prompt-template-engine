@@ -429,7 +429,7 @@ export class ConfigManager implements IConfigManager {
           priority: 10,
           data,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`Failed to load global config:${String(error)}`);
       }
     }
@@ -444,7 +444,7 @@ export class ConfigManager implements IConfigManager {
           priority: 20,
           data,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`Failed to load project config:${String(error)}`);
       }
     }
@@ -803,7 +803,7 @@ export class ConfigManager implements IConfigManager {
       callbacks.forEach(callback => {
         try {
           callback(value);
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error(`Error in config watcher for ${path}:${String(error)}`);
         }
       });

@@ -762,7 +762,7 @@ export class CacheManager {
  * }
  * ```
  */
-export const templateCache = new CacheService<any>({
+export const templateCache = new CacheService<Record<string, unknown>>({
   maxSize: 50,
   maxAge: 1000 * 60 * 30, // 30 minutes for templates
 });
@@ -799,7 +799,7 @@ export const templateCache = new CacheService<any>({
  * return response;
  * ```
  */
-export const apiCache = new CacheService<any>({
+export const apiCache = new CacheService<Record<string, unknown>>({
   maxSize: 200,
   maxAge: 1000 * 60 * 5, // 5 minutes for API responses
 });
@@ -840,7 +840,7 @@ export const apiCache = new CacheService<any>({
  * });
  * ```
  */
-export const fileCache = new CacheService<any>({
+export const fileCache = new CacheService<Record<string, unknown>>({
   maxSize: 100,
   maxAge: 1000 * 60 * 60, // 1 hour for file contents
 });

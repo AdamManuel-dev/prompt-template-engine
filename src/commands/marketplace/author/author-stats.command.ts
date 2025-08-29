@@ -33,7 +33,7 @@ export class AuthorStatsCommand extends BaseCommand {
   ): Promise<void> {
     try {
       await this.showStats(authorId, options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to show author stats: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -123,7 +123,7 @@ export class AuthorStatsCommand extends BaseCommand {
         });
         logger.info('');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }

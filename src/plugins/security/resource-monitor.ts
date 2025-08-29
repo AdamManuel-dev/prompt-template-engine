@@ -311,7 +311,7 @@ export class ResourceMonitor extends EventEmitter {
 
       // Check for emergency conditions
       this.checkEmergencyConditions(executionId, usage, limits);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Resource monitoring error for ${executionId}: ${error.message}`
       );

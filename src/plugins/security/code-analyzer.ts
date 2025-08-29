@@ -129,7 +129,7 @@ export interface SecurityRule {
   name: string;
   description: string;
   severity: ThreatLevel;
-  pattern: RegExp | ((node: t.Node, path: any) => boolean);
+  pattern: RegExp | ((node: t.Node, path: unknown) => boolean);
   message: string;
   suggestion?: string;
 }
@@ -264,7 +264,7 @@ export class CodeAnalyzer {
         `Code analysis completed for ${plugin.name}: ${result.safe ? 'SAFE' : 'UNSAFE'} (score: ${result.score}/100, threats: ${result.threats.length})`
       );
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Code analysis error for ${plugin.name}: ${error.message}`);
 
       return {
@@ -388,7 +388,7 @@ export class CodeAnalyzer {
 
         clearTimeout(timeout);
         resolve(ast);
-      } catch (error: any) {
+      } catch (error: unknown) {
         clearTimeout(timeout);
         reject(error);
       }
@@ -430,7 +430,7 @@ export class CodeAnalyzer {
 
       // Detect regex-based patterns
       this.detectRegexPatterns(code, threats);
-    } catch (error: any) {
+    } catch (error: unknown) {
       threats.push({
         type: 'eval-usage',
         severity: 'high',
@@ -726,7 +726,7 @@ export class CodeAnalyzer {
             suggestion: rule.suggestion,
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn(`Error applying custom rule ${rule.id}: ${error.message}`);
       }
     }

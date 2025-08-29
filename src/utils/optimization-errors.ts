@@ -193,7 +193,7 @@ export class RetryManager {
     for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
       try {
         return await operation();
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         // Track error if tracker provided
@@ -285,7 +285,7 @@ export class CircuitBreaker {
       }
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.failures += 1;
       this.lastFailureTime = Date.now();
 

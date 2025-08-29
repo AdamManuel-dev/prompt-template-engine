@@ -231,7 +231,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
         logger.info(chalk.bold('\n📝 Changelog:'));
         logger.info(versionInfo.changelog);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Update failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -292,7 +292,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
             chalk.green(`✓ ${update.templateId} updated successfully`)
           );
           successful += 1;
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.info(
             chalk.red(
               `✗ Failed to update ${update.templateId}: ${error instanceof Error ? error.message : String(error)}`
@@ -309,7 +309,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
       if (failed > 0) {
         logger.info(`   ${chalk.red('✗')} Failed: ${failed}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to check updates: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -347,7 +347,7 @@ export class UpdateCommand extends BaseCommand implements ICommand {
       logger.info(
         `💡 Update specific: ${chalk.green('cursor-prompt update <template-name>')}`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to check updates: ${error instanceof Error ? error.message : String(error)}`
       );

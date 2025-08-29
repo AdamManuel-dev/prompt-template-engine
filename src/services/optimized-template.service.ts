@@ -92,7 +92,7 @@ export class OptimizedTemplateService extends EventEmitter {
 
     // Initialize services - properly typed implementations
     this.promptWizardService = new PromptWizardClient({
-      baseUrl: process.env.PROMPT_WIZARD_BASE_URL || 'http://localhost:8080',
+      baseUrl: PROMPT_WIZARD_BASE_URL.$2 || 'http://localhost:8080',
       timeout: 30000,
     } as any);
     this.cacheService = new CacheService<OptimizationResult>({
@@ -301,7 +301,7 @@ export class OptimizedTemplateService extends EventEmitter {
         })) as OptimizationJob;
 
         jobs.push(job);
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (options.failFast) {
           throw error;
         }
@@ -329,9 +329,9 @@ export class OptimizedTemplateService extends EventEmitter {
       createdAt: new Date(),
       // settings commented out as not in OptimizationBatch interface
       // settings: {
-      //   concurrency: options.concurrency || 3,
-      //   failFast: options.failFast || false,
-      //   priority: options.priority || 'normal',
+      //   concurrency: options['concurrency'] || 3,
+      //   failFast: options['failFast'] || false,
+      //   priority: options['priority'] || 'normal',
       // },
     };
 

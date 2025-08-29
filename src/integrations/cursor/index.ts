@@ -129,7 +129,7 @@ export class CursorIntegration {
 
       this.isInitialized = true;
       logger.info('Cursor integration initialized successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to initialize Cursor integration');
       throw error;
     }
@@ -152,7 +152,7 @@ export class CursorIntegration {
         try {
           const rules = await this.converter.convertDirectory(templateDir);
           allRules = allRules.concat(rules);
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.warn(`Skipped template directory ${templateDir}: ${error}`);
         }
       }
@@ -163,7 +163,7 @@ export class CursorIntegration {
       }
 
       logger.info(`Synced ${allRules.length} templates to rules`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to sync templates');
       throw error;
     }

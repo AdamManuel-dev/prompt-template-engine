@@ -266,7 +266,7 @@ export class TemplateToRulesConverter {
 
       await fs.writeFile(legacyPath, newContent, 'utf-8');
       logger.info('Updated .cursorrules (legacy)');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(`Failed to write legacy .cursorrules: ${error}`);
     }
   }
@@ -299,7 +299,7 @@ export class TemplateToRulesConverter {
       }
 
       logger.info(`Converted ${rules.length} templates to rules`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to convert directory: ${error}`);
       throw error;
     }

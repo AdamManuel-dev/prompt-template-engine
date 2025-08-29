@@ -133,7 +133,7 @@ export class TerminalCaptureService {
       result.stdout = this.truncateOutput(stdout || '');
       result.stderr = this.truncateOutput(stderr || '');
       result.exitCode = 0;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const err = error as {
         stdout?: string;
         stderr?: string;
@@ -416,7 +416,7 @@ export class TerminalCaptureService {
       });
 
       this.history = [...this.history, ...imported].slice(-this.maxHistorySize);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`Failed to import history: ${error}`);
     }
   }

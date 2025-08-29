@@ -283,39 +283,36 @@ function applyEnvironmentOverrides(config: Config): Config {
   const envConfig = { ...config };
 
   // Project name override
-  if (process.env.CURSOR_PROMPT_PROJECT_NAME) {
-    envConfig.projectName = process.env.CURSOR_PROMPT_PROJECT_NAME;
+  if (CURSOR_PROMPT_PROJECT_NAME.$2) {
+    envConfig.projectName = CURSOR_PROMPT_PROJECT_NAME.$2;
   }
 
   // Template paths override
-  if (process.env.CURSOR_PROMPT_TEMPLATE_PATHS) {
-    envConfig.templatePaths =
-      process.env.CURSOR_PROMPT_TEMPLATE_PATHS.split(':');
+  if (CURSOR_PROMPT_TEMPLATE_PATHS.$2) {
+    envConfig.templatePaths = CURSOR_PROMPT_TEMPLATE_PATHS.$2.split(':');
   }
 
   // Output path override
-  if (process.env.CURSOR_PROMPT_OUTPUT_PATH) {
-    envConfig.outputPath = process.env.CURSOR_PROMPT_OUTPUT_PATH;
+  if (CURSOR_PROMPT_OUTPUT_PATH.$2) {
+    envConfig.outputPath = CURSOR_PROMPT_OUTPUT_PATH.$2;
   }
 
   // Default template override
-  if (process.env.CURSOR_PROMPT_DEFAULT_TEMPLATE) {
-    envConfig.defaultTemplate = process.env.CURSOR_PROMPT_DEFAULT_TEMPLATE;
+  if (CURSOR_PROMPT_DEFAULT_TEMPLATE.$2) {
+    envConfig.defaultTemplate = CURSOR_PROMPT_DEFAULT_TEMPLATE.$2;
   }
 
   // Feature toggles
-  if (process.env.CURSOR_PROMPT_CLIPBOARD !== undefined) {
-    envConfig.features.clipboard =
-      process.env.CURSOR_PROMPT_CLIPBOARD === 'true';
+  if (CURSOR_PROMPT_CLIPBOARD.$2 !== undefined) {
+    envConfig.features.clipboard = CURSOR_PROMPT_CLIPBOARD.$2 === 'true';
   }
 
-  if (process.env.CURSOR_PROMPT_PREVIEW !== undefined) {
-    envConfig.features.preview = process.env.CURSOR_PROMPT_PREVIEW === 'true';
+  if (CURSOR_PROMPT_PREVIEW.$2 !== undefined) {
+    envConfig.features.preview = CURSOR_PROMPT_PREVIEW.$2 === 'true';
   }
 
-  if (process.env.CURSOR_PROMPT_VALIDATION !== undefined) {
-    envConfig.features.validation =
-      process.env.CURSOR_PROMPT_VALIDATION === 'true';
+  if (CURSOR_PROMPT_VALIDATION.$2 !== undefined) {
+    envConfig.features.validation = CURSOR_PROMPT_VALIDATION.$2 === 'true';
   }
 
   return envConfig;
@@ -381,7 +378,7 @@ export async function loadConfig(configPath?: string): Promise<Config> {
     config = resolveConfigPaths(config, configFilePath);
 
     return config;
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof ConfigError) {
       throw error;
     } else if (error instanceof SyntaxError) {
@@ -429,7 +426,7 @@ export async function writeConfig(
     await fs.writeFile(configPath, configJson);
 
     logger.debug(`Configuration written to: ${configPath}`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     throw new ConfigError(
       `Failed to write configuration: ${(error as Error).message}`,
       undefined,

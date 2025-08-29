@@ -230,7 +230,7 @@ export class SecureDatabaseAdapter {
           `Using existing database encryption key: ${this.encryptionKeyId}`
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to initialize database encryption', error as Error);
       throw new Error('Database encryption initialization failed');
     }
@@ -269,7 +269,7 @@ export class SecureDatabaseAdapter {
       );
 
       return { success: true, rotatedColumns };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Database encryption key rotation failed', error as Error);
       return { success: false, rotatedColumns: [] };
     }
@@ -426,7 +426,7 @@ export class SecureDatabaseAdapter {
       });
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       result.errors.push(`Query execution error: ${(error as Error).message}`);
       result.executionTime = Date.now() - startTime;
 

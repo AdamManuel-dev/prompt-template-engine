@@ -264,7 +264,7 @@ export class OptimizationQueue extends EventEmitter {
             priority: job.priority,
           })}`
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn(
           `Failed to add job to Bull queue, using in-memory fallback: ${error}`
         );
@@ -567,7 +567,7 @@ export class OptimizationQueue extends EventEmitter {
             : 'Pipeline processing failed';
         throw new Error(errorMessage);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       await this.handleJobError(
         job,
         error instanceof Error ? error : new Error(String(error))
@@ -742,7 +742,7 @@ export class OptimizationQueue extends EventEmitter {
       );
 
       logger.info('Bull queue initialized successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(
         `Failed to initialize Bull queue, falling back to in-memory: ${error}`
       );
@@ -778,7 +778,7 @@ export class OptimizationQueue extends EventEmitter {
           ? result.error
           : 'Pipeline processing failed'
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Bull job processing failed: ${error}`);
       throw error;
     }
@@ -845,7 +845,7 @@ export class OptimizationQueue extends EventEmitter {
       try {
         await this.bullQueue.close();
         logger.info('Bull queue closed successfully');
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn(`Error closing Bull queue: ${error}`);
       }
     }

@@ -266,7 +266,7 @@ export class SelfEvolvingSystem extends EventEmitter {
       this.emit('evolution:completed', evolutionResult);
 
       return evolutionResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Evolution failed for template: ${templateId} - ${error}`);
       this.emit('evolution:failed', { templateId, error });
 

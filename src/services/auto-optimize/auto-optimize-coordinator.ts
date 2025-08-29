@@ -156,7 +156,7 @@ export class AutoOptimizeCoordinator extends EventEmitter {
       await this.notificationService.sendAutoOptimizationEnabled();
 
       this.emit('started', this.getStatus());
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to start auto-optimization', error as Error);
       throw error;
     }
@@ -186,7 +186,7 @@ export class AutoOptimizeCoordinator extends EventEmitter {
       await this.notificationService.sendAutoOptimizationDisabled();
 
       this.emit('stopped', this.getStatus());
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to stop auto-optimization', error as Error);
       throw error;
     }
@@ -381,7 +381,7 @@ export class AutoOptimizeCoordinator extends EventEmitter {
       // Job completed successfully
       job.result = result;
       this.jobProcessor.emit('job-process-completed', result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Job failed
       this.jobProcessor.emit('job-process-failed', error);
     }

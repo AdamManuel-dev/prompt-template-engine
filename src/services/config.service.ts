@@ -715,7 +715,7 @@ export class ConfigService {
       }
 
       return config;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof ConfigError) {
         throw error;
       }
@@ -763,7 +763,7 @@ export class ConfigService {
     try {
       const content = JSON.stringify(config, null, 2);
       await fs.promises.writeFile(configPath, content, 'utf8');
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new ConfigError(`Failed to save configuration to ${configPath}`, {
         path: configPath,
         error: (error as Error).message,

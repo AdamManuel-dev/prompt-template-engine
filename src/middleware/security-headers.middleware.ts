@@ -106,7 +106,7 @@ export class SecurityHeadersMiddleware {
    * Express middleware for setting security headers
    */
   middleware() {
-    return (req: any, res: any, next: any) => {
+    return (req: any, res: any, next: unknown) => {
       try {
         const context = this.extractSecurityContext(req);
         const headers = this.generateSecurityHeaders(context);
@@ -124,7 +124,7 @@ export class SecurityHeadersMiddleware {
         }
 
         next();
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Security headers middleware error', error as Error);
         // Continue processing even if security headers fail
         next();
@@ -339,7 +339,7 @@ export class SecurityHeadersMiddleware {
   /**
    * Extract security context from request
    */
-  private extractSecurityContext(req: any): SecurityContext {
+  private extractSecurityContext(req: unknown): SecurityContext {
     const context: SecurityContext = {};
 
     // Generate nonce if CSP nonce is enabled
@@ -362,14 +362,14 @@ export class SecurityHeadersMiddleware {
   private mergeWithDefaults(
     config: SecurityHeadersConfig
   ): SecurityHeadersConfig {
-    const environment = process.env.NODE_ENV || 'development';
+    const environment = NODE_ENV.$2 || 'development';
 
     const defaults: SecurityHeadersConfig = {
       csp: {
         enabled: true,
         reportOnly: environment === 'development',
         nonce: true,
-        reportUri: process.env.CSP_REPORT_URI || '/api/csp-report',
+        reportUri: CSP_REPORT_URI.$2 || '/api/csp-report',
       },
       hsts: {
         enabled: environment === 'production',
@@ -414,7 +414,7 @@ export class SecurityHeadersMiddleware {
   /**
    * Deep merge configuration objects
    */
-  private deepMerge(target: any, source: any): any {
+  private deepMerge(target: any, source: unknown): unknown {
     const result = { ...target };
 
     Object.keys(source).forEach(key => {
@@ -463,7 +463,7 @@ export class SecurityHeadersMiddleware {
       },
       runtime: {
         activenonces: this.nonceCache.size,
-        environment: process.env.NODE_ENV || 'development',
+        environment: NODE_ENV.$2 || 'development',
       },
       headers: Object.keys(this.generateSecurityHeaders()).length,
     };
@@ -474,7 +474,7 @@ export class SecurityHeadersMiddleware {
  * CSP report endpoint handler
  */
 export function cspReportHandler() {
-  return (req: any, res: any) => {
+  return (req: any, res: unknown) => {
     try {
       const report = req.body;
       logger.warn('CSP Violation Report', {
@@ -485,7 +485,7 @@ export function cspReportHandler() {
       });
 
       res.status(204).send();
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('CSP report handler error', error as Error);
       res.status(400).json({ error: 'Invalid report format' });
     }

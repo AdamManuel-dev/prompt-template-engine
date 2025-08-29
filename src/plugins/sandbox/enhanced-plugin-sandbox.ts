@@ -371,7 +371,7 @@ export class EnhancedPluginSandbox {
         executionResult,
         behaviorScore
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.reportSecurityViolation(
         executionId,
         'code',
@@ -434,7 +434,7 @@ export class EnhancedPluginSandbox {
       this.updateExecutionStats(executionId, result.stats);
 
       return result.result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
         this.reportSecurityViolation(
           executionId,
@@ -493,7 +493,7 @@ export class EnhancedPluginSandbox {
           reject(new Error('Worker execution timeout'));
         }, config.maxExecutionTimeMs);
 
-        worker.on('message', (message: any) => {
+        worker.on('message', (message: unknown) => {
           if (message.executionId !== executionId) return;
 
           clearTimeout(timeout);
@@ -518,7 +518,7 @@ export class EnhancedPluginSandbox {
           clearTimeout(timeout);
           reject(error);
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         reject(error);
       }
     });
@@ -573,7 +573,7 @@ export class EnhancedPluginSandbox {
             this.incrementCounter(executionId, 'functionCalls');
             try {
               fn();
-            } catch (error: any) {
+            } catch (error: unknown) {
               this.reportSecurityViolation(
                 executionId,
                 'code',
@@ -654,7 +654,7 @@ export class EnhancedPluginSandbox {
             const result = originalCall.apply(this, callArgs);
             recursionDepth--;
             return result;
-          } catch (error: any) {
+          } catch (error: unknown) {
             recursionDepth--;
             throw error;
           }
@@ -691,7 +691,7 @@ export class EnhancedPluginSandbox {
             }
           };
           
-        } catch (error: any) {
+        } catch (error: unknown) {
           return {
             success: false,
             error: error.message,
@@ -794,8 +794,7 @@ export class EnhancedPluginSandbox {
         .digest('hex');
 
       // Get signing key (in production, this would be from a secure key store)
-      const signingKey =
-        process.env.PLUGIN_SIGNING_KEY || 'default-development-key';
+      const signingKey = PLUGIN_SIGNING_KEY.$2 || 'default-development-key';
 
       // Generate expected signature
       const expectedSignature = crypto
@@ -826,7 +825,7 @@ export class EnhancedPluginSandbox {
         trustLevel: isValid ? 'verified' : 'none',
         error: isValid ? undefined : 'Signature verification failed',
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         valid: false,
         error: `Signature verification error: ${error.message}`,
@@ -942,7 +941,7 @@ export class EnhancedPluginSandbox {
         complexity,
         obfuscationDetected,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         safe: false,
         score: 0,
@@ -1073,7 +1072,7 @@ export class EnhancedPluginSandbox {
           );
           this.emergencyTermination(executionId);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(
           `Resource monitoring error for ${executionId}: ${error.message}`
         );
@@ -1183,7 +1182,7 @@ export class EnhancedPluginSandbox {
       },
       network: config.allowNetworkAccess
         ? {
-            fetch: async (url: string, options?: any) => {
+            fetch: async (url: string, options?: unknown) => {
               this.incrementCounter(executionId, 'networkRequests');
               return this.handleSecureNetworkRequest(
                 executionId,
@@ -1383,9 +1382,9 @@ export class EnhancedPluginSandbox {
   private async handleSecureNetworkRequest(
     executionId: string,
     url: string,
-    _options: any,
+    _options: unknown,
     config: EnhancedSandboxConfig
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Validate URL against allowed hosts
     try {
       const urlObj = new URL(url);
@@ -1402,7 +1401,7 @@ export class EnhancedPluginSandbox {
 
       // This would implement actual secure network requests
       throw new Error('Network requests not implemented in demo');
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.reportSecurityViolation(
         executionId,
         'access',
@@ -1444,7 +1443,7 @@ export class EnhancedPluginSandbox {
   /**
    * Update execution statistics
    */
-  private updateExecutionStats(executionId: string, newStats: any): void {
+  private updateExecutionStats(executionId: string, newStats: unknown): void {
     const stats = this.executionStats.get(executionId);
     if (stats && newStats) {
       stats.counters.functionCalls += newStats.functionCallCount || 0;

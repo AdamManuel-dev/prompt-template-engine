@@ -354,7 +354,7 @@ export class JobProcessorService extends EventEmitter {
       });
 
       this.emit('job-completed', job);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Job failed
       const errorMessage = (error as Error).message;
 

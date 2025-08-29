@@ -51,7 +51,7 @@ export class NodeFileSystem implements IFileSystem {
   ): Promise<string | Buffer> {
     try {
       return await readFile(path, encoding);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleFileSystemError(
         error as Error & { code?: string; errno?: number; path?: string },
         path
@@ -62,7 +62,7 @@ export class NodeFileSystem implements IFileSystem {
   readFileSync(path: string, encoding?: BufferEncoding): string | Buffer {
     try {
       return fs.readFileSync(path, encoding);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleFileSystemError(
         error as Error & { code?: string; errno?: number; path?: string },
         path
@@ -73,7 +73,7 @@ export class NodeFileSystem implements IFileSystem {
   async stat(path: string): Promise<Stats> {
     try {
       return await stat(path);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleFileSystemError(
         error as Error & { code?: string; errno?: number; path?: string },
         path
@@ -95,7 +95,7 @@ export class NodeFileSystem implements IFileSystem {
         return await readdir(path, { withFileTypes: true });
       }
       return await readdir(path);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleFileSystemError(
         error as Error & { code?: string; errno?: number; path?: string },
         path
@@ -106,7 +106,7 @@ export class NodeFileSystem implements IFileSystem {
   openSync(path: string, flags: string): number {
     try {
       return fs.openSync(path, flags);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this.handleFileSystemError(
         error as Error & { code?: string; errno?: number; path?: string },
         path
@@ -124,7 +124,7 @@ export class NodeFileSystem implements IFileSystem {
   ): number {
     try {
       return fs.readSync(fd, buffer, offset, length, position);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new FileSystemError(
         FileSystemErrorType.READ_ERROR,
         `Failed to read from file descriptor: ${(error as Error).message}`,
@@ -137,7 +137,7 @@ export class NodeFileSystem implements IFileSystem {
   closeSync(fd: number): void {
     try {
       fs.closeSync(fd);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new FileSystemError(
         FileSystemErrorType.UNKNOWN_ERROR,
         `Failed to close file descriptor: ${(error as Error).message}`,
@@ -197,7 +197,7 @@ export class NodeGlobService implements IGlobService {
   ): Promise<string[]> {
     try {
       return await glob(pattern, options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new FileSystemError(
         FileSystemErrorType.UNKNOWN_ERROR,
         `Glob operation failed: ${(error as Error).message}`,

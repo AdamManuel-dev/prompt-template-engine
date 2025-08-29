@@ -240,7 +240,7 @@ export class OptimizationCacheService {
             logger.debug('Cache hit (memory) -', { cacheKey });
             return result;
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           const cacheError = new CacheError('Memory cache read failed', {
             cacheKey,
             error,
@@ -281,7 +281,7 @@ export class OptimizationCacheService {
               logger.debug('Cache hit (Redis) -', { cacheKey });
               return redisResult as unknown as OptimizedResult;
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             const cacheError = new CacheError('Redis cache read failed', {
               cacheKey,
               error,
@@ -327,7 +327,7 @@ export class OptimizationCacheService {
           Math.floor(effectiveTTL / 1000)
         ); // Redis TTL in seconds
         logger.debug('Result cached in Redis -', { cacheKey });
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn('Redis cache write failed -', { cacheKey, error });
       }
     }
@@ -364,7 +364,7 @@ export class OptimizationCacheService {
         for (const key of keysToRemove) {
           await this.redisCache.delete(key);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn('Redis cache invalidation failed -', { templateId, error });
       }
     }
@@ -437,7 +437,7 @@ export class OptimizationCacheService {
       try {
         // In a real implementation, this would use Redis FLUSHDB or SCAN/DEL pattern
         logger.info('Redis cache clear operation would be performed here');
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn('Redis cache clear failed -', error);
       }
     }
@@ -488,7 +488,7 @@ export class OptimizationCacheService {
         ttl: this.config.defaultTTL,
       });
       logger.info('Redis cache initialized for optimization service');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(
         'Failed to initialize Redis cache - continuing with memory cache only',
         error

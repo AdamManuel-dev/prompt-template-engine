@@ -317,7 +317,7 @@ export class SecurityTestSuite extends EventEmitter {
 
           // Emit progress event
           this.emit('testCompleted', { testType, result });
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error(
             `Security test ${testType} failed for ${plugin.name}: ${error.message}`
           );
@@ -375,7 +375,7 @@ export class SecurityTestSuite extends EventEmitter {
       );
 
       return suiteResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Security test suite error for ${plugin.name}: ${error.message}`
       );
@@ -448,7 +448,7 @@ export class SecurityTestSuite extends EventEmitter {
       result.timestamp = new Date();
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(`${testType} test failed: ${error.message}`);
     }
   }
@@ -565,7 +565,7 @@ export class SecurityTestSuite extends EventEmitter {
         });
         score -= 15;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       findings.push({
         id: crypto.randomUUID(),
         type: 'vulnerability',
@@ -644,7 +644,7 @@ export class SecurityTestSuite extends EventEmitter {
           // Malicious code was blocked - this is good
           passedTests++;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Error during test execution - could be good (blocked) or bad (crash)
         passedTests++;
       }
@@ -870,7 +870,7 @@ export class SecurityTestSuite extends EventEmitter {
         executionTime: 0,
         timestamp: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         testId: '',
         testType: 'permission-test',
@@ -967,7 +967,7 @@ export class SecurityTestSuite extends EventEmitter {
         executionTime: 0,
         timestamp: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return this.createErrorResult(
         'resource-test',
         'Resource Limit Test',
@@ -1019,7 +1019,7 @@ export class SecurityTestSuite extends EventEmitter {
         } else {
           passedTests++;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         passedTests++; // Error is good - means escape was blocked
       }
     }
@@ -1280,7 +1280,7 @@ export class SecurityTestSuite extends EventEmitter {
         executionTime: 0,
         timestamp: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return this.createErrorResult(
         'behavioral-analysis',
         'Behavioral Analysis',

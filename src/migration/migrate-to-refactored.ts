@@ -207,7 +207,7 @@ export function runMigrations(): void {
     logger.success('All migrations completed successfully');
     logger.info('The codebase is now using refactored implementations');
     logger.info('Old implementations are wrapped with compatibility adapters');
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(
       `Migration failed: ${error instanceof Error ? error.message : String(error)}`
     );

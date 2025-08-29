@@ -421,7 +421,7 @@ export class ServiceContainer implements IServiceContainer {
           if (disposal instanceof Promise) {
             disposals.push(disposal);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error('Error disposing service', error as Error, {
             serviceId,
           });

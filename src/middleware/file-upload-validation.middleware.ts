@@ -180,7 +180,7 @@ export class FileUploadValidationMiddleware {
   /**
    * Validate uploaded file with comprehensive security checks
    */
-  async validateFile(file: any): Promise<FileValidationResult> {
+  async validateFile(file: unknown): Promise<FileValidationResult> {
     const validationResult: FileValidationResult = {
       isValid: true,
       errors: [],
@@ -328,7 +328,7 @@ export class FileUploadValidationMiddleware {
       }
 
       return validationResult;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('File validation error:', error);
       return {
         ...validationResult,
@@ -742,7 +742,7 @@ export class FileUploadValidationMiddleware {
    * Express middleware factory
    */
   createMiddleware() {
-    return async (req: any, res: any, next: any) => {
+    return async (req: any, res: any, next: unknown) => {
       if (!req.files && !req.file) {
         return next(); // No files to validate
       }
@@ -788,7 +788,7 @@ export class FileUploadValidationMiddleware {
 
         req.fileValidationResults = validationResults;
         next();
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('File validation middleware error:', error);
         res.status(500).json({
           error: 'File validation error',

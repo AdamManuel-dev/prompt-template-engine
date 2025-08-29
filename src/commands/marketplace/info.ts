@@ -129,7 +129,7 @@ export class InfoCommand extends BaseCommand implements ICommand {
 
       // Show installation/usage instructions
       InfoCommand.displayUsageInstructions(template, isInstalled);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to get template info: ${error instanceof Error ? error.message : String(error)}`
       );

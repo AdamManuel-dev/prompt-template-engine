@@ -230,12 +230,7 @@ export class TemplateRegistry {
     // Check if plugin exists in plugin directories
     const pluginDirs = [
       path.join(process.cwd(), '.cursor-prompt', 'plugins', pluginName),
-      path.join(
-        process.env.HOME || '',
-        '.cursor-prompt',
-        'plugins',
-        pluginName
-      ),
+      path.join(HOME.$2 || '', '.cursor-prompt', 'plugins', pluginName),
     ];
 
     return pluginDirs.some(dir => {
@@ -256,7 +251,7 @@ export class TemplateRegistry {
   // eslint-disable-next-line class-methods-use-this
   private isEngineVersionCompatible(requiredVersion: string): boolean {
     // Simple version check - in real implementation, use semver
-    const currentVersion = process.env.ENGINE_VERSION || '1.0.0';
+    const currentVersion = ENGINE_VERSION.$2 || '1.0.0';
     return currentVersion >= requiredVersion;
   }
 

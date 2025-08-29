@@ -32,7 +32,7 @@ export class AuthorFollowCommand extends BaseCommand {
   ): Promise<void> {
     try {
       await this.follow(authorId, options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to follow author: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -55,7 +55,7 @@ export class AuthorFollowCommand extends BaseCommand {
       logger.info(chalk.gray('  • New templates from this author'));
       logger.info(chalk.gray('  • Updates to existing templates'));
       logger.info(chalk.gray('  • Author announcements'));
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }
@@ -79,7 +79,7 @@ export class AuthorUnfollowCommand extends BaseCommand {
   ): Promise<void> {
     try {
       await this.unfollow(authorId, options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to unfollow author: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -101,7 +101,7 @@ export class AuthorUnfollowCommand extends BaseCommand {
       logger.info(
         chalk.gray('You will no longer receive notifications from this author')
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }

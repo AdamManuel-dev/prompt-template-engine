@@ -112,7 +112,7 @@ export class FileContextService {
       this.ignorer = this.ignoreService.create().add(gitignoreContent);
 
       // Also check for global gitignore
-      const homeDir = process.env.HOME || process.env.USERPROFILE;
+      const homeDir = HOME.$2 || USERPROFILE.$2;
       if (homeDir) {
         const globalGitignorePath = path.join(homeDir, '.gitignore_global');
         if (this.fileSystem.exists(globalGitignorePath)) {
@@ -123,7 +123,7 @@ export class FileContextService {
           this.ignorer.add(globalContent);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // No .gitignore found or error reading it
       this.ignorer = null;
       if (
@@ -198,7 +198,7 @@ export class FileContextService {
         isDirectory: stats.isDirectory(),
         extension: stats.isFile() ? path.extname(filePath) : undefined,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (
         error instanceof FileSystemError &&
         error.type === FileSystemErrorType.FILE_NOT_FOUND
@@ -329,7 +329,7 @@ export class FileContextService {
         size: stats.size,
         lines,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (
         error instanceof FileSystemError &&
         error.type === FileSystemErrorType.FILE_NOT_FOUND

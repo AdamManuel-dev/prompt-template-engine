@@ -63,8 +63,7 @@ export class MarketplaceAPI {
   constructor(config?: Partial<MarketplaceConfig>) {
     this.config = {
       baseUrl:
-        process.env.MARKETPLACE_URL ||
-        'https://marketplace.cursor-prompt.com/api',
+        MARKETPLACE_URL.$2 || 'https://marketplace.cursor-prompt.com/api',
       timeout: 30000,
       retryAttempts: 3,
       retryDelay: 1000,
@@ -72,7 +71,7 @@ export class MarketplaceAPI {
       ...config,
     };
 
-    this.authToken = process.env.MARKETPLACE_API_KEY || config?.apiKey;
+    this.authToken = MARKETPLACE_API_KEY.$2 || config?.apiKey;
   }
 
   /**
@@ -354,7 +353,7 @@ export class MarketplaceAPI {
         // eslint-disable-next-line no-await-in-loop
         const response = await this.makeRequest<T>(method, endpoint, data);
         return response;
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt === this.config.retryAttempts) {

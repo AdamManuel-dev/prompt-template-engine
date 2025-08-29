@@ -325,7 +325,7 @@ export class BehaviorMonitor extends EventEmitter {
 
       // Emit assessment for external handlers
       this.emit('threatAssessment', assessment);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Immediate analysis error for ${executionId}: ${error.message}`
       );
@@ -409,7 +409,7 @@ export class BehaviorMonitor extends EventEmitter {
           }
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Periodic analysis error: ${error.message}`);
     }
   }

@@ -196,7 +196,7 @@ export class InstallCommand extends BaseCommand implements ICommand {
           `\n📚 Examples available - check the template documentation`
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Installation failed: ${error instanceof Error ? error.message : String(error)}`
       );

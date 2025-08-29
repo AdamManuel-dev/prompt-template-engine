@@ -100,7 +100,7 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
       }
 
       await BatchInstallCommand.processBatch(templates, options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Batch installation failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -122,7 +122,7 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
           .split('\n')
           .map(line => line.trim())
           .filter(line => line && !line.startsWith('#')); // Skip empty lines and comments
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new Error(`Failed to read file ${options.file}: ${error}`);
       }
     } else if (templateList) {
@@ -176,7 +176,7 @@ export class BatchInstallCommand extends BaseCommand implements ICommand {
           logger.info(`   ✗ ${chalk.red(templateName)} - not found`);
           invalidTemplates += 1;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.info(`   ✗ ${chalk.red(templateName)} - error: ${error}`);
         invalidTemplates += 1;
       }

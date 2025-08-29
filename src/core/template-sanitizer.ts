@@ -310,7 +310,7 @@ export class TemplateSanitizer {
     if (effectiveConfig.normalizeWhitespace) {
       // Remove excessive whitespace but preserve intentional formatting
       sanitized = sanitized
-        .replace(/\s+/g, ' ') // Multiple spaces to single space
+        .replace(/[ \t]+/g, ' ') // Multiple spaces/tabs to single space (preserve newlines)
         .replace(/\n\s*\n/g, '\n') // Multiple newlines to single newline
         .trim();
     }
@@ -590,7 +590,7 @@ export function SanitizeTemplateContent(config?: Partial<SanitizationConfig>) {
     const originalMethod = descriptor.value;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = function (content: string, ...args: any[]) {
+    descriptor.value = function (content: string, ...args: unknown[]) {
       const { sanitized } = templateSanitizer.sanitize(content, config);
       return originalMethod.call(this, sanitized, ...args);
     };

@@ -129,7 +129,7 @@ export class SearchCommand extends BaseCommand implements ICommand {
           )
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Search failed: ${error instanceof Error ? error.message : String(error)}`
       );

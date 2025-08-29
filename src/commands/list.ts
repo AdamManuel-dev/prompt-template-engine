@@ -408,7 +408,7 @@ export async function listCommand(options: ListOptions): Promise<void> {
     await displayTemplates(filteredTemplates, options);
 
     logger.success(`✅ Found ${filteredTemplates.length} template(s)`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof TemplateEngineError) {
       logger.error(`❌ List failed: ${error.message}`);
       throw error;

@@ -20,7 +20,7 @@ import type {
 
 export interface AuthorizationRequest {
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   params?: Record<string, string>;
   query?: Record<string, string>;
   method?: string;
@@ -47,7 +47,7 @@ export interface AuthorizationRequest {
 export interface AuthorizationResult {
   authorized: boolean;
   user?: AuthorizationRequest['user'];
-  session?: any;
+  session?: unknown;
   permissions: string[];
   evaluationResult?: PermissionEvaluationResult;
   error?: string;
@@ -83,7 +83,7 @@ export class AuthorizationMiddleware {
     action: string;
     granted: boolean;
     reason: string;
-    context: any;
+    context: unknown;
   }> = [];
 
   constructor(config: Partial<AuthorizationConfig> = {}) {
@@ -242,7 +242,7 @@ export class AuthorizationMiddleware {
         });
 
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Authorization failed', error as Error);
         return this.createFailureResult('Authorization system error');
       }
@@ -499,7 +499,7 @@ export class AuthorizationMiddleware {
         session,
         permissions: user.permissions,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Authentication extraction failed', error as Error);
       return this.createFailureResult('Authentication failed');
     }
@@ -541,7 +541,7 @@ export class AuthorizationMiddleware {
       }
 
       return this.createFailureResult('Insufficient permissions for resource');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Resource access check failed', error as Error);
       return this.createFailureResult('Resource access check error');
     }
@@ -563,7 +563,7 @@ export class AuthorizationMiddleware {
     request: AuthorizationRequest
   ): boolean {
     try {
-      let fieldValue: any;
+      let fieldValue: unknown;
 
       // Get field value from context or request
       switch (condition.type) {
@@ -618,7 +618,7 @@ export class AuthorizationMiddleware {
         default:
           return false;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Condition evaluation failed', error as Error);
       return false;
     }
@@ -628,7 +628,7 @@ export class AuthorizationMiddleware {
     field: string,
     context: AccessContext,
     request: AuthorizationRequest
-  ): any {
+  ): unknown {
     // Extract field value from nested objects
     const sources = [
       context,
@@ -650,7 +650,7 @@ export class AuthorizationMiddleware {
     return undefined;
   }
 
-  private getNestedValue(obj: any, path: string): any {
+  private getNestedValue(obj: any, path: string): unknown {
     return path
       .split('.')
       .reduce(

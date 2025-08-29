@@ -238,7 +238,7 @@ class SecurePluginValidator {
   /**
    * Analyze AST for security threats
    */
-  private analyzeAST(ast: any): {
+  private analyzeAST(ast: unknown): {
     threats: string[];
     warnings: string[];
     threatLevel: 'low' | 'medium' | 'high' | 'critical';

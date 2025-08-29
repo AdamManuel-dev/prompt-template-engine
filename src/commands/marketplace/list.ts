@@ -116,7 +116,7 @@ export class ListCommand extends BaseCommand implements ICommand {
               ]
             )
           );
-        } catch (error: any) {
+        } catch (error: unknown) {
           this.warn(
             `Failed to check updates: ${error instanceof Error ? error.message : String(error)}`
           );
@@ -178,7 +178,7 @@ export class ListCommand extends BaseCommand implements ICommand {
           );
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to list templates: ${error instanceof Error ? error.message : String(error)}`
       );

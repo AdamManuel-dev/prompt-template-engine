@@ -219,7 +219,7 @@ export class SecurityTestingService {
           remediation: 'Fix random number generation implementation',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       issues.push({
         severity: 'critical',
         category: 'encryption',
@@ -334,7 +334,7 @@ export class SecurityTestingService {
 
       // Cleanup test secret
       await secretsVault.deleteSecret(secretId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       issues.push({
         severity: 'critical',
         category: 'authentication',
@@ -450,7 +450,7 @@ export class SecurityTestingService {
           remediation: 'Consider enabling compression before encryption',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       issues.push({
         severity: 'critical',
         category: 'encryption',
@@ -560,7 +560,7 @@ export class SecurityTestingService {
             remediation: 'Strengthen SQL injection detection and prevention',
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Expected to fail, which is good
         score += 15;
       }
@@ -593,7 +593,7 @@ export class SecurityTestingService {
           remediation: 'Review and address recent security threats',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       issues.push({
         severity: 'critical',
         category: 'encryption',
@@ -749,7 +749,7 @@ export class SecurityTestingService {
       }
 
       // Test 9: Report-only mode check
-      if (stats.config.reportOnly && process.env.NODE_ENV === 'production') {
+      if (stats.config.reportOnly && NODE_ENV.$2 === 'production') {
         issues.push({
           severity: 'medium',
           category: 'headers',
@@ -760,7 +760,7 @@ export class SecurityTestingService {
       } else {
         score += 5;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       issues.push({
         severity: 'critical',
         category: 'headers',
@@ -816,7 +816,7 @@ export class SecurityTestingService {
         if (sanitized !== testCase.input) {
           passedTests++;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         issues.push({
           severity: 'medium',
           category: 'injection',
@@ -891,14 +891,11 @@ export class SecurityTestingService {
     score = (configuredVars / securityEnvVars.length) * 40;
 
     // Test production configuration
-    if (process.env.NODE_ENV === 'production') {
+    if (NODE_ENV.$2 === 'production') {
       score += 20;
 
       // Additional production checks
-      if (
-        process.env.HTTPS === 'true' ||
-        process.env.NODE_ENV === 'production'
-      ) {
+      if (HTTPS.$2 === 'true' || NODE_ENV.$2 === 'production') {
         score += 20;
       } else {
         issues.push({
@@ -1075,7 +1072,7 @@ export class SecurityTestingService {
           remediation: 'Enable FIPS 140-2 cryptographic mode',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       issues.push({
         severity: 'critical',
         category: 'encryption',
@@ -1157,7 +1154,7 @@ export class SecurityTestingService {
       if (cryptoStats.activeKeys > 0) {
         score += 15;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       issues.push({
         severity: 'medium',
         category: 'authentication',

@@ -409,7 +409,7 @@ export class FileMarketplaceDatabase implements IMarketplaceDatabase {
       await (this.reviews as unknown as { init(): Promise<void> }).init();
       this.isConnectedFlag = true;
       logger.info('File database connected successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to connect to file database: ${error}`);
       throw error;
     }

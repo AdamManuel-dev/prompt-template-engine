@@ -314,8 +314,11 @@ class FileStorage implements AnalyticsStorage {
           return event;
         });
       }
-    } catch (error: any) {
-      logger.error('Failed to initialize file storage', error as Error);
+    } catch (error: unknown) {
+      logger.error(
+        'Failed to initialize file storage',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 
@@ -496,8 +499,11 @@ export class OptimizationTracker extends EventEmitter {
       });
 
       this.emit('initialized');
-    } catch (error: any) {
-      logger.error('Failed to initialize optimization tracker', error as Error);
+    } catch (error: unknown) {
+      logger.error(
+        'Failed to initialize optimization tracker',
+        error instanceof Error ? error : new Error(String(error))
+      );
       throw error;
     }
   }
@@ -843,8 +849,11 @@ export class OptimizationTracker extends EventEmitter {
         try {
           const report = await this.generateReport();
           this.emit('periodicReport', report);
-        } catch (error: any) {
-          logger.error('Failed to generate periodic report', error as Error);
+        } catch (error: unknown) {
+          logger.error(
+            'Failed to generate periodic report',
+            error instanceof Error ? error : new Error(String(error))
+          );
         }
       }, this.config.reportInterval * 1000);
     }
@@ -858,8 +867,11 @@ export class OptimizationTracker extends EventEmitter {
             logger.info('Old analytics data purged', {
               retentionDays: this.config.retentionDays,
             });
-          } catch (error: any) {
-            logger.error('Failed to purge old data', error as Error);
+          } catch (error: unknown) {
+            logger.error(
+              'Failed to purge old data',
+              error instanceof Error ? error : new Error(String(error))
+            );
           }
         },
         24 * 60 * 60 * 1000
@@ -888,8 +900,11 @@ export class OptimizationTracker extends EventEmitter {
   private async storeEvent(event: OptimizationEvent): Promise<void> {
     try {
       await this.storage.storeEvent(event);
-    } catch (error: any) {
-      logger.error('Failed to store analytics event', error as Error);
+    } catch (error: unknown) {
+      logger.error(
+        'Failed to store analytics event',
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 

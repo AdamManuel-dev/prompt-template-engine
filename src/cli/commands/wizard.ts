@@ -236,7 +236,7 @@ export class OptimizationWizardCommand extends BaseCommand {
     // Run wizard steps
     try {
       await this.runWizard(options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Wizard failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -265,7 +265,7 @@ export class OptimizationWizardCommand extends BaseCommand {
         this.templateService,
         this.cacheService
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -285,7 +285,7 @@ export class OptimizationWizardCommand extends BaseCommand {
   private async checkServiceHealth(): Promise<boolean> {
     try {
       return await this.client.healthCheck();
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Health check failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -671,7 +671,7 @@ export class OptimizationWizardCommand extends BaseCommand {
 
       console.log();
       await this.prompt('Press Enter to continue');
-    } catch (error: any) {
+    } catch (error: unknown) {
       spinner.fail('Quality analysis failed');
       throw error;
     }
@@ -875,7 +875,7 @@ export class OptimizationWizardCommand extends BaseCommand {
 
       console.log();
       await this.prompt('Press Enter to see detailed comparison');
-    } catch (error: any) {
+    } catch (error: unknown) {
       spinner.fail('Optimization failed');
       throw error;
     }
@@ -1026,7 +1026,7 @@ export class OptimizationWizardCommand extends BaseCommand {
 
       console.log();
       await this.prompt('Press Enter to continue');
-    } catch (error: any) {
+    } catch (error: unknown) {
       spinner.fail('Comparison failed');
       throw error;
     }
@@ -1366,7 +1366,7 @@ export class OptimizationWizardCommand extends BaseCommand {
 
       fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
       this.success(`Optimized prompt saved to: ${outputPath}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to save optimized prompt: ${error instanceof Error ? error.message : String(error)}`
       );

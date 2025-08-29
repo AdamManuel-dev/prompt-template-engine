@@ -165,7 +165,7 @@ export class ApiValidationMiddleware {
    * Main middleware function for API validation
    */
   validate() {
-    return async (req: any, res: any, next: any) => {
+    return async (req: any, res: any, next: unknown) => {
       try {
         const context: ValidationContext = {
           clientId: req.ip || 'unknown',
@@ -317,7 +317,7 @@ export class ApiValidationMiddleware {
         });
 
         next();
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('API validation middleware error:', error);
         res.status(500).json({
           error: 'Internal validation error',
@@ -329,7 +329,9 @@ export class ApiValidationMiddleware {
   /**
    * Validate API request structure
    */
-  private async validateRequest(req: any): Promise<SecurityValidationResult> {
+  private async validateRequest(
+    req: unknown
+  ): Promise<SecurityValidationResult> {
     const requestData = {
       method: req.method,
       url: req.originalUrl || req.url,
@@ -373,8 +375,8 @@ export class ApiValidationMiddleware {
   /**
    * Check for SQL injection patterns
    */
-  private checkSqlInjection(req: any): string | null {
-    const checkValue = (value: any, path: string = ''): string | null => {
+  private checkSqlInjection(req: unknown): string | null {
+    const checkValue = (value: unknown, path: string = ''): string | null => {
       if (typeof value === 'string') {
         const sqlPatterns = [
           /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\s)/i,
@@ -414,8 +416,8 @@ export class ApiValidationMiddleware {
   /**
    * Check for XSS attack patterns
    */
-  private checkXssAttempt(req: any): string | null {
-    const checkValue = (value: any, path: string = ''): string | null => {
+  private checkXssAttempt(req: unknown): string | null {
+    const checkValue = (value: unknown, path: string = ''): string | null => {
       if (typeof value === 'string') {
         const xssPatterns = [
           /<script[^>]*>.*?<\/script>/gis,
@@ -457,8 +459,8 @@ export class ApiValidationMiddleware {
   /**
    * Check for path traversal attempts
    */
-  private checkPathTraversal(req: any): string | null {
-    const checkValue = (value: any, path: string = ''): string | null => {
+  private checkPathTraversal(req: unknown): string | null {
+    const checkValue = (value: unknown, path: string = ''): string | null => {
       if (typeof value === 'string') {
         const pathTraversalPatterns = [
           /\\.\\.[/\\\\]/,
@@ -570,7 +572,7 @@ export function createApiValidationMiddleware(
 /**
  * Validation decorator for controller methods
  */
-export function ValidateApiEndpoint(schema: z.ZodSchema<any>) {
+export function ValidateApiEndpoint(schema: z.ZodSchema<unknown>) {
   return function (
     _target: any,
     _propertyKey: string,
@@ -578,7 +580,7 @@ export function ValidateApiEndpoint(schema: z.ZodSchema<any>) {
   ) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const [req, res] = args;
 
       try {
@@ -604,7 +606,7 @@ export function ValidateApiEndpoint(schema: z.ZodSchema<any>) {
         }
 
         return originalMethod.apply(this, args);
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Validation decorator error:', error);
         return res.status(500).json({
           error: 'Internal validation error',

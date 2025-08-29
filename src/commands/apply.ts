@@ -108,7 +108,7 @@ export async function applyCommand(
     }
 
     logger.success(chalk.green('\n✅ Template applied successfully!'));
-  } catch (error: any) {
+  } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(chalk.red(`❌ Apply failed: ${message}`));
     throw error;
@@ -268,7 +268,7 @@ async function applyTemplate(
           } else if (applied.skipped) {
             result.filesSkipped.push(applied.path);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           const message =
             error instanceof Error ? error.message : String(error);
           result.errors.push(
@@ -283,7 +283,7 @@ async function applyTemplate(
       for (const cmd of template.commands) {
         try {
           await executeCommand(cmd, variables, engine);
-        } catch (error: any) {
+        } catch (error: unknown) {
           const message =
             error instanceof Error ? error.message : String(error);
           result.errors.push(`Failed to execute command: ${message}`);
@@ -292,7 +292,7 @@ async function applyTemplate(
     }
 
     result.success = result.errors.length === 0;
-  } catch (error: any) {
+  } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     result.errors.push(`Template application error: ${message}`);
   }
@@ -395,7 +395,7 @@ async function executeCommand(
         reject(new Error(`Failed to execute command: ${error.message}`));
       });
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(chalk.red(`  ✗ Command execution failed: ${message}`));
     throw error;

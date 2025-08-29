@@ -197,7 +197,7 @@ export class LoopProcessor {
       results.push(processed);
     });
 
-    return results.join('');
+    return results.join('\n');
   }
 
   /**

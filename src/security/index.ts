@@ -76,10 +76,10 @@ export class SecurityOrchestrator {
     }
   ): Promise<{
     success: boolean;
-    user?: any;
-    session?: any;
+    user?: unknown;
+    session?: unknown;
     permissions?: string[];
-    rateLimitResult?: any;
+    rateLimitResult?: unknown;
     error?: string;
   }> {
     try {
@@ -224,7 +224,7 @@ export class SecurityOrchestrator {
         permissions: authResult.permissions,
         rateLimitResult,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Security orchestration failed', error as Error);
 
       await auditLogger.logEvent({
@@ -278,8 +278,8 @@ export class SecurityOrchestrator {
       refreshToken: string;
       expiresIn: number;
     };
-    user?: any;
-    session?: any;
+    user?: unknown;
+    session?: unknown;
     error?: string;
   }> {
     try {
@@ -375,7 +375,7 @@ export class SecurityOrchestrator {
         user,
         session,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Login failed', error as Error);
 
       return {
@@ -441,7 +441,7 @@ export class SecurityOrchestrator {
       });
 
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Logout failed', error as Error);
 
       return {
@@ -455,12 +455,12 @@ export class SecurityOrchestrator {
    * Get comprehensive security status
    */
   async getSecurityStatus(): Promise<{
-    authentication: any;
-    authorization: any;
-    sessions: any;
-    rateLimiting: any;
-    policies: any;
-    audit: any;
+    authentication: unknown;
+    authorization: unknown;
+    sessions: unknown;
+    rateLimiting: unknown;
+    policies: unknown;
+    audit: unknown;
   }> {
     return {
       authentication: jwtAuthService.getServiceStats(),
@@ -479,8 +479,8 @@ export class SecurityOrchestrator {
     startDate?: Date,
     endDate?: Date
   ): Promise<{
-    summary: any;
-    complianceReport: any;
+    summary: unknown;
+    complianceReport: unknown;
     recommendations: string[];
   }> {
     const end = endDate || new Date();
@@ -545,7 +545,7 @@ export function createSecurityMiddleware(
     headers?: Record<string, string>;
     ip?: string;
     params?: Record<string, string>;
-    user?: any;
+    user?: unknown;
   }) => {
     const token = request.headers?.authorization?.replace('Bearer ', '');
     if (!token) {

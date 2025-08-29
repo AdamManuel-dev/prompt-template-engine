@@ -100,7 +100,7 @@ export class CompareCommand extends BaseCommand {
       const config = createDefaultConfig();
       this.client = new PromptWizardClient(config);
       this.templateService = new TemplateService();
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to initialize services: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -115,7 +115,7 @@ export class CompareCommand extends BaseCommand {
     try {
       const isHealthy = await this.client.healthCheck();
       return isHealthy;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Health check failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -207,7 +207,7 @@ export class CompareCommand extends BaseCommand {
           options
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       spinner.fail(
         `Comparison failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -565,7 +565,7 @@ export class CompareCommand extends BaseCommand {
       }
 
       this.success(`Comparison report saved to: ${options.output}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to save comparison report: ${error instanceof Error ? error.message : String(error)}`
       );

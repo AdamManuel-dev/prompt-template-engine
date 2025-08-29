@@ -83,7 +83,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
 
       this.emit('profile:fetched', { identifier, profile });
       return profile;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to fetch author profile ${identifier}: ${error}`);
       this.emit('profile:error', { identifier, error });
       throw error;
@@ -107,7 +107,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
 
       this.emit('search:completed', { query, result });
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Author search failed: ${error}`);
       this.emit('search:error', { query, error });
       throw error;
@@ -139,7 +139,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
 
       this.emit('templates:fetched', { authorId, templates: result.templates });
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to fetch templates for author ${authorId}: ${error}`
       );
@@ -172,7 +172,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
 
       this.emit('activity:fetched', { authorId, activities });
       return activities;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to fetch activity for author ${authorId}: ${error}`);
       throw error;
     }
@@ -211,7 +211,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       });
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to toggle follow ${followerId} -> ${authorId}: ${error}`
       );
@@ -243,7 +243,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       }
 
       return result.following;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to check follow status ${followerId} -> ${authorId}: ${error}`
       );
@@ -267,7 +267,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       this.setCache(cacheKey, stats, 15 * 60 * 1000); // 15 minutes
 
       return stats;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to fetch stats for author ${authorId}: ${error}`);
       throw error;
     }
@@ -285,7 +285,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
 
       this.emit('analytics:fetched', { authorId, period, analytics });
       return analytics;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to fetch analytics for author ${authorId}: ${error}`
       );
@@ -309,7 +309,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       this.setCache(cacheKey, authors, 30 * 60 * 1000); // 30 minutes
 
       return authors;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to fetch featured authors: ${error}`);
       throw error;
     }
@@ -334,7 +334,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       this.setCache(cacheKey, authors, 15 * 60 * 1000); // 15 minutes
 
       return authors;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to fetch trending authors: ${error}`);
       throw error;
     }
@@ -356,7 +356,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       this.setCache(cacheKey, badges, 60 * 60 * 1000); // 1 hour
 
       return badges;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to fetch badges for author ${authorId}: ${error}`);
       throw error;
     }
@@ -381,7 +381,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       );
 
       return contributions;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to fetch contributions for author ${authorId}: ${error}`
       );
@@ -406,7 +406,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       );
 
       return history;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to fetch reputation history for author ${authorId}: ${error}`
       );
@@ -437,7 +437,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       this.setCache(cacheKey, result, 10 * 60 * 1000); // 10 minutes
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to fetch followers for author ${authorId}: ${error}`
       );
@@ -468,7 +468,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       this.setCache(cacheKey, result, 10 * 60 * 1000); // 10 minutes
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to fetch following for author ${authorId}: ${error}`
       );
@@ -581,7 +581,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       );
       this.emit('profile:updated', updatedProfile);
       return updatedProfile;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to update profile: ${error}`);
       throw error;
     }
@@ -598,13 +598,13 @@ export class AuthorService extends EventEmitter implements IAuthorService {
     }
 
     // Try environment variable (for authenticated scenarios)
-    if (process.env.USER_ID) {
-      return process.env.USER_ID;
+    if (USER_ID.$2) {
+      return USER_ID.$2;
     }
 
     // Try system username as fallback
-    if (process.env.USER || process.env.USERNAME) {
-      return process.env.USER || process.env.USERNAME || 'unknown-user';
+    if (USER.$2 || USERNAME.$2) {
+      return USER.$2 || USERNAME.$2 || 'unknown-user';
     }
 
     // Ultimate fallback
@@ -624,7 +624,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       const following = this.followingCache.get(currentUserId) || new Set();
       following.add(authorId);
       this.followingCache.set(currentUserId, following);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to follow author ${authorId}: ${error}`);
       throw error;
     }
@@ -643,7 +643,7 @@ export class AuthorService extends EventEmitter implements IAuthorService {
       const following = this.followingCache.get(currentUserId) || new Set();
       following.delete(authorId);
       this.followingCache.set(currentUserId, following);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to unfollow author ${authorId}: ${error}`);
       throw error;
     }

@@ -104,8 +104,7 @@ export class AuthService {
       maxSessions?: number;
     } = {}
   ) {
-    this.jwtSecret =
-      options.jwtSecret || process.env.JWT_SECRET || 'default-dev-secret';
+    this.jwtSecret = options.jwtSecret || JWT_SECRET.$2 || 'default-dev-secret';
     this.sessionTimeout = options.sessionTimeout || 24 * 60 * 60 * 1000; // 24 hours
     this.maxSessions = options.maxSessions || 5;
 

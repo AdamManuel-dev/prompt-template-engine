@@ -128,7 +128,7 @@ export class PublishCommand extends BaseCommand implements ICommand {
       if (result.url) {
         logger.info(`View at: ${chalk.blue(result.url)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(chalk.red('❌ Failed to publish template'));
       if (error instanceof Error) {
         logger.error(chalk.red(error.message));
@@ -179,7 +179,7 @@ export class PublishCommand extends BaseCommand implements ICommand {
       }
       // Load single file
       return this.parseTemplateFile(templatePath);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(
         `Failed to load template: ${error instanceof Error ? error.message : 'Unknown error'}`
       );

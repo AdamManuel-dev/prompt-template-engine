@@ -556,8 +556,8 @@ export function createRateLimitMiddleware(
 
   return async (
     identifier: string,
-    operation: () => Promise<any>
-  ): Promise<any> => {
+    operation: () => Promise<unknown>
+  ): Promise<unknown> => {
     const result = await limiter.checkLimit(identifier);
 
     if (!result.allowed) {

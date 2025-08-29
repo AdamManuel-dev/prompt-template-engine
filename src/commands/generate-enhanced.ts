@@ -198,7 +198,7 @@ function parseTemplateMetadata(content: string): TemplateMetadata {
         }
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.debug(`Failed to parse template metadata: ${error}`);
   }
 
@@ -410,7 +410,7 @@ export async function generateEnhancedCommand(
       try {
         await clipboardy.write(output);
         logger.success('📋 Output copied to clipboard');
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn(`⚠️  Failed to copy to clipboard: ${error}`);
         logger.info('Output:');
         logger.info(output);
@@ -426,7 +426,7 @@ export async function generateEnhancedCommand(
     }
 
     logger.success('✨ Template generated successfully with context!');
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof TemplateEngineError) {
       logger.error(`❌ Generation failed: ${error.message}`);
       throw error;

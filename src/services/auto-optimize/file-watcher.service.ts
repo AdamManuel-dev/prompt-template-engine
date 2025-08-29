@@ -99,7 +99,7 @@ export class FileWatcherService extends EventEmitter {
       logger.info(
         `File watcher started monitoring ${this.options.watchPatterns.length} patterns`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to start file watcher', error as Error);
       throw error;
     }
@@ -127,7 +127,7 @@ export class FileWatcherService extends EventEmitter {
       this.emit('stopped');
 
       logger.info('File watcher stopped');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to stop file watcher', error as Error);
       throw error;
     }
@@ -259,7 +259,7 @@ export class FileWatcherService extends EventEmitter {
       this.debounceTimers.set(debounceKey, timer);
 
       logger.debug('Template file change detected', { filePath, eventType });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error handling file change', error as Error, {
         filePath,
         eventType,

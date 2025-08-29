@@ -32,7 +32,7 @@ export type PolicyConditionLogic = 'and' | 'or' | 'not';
 export interface PolicyCondition {
   field: string;
   operator: PolicyOperator;
-  value: any;
+  value: unknown;
   type: 'string' | 'number' | 'boolean' | 'array' | 'date' | 'object';
 }
 
@@ -43,7 +43,7 @@ export interface PolicyRule {
   conditionLogic: PolicyConditionLogic;
   effect: PolicyEffect;
   priority: number; // Higher priority = evaluated first
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Policy {
@@ -94,7 +94,7 @@ export interface PolicyEvaluationContext extends AccessContext {
     method?: string;
     path?: string;
     headers?: Record<string, string>;
-    body?: any;
+    body?: unknown;
     query?: Record<string, string>;
   };
 
@@ -105,7 +105,7 @@ export interface PolicyEvaluationContext extends AccessContext {
     roles: string[];
     permissions: string[];
     groups?: string[];
-    attributes?: Record<string, any>;
+    attributes?: Record<string, unknown>;
   };
 
   // Risk and trust factors
@@ -127,7 +127,7 @@ export interface PolicyEvaluationContext extends AccessContext {
   };
 
   // Custom attributes
-  custom?: Record<string, any>;
+  custom?: Record<string, unknown>;
 }
 
 export type PolicyContext = PolicyEvaluationContext;
@@ -312,7 +312,7 @@ export class PolicyEngineService {
       });
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Policy evaluation failed', error as Error);
 
       // Fail securely with deny
@@ -381,7 +381,7 @@ export class PolicyEngineService {
       });
 
       return policy;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Policy creation failed', error as Error);
       throw error;
     }
@@ -422,7 +422,7 @@ export class PolicyEngineService {
       });
 
       return updatedPolicy;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Policy update failed', error as Error);
       throw error;
     }
@@ -444,7 +444,7 @@ export class PolicyEngineService {
       logger.info('Policy deleted', { policyId, name: policy.name });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Policy deletion failed', error as Error);
       throw error;
     }
@@ -782,15 +782,18 @@ export class PolicyEngineService {
           });
           return false;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Condition evaluation failed', error as Error);
       return false;
     }
   }
 
-  private getFieldValue(field: string, context: PolicyEvaluationContext): any {
+  private getFieldValue(
+    field: string,
+    context: PolicyEvaluationContext
+  ): unknown {
     const parts = field.split('.');
-    let value: any = context;
+    let value: unknown = context;
 
     for (const part of parts) {
       if (value && typeof value === 'object' && part in value) {
@@ -803,7 +806,7 @@ export class PolicyEngineService {
     return value;
   }
 
-  private convertValue(value: any, type: PolicyCondition['type']): any {
+  private convertValue(value: unknown, type: PolicyCondition['type']): unknown {
     switch (type) {
       case 'string':
         return String(value);

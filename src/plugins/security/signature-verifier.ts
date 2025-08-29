@@ -196,7 +196,7 @@ export class SignatureVerifier {
       await this.loadTrustStore();
       await this.loadRevocationList();
       logger.info('Signature verifier initialized successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to initialize signature verifier: ${error.message}`);
       throw error;
     }
@@ -306,7 +306,7 @@ export class SignatureVerifier {
         `Signature verification completed for ${plugin.name}: ${result.valid ? 'VALID' : 'INVALID'} (${result.trustLevel})`
       );
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Signature verification error for ${plugin.name}: ${error.message}`
       );
@@ -364,7 +364,7 @@ export class SignatureVerifier {
 
       logger.info(`Plugin signed successfully: ${plugin.name}`);
       return pluginSignature;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to sign plugin ${plugin.name}: ${error.message}`);
       throw new Error(`Plugin signing failed: ${error.message}`);
     }
@@ -387,7 +387,7 @@ export class SignatureVerifier {
       logger.info(
         `Added trusted publisher: ${publisher.name} (${publisher.keyId})`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to add trusted publisher: ${error.message}`);
       throw error;
     }
@@ -420,7 +420,7 @@ export class SignatureVerifier {
       this.clearCacheForKey(keyId);
 
       logger.warn(`Certificate revoked: ${keyId} (${reason})`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to revoke certificate ${keyId}: ${error.message}`);
       throw error;
     }
@@ -532,7 +532,7 @@ export class SignatureVerifier {
           ? undefined
           : 'Cryptographic signature verification failed',
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         valid: false,
         error: `Signature verification error: ${error.message}`,
@@ -791,7 +791,7 @@ export class SignatureVerifier {
     // Validate public key format
     try {
       crypto.createPublicKey(publisher.publicKey);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error('Invalid public key format');
     }
 
@@ -821,7 +821,7 @@ export class SignatureVerifier {
       }
 
       logger.info(`Loaded ${publishers.length} trusted publishers`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error.code === 'ENOENT') {
         logger.info('Trust store not found - creating empty trust store');
         await this.createDefaultTrustStore();
@@ -846,7 +846,7 @@ export class SignatureVerifier {
       await fs.writeFile(this.config.trustStorePath, trustStoreData);
 
       logger.debug('Trust store saved successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to save trust store: ${error.message}`);
       throw error;
     }
@@ -871,7 +871,7 @@ export class SignatureVerifier {
       }
 
       logger.info(`Loaded ${revocations.length} revoked certificates`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error.code === 'ENOENT') {
         logger.info('Revocation list not found - creating empty list');
         await this.saveRevocationList();
@@ -896,7 +896,7 @@ export class SignatureVerifier {
       await fs.writeFile(this.config.revocationListPath, revocationData);
 
       logger.debug('Revocation list saved successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to save revocation list: ${error.message}`);
       throw error;
     }

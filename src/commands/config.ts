@@ -131,7 +131,7 @@ export async function configCommand(
 
     // Default: show current config
     await listConfig(isGlobal);
-  } catch (error: any) {
+  } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(chalk.red(`❌ Config command failed: ${message}`));
     throw error;

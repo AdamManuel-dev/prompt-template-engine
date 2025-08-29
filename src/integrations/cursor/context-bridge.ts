@@ -300,12 +300,12 @@ export class ContextBridge {
    * Sets up internal caching mechanisms and validates configuration parameters.
    *
    * @param {BridgeOptions} [options={}] - Optional configuration overrides
-   * @param {number} [options.maxFileSize=1048576] - Maximum file size in bytes (default: 1MB)
-   * @param {string[]} [options.includePaths=['src','lib','app']] - Paths to include in file discovery
-   * @param {string[]} [options.excludePaths=['node_modules','.git','dist','build']] - Paths to exclude
-   * @param {boolean} [options.autoDetect=true] - Enable automatic related file discovery
-   * @param {number} [options.cacheTimeout=60000] - Cache TTL in milliseconds (default: 1 minute)
-   * @param {number} [options.maxReferences=50] - Maximum number of file references to generate
+   * @param {number} [options['maxFileSize']=1048576] - Maximum file size in bytes (default: 1MB)
+   * @param {string[]} [options['includePaths']=['src','lib','app']] - Paths to include in file discovery
+   * @param {string[]} [options['excludePaths']=['node_modules','.git','dist','build']] - Paths to exclude
+   * @param {boolean} [options['autoDetect']=true] - Enable automatic related file discovery
+   * @param {number} [options['cacheTimeout']=60000] - Cache TTL in milliseconds (default: 1 minute)
+   * @param {number} [options['maxReferences']=50] - Maximum number of file references to generate
    *
    * @example
    * ```typescript

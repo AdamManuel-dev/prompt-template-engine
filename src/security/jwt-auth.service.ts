@@ -83,7 +83,7 @@ export interface JWTAuthConfig {
  * try {
  *   const payload = await authService.verifyToken(token);
  *   console.log('User:', payload.username, 'Roles:', payload.roles);
- * } catch (error: any) {
+ * } catch (error: unknown) {
  *   console.error('Token verification failed:', error.message);
  * }
  *
@@ -113,9 +113,7 @@ export class JWTAuthService {
   constructor(config: Partial<JWTAuthConfig> = {}) {
     this.config = {
       jwtSecret:
-        config.jwtSecret ||
-        process.env.JWT_SECRET ||
-        this.generateSecureSecret(),
+        config.jwtSecret || JWT_SECRET.$2 || this.generateSecureSecret(),
       accessTokenExpiry: config.accessTokenExpiry || '15m',
       refreshTokenExpiry: config.refreshTokenExpiry || '7d',
       issuer: config.issuer || 'cursor-prompt-template-engine',
@@ -125,7 +123,7 @@ export class JWTAuthService {
       maxTokensPerUser: config.maxTokensPerUser || 5,
     };
 
-    if (!process.env.JWT_SECRET && !config.jwtSecret) {
+    if (!JWT_SECRET.$2 && !config.jwtSecret) {
       logger.warn(
         'No JWT secret provided, using generated secret (not suitable for production)'
       );
@@ -245,7 +243,7 @@ export class JWTAuthService {
         expiresIn,
         tokenType: 'Bearer',
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to generate JWT token pair', error as Error);
       throw new Error('Token generation failed');
     }
@@ -304,7 +302,7 @@ export class JWTAuthService {
         valid: true,
         payload,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof jwt.TokenExpiredError) {
         return {
           valid: false,
@@ -390,7 +388,7 @@ export class JWTAuthService {
       });
 
       return newTokenPair;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Token refresh failed', error as Error);
       return null;
     }
@@ -430,7 +428,7 @@ export class JWTAuthService {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Token revocation failed', error as Error);
       return false;
     }
@@ -505,7 +503,7 @@ export class JWTAuthService {
         roles: payload.roles || [],
         permissions: payload.permissions || [],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return null;
     }
   }
@@ -631,7 +629,7 @@ export const jwtAuthService = new JWTAuthService();
 export function createJWTMiddleware() {
   return async (request: {
     headers?: Record<string, string>;
-    user?: any;
+    user?: unknown;
     tokenInfo?: TokenVerificationResult;
   }) => {
     const authHeader = request.headers?.authorization;

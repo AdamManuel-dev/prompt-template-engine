@@ -117,7 +117,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
 
       // Show general version management help
       VersionCommand.showHelp();
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Version command failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -202,7 +202,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
           )}`
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Invalid version format: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -414,7 +414,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
           )}`
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to analyze template: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -492,7 +492,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
       }
 
       logger.info(chalk.gray(`\n📊 Total: ${versions.length} versions`));
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to list versions: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -580,7 +580,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
           )}`
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to get latest version: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -688,7 +688,7 @@ export class VersionCommand extends BaseCommand implements ICommand {
           )}`
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.error(
         `Failed to check compatibility: ${error instanceof Error ? error.message : String(error)}`
       );

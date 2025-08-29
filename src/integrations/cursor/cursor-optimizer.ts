@@ -316,7 +316,7 @@ export class CursorOptimizer {
         `Cursor context detected: ${context.projectType} project in ${workspaceRoot}`
       );
       return context;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to detect Cursor context: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -567,7 +567,7 @@ export class CursorOptimizer {
         });
 
         optimized += 1;
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(
           `Failed to optimize template ${templateInfo.name}: ${error instanceof Error ? error.message : String(error)}`
         );

@@ -43,9 +43,7 @@ export class SecurityService {
     this.keyDerivationIterations = config.keyDerivationIterations || 100000;
 
     const keyString =
-      config.encryptionKey ||
-      process.env.ENCRYPTION_KEY ||
-      'default-dev-key-not-secure';
+      config.encryptionKey || ENCRYPTION_KEY.$2 || 'default-dev-key-not-secure';
     this.encryptionKey = crypto.scryptSync(keyString, 'salt', 32);
 
     if (keyString === 'default-dev-key-not-secure') {
@@ -81,7 +79,7 @@ export class SecurityService {
         authTag: authTag.toString('hex'),
         salt: salt.toString('hex'),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Encryption failed', error as Error);
       throw new Error('Failed to encrypt data');
     }
@@ -110,7 +108,7 @@ export class SecurityService {
       decrypted += decipher.final('utf8');
 
       return decrypted;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Decryption failed', error as Error);
       throw new Error('Failed to decrypt data');
     }
@@ -514,7 +512,7 @@ export class SecretsManager {
 
     try {
       return securityService.decryptData(encrypted);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to decrypt secret: ${key}`, error as Error);
       return null;
     }

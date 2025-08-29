@@ -336,7 +336,7 @@ export class PluginSandbox {
             });
           }
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         reject(error);
       }
     });

@@ -478,7 +478,7 @@ export class PermissionManager extends EventEmitter {
       this.cachePermissionResult(cacheKey, result);
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Permission check error for ${pluginId}: ${error.message}`);
       const result = this.createDeniedResult(
         `Check error: ${error.message}`,
@@ -553,7 +553,7 @@ export class PermissionManager extends EventEmitter {
         `Granted ${permissionType} permission to ${context.pluginName}`
       );
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to grant permission to ${pluginId}: ${error.message}`
       );
@@ -606,7 +606,7 @@ export class PermissionManager extends EventEmitter {
         `Revoked ${permission.type} permission from ${context.pluginName}`
       );
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Failed to revoke permission from ${pluginId}: ${error.message}`
       );
@@ -705,7 +705,7 @@ export class PermissionManager extends EventEmitter {
         `Permission escalation approved for ${context.pluginName}: ${previousTrustLevel} -> ${targetTrustLevel}`
       );
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Permission escalation error for ${pluginId}: ${error.message}`
       );

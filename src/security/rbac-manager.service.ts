@@ -58,7 +58,7 @@ export interface PolicyCondition {
     | 'contains'
     | 'regex';
   field: string;
-  value: any;
+  value: unknown;
   description?: string;
 }
 
@@ -531,7 +531,7 @@ export class RBACManagerService {
         conditionsChecked,
         startTime
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Permission evaluation failed', error as Error);
       return this.createEvaluationResult(
         false,
@@ -694,15 +694,15 @@ export class RBACManagerService {
           });
           return false;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Condition evaluation failed', error as Error);
       return false;
     }
   }
 
-  private getContextFieldValue(field: string, context: AccessContext): any {
+  private getContextFieldValue(field: string, context: AccessContext): unknown {
     const parts = field.split('.');
-    let value: any = context;
+    let value: unknown = context;
 
     for (const part of parts) {
       if (value && typeof value === 'object' && part in value) {

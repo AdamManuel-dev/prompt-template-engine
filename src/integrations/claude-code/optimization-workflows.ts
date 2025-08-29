@@ -244,7 +244,7 @@ export class OptimizationWorkflowManager {
             analysis.promptFiles += 1;
             analysis.optimizationCandidates.push(...candidates);
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.warn(
             `Failed to analyze file ${file}: ${error instanceof Error ? error.message : String(error)}`
           );
@@ -274,7 +274,7 @@ export class OptimizationWorkflowManager {
         `Project analysis completed: ${analysis.optimizationCandidates.length} optimization candidates found`
       );
       return analysis;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(
         `Project analysis failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -349,7 +349,7 @@ export class OptimizationWorkflowManager {
             error: result.error || 'Unknown error',
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         failedFiles.push({
           file,
@@ -705,7 +705,7 @@ export class OptimizationWorkflowManager {
             }
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn(
           `Failed to scan directory ${dir}: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -786,7 +786,7 @@ export class OptimizationWorkflowManager {
       }
 
       return candidates;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn(
         `Failed to analyze file ${filePath}: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -849,7 +849,7 @@ export class OptimizationWorkflowManager {
             (await this.client.scorePrompt(content)).overall,
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         originalContent: '',

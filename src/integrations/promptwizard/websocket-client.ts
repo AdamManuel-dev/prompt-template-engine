@@ -179,7 +179,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
         this.ws.onmessage = event => {
           this.handleMessage(event.data);
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         reject(error);
       }
     });
@@ -232,7 +232,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
         for (const jobId of this.subscribedJobs) {
           this.subscribeToJob(jobId);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Reconnection attempt failed', error as Error);
         this.attemptReconnection();
       }
@@ -306,7 +306,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
         default:
           logger.warn('Unknown WebSocket message type', { type: message.type });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to parse WebSocket message', error as Error);
     }
   }
@@ -419,7 +419,7 @@ export class PromptWizardWebSocketClient extends EventEmitter {
     if (this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(JSON.stringify(message));
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Failed to send WebSocket message', error as Error);
         this.messageQueue.push(message);
       }

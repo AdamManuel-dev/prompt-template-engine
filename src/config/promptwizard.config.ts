@@ -136,16 +136,16 @@ export const DEFAULT_PROMPTWIZARD_CONFIG: PromptWizardConfig = {
   enabled: false,
 
   connection: {
-    serviceUrl: process.env.PROMPTWIZARD_SERVICE_URL || 'http://localhost:8000',
+    serviceUrl: PROMPTWIZARD_SERVICE_URL.$2 || 'http://localhost:8000',
     timeout: 120000,
     retries: 3,
-    apiKey: process.env.PROMPTWIZARD_API_KEY,
+    apiKey: PROMPTWIZARD_API_KEY.$2,
     verifySSL: true,
   },
 
   grpc: {
     enabled: false,
-    serviceUrl: process.env.PROMPTWIZARD_GRPC_URL || 'localhost:50051',
+    serviceUrl: PROMPTWIZARD_GRPC_URL.$2 || 'localhost:50051',
     secure: false,
     keepAlive: true,
     maxReceiveMessageLength: 4 * 1024 * 1024, // 4MB
@@ -154,8 +154,7 @@ export const DEFAULT_PROMPTWIZARD_CONFIG: PromptWizardConfig = {
 
   websocket: {
     enabled: false,
-    serviceUrl:
-      process.env.PROMPTWIZARD_WS_URL || 'ws://localhost:8001/ws/optimize',
+    serviceUrl: PROMPTWIZARD_WS_URL.$2 || 'ws://localhost:8001/ws/optimize',
     reconnectInterval: 5000,
     maxReconnectAttempts: 10,
     heartbeatInterval: 30000,
@@ -177,7 +176,7 @@ export const DEFAULT_PROMPTWIZARD_CONFIG: PromptWizardConfig = {
     maxSize: 1000,
     redis: {
       enabled: false,
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      url: REDIS_URL.$2 || 'redis://localhost:6379',
       keyPrefix: 'promptwizard:',
       ttl: 86400,
     },
@@ -473,7 +472,7 @@ export function getPromptWizardConfig(): PromptWizardConfig {
     }
 
     return config;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(
       `Failed to load PromptWizard configuration, using defaults: ${(error as Error).message}`
     );
@@ -536,41 +535,40 @@ export function getEnvironmentOverrides(): Partial<PromptWizardConfig> {
   const overrides: Partial<PromptWizardConfig> = {};
 
   // Connection overrides
-  if (process.env.PROMPTWIZARD_SERVICE_URL) {
+  if (PROMPTWIZARD_SERVICE_URL.$2) {
     overrides.connection = {
-      serviceUrl: process.env.PROMPTWIZARD_SERVICE_URL,
+      serviceUrl: PROMPTWIZARD_SERVICE_URL.$2,
       timeout: 30000,
       retries: 3,
       verifySSL: true,
     };
   }
-  if (process.env.PROMPTWIZARD_API_KEY) {
+  if (PROMPTWIZARD_API_KEY.$2) {
     overrides.connection = {
-      serviceUrl:
-        process.env.PROMPTWIZARD_SERVICE_URL || 'http://localhost:8080',
+      serviceUrl: PROMPTWIZARD_SERVICE_URL.$2 || 'http://localhost:8080',
       timeout: 30000,
       retries: 3,
       verifySSL: true,
       ...overrides.connection,
-      apiKey: process.env.PROMPTWIZARD_API_KEY,
+      apiKey: PROMPTWIZARD_API_KEY.$2,
     };
   }
 
   // Protocol overrides
-  if (process.env.PROMPTWIZARD_GRPC_ENABLED === 'true') {
+  if (PROMPTWIZARD_GRPC_ENABLED.$2 === 'true') {
     overrides.grpc = {
       enabled: true,
-      serviceUrl: process.env.PROMPTWIZARD_SERVICE_URL || 'localhost:50051',
+      serviceUrl: PROMPTWIZARD_SERVICE_URL.$2 || 'localhost:50051',
       secure: false,
       keepAlive: true,
       maxReceiveMessageLength: 4 * 1024 * 1024,
       maxSendMessageLength: 4 * 1024 * 1024,
     };
   }
-  if (process.env.PROMPTWIZARD_WS_ENABLED === 'true') {
+  if (PROMPTWIZARD_WS_ENABLED.$2 === 'true') {
     overrides.websocket = {
       enabled: true,
-      serviceUrl: process.env.PROMPTWIZARD_SERVICE_URL || 'ws://localhost:8080',
+      serviceUrl: PROMPTWIZARD_SERVICE_URL.$2 || 'ws://localhost:8080',
       reconnectInterval: 5000,
       maxReconnectAttempts: 10,
       heartbeatInterval: 30000,
@@ -578,14 +576,14 @@ export function getEnvironmentOverrides(): Partial<PromptWizardConfig> {
   }
 
   // Redis overrides
-  if (process.env.REDIS_URL) {
+  if (REDIS_URL.$2) {
     overrides.cache = {
       enabled: true,
       ttl: 3600,
       maxSize: 1000,
       redis: {
         enabled: true,
-        url: process.env.REDIS_URL,
+        url: REDIS_URL.$2,
         keyPrefix: 'promptwizard:',
         ttl: 3600,
       },
@@ -618,13 +616,13 @@ export async function checkPromptWizardAvailability(): Promise<{
   // Check service availability (this would normally make an HTTP request)
   try {
     // Mock availability check - in real implementation, this would ping the service
-    const serviceAvailable = true; // await fetch(`${config.connection.serviceUrl}/health`)
+    const serviceAvailable = true; // await fetch(`${config['connection'].serviceUrl}/health`)
 
     if (!serviceAvailable) {
       issues.push('PromptWizard service is not responding');
       recommendations.push('Ensure PromptWizard Python service is running');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     issues.push(`Cannot connect to PromptWizard service: ${error}`);
     recommendations.push('Check service URL and network connectivity');
   }
