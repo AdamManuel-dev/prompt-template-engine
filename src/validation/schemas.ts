@@ -460,8 +460,115 @@ export type Config = z.infer<typeof ConfigSchema>;
 export type MarketplaceManifest = z.infer<typeof MarketplaceManifestSchema>;
 export type PluginConfig = z.infer<typeof PluginConfigSchema>;
 
+/**
+ * Security validation result interface
+ */
+export interface SecurityValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  securityLevel: 'safe' | 'warning' | 'danger';
+  threats: string[];
+  threatLevel?: 'safe' | 'warning' | 'danger';
+  safe?: boolean;
+  sanitized?: unknown;
+}
+
+// Custom validators object
+export const customValidators = {
+  /**
+   * Validate file path safety
+   */
+  isPathSafe: (path: string): boolean => {
+    const dangerousPatterns = [/\.\./g, /^\//, /\\/, /\0/];
+    return !dangerousPatterns.some(pattern => pattern.test(path));
+  },
+
+  /**
+   * Validate content safety (XSS, SQL injection, etc.)
+   */
+  isContentSafe: (content: string): SecurityValidationResult => {
+    const errors: string[] = [];
+    const threats: string[] = [];
+
+    if (!patterns.xssSafe.test(content)) {
+      errors.push('Content contains XSS patterns');
+      threats.push('XSS');
+    }
+
+    if (!patterns.sqlSafe.test(content)) {
+      errors.push('Content contains SQL injection patterns');
+      threats.push('SQL Injection');
+    }
+
+    if (content.includes('\u0000')) {
+      errors.push('Content contains null bytes');
+      threats.push('Null Byte Injection');
+    }
+
+    const isValid = errors.length === 0;
+    const securityLevel: 'safe' | 'warning' | 'danger' = isValid
+      ? 'safe'
+      : threats.length > 1
+        ? 'danger'
+        : 'warning';
+
+    return {
+      isValid,
+      errors,
+      warnings: [],
+      securityLevel,
+      threats,
+      threatLevel: securityLevel,
+      safe: isValid,
+    };
+  },
+
+  /**
+   * Sanitize content by removing dangerous patterns
+   */
+  sanitizeContent: (content: string): string =>
+    content
+      .replace(/<script[^>]*>.*?<\/script>/gis, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+\s*=/gi, ''),
+
+  /**
+   * Validate JSON string
+   */
+  isValidJson: (str: string): boolean => {
+    try {
+      JSON.parse(str);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * Validate environment variable name
+   */
+  isValidEnvVar: (name: string): boolean => /^[A-Z_][A-Z0-9_]*$/.test(name),
+
+  /**
+   * Validate template name uniqueness
+   */
+  isTemplateNameUnique: async (
+    name: string,
+    existingNames: string[]
+  ): Promise<boolean> => !existingNames.includes(name),
+
+  /**
+   * Validate plugin permissions
+   */
+  validatePluginPermissions: (
+    requested: string[],
+    available: string[]
+  ): boolean => requested.every(p => available.includes(p)),
+};
+
 // Enhanced validator class implementation
-export class EnhancedValidator {
+export class EnhancedValidatorClass {
   static validate<T>(
     schema: z.ZodSchema<T>,
     data: unknown
@@ -477,7 +584,7 @@ export class EnhancedValidator {
         threatLevel: 'safe',
         safe: true,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errors =
         error instanceof z.ZodError
           ? error.issues.map(e => e.message)
@@ -547,7 +654,7 @@ export class Validator {
       const result = schema.parse(data);
 
       return { success: true, data: result };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const errors = error.issues.map(e => {
           const path = e.path.join('.');
@@ -576,7 +683,7 @@ export class Validator {
       try {
         const transformed = await transform(result.data);
         return { success: true, data: transformed };
-      } catch (error: any) {
+      } catch (error: unknown) {
         return {
           success: false,
           errors: [`Transformation failed: ${(error as Error).message}`],
@@ -595,7 +702,10 @@ export class Validator {
     data: unknown
   ): { success: boolean; data?: Partial<T>; errors?: string[] } {
     // Use type assertion for partial since it's not available on base ZodSchema
-    const partialSchema = (schema as any).partial?.() || schema;
+    const partialSchema =
+      (
+        schema as z.ZodSchema<T> & { partial?(): z.ZodSchema<Partial<T>> }
+      ).partial?.() || schema;
     return this.validate(partialSchema, data);
   }
 
@@ -613,94 +723,6 @@ export class Validator {
 }
 
 /**
- * Custom validators
- */
-export const customValidators = {
-  /**
-   * Validate file path safety
-   */
-  isPathSafe(path: string): boolean {
-    return !path.includes('..') && !path.startsWith('/');
-  },
-
-  /**
-   * Validate template name uniqueness
-   */
-  async isTemplateNameUnique(
-    name: string,
-    existingNames: string[]
-  ): Promise<boolean> {
-    return !existingNames.includes(name);
-  },
-
-  /**
-   * Validate plugin permissions
-   */
-  validatePluginPermissions(requested: string[], available: string[]): boolean {
-    return requested.every(p => available.includes(p));
-  },
-
-  /**
-   * Validate JSON string
-   */
-  isValidJson(str: string): boolean {
-    try {
-      JSON.parse(str);
-      return true;
-    } catch {
-      return false;
-    }
-  },
-
-  /**
-   * Validate environment variable name
-   */
-  isValidEnvVar(name: string): boolean {
-    return /^[A-Z_][A-Z0-9_]*$/.test(name);
-  },
-
-  /**
-   * Validate content safety (XSS, SQL injection, etc.)
-   */
-  isContentSafe(content: string): SecurityValidationResult {
-    const errors: string[] = [];
-    const threats: string[] = [];
-
-    if (!patterns.xssSafe.test(content)) {
-      errors.push('Content contains XSS patterns');
-      threats.push('XSS');
-    }
-
-    if (!patterns.sqlSafe.test(content)) {
-      errors.push('Content contains SQL injection patterns');
-      threats.push('SQL Injection');
-    }
-
-    if (content.includes('\u0000')) {
-      errors.push('Content contains null bytes');
-      threats.push('Null Byte Injection');
-    }
-
-    const isValid = errors.length === 0;
-    const securityLevel: 'safe' | 'warning' | 'danger' = isValid
-      ? 'safe'
-      : threats.length > 1
-        ? 'danger'
-        : 'warning';
-
-    return {
-      isValid,
-      errors,
-      warnings: [],
-      securityLevel,
-      threats,
-      threatLevel: securityLevel,
-      safe: isValid,
-    };
-  },
-};
-
-/**
  * Export validation middleware factory
  */
 export function createValidationMiddleware<T>(schema: z.ZodSchema<T>) {
@@ -708,20 +730,6 @@ export function createValidationMiddleware<T>(schema: z.ZodSchema<T>) {
     const result = schema.parse(data);
     return result;
   };
-}
-
-/**
- * Security validation result interface
- */
-export interface SecurityValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-  securityLevel: 'safe' | 'warning' | 'danger';
-  threats: string[];
-  threatLevel?: 'safe' | 'warning' | 'danger';
-  safe?: boolean;
-  sanitized?: any;
 }
 
 /**
