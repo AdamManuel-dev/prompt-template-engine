@@ -114,10 +114,10 @@ router.post(
         id: result.user.id,
         email: result.user.email,
         name: result.user.displayName || result.user.username,
-        avatar: result.user.avatar,
-        role: result.user.role.toLowerCase(),
-        preferences: result.user.preferences || {
-          theme: 'light',
+        avatar: result.user.avatar || undefined,
+        role: result.user.role.toLowerCase() as 'user' | 'admin',
+        preferences: (result.user.preferences as any) || {
+          theme: 'light' as 'light' | 'dark',
           language: 'en',
           favoriteTemplates: [],
           recentTemplates: []
@@ -185,8 +185,8 @@ router.post(
   requireAuth,
   asyncHandler(async (req: Request, res: Response) => {
     try {
-      const jti = req.user?.jti;
-      await authService.logout(req.user!.id, jti);
+      const jti = req.jwtUser?.jti;
+      await authService.logout(req.jwtUser!.id, jti);
 
       res.json({
         success: true,
@@ -211,16 +211,16 @@ router.get(
   requireAuth,
   asyncHandler(async (req: Request, res: Response) => {
     try {
-      const profile = await authService.getProfile(req.user!.id);
+      const profile = await authService.getProfile(req.jwtUser!.id);
 
       const userSession: UserSession = {
         id: profile.id,
         email: profile.email,
         name: profile.displayName || profile.username,
-        avatar: profile.avatarUrl,
-        role: profile.role.toLowerCase(),
-        preferences: profile.preferences || {
-          theme: 'light',
+        avatar: profile.avatarUrl || undefined,
+        role: profile.role.toLowerCase() as 'user' | 'admin',
+        preferences: (profile.preferences as any) || {
+          theme: 'light' as 'light' | 'dark',
           language: 'en',
           favoriteTemplates: [],
           recentTemplates: []
@@ -258,7 +258,7 @@ router.put(
   ]),
   asyncHandler(async (req: Request, res: Response) => {
     try {
-      const profile = await authService.updateProfile(req.user!.id, req.body);
+      const profile = await authService.updateProfile(req.jwtUser!.id, req.body);
 
       res.json({
         success: true,
@@ -344,7 +344,7 @@ router.post(
   asyncHandler(async (req: Request, res: Response) => {
     try {
       await authService.changePassword({
-        userId: req.user!.id,
+        userId: req.jwtUser!.id,
         currentPassword: req.body.currentPassword,
         newPassword: req.body.password,
       });

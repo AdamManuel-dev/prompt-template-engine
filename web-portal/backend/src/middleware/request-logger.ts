@@ -59,7 +59,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
       ...requestInfo,
       statusCode,
       responseTime,
-      userId: req.user?.id
+      userId: req.jwtUser?.id
     };
 
     // Log based on status code

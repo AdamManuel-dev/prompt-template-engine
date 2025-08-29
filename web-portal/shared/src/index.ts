@@ -8,7 +8,7 @@
  * Patterns: Barrel exports for clean imports
  */
 
-export * from './types/api';
-export * from './types/figma.types';
-export * from './utils/validation';
-export * from './utils/constants';
+export * from './types/api.js';
+export * from './types/figma.types.js';
+export * from './utils/validation.js';
+export * from './utils/constants.js';

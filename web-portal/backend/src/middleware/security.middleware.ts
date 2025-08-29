@@ -55,10 +55,12 @@ export function setupSecurity(app: Express): void {
   app.use(cors({
     origin: (origin, callback) => {
       const allowedOrigins = [
-        'http://localhost:5174', // Frontend dev server
+        'http://localhost:5174', // Frontend dev server default
         'http://localhost:3000', // Alternative frontend port
+        'http://localhost:3003', // Current frontend port
         'http://127.0.0.1:5174',
         'http://127.0.0.1:3000',
+        'http://127.0.0.1:3003',
       ];
 
       // Allow additional origins from environment
@@ -160,7 +162,7 @@ export function createUserRateLimit(options: {
   const { capacity, refillRate, identifier } = options;
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    const userId = identifier ? identifier(req) : (req.user?.id || req.ip || 'unknown');
+    const userId = identifier ? identifier(req) : (req.jwtUser?.id || req.ip || 'unknown');
     
     let bucket = userBuckets.get(userId);
     if (!bucket) {
@@ -354,7 +356,7 @@ export function logSecurityEvent(eventType: string) {
       path: req.path,
       method: req.method,
       timestamp: new Date().toISOString(),
-      userId: req.user?.id,
+      userId: req.jwtUser?.id,
     };
 
     // Log to console in development, would send to logging service in production

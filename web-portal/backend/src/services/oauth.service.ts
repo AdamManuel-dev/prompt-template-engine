@@ -116,7 +116,7 @@ export class OAuthService {
         clientID: googleProvider.clientId,
         clientSecret: googleProvider.clientSecret,
         callbackURL: googleProvider.callbackUrl,
-      }, async (accessToken, refreshToken, profile, done) => {
+      }, async (accessToken: any, refreshToken: any, profile: any, done: any) => {
         try {
           const oauthProfile: OAuthProfile = {
             id: profile.id,
@@ -145,7 +145,7 @@ export class OAuthService {
         clientID: githubProvider.clientId,
         clientSecret: githubProvider.clientSecret,
         callbackURL: githubProvider.callbackUrl,
-      }, async (accessToken, refreshToken, profile, done) => {
+      }, async (accessToken: any, refreshToken: any, profile: any, done: any) => {
         try {
           const oauthProfile: OAuthProfile = {
             id: profile.id,

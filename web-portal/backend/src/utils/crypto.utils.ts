@@ -84,7 +84,7 @@ export function generatePasswordResetToken(): { token: string; expiresAt: Date }
 export function generate2FASecret(): string {
   // Generate 32 character base32 encoded secret
   const buffer = crypto.randomBytes(20);
-  return buffer.toString('base32');
+  return buffer.toString('base64');
 }
 
 /**
@@ -120,7 +120,7 @@ export function encryptData(text: string, key?: string): string {
   }
 
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipher('aes-256-cbc', encryptionKey);
+  const cipher = crypto.createCipheriv('aes-256-cbc', crypto.scryptSync(encryptionKey, 'salt', 32), iv);
   cipher.setAutoPadding(true);
   
   let encrypted = cipher.update(text, 'utf8', 'hex');
@@ -143,7 +143,7 @@ export function decryptData(encryptedText: string, key?: string): string {
   const iv = Buffer.from(parts[0], 'hex');
   const encrypted = parts[1];
   
-  const decipher = crypto.createDecipher('aes-256-cbc', encryptionKey);
+  const decipher = crypto.createDecipheriv('aes-256-cbc', crypto.scryptSync(encryptionKey, 'salt', 32), iv);
   let decrypted = decipher.update(encrypted, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   

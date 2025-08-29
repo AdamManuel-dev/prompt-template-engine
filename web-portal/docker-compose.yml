@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database for development
+  postgres:
+    image: postgres:15-alpine
+    container_name: cursor-prompt-db
+    environment:
+      POSTGRES_USER: cursor_user
+      POSTGRES_PASSWORD: cursor_password
+      POSTGRES_DB: cursor_prompt_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-schema.sql:/docker-entrypoint-initdb.d/init-schema.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cursor_user -d cursor_prompt_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cursor-network
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: cursor-prompt-redis
+    command: redis-server --appendonly yes --requirepass cursor_redis_password
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cursor-network
+
+  # Backend API server
+  backend:
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    container_name: cursor-prompt-backend
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://cursor_user:cursor_password@postgres:5432/cursor_prompt_dev
+      REDIS_URL: redis://:cursor_redis_password@redis:6379
+      JWT_SECRET: dev-jwt-secret-key-change-in-production
+      ENCRYPTION_KEY: dev-encryption-key-32-chars-long
+      CLI_PATH: /app/dist/cli.js
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3003
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - frontend_node_modules:/app/frontend/node_modules
+      - backend_node_modules:/app/backend/node_modules
+      - shared_node_modules:/app/shared/node_modules
+    ports:
+      - "3001:3001"
+      - "9229:9229" # Debug port
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - cursor-network
+    command: ["npm", "run", "dev:backend"]
+
+  # Frontend development server
+  frontend:
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    container_name: cursor-prompt-frontend
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:3001
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - frontend_node_modules:/app/frontend/node_modules
+      - backend_node_modules:/app/backend/node_modules
+      - shared_node_modules:/app/shared/node_modules
+    ports:
+      - "3000:3000"
+      - "3003:3003"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - cursor-network
+    command: ["npm", "run", "dev:frontend"]
+
+  # E2E testing service
+  e2e-tests:
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    container_name: cursor-prompt-e2e
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://cursor_user:cursor_password@postgres:5432/cursor_prompt_test
+      BASE_URL: http://frontend:3000
+      API_URL: http://backend:3001
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - frontend_node_modules:/app/frontend/node_modules
+      - backend_node_modules:/app/backend/node_modules
+      - shared_node_modules:/app/shared/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - cursor-network
+    profiles:
+      - testing
+    command: ["npm", "run", "test:e2e"]
+
+volumes:
+  postgres_data:
+  redis_data:
+  node_modules:
+  frontend_node_modules:
+  backend_node_modules:
+  shared_node_modules:
+
+networks:
+  cursor-network:
+    driver: bridge

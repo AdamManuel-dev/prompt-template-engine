@@ -159,7 +159,7 @@ class ApiClient {
   // Health endpoint
   async getHealth(): Promise<HealthStatus> {
     const response =
-      await this.client.get<ApiResponse<HealthStatus>>('/health');
+      await this.client.get<ApiResponse<HealthStatus>>('/api/health');
     if (!response.data.data) {
       throw new Error('Health check failed: No data returned');
     }

@@ -15,7 +15,7 @@ import {
   ExecutionHistory,
   UserSession,
 } from '@cursor-prompt/shared';
-import { validateApiKey } from '../middleware/auth';
+import { requireAuth, optionalAuth } from '../middleware/auth.middleware';
 import { userService } from '../services/user.service';
 import { favoritesService } from '../services/favorites.service';
 import { executionHistoryService } from '../services/execution-history.service';
@@ -29,10 +29,10 @@ const router = Router();
  */
 router.get(
   '/profile',
-  validateApiKey,
+  requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -42,7 +42,7 @@ router.get(
         } as ApiResponse);
       }
 
-      const user = await userService.getUserById(req.user.id, true);
+      const user = await userService.getUserById(req.jwtUser.id, true);
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -77,7 +77,7 @@ router.get(
 router.put(
   '/profile',
   [
-    validateApiKey,
+    requireAuth,
     body('displayName')
       .optional()
       .isString()
@@ -102,7 +102,7 @@ router.put(
         } as ApiResponse);
       }
 
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -112,7 +112,7 @@ router.put(
         } as ApiResponse);
       }
 
-      const updatedUser = await userService.updateUser(req.user.id, {
+      const updatedUser = await userService.updateUser(req.jwtUser.id, {
         displayName: req.body.displayName,
         avatarUrl: req.body.avatarUrl,
       });
@@ -146,10 +146,10 @@ router.put(
  */
 router.get(
   '/preferences',
-  validateApiKey,
+  requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -159,7 +159,7 @@ router.get(
         } as ApiResponse);
       }
 
-      const user = await userService.getUserById(req.user.id);
+      const user = await userService.getUserById(req.jwtUser.id);
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -198,7 +198,7 @@ router.get(
 router.put(
   '/preferences',
   [
-    validateApiKey,
+    requireAuth,
     body('theme')
       .optional()
       .isIn(['light', 'dark'])
@@ -231,7 +231,7 @@ router.put(
         } as ApiResponse);
       }
 
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -242,7 +242,7 @@ router.put(
       }
 
       const updatedUser = await userService.updateUserPreferences(
-        req.user.id,
+        req.jwtUser.id,
         req.body
       );
 
@@ -276,7 +276,7 @@ router.put(
 router.get(
   '/favorites',
   [
-    validateApiKey,
+    requireAuth,
     query('page')
       .optional()
       .isInt({ min: 1 })
@@ -300,7 +300,7 @@ router.get(
         } as ApiResponse);
       }
 
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -315,7 +315,7 @@ router.get(
         ? parseInt(req.query.limit as string, 10)
         : 20;
 
-      const result = await favoritesService.getUserFavorites(req.user.id, {
+      const result = await favoritesService.getUserFavorites(req.jwtUser.id, {
         page,
         limit,
       });
@@ -350,7 +350,7 @@ router.get(
 router.post(
   '/favorites/:templateId',
   [
-    validateApiKey,
+    requireAuth,
     param('templateId')
       .isString()
       .isLength({ min: 1 })
@@ -378,7 +378,7 @@ router.post(
         } as ApiResponse);
       }
 
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -392,7 +392,7 @@ router.post(
       const { templateName, templatePath } = req.body;
 
       const favorite = await favoritesService.addFavorite({
-        userId: req.user.id,
+        userId: req.jwtUser.id,
         templateId,
         templateName,
         templatePath,
@@ -419,7 +419,7 @@ router.post(
 router.delete(
   '/favorites/:templateId',
   [
-    validateApiKey,
+    requireAuth,
     param('templateId')
       .isString()
       .isLength({ min: 1 })
@@ -439,7 +439,7 @@ router.delete(
         } as ApiResponse);
       }
 
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -451,7 +451,7 @@ router.delete(
 
       const { templateId } = req.params;
       const removed = await favoritesService.removeFavorite(
-        req.user.id,
+        req.jwtUser.id,
         templateId
       );
 
@@ -489,7 +489,7 @@ router.delete(
 router.get(
   '/history',
   [
-    validateApiKey,
+    requireAuth,
     query('page')
       .optional()
       .isInt({ min: 1 })
@@ -536,7 +536,7 @@ router.get(
         } as ApiResponse);
       }
 
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -547,7 +547,7 @@ router.get(
       }
 
       const filters = {
-        userId: req.user.id,
+        userId: req.jwtUser.id,
         templateId: req.query.templateId as string,
         status: req.query.status as any,
         dateFrom: req.query.dateFrom
@@ -616,7 +616,7 @@ router.get(
 router.get(
   '/analytics',
   [
-    validateApiKey,
+    requireAuth,
     query('days')
       .optional()
       .isInt({ min: 1, max: 365 })
@@ -636,7 +636,7 @@ router.get(
         } as ApiResponse);
       }
 
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -652,7 +652,7 @@ router.get(
 
       const analytics = await executionHistoryService.getAnalytics(
         {
-          userId: req.user.id,
+          userId: req.jwtUser.id,
           dateFrom,
         },
         true
@@ -678,10 +678,10 @@ router.get(
  */
 router.get(
   '/stats',
-  validateApiKey,
+  requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -691,7 +691,7 @@ router.get(
         } as ApiResponse);
       }
 
-      const stats = await userService.getUserStats(req.user.id);
+      const stats = await userService.getUserStats(req.jwtUser.id);
 
       res.json({
         success: true,
@@ -723,7 +723,7 @@ router.get(
 router.put(
   '/favorites/:templateId/toggle',
   [
-    validateApiKey,
+    requireAuth,
     param('templateId')
       .isString()
       .isLength({ min: 1 })
@@ -751,7 +751,7 @@ router.put(
         } as ApiResponse);
       }
 
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -765,7 +765,7 @@ router.put(
       const { templateName, templatePath } = req.body;
 
       const result = await favoritesService.toggleFavorite({
-        userId: req.user.id,
+        userId: req.jwtUser.id,
         templateId,
         templateName,
         templatePath,
@@ -792,7 +792,7 @@ router.put(
 router.get(
   '/check-favorite/:templateId',
   [
-    validateApiKey,
+    requireAuth,
     param('templateId')
       .isString()
       .isLength({ min: 1 })
@@ -812,7 +812,7 @@ router.get(
         } as ApiResponse);
       }
 
-      if (!req.user) {
+      if (!req.jwtUser) {
         return res.status(401).json({
           success: false,
           error: {
@@ -824,7 +824,7 @@ router.get(
 
       const { templateId } = req.params;
       const isFavorite = await favoritesService.isFavorite(
-        req.user.id,
+        req.jwtUser.id,
         templateId
       );
 
@@ -851,7 +851,7 @@ router.get(
  */
 router.get(
   '/db-status',
-  validateApiKey,
+  requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const isConnected = await testConnection();

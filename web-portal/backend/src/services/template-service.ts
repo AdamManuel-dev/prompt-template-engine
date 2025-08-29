@@ -137,7 +137,7 @@ export class TemplateService {
       // Cache the template
       this.cache.set(cacheKey, enhancedTemplate, 300); // 5 minute cache for individual templates
       
-      console.log(`✅ Retrieved template: ${enhancedTemplate.metadata.displayName}`);
+      console.log(`✅ Retrieved template: ${enhancedTemplate.displayName || enhancedTemplate.name}`);
       return enhancedTemplate;
 
     } catch (error) {
@@ -395,11 +395,8 @@ export class TemplateService {
     // Enhance schema with better validation rules
     enhanced.schema = this.enhanceSchema(template.schema);
 
-    // Add computed metadata
-    enhanced.metadata = {
-      ...enhanced.metadata,
-      // Add any computed fields here
-    };
+    // Add computed fields if needed
+    // enhanced metadata would go into appropriate Template properties
 
     return enhanced;
   }

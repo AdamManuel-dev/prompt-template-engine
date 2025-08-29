@@ -215,9 +215,20 @@ export class CLIService extends EventEmitter {
     console.log(chalk.green(`✅ Retrieved template: ${templateMetadata.name}`));
 
     return {
-      metadata: templateMetadata,
-      schema,
-      content
+      id: templateMetadata.id,
+      name: templateMetadata.name,
+      displayName: templateMetadata.displayName,
+      description: templateMetadata.description,
+      category: templateMetadata.category,
+      tags: templateMetadata.tags,
+      author: templateMetadata.author,
+      version: templateMetadata.version,
+      createdAt: templateMetadata.created,
+      updatedAt: templateMetadata.updated,
+      rating: templateMetadata.rating,
+      stats: templateMetadata.stats,
+      content,
+      schema
     };
   }
 

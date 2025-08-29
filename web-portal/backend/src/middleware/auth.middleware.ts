@@ -216,7 +216,7 @@ export async function requireEmailVerification(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  if (!req.user) {
+  if (!req.jwtUser) {
     res.status(401).json({
       error: 'AUTHENTICATION_REQUIRED',
       message: 'Authentication required',
@@ -225,7 +225,7 @@ export async function requireEmailVerification(
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: req.user.id },
+    where: { id: req.jwtUser.id },
     select: { emailVerified: true },
   });
 
@@ -252,12 +252,12 @@ export function rateLimitPerUser(options: {
   const userRequests = new Map<string, { count: number; resetTime: number }>();
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user) {
+    if (!req.jwtUser) {
       next();
       return;
     }
 
-    const userId = req.user.id;
+    const userId = req.jwtUser.id;
     const now = Date.now();
     const userRecord = userRequests.get(userId);
 
@@ -288,7 +288,7 @@ export function requireRole(roles: UserRole | UserRole[]) {
   const allowedRoles = Array.isArray(roles) ? roles : [roles];
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user) {
+    if (!req.jwtUser) {
       res.status(401).json({
         error: 'AUTHENTICATION_REQUIRED',
         message: 'Authentication required',
@@ -296,12 +296,12 @@ export function requireRole(roles: UserRole | UserRole[]) {
       return;
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!allowedRoles.includes(req.jwtUser.role)) {
       res.status(403).json({
         error: 'INSUFFICIENT_PERMISSIONS',
         message: 'Insufficient permissions for this action',
         required: allowedRoles,
-        current: req.user.role,
+        current: req.jwtUser.role,
       });
       return;
     }
@@ -325,7 +325,7 @@ export function requireMinRole(minRole: UserRole) {
   };
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user) {
+    if (!req.jwtUser) {
       res.status(401).json({
         error: 'AUTHENTICATION_REQUIRED',
         message: 'Authentication required',
@@ -333,7 +333,7 @@ export function requireMinRole(minRole: UserRole) {
       return;
     }
 
-    const userLevel = roleHierarchy[req.user.role];
+    const userLevel = roleHierarchy[req.jwtUser.role];
     const requiredLevel = roleHierarchy[minRole];
 
     if (userLevel < requiredLevel) {
@@ -341,7 +341,7 @@ export function requireMinRole(minRole: UserRole) {
         error: 'INSUFFICIENT_PERMISSIONS',
         message: 'Insufficient permissions for this action',
         required: minRole,
-        current: req.user.role,
+        current: req.jwtUser.role,
       });
       return;
     }
@@ -370,7 +370,7 @@ export const requireDeveloper = requireMinRole(UserRole.DEVELOPER);
  */
 export function requireSelfOrAdmin(getUserId: (req: Request) => string) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user) {
+    if (!req.jwtUser) {
       res.status(401).json({
         error: 'AUTHENTICATION_REQUIRED',
         message: 'Authentication required',
@@ -379,8 +379,8 @@ export function requireSelfOrAdmin(getUserId: (req: Request) => string) {
     }
 
     const targetUserId = getUserId(req);
-    const isAdmin = [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(req.user.role);
-    const isSelf = req.user.id === targetUserId;
+    const isAdmin = req.jwtUser.role === UserRole.ADMIN || req.jwtUser.role === UserRole.SUPER_ADMIN;
+    const isSelf = req.jwtUser.id === targetUserId;
 
     if (!isSelf && !isAdmin) {
       res.status(403).json({

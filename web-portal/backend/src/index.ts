@@ -46,7 +46,7 @@ const wss = new WebSocketServer({ server });
 // Configuration
 const PORT = process.env['PORT'] || 3001;
 const NODE_ENV = process.env['NODE_ENV'] || 'development';
-const CLI_PATH = process.env['CLI_PATH'] || path.resolve('../dist/cli.js');
+const CLI_PATH = process.env['CLI_PATH'] || path.resolve('../../dist/cli.js');
 
 // Initialize services
 const cliService = new CLIService(CLI_PATH);
