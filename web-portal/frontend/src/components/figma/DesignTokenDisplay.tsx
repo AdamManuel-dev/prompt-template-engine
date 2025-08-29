@@ -8,7 +8,7 @@
  * Patterns: Virtualized lists, grouped display, interactive mapping
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -39,8 +39,6 @@ import {
   ExpandMore,
   ContentCopy,
   Download,
-  Visibility,
-  VisibilityOff,
   Search,
   FilterList,
   Palette,
@@ -472,7 +470,7 @@ const TokenItem: React.FC<TokenItemProps> = ({
 }) => {
   const renderTokenValue = () => {
     switch (token.type) {
-      case 'color':
+      case 'color': {
         const colorToken = token as ColorToken;
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -491,8 +489,9 @@ const TokenItem: React.FC<TokenItemProps> = ({
             </Typography>
           </Box>
         );
+      }
 
-      case 'typography':
+      case 'typography': {
         const typographyToken = token as TypographyToken;
         const typoValue = typographyToken.value;
         return (
@@ -517,8 +516,9 @@ const TokenItem: React.FC<TokenItemProps> = ({
             </Typography>
           </Box>
         );
+      }
 
-      case 'spacing':
+      case 'spacing': {
         const spacingToken = token as SpacingToken;
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -535,6 +535,7 @@ const TokenItem: React.FC<TokenItemProps> = ({
             </Typography>
           </Box>
         );
+      }
 
       default:
         return (
@@ -549,12 +550,11 @@ const TokenItem: React.FC<TokenItemProps> = ({
 
   return (
     <ListItem
-      button={!showMapping}
-      selected={selected}
-      onClick={showMapping ? onToggle : onSelect}
+      component="div"
       sx={{
         borderRadius: 1,
         mb: compact ? 0.5 : 1,
+        cursor: showMapping ? 'pointer' : 'default',
         ...(selected && {
           backgroundColor: 'action.selected',
           '&:hover': {
@@ -562,6 +562,7 @@ const TokenItem: React.FC<TokenItemProps> = ({
           },
         }),
       }}
+      onClick={showMapping ? onToggle : onSelect}
     >
       {showMapping && (
         <Switch

@@ -56,7 +56,7 @@ export class FigmaMCPProxy {
 
   private config: MCPServerConfig = {
     command: 'npx',
-    args: ['@anthropic-ai/mcp-server-figma'],
+    args: ['@tothienbao6a0/figma-mcp-server'],
     timeout: 30000,
     maxRetries: 3,
     retryDelay: 1000

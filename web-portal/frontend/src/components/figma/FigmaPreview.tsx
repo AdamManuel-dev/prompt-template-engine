@@ -19,12 +19,8 @@ import {
   Tooltip,
   Button,
   Slider,
-  Menu,
-  MenuItem,
-  Alert,
   Skeleton,
   Chip,
-  Zoom,
   Fade,
 } from '@mui/material';
 import {
@@ -36,8 +32,6 @@ import {
   OpenInNew,
   Fullscreen,
   FullscreenExit,
-  Settings,
-  Visibility,
   PhotoCamera,
   Error as ErrorIcon,
 } from '@mui/icons-material';
@@ -101,9 +95,6 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
 
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [settingsAnchor, setSettingsAnchor] = useState<null | HTMLElement>(
-    null
-  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -155,7 +146,7 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
   }, []);
 
   const handleZoomChange = useCallback(
-    (event: Event, newValue: number | number[]) => {
+    (_event: Event, newValue: number | number[]) => {
       const zoom = Array.isArray(newValue) ? newValue[0] : newValue;
       setPreviewState(prev => ({
         ...prev,
@@ -391,7 +382,7 @@ export const FigmaPreview: React.FC<FigmaPreviewProps> = ({
             position: 'absolute',
             top: '50%',
             left: '50%',
-            transform: `translate(${-50 + (previewState.offsetX / containerRef.current?.offsetWidth || 1) * 100}%, ${-50 + (previewState.offsetY / containerRef.current?.offsetHeight || 1) * 100}%) scale(${previewState.zoom})`,
+            transform: `translate(${-50 + (previewState.offsetX / (containerRef.current?.offsetWidth ?? 1)) * 100}%, ${-50 + (previewState.offsetY / (containerRef.current?.offsetHeight ?? 1)) * 100}%) scale(${previewState.zoom})`,
             transformOrigin: 'center',
             maxWidth: 'none',
             maxHeight: 'none',

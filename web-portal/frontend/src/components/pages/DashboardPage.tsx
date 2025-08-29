@@ -81,12 +81,15 @@ const DashboardPage: React.FC = () => {
 
   // Calculate dashboard stats
   const stats: DashboardStats = React.useMemo(() => {
-    const totalExecutions = executionHistory.length;
-    const successfulExecutions = executionHistory.filter(
-      e => e.status === 'success'
+    const executions = Array.isArray(executionHistory)
+      ? executionHistory
+      : executionHistory?.executions || [];
+    const totalExecutions = executions.length;
+    const successfulExecutions = executions.filter(
+      (e: any) => e.status === 'success'
     ).length;
-    const failedExecutions = executionHistory.filter(
-      e => e.status === 'error'
+    const failedExecutions = executions.filter(
+      (e: any) => e.status === 'error'
     ).length;
 
     return {
@@ -105,9 +108,13 @@ const DashboardPage: React.FC = () => {
       : 0;
 
   // Get recent executions (last 5)
-  const recentExecutions = executionHistory
+  const recentExecutions = (
+    Array.isArray(executionHistory)
+      ? executionHistory
+      : executionHistory?.executions || []
+  )
     .sort(
-      (a, b) =>
+      (a: any, b: any) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
     .slice(0, 5);
@@ -347,7 +354,7 @@ const DashboardPage: React.FC = () => {
                 <LinearProgress />
               ) : recentExecutions.length > 0 ? (
                 <List>
-                  {recentExecutions.map((execution, index) => (
+                  {recentExecutions.map((execution: any, index: number) => (
                     <ListItem
                       key={execution.id}
                       sx={{

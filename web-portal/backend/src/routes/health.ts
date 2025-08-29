@@ -302,15 +302,15 @@ router.get('/metrics', async (req: Request, res: Response) => {
  * GET /api/health/version
  * Application version and build info
  */
-router.get('/version', (req: Request, res: Response) => {
-  const packageJson = require('../../../package.json');
+router.get('/version', async (req: Request, res: Response) => {
+  const packageJson = await import('../../../package.json');
   
   res.json({
     success: true,
     data: {
-      name: packageJson.name || 'Cursor Prompt Web Portal API',
-      version: packageJson.version || '1.0.0',
-      description: packageJson.description || 'API for non-developer template engine access',
+      name: packageJson.default.name || 'Cursor Prompt Web Portal API',
+      version: packageJson.default.version || '1.0.0',
+      description: packageJson.default.description || 'API for non-developer template engine access',
       nodeVersion: process.version,
       environment: process.env['NODE_ENV'] || 'development',
       buildTime: new Date().toISOString(), // In production, this would be build time

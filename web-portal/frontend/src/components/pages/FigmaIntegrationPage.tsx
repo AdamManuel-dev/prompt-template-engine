@@ -19,7 +19,6 @@ import {
   Stepper,
   Step,
   StepLabel,
-  StepContent,
   Button,
   Alert,
   CircularProgress,
@@ -133,7 +132,7 @@ export const FigmaIntegrationPage: React.FC = () => {
       // Auto-load tokens and preview if valid
       if (urlInfo.isValid && urlInfo.fileId && fileInfo) {
         loadDesignTokens(urlInfo.fileId);
-        loadPreview(urlInfo.fileId, urlInfo.nodeId);
+        loadPreview(urlInfo.fileId, urlInfo.nodeId || undefined);
       }
     },
     []
@@ -420,7 +419,7 @@ export const FigmaIntegrationPage: React.FC = () => {
               {state.urlInfo?.fileId && (
                 <FigmaPreviewComponent
                   fileId={state.urlInfo.fileId}
-                  nodeId={state.urlInfo.nodeId}
+                  nodeId={state.urlInfo.nodeId || undefined}
                   preview={state.preview}
                   loading={state.loading.preview}
                   error={state.errors.preview}

@@ -129,6 +129,7 @@
     "tests/**/*.ts",
     ".cursor-prompt/plugins/**/*.ts",
     "scripts/**/*.ts",
-    "examples/**/*.ts"
+    "examples/**/*.ts",
+    "web-portal/**/*"
   ]
 }

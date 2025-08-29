@@ -17,7 +17,16 @@ module.exports = {
     '**/?(*.)+(spec|test).ts',
   ],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        target: 'es2020',
+        module: 'commonjs',
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        skipLibCheck: true,
+        types: ['jest', 'node']
+      }
+    }],
   },
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -41,9 +50,16 @@ module.exports = {
   },
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
   testTimeout: 10000,
-  globals: {
-    'ts-jest': {
-      useESM: false,
-    },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@faker-js/faker$': '<rootDir>/src/__mocks__/@faker-js/faker.js',
+    '^../../middleware/(.*)$': '<rootDir>/src/__mocks__/middleware/$1',
+    '^../../services/(.*)$': '<rootDir>/src/__mocks__/services/$1',
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!@faker-js)'
+  ],
+  extensionsToTreatAsEsm: ['.ts'],
+  injectGlobals: true,
 }

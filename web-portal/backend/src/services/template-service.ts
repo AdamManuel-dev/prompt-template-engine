@@ -57,7 +57,7 @@ export class TemplateService {
     const cacheKey = this.generateCacheKey('templates-list', options);
     
     // Check cache first
-    let cachedResult = this.cache.get<TemplateListResponse>(cacheKey);
+    const cachedResult = this.cache.get<TemplateListResponse>(cacheKey);
     if (cachedResult) {
       console.log(`📋 Returning cached template list (${cachedResult.templates.length} templates)`);
       return cachedResult;
@@ -120,7 +120,7 @@ export class TemplateService {
     const cacheKey = `template-${templateId}`;
     
     // Check cache first
-    let cachedTemplate = this.cache.get<Template>(cacheKey);
+    const cachedTemplate = this.cache.get<Template>(cacheKey);
     if (cachedTemplate) {
       console.log(`📄 Returning cached template: ${templateId}`);
       return cachedTemplate;
@@ -164,7 +164,7 @@ export class TemplateService {
     const cacheKey = 'template-categories';
     
     // Check cache first
-    let cachedCategories = this.cache.get<string[]>(cacheKey);
+    const cachedCategories = this.cache.get<string[]>(cacheKey);
     if (cachedCategories) {
       console.log(`📂 Returning cached categories (${cachedCategories.length} categories)`);
       return cachedCategories;
@@ -194,7 +194,7 @@ export class TemplateService {
   async getTags(): Promise<string[]> {
     const cacheKey = 'template-tags';
     
-    let cachedTags = this.cache.get<string[]>(cacheKey);
+    const cachedTags = this.cache.get<string[]>(cacheKey);
     if (cachedTags) {
       console.log(`🏷️ Returning cached tags (${cachedTags.length} tags)`);
       return cachedTags;
@@ -229,7 +229,7 @@ export class TemplateService {
   }> {
     const cacheKey = 'template-stats';
     
-    let cachedStats = this.cache.get<any>(cacheKey);
+    const cachedStats = this.cache.get<any>(cacheKey);
     if (cachedStats) {
       console.log('📊 Returning cached template statistics');
       return cachedStats;

@@ -27,7 +27,7 @@ import healthRoutes from './routes/health';
 import { errorHandler } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { setupSecurity, globalRateLimit, sanitizeRequest, limitRequestSize } from './middleware/security.middleware';
-import { requireAuth, optionalAuth } from './middleware/auth.middleware';
+import { requireAuth, optionalAuth as _optionalAuth } from './middleware/auth.middleware';
 
 // Import services
 import { CLIService } from './services/cli-service';
@@ -137,41 +137,41 @@ websocketService.initialize();
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+  console.warn('SIGTERM received, shutting down gracefully...');
   
   // Close WebSocket server
   websocketService.close();
   
   // Close HTTP server
   server.close(() => {
-    console.log('HTTP server closed');
+    console.warn('HTTP server closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully...');
+  console.warn('SIGINT received, shutting down gracefully...');
   
   // Close WebSocket server  
   websocketService.close();
   
   // Close HTTP server
   server.close(() => {
-    console.log('HTTP server closed');
+    console.warn('HTTP server closed');
     process.exit(0);
   });
 });
 
 // Start server
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📱 Environment: ${NODE_ENV}`);
-  console.log(`🛠️  CLI Path: ${CLI_PATH}`);
-  console.log(`🔗 WebSocket server ready`);
+  console.warn(`🚀 Server running on port ${PORT}`);
+  console.warn(`📱 Environment: ${NODE_ENV}`);
+  console.warn(`🛠️  CLI Path: ${CLI_PATH}`);
+  console.warn(`🔗 WebSocket server ready`);
   
   if (NODE_ENV === 'development') {
-    console.log(`🌐 API Documentation: http://localhost:${PORT}/api`);
-    console.log(`💻 Frontend: http://localhost:3000`);
+    console.warn(`🌐 API Documentation: http://localhost:${PORT}/api`);
+    console.warn(`💻 Frontend: http://localhost:3000`);
   }
 });
 

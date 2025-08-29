@@ -1,6 +1,6 @@
 /**
  * @fileoverview Tests for authentication service
- * @lastmodified 2025-01-28T10:30:00Z
+ * @lastmodified 2025-08-29T10:30:00Z
  * 
  * Features: User registration, login, token management, password validation
  * Main APIs: Registration validation, login authentication, token refresh
@@ -8,9 +8,10 @@
  * Patterns: Service testing, database mocking, security validation
  */
 
+import { describe, it, expect, jest, beforeEach } from '@jest/globals'
 import { faker } from '@faker-js/faker'
 import { UserRole } from '../../generated/prisma'
-import * as authService from '../../services/auth.service'
+import * as _authService from '../../services/auth.service'
 import * as cryptoUtils from '../../utils/crypto.utils'
 import * as jwtUtils from '../../utils/jwt.utils'
 
@@ -30,14 +31,21 @@ describe('Auth Service', () => {
       
       mockValidatePasswordStrength.mockReturnValue({
         isValid: true,
-        errors: [],
-        strength: 'strong'
+        score: 4,
+        requirements: {
+          length: true,
+          uppercase: true,
+          lowercase: true,
+          number: true,
+          special: true
+        },
+        suggestions: []
       })
 
       const result = cryptoUtils.validatePasswordStrength('StrongPassword123!')
       
       expect(result.isValid).toBe(true)
-      expect(result.strength).toBe('strong')
+      expect(result.score).toBe(4)
       expect(mockValidatePasswordStrength).toHaveBeenCalledWith('StrongPassword123!')
     })
 
@@ -46,14 +54,21 @@ describe('Auth Service', () => {
       
       mockValidatePasswordStrength.mockReturnValue({
         isValid: false,
-        errors: ['Password must be at least 8 characters long'],
-        strength: 'weak'
+        score: 1,
+        requirements: {
+          length: false,
+          uppercase: false,
+          lowercase: true,
+          number: false,
+          special: false
+        },
+        suggestions: ['Password must be at least 8 characters long']
       })
 
       const result = cryptoUtils.validatePasswordStrength('weak')
       
       expect(result.isValid).toBe(false)
-      expect(result.errors).toContain('Password must be at least 8 characters long')
+      expect(result.suggestions).toContain('Password must be at least 8 characters long')
     })
   })
 
@@ -86,24 +101,28 @@ describe('Auth Service', () => {
   })
 
   describe('Token Generation', () => {
-    it('should generate JWT tokens', () => {
+    it('should generate JWT tokens', async () => {
       const mockGenerateTokens = jest.mocked(jwtUtils.generateTokens)
-      const userId = faker.string.uuid()
-      const userRole = UserRole.USER
+      const mockUser = {
+        id: faker.string.uuid(),
+        email: faker.internet.email(),
+        username: faker.internet.username(),
+        role: UserRole.USER
+      }
       
       const mockTokens = {
         accessToken: 'mock-access-token',
         refreshToken: 'mock-refresh-token',
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
-        refreshExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        expiresIn: 86400,
+        refreshExpiresIn: 604800
       }
 
-      mockGenerateTokens.mockReturnValue(mockTokens)
+      mockGenerateTokens.mockResolvedValue(mockTokens)
 
-      const result = jwtUtils.generateTokens(userId, userRole)
+      const result = await jwtUtils.generateTokens(mockUser)
 
       expect(result).toEqual(mockTokens)
-      expect(mockGenerateTokens).toHaveBeenCalledWith(userId, userRole)
+      expect(mockGenerateTokens).toHaveBeenCalledWith(mockUser)
     })
 
     it('should refresh tokens when valid', async () => {
@@ -113,8 +132,8 @@ describe('Auth Service', () => {
       const mockNewTokens = {
         accessToken: 'new-access-token',
         refreshToken: 'new-refresh-token',
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-        refreshExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresIn: 86400,
+        refreshExpiresIn: 604800
       }
 
       mockRefreshTokens.mockResolvedValue(mockNewTokens)
@@ -130,7 +149,7 @@ describe('Auth Service', () => {
     it('should validate registration data', () => {
       const registrationData = {
         email: faker.internet.email(),
-        username: faker.internet.userName(),
+        username: faker.internet.username(),
         password: 'StrongPassword123!',
         firstName: faker.person.firstName(),
         lastName: faker.person.lastName(),
@@ -140,8 +159,15 @@ describe('Auth Service', () => {
       const mockValidatePasswordStrength = jest.mocked(cryptoUtils.validatePasswordStrength)
       mockValidatePasswordStrength.mockReturnValue({
         isValid: true,
-        errors: [],
-        strength: 'strong'
+        score: 4,
+        requirements: {
+          length: true,
+          uppercase: true,
+          lowercase: true,
+          number: true,
+          special: true
+        },
+        suggestions: []
       })
 
       const result = cryptoUtils.validatePasswordStrength(registrationData.password)
@@ -220,7 +246,10 @@ describe('Auth Service', () => {
 
     it('should generate secure password reset tokens', () => {
       const mockGeneratePasswordResetToken = jest.mocked(cryptoUtils.generatePasswordResetToken)
-      const mockToken = 'secure-password-reset-token'
+      const mockToken = {
+        token: 'secure-password-reset-token',
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000)
+      }
 
       mockGeneratePasswordResetToken.mockReturnValue(mockToken)
 
@@ -250,13 +279,18 @@ describe('Auth Service', () => {
       await expect(cryptoUtils.hashPassword('password')).rejects.toThrow('Hashing failed')
     })
 
-    it('should handle token generation failures', () => {
+    it('should handle token generation failures', async () => {
       const mockGenerateTokens = jest.mocked(jwtUtils.generateTokens)
-      mockGenerateTokens.mockImplementation(() => {
-        throw new Error('Token generation failed')
-      })
+      mockGenerateTokens.mockRejectedValue(new Error('Token generation failed'))
 
-      expect(() => jwtUtils.generateTokens('user-id', UserRole.USER)).toThrow('Token generation failed')
+      const mockUser = {
+        id: 'user-id',
+        email: 'test@example.com',
+        username: 'testuser',
+        role: UserRole.USER
+      }
+
+      await expect(jwtUtils.generateTokens(mockUser)).rejects.toThrow('Token generation failed')
     })
   })
 
@@ -271,7 +305,7 @@ describe('Auth Service', () => {
       const requiredFields = ['email', 'username', 'password']
       const registrationData = {
         email: faker.internet.email(),
-        username: faker.internet.userName(),
+        username: faker.internet.username(),
         password: 'password123',
         firstName: faker.person.firstName(),
       }

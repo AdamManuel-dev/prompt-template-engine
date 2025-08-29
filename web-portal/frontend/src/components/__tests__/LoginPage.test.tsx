@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -61,8 +61,8 @@ describe('LoginPage', () => {
     });
 
     // Mock toast
-    vi.mocked(toast.success).mockReturnValue();
-    vi.mocked(toast.error).mockReturnValue();
+    vi.mocked(toast.success).mockReturnValue('');
+    vi.mocked(toast.error).mockReturnValue('');
   });
 
   afterEach(() => {

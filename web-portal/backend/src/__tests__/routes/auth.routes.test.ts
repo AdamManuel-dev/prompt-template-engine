@@ -1,6 +1,6 @@
 /**
  * @fileoverview Tests for authentication routes
- * @lastmodified 2025-01-28T10:30:00Z
+ * @lastmodified 2025-08-29T10:30:00Z
  * 
  * Features: API endpoint testing, request/response validation, middleware testing
  * Main APIs: POST /register, POST /login, POST /refresh, GET /me
@@ -8,6 +8,7 @@
  * Patterns: API testing, mock middleware, error handling validation
  */
 
+import { describe, it, expect, jest, beforeEach } from '@jest/globals'
 import request from 'supertest'
 import express from 'express'
 import { faker } from '@faker-js/faker'
@@ -34,7 +35,7 @@ describe('Auth Routes', () => {
   describe('POST /api/auth/register', () => {
     const validRegistrationData = {
       email: faker.internet.email(),
-      username: faker.internet.userName(),
+      username: faker.internet.username(),
       password: 'StrongPassword123!',
       firstName: faker.person.firstName(),
       lastName: faker.person.lastName(),
@@ -106,7 +107,7 @@ describe('Auth Routes', () => {
 
     it('should handle login with username instead of email', async () => {
       const loginData = {
-        username: faker.internet.userName(),
+        username: faker.internet.username(),
         password: 'password123',
       }
 

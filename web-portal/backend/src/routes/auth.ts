@@ -11,7 +11,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { ApiResponse, UserSession } from '@cursor-prompt/shared';
 import { AuthService, AuthError } from '../services/auth.service';
-import { requireAuth, optionalAuth, requireEmailVerification } from '../middleware/auth.middleware';
+import { requireAuth, optionalAuth as _optionalAuth, requireEmailVerification as _requireEmailVerification } from '../middleware/auth.middleware';
 import { authRateLimit, validate, validationRules, logSecurityEvent } from '../middleware/security.middleware';
 import { body } from 'express-validator';
 
@@ -19,7 +19,7 @@ const router = Router();
 const authService = new AuthService();
 
 // Error handling wrapper
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 

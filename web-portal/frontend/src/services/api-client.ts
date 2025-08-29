@@ -16,7 +16,6 @@ import {
   TemplateSearchResult,
   ExecutionRequest,
   ExecutionResult,
-  ExecutionHistory,
   UserSession,
   ApiResponse,
   HealthStatus,
@@ -190,6 +189,57 @@ class ApiClient {
     return response.data.data;
   }
 
+  async updateProfile(data: {
+    displayName?: string;
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string;
+    preferences?: any;
+  }): Promise<any> {
+    const response = await this.client.put<ApiResponse<any>>(
+      '/auth/profile',
+      data
+    );
+    if (!response.data.data) {
+      throw new Error('Failed to update profile: No data returned');
+    }
+    return response.data.data;
+  }
+
+  async changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<void> {
+    await this.client.post('/auth/change-password', data);
+  }
+
+  async getExecutionHistory(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    templateId?: string;
+  }): Promise<{
+    executions: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const response = await this.client.get<ApiResponse<any>>('/executions', {
+      params,
+    });
+    return (
+      response.data.data || { executions: [], total: 0, page: 1, totalPages: 1 }
+    );
+  }
+
+  async getExecutionDetails(id: string): Promise<any> {
+    const response = await this.client.get<ApiResponse<any>>(
+      `/executions/${id}`
+    );
+    return response.data.data;
+  }
+
   // Template endpoints
   async getTemplates(): Promise<Template[]> {
     const response =
@@ -247,15 +297,6 @@ class ApiClient {
       throw new Error('Execution not found');
     }
     return response.data.data;
-  }
-
-  async getExecutionHistory(userId?: string): Promise<ExecutionHistory[]> {
-    const url = userId
-      ? `/executions/history?userId=${userId}`
-      : '/executions/history';
-    const response =
-      await this.client.get<ApiResponse<ExecutionHistory[]>>(url);
-    return response.data.data || [];
   }
 
   async cancelExecution(id: string): Promise<void> {

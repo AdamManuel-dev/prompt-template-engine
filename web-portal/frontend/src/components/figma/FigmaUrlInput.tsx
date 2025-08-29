@@ -81,7 +81,7 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const { validateUrl, getFileInfo, loading, error } = useFigmaApi();
+  const { getFileInfo, loading, error } = useFigmaApi();
   const debouncedUrl = useDebounce(inputValue, 500);
 
   // Validate Figma URL format
@@ -137,7 +137,7 @@ export const FigmaUrlInput: React.FC<FigmaUrlInputProps> = ({
       nodeId,
       originalUrl: url,
       cleanUrl,
-      error: null,
+      error: undefined,
     };
   }, []);
 

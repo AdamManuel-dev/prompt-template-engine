@@ -1,7 +1,9 @@
 /**
  * @fileoverview Simple test to verify Jest setup
- * @lastmodified 2025-01-28T10:30:00Z
+ * @lastmodified 2025-08-29T10:30:00Z
  */
+
+import { describe, it, expect, jest } from '@jest/globals'
 
 describe('Basic Jest Setup', () => {
   it('should run basic tests', () => {

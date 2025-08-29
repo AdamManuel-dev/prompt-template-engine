@@ -15,7 +15,7 @@
     "resolveJsonModule": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    // "types": ["jest", "node"],
+    // "types": ["jest", "node"], // Jest types only needed in test config
     "typeRoots": [
       "node_modules/@types"
     ],
